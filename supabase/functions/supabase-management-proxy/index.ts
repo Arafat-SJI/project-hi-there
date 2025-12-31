@@ -5,6 +5,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Chunked base64 encoding to avoid stack overflow on large files
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return btoa(binary);
+}
+
+// Chunked base64 decoding
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
 interface ProxyRequest {
   action: 'list-functions' | 'get-function-body' | 'deploy-function';
   projectRef: string;
@@ -72,10 +94,11 @@ serve(async (req) => {
           );
         }
 
-        // Return the blob as base64
+        // Return the blob as base64 using chunked encoding
         const blob = await response.blob();
         const arrayBuffer = await blob.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        const base64 = arrayBufferToBase64(arrayBuffer);
+        console.log(`[supabase-management-proxy] Function body size: ${arrayBuffer.byteLength} bytes`);
         
         return new Response(
           JSON.stringify({ data: base64, contentType: blob.type }),
