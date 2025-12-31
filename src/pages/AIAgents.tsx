@@ -552,9 +552,9 @@ export default function AIAgents() {
                         </CardTitle>
                         <div className="flex items-center gap-2">
                           {getStatusBadge(run.status)}
-                          {run.execution_time_ms && (
+                          {run.latency_ms && (
                             <Badge variant="outline" className="text-xs">
-                              {run.execution_time_ms}ms
+                              {run.latency_ms}ms
                             </Badge>
                           )}
                         </div>
@@ -571,10 +571,10 @@ export default function AIAgents() {
                           <p className="text-sm mt-1">{run.output}</p>
                         </div>
                       )}
-                      {run.error && (
+                      {run.error_message && (
                         <div>
                           <Label className="text-xs text-destructive">Error:</Label>
-                          <p className="text-sm mt-1 text-destructive">{run.error}</p>
+                          <p className="text-sm mt-1 text-destructive">{run.error_message}</p>
                         </div>
                       )}
                       <p className="text-xs text-muted-foreground">

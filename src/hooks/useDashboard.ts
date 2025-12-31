@@ -12,11 +12,9 @@ export interface DashboardStats {
     thisWeek: number;
     upcoming: number;
   };
-  tasks: {
+  aiAgents: {
     total: number;
-    completed: number;
-    pending: number;
-    inProgress: number;
+    runsToday: number;
   };
   knowledge: {
     total: number;
@@ -29,7 +27,7 @@ export interface RecentActivity {
   action: string;
   detail: string;
   time: string;
-  type: "client" | "meeting" | "task" | "knowledge";
+  type: "client" | "meeting" | "ai" | "knowledge";
 }
 
 export function useDashboardStats() {
@@ -43,6 +41,7 @@ export function useDashboardStats() {
       const now = new Date();
       const monthAgo = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
       // Fetch clients
       const [clientsTotal, clientsThisMonth] = await Promise.all([
@@ -67,21 +66,13 @@ export function useDashboardStats() {
           .eq("status", "scheduled"),
       ]);
 
-      // Fetch tasks
-      const [tasksTotal, tasksCompleted, tasksPending, tasksInProgress] = await Promise.all([
-        supabase.from("tasks").select("*", { count: "exact", head: true }),
+      // Fetch AI agents stats
+      const [agentsTotal, agentRunsToday] = await Promise.all([
+        supabase.from("ai_agents").select("*", { count: "exact", head: true }),
         supabase
-          .from("tasks")
+          .from("ai_agent_runs")
           .select("*", { count: "exact", head: true })
-          .eq("status", "completed"),
-        supabase
-          .from("tasks")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "pending"),
-        supabase
-          .from("tasks")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "in_progress"),
+          .gte("created_at", todayStart),
       ]);
 
       // Fetch knowledge entries
@@ -103,11 +94,9 @@ export function useDashboardStats() {
           thisWeek: meetingsThisWeek.count || 0,
           upcoming: meetingsUpcoming.count || 0,
         },
-        tasks: {
-          total: tasksTotal.count || 0,
-          completed: tasksCompleted.count || 0,
-          pending: tasksPending.count || 0,
-          inProgress: tasksInProgress.count || 0,
+        aiAgents: {
+          total: agentsTotal.count || 0,
+          runsToday: agentRunsToday.count || 0,
         },
         knowledge: {
           total: knowledgeTotal.count || 0,
@@ -166,20 +155,20 @@ export function useRecentActivity() {
         });
       });
 
-      // Get recent tasks
-      const { data: recentTasks } = await supabase
-        .from("tasks")
-        .select("id, title, created_at, status")
+      // Get recent AI agent runs
+      const { data: recentRuns } = await supabase
+        .from("ai_agent_runs")
+        .select("id, status, created_at, agent_id")
         .order("created_at", { ascending: false })
         .limit(3);
 
-      recentTasks?.forEach((task) => {
+      recentRuns?.forEach((run) => {
         activity.push({
-          id: task.id,
-          action: `Task ${task.status}`,
-          detail: task.title,
-          time: new Date(task.created_at).toISOString(),
-          type: "task",
+          id: run.id,
+          action: `AI run ${run.status}`,
+          detail: `Agent execution`,
+          time: new Date(run.created_at).toISOString(),
+          type: "ai",
         });
       });
 
