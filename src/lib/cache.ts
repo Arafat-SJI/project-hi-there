@@ -100,6 +100,9 @@ export const invalidateKeys = {
   tasks: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
   },
+  roles: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.roles });
+  },
   ai: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agents });
   },

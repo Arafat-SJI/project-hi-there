@@ -7,16 +7,23 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Upload, User as UserIcon } from "lucide-react";
+import { Loader2, Upload, User as UserIcon, Shield, Lock } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 
 export default function Profile() {
   const { user, profile, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || "",
     avatar_url: profile?.avatar_url || "",
+  });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,6 +103,73 @@ export default function Profile() {
       toast.error(error.message || "Failed to upload avatar");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    // Validation
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error("All password fields are required");
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      // Verify current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: passwordData.currentPassword,
+      });
+
+      if (signInError) {
+        toast.error("Current password is incorrect");
+        return;
+      }
+
+      // Update password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+
+      if (updateError) throw updateError;
+
+      // Clear form
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+
+      toast.success("Password updated successfully!");
+    } catch (error: any) {
+      console.error("Password change error:", error);
+      toast.error(error.message || "Failed to update password");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const getRoleBadgeVariant = (role?: string) => {
+    switch (role) {
+      case "admin":
+        return "destructive";
+      case "moderator":
+        return "default";
+      default:
+        return "secondary";
     }
   };
 
@@ -224,11 +298,22 @@ export default function Profile() {
       {/* Account Information */}
       <Card>
         <CardHeader>
-          <CardTitle>Account Information</CardTitle>
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            <CardTitle>Account Information</CardTitle>
+          </div>
           <CardDescription>Your account details and metadata</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <Label className="text-muted-foreground">Role</Label>
+              <div className="mt-1">
+                <Badge variant={getRoleBadgeVariant(profile?.role)}>
+                  {profile?.role?.toUpperCase() || "USER"}
+                </Badge>
+              </div>
+            </div>
             <div>
               <Label className="text-muted-foreground">Account Created</Label>
               <p className="text-sm font-medium">
@@ -254,6 +339,85 @@ export default function Profile() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Security Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Lock className="h-5 w-5" />
+            <CardTitle>Security</CardTitle>
+          </div>
+          <CardDescription>Change your password and security settings</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                }
+                placeholder="Enter current password"
+                disabled={passwordLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, newPassword: e.target.value })
+                }
+                placeholder="Enter new password (min. 8 characters)"
+                disabled={passwordLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                }
+                placeholder="Confirm new password"
+                disabled={passwordLoading}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setPasswordData({
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
+                  })
+                }
+                disabled={passwordLoading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={passwordLoading}>
+                {passwordLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Change Password
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>
