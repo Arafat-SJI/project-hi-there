@@ -67,6 +67,35 @@ export default function Login() {
                   {error}
                 </div>
               )}
+              
+              {/* Demo Credentials */}
+              <div className="rounded-lg border border-border bg-muted/50 p-3">
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Demo Credentials</p>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Demo User:</span>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail("demo@collabai.software"); setPassword("Demo@123"); }}
+                      className="font-mono text-foreground hover:text-primary"
+                    >
+                      demo@collabai.software
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Admin:</span>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail("admin@collabai.software"); setPassword("Admin@123"); }}
+                      className="font-mono text-foreground hover:text-primary"
+                    >
+                      admin@collabai.software
+                    </button>
+                  </div>
+                  <p className="mt-1 text-muted-foreground/70">Click to auto-fill • Password: Demo@123 / Admin@123</p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <Input
