@@ -19,8 +19,8 @@ export function AdminRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  // Check if user has admin role
-  const isAdmin = profile?.role === "admin" || profile?.role === "super_admin";
+  // Check if user has admin or moderator role
+  const isAdmin = profile?.role === "admin" || profile?.role === "moderator";
 
   if (!isAdmin) {
     return (

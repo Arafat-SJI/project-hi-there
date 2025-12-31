@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +16,7 @@ interface SidebarItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  adminOnly?: boolean;
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -42,16 +44,25 @@ const sidebarItems: SidebarItem[] = [
     title: "AI Agents",
     href: "/ai",
     icon: Brain,
+    adminOnly: true,
   },
   {
     title: "Admin",
     href: "/admin",
     icon: Settings,
+    adminOnly: true,
   },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
+  const { profile } = useAuth();
+  
+  // Check if user has admin role
+  const isAdmin = profile?.role === "admin" || profile?.role === "moderator";
+  
+  // Filter sidebar items based on user role
+  const visibleItems = sidebarItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar-background">
@@ -72,7 +83,7 @@ export function AppSidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <div className="space-y-1">
-            {sidebarItems.map((item) => {
+            {visibleItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href ||
                              location.pathname.startsWith(item.href + "/");
