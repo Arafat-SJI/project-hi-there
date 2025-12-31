@@ -221,6 +221,15 @@ curl https://YOUR_PROJECT.supabase.co/functions/v1/validate-api-key
 
 **Solution:** Target project ref is incorrect. Double-check the project ref.
 
+### **Error: "Entrypoint path does not exist - /tmp/.../source/index.ts"**
+
+**Solution:** This error occurred in older versions of the tool. The fix has been applied:
+- The tool now uses ESZIP format (Supabase's compiled bundle) correctly
+- Uses PATCH/POST endpoints with `Content-Type: application/vnd.denoland.eszip`
+- No longer treats ESZIP as a tar.gz source bundle
+
+If you still see this error, refresh the page and try again.
+
 ### **Error: "Failed to get code for [function]: 404"**
 
 **Solution:** The function doesn't exist in your source project.
