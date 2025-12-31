@@ -1,14 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMeeting, useCreateMeeting, useUpdateMeeting } from "@/hooks/useMeetings";
 import { useClients } from "@/hooks/useClients";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { meetingSchema, MeetingFormData } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -23,12 +26,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 export default function MeetingForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isEdit = !!id;
+  const [autoCategorizeMeeting, setAutoCategorizeMeeting] = useState(true);
 
   const { data: meeting, isLoading: loadingMeeting } = useMeeting(id || "");
   const { data: clients } = useClients();
@@ -70,11 +76,48 @@ export default function MeetingForm() {
         duration_minutes: data.duration_minutes ? Number(data.duration_minutes) : null,
       };
 
+      let meetingId: string;
+
       if (isEdit && id) {
         await updateMeeting.mutateAsync({ id, data: formattedData });
+        meetingId = id;
       } else {
-        await createMeeting.mutateAsync(formattedData);
+        const result = await createMeeting.mutateAsync(formattedData);
+        meetingId = result.id;
       }
+
+      // Auto-categorize meeting if enabled and has description
+      if (autoCategorizeMeeting && data.description && user) {
+        try {
+          const { data: categoryData, error: categoryError } = await supabase.functions.invoke("categorize-meeting", {
+            body: {
+              meeting_id: meetingId,
+              meeting_title: data.title,
+              meeting_description: data.description,
+              user_id: user.id,
+            },
+          });
+
+          if (!categoryError && categoryData) {
+            // Update meeting with category
+            await supabase
+              .from("meetings")
+              .update({
+                metadata: {
+                  category: categoryData.category,
+                  category_confidence: categoryData.confidence,
+                },
+              })
+              .eq("id", meetingId);
+
+            toast.success(`Meeting categorized as: ${categoryData.category}`);
+          }
+        } catch (categoryErr) {
+          console.error("Auto-categorize error:", categoryErr);
+          // Don't block the form submission if categorization fails
+        }
+      }
+
       navigate("/meetings");
     } catch (error) {
       console.error("Form submission error:", error);
@@ -233,6 +276,28 @@ export default function MeetingForm() {
                 {errors.description && (
                   <p className="text-sm text-destructive">{errors.description.message}</p>
                 )}
+              </div>
+
+              {/* AI Settings */}
+              <div className="space-y-4 md:col-span-2 rounded-lg border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent p-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <h3 className="font-medium">AI Features</h3>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="auto-categorize">Auto-categorize meeting</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically categorize this meeting using AI after saving
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto-categorize"
+                    checked={autoCategorizeMeeting}
+                    onCheckedChange={setAutoCategorizeMeeting}
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
             </div>
 
