@@ -22,9 +22,6 @@ import ClientDetail from "./pages/ClientDetail";
 import Meetings from "./pages/Meetings";
 import MeetingForm from "./pages/MeetingForm";
 import MeetingDetail from "./pages/MeetingDetail";
-import Tasks from "./pages/Tasks";
-import TaskForm from "./pages/TaskForm";
-import TaskDetail from "./pages/TaskDetail";
 import Knowledge from "./pages/Knowledge";
 import KnowledgeForm from "./pages/KnowledgeForm";
 import KnowledgeDetail from "./pages/KnowledgeDetail";
@@ -74,11 +71,6 @@ const App = () => (
                 <Route path="/meetings/:id" element={<MeetingDetail />} />
                 <Route path="/meetings/:id/edit" element={<MeetingForm />} />
 
-                {/* Tasks */}
-                <Route path="/tasks" element={<Tasks />} />
-                <Route path="/tasks/new" element={<TaskForm />} />
-                <Route path="/tasks/:id" element={<TaskDetail />} />
-                <Route path="/tasks/:id/edit" element={<TaskForm />} />
 
                 {/* Knowledge Base */}
                 <Route path="/knowledge" element={<Knowledge />} />

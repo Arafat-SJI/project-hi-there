@@ -92,7 +92,7 @@ export default function RoleManagement() {
     setFormData({
       name: role.name,
       description: role.description || "",
-      permissions: role.permissions || [],
+      permissions: [],
     });
     setDialogOpen(true);
   };
@@ -242,18 +242,11 @@ export default function RoleManagement() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {role.permissions?.slice(0, 3).map((perm) => (
-                            <Badge key={perm} variant="secondary" className="text-xs">
-                              {perm}
-                            </Badge>
-                          ))}
-                          {(role.permissions?.length || 0) > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{(role.permissions?.length || 0) - 3} more
-                            </Badge>
-                          )}
-                          {(!role.permissions || role.permissions.length === 0) && (
-                            <span className="text-sm text-muted-foreground">No permissions</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {role.name === "admin" ? "Full Access" : "Standard"}
+                          </Badge>
+                          {role.name !== "admin" && (
+                            <span className="text-sm text-muted-foreground">Managed via RLS</span>
                           )}
                         </div>
                       </TableCell>

@@ -61,7 +61,7 @@ export default function Feedback() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setMyFeedback(data || []);
+      setMyFeedback((data || []) as FeedbackItem[]);
     } catch (error: any) {
       console.error("Fetch feedback error:", error);
       toast.error("Failed to load your feedback");
