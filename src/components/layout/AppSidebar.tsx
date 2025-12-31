@@ -64,7 +64,7 @@ export function AppSidebar() {
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-sidebar-foreground">Control Tower</span>
-              <span className="text-xs text-muted-foreground">SJ Innovation</span>
+              <span className="text-xs text-muted-foreground">CollabAi</span>
             </div>
           </Link>
         </div>

@@ -80,7 +80,7 @@ export default function Index() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm text-muted-foreground">
             <span className="flex h-2 w-2 rounded-full bg-primary" />
-            SJ Innovation Framework v1.0
+            CollabAi Framework v1.0
           </div>
           <h1 className="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Your AI-powered
@@ -173,7 +173,7 @@ export default function Index() {
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Brain className="h-4 w-4" />
-              <span>Control Tower by SJ Innovation</span>
+              <span>Control Tower by CollabAi</span>
             </div>
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} All rights reserved.
