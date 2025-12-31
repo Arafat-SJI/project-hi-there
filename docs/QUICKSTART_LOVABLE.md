@@ -176,13 +176,57 @@ Add appropriate RLS policies for each bucket.
 
 ---
 
-### **PHASE 3: Deploy Edge Functions via Lovable (60 minutes)**
+### **PHASE 3: Deploy Edge Functions (15-60 minutes)**
+
+#### **🎯 EASIEST METHOD: Edge Function Copy Tool** ⭐ **NEW!**
+
+**Best for:** Non-technical users, fastest setup (15 minutes)
+
+We've built a web-based tool that copies all 31 edge functions automatically!
+
+**Steps:**
+
+1. **Clone this repo** to your local machine (or use the downloaded version):
+   ```bash
+   git clone https://github.com/sjinnovation/sj-control-tower-framework.git
+   cd sj-control-tower-framework
+   npm install
+   npm run dev
+   ```
+
+2. **Open the tool** in your browser:
+   ```
+   http://localhost:5173/edge-function-copy
+   ```
+
+3. **Get API tokens** from Supabase:
+   - Go to: https://supabase.com/dashboard/account/tokens
+   - Generate a "Personal Access Token"
+   - Use for both source and target projects
+
+4. **Use the tool:**
+   - Enter source project credentials (sj-control-main)
+   - Click "List Functions"
+   - Click "Select All V1" (selects all 31 functions)
+   - Enter target project credentials (your new project)
+   - Click "Copy Functions"
+   - Wait for completion!
+
+**See full guide:** [EDGE_FUNCTION_COPY_TOOL.md](./EDGE_FUNCTION_COPY_TOOL.md)
+
+**Then skip to Step 3.6 (Set Environment Variables)**
+
+---
+
+#### **Alternative Methods** (if copy tool doesn't work)
 
 #### **Step 3.1: Upload Edge Function Files**
 
-You have two options:
+You have three options:
 
-**Option A: Upload Individually (Recommended)**
+**Option A: Edge Function Copy Tool** ⭐ (See above - EASIEST!)
+
+**Option B: Upload Individually to Lovable**
 
 For each V1 edge function, create in Lovable:
 
@@ -191,9 +235,9 @@ For each V1 edge function, create in Lovable:
 3. Copy code from framework
 4. Lovable auto-deploys on save
 
-**Option B: Bulk Upload via Claude Code**
+**Option C: Bulk Upload via Local Development**
 
-1. Use Claude Code locally to prepare functions
+1. Copy functions locally from downloaded project
 2. Push to GitHub
 3. Lovable syncs from GitHub
 
