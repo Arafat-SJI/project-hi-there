@@ -32,6 +32,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Fetch user role from user_roles table
+  const fetchUserRole = async (userId: string): Promise<string | undefined> => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .single();
+
+      if (error) {
+        if (error.code !== "PGRST116") {
+          console.error("Error fetching user role:", error);
+        }
+        return undefined;
+      }
+      return data?.role;
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      return undefined;
+    }
+  };
+
   // Fetch or create user profile
   const fetchProfile = async (userId: string) => {
     try {
@@ -40,6 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .select("*")
         .eq("id", userId)
         .single();
+
+      // Fetch role separately from user_roles table
+      const role = await fetchUserRole(userId);
 
       if (error) {
         // Profile doesn't exist, create it
@@ -59,12 +84,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
 
           if (createError) throw createError;
-          setProfile(newProfile);
+          setProfile({ ...newProfile, role });
         } else {
           throw error;
         }
       } else {
-        setProfile(data);
+        setProfile({ ...data, role });
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
