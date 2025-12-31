@@ -106,10 +106,11 @@ serve(async (req) => {
       JSON.stringify({ error: 'Method not allowed' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 405 }
     )
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('API meetings error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }

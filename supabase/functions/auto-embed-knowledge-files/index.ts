@@ -84,14 +84,15 @@ serve(async (req) => {
 
           processedCount++
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`Error processing file ${file.id}:`, error)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
 
         await supabaseClient
           .from('knowledge_files')
           .update({
             processing_status: 'failed',
-            error_message: error.message,
+            error_message: errorMessage,
           })
           .eq('id', file.id)
       }
@@ -107,10 +108,11 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Auto embed knowledge files error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }

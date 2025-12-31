@@ -76,8 +76,9 @@ serve(async (req) => {
             success: slackResponse.ok,
             error: slackResponse.ok ? null : 'Slack webhook failed'
           })
-        } catch (error) {
-          results.push({ channel: 'slack', success: false, error: error.message })
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          results.push({ channel: 'slack', success: false, error: errorMessage })
         }
       } else {
         results.push({ channel: 'slack', success: false, error: 'SLACK_WEBHOOK_URL not configured' })
@@ -88,10 +89,11 @@ serve(async (req) => {
       JSON.stringify({ success: true, results }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Send notification error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
