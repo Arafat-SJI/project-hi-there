@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePreferences, useUpdatePreferences, useResetPreferences, UserPreferences } from "@/hooks/usePreferences";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -12,60 +12,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Bell, Moon, Globe, Shield, Zap } from "lucide-react";
+import { Bell, Moon, Globe, Shield, Zap, Loader2 } from "lucide-react";
 
 export default function Settings() {
-  const [settings, setSettings] = useState({
-    notifications: {
-      email: true,
-      push: true,
-      meetings: true,
-      clients: true,
-      aiAgents: false,
-    },
-    appearance: {
-      theme: "system",
-      language: "en",
-    },
-    privacy: {
-      profileVisibility: "team",
-      activityTracking: true,
-    },
-    ai: {
-      enableSuggestions: true,
-      autoSummarize: false,
-    },
-  });
+  const { data: preferences, isLoading } = usePreferences();
+  const updatePreferences = useUpdatePreferences();
+  const resetPreferences = useResetPreferences();
+
+  const [settings, setSettings] = useState<UserPreferences | null>(null);
+
+  // Sync settings with loaded preferences
+  useEffect(() => {
+    if (preferences) {
+      setSettings(preferences);
+    }
+  }, [preferences]);
 
   const handleSave = () => {
-    // TODO: Save to database (profiles.metadata or separate settings table)
-    toast.success("Settings saved successfully!");
+    if (settings) {
+      updatePreferences.mutate(settings);
+    }
   };
 
   const handleReset = () => {
-    setSettings({
-      notifications: {
-        email: true,
-        push: true,
-        meetings: true,
-        clients: true,
-        aiAgents: false,
-      },
-      appearance: {
-        theme: "system",
-        language: "en",
-      },
-      privacy: {
-        profileVisibility: "team",
-        activityTracking: true,
-      },
-      ai: {
-        enableSuggestions: true,
-        autoSummarize: false,
-      },
-    });
-    toast.info("Settings reset to defaults");
+    resetPreferences.mutate();
   };
+
+  if (isLoading || !settings) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const isProcessing = updatePreferences.isPending || resetPreferences.isPending;
 
   return (
     <div className="space-y-6">
@@ -102,6 +83,7 @@ export default function Settings() {
                   notifications: { ...settings.notifications, email: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -122,6 +104,7 @@ export default function Settings() {
                   notifications: { ...settings.notifications, push: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -142,6 +125,7 @@ export default function Settings() {
                   notifications: { ...settings.notifications, meetings: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -162,6 +146,28 @@ export default function Settings() {
                   notifications: { ...settings.notifications, clients: checked },
                 })
               }
+              disabled={isProcessing}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Task Updates</Label>
+              <p className="text-sm text-muted-foreground">
+                Notifications for task assignments and updates
+              </p>
+            </div>
+            <Switch
+              checked={settings.notifications.tasks}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  notifications: { ...settings.notifications, tasks: checked },
+                })
+              }
+              disabled={isProcessing}
             />
           </div>
 
@@ -182,6 +188,7 @@ export default function Settings() {
                   notifications: { ...settings.notifications, aiAgents: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
         </CardContent>
@@ -207,6 +214,7 @@ export default function Settings() {
                   appearance: { ...settings.appearance, theme: value },
                 })
               }
+              disabled={isProcessing}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -234,6 +242,7 @@ export default function Settings() {
                   appearance: { ...settings.appearance, language: value },
                 })
               }
+              disabled={isProcessing}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -272,6 +281,7 @@ export default function Settings() {
                   privacy: { ...settings.privacy, profileVisibility: value },
                 })
               }
+              disabled={isProcessing}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -304,6 +314,7 @@ export default function Settings() {
                   privacy: { ...settings.privacy, activityTracking: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
         </CardContent>
@@ -334,6 +345,7 @@ export default function Settings() {
                   ai: { ...settings.ai, enableSuggestions: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -354,6 +366,7 @@ export default function Settings() {
                   ai: { ...settings.ai, autoSummarize: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
         </CardContent>
@@ -361,11 +374,11 @@ export default function Settings() {
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={handleReset}>
+        <Button variant="outline" onClick={handleReset} disabled={isProcessing}>
           Reset to Defaults
         </Button>
-        <Button onClick={handleSave}>
-          Save Changes
+        <Button onClick={handleSave} disabled={isProcessing}>
+          {isProcessing ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>

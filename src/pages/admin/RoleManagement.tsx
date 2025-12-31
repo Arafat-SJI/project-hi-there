@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { useState } from "react";
+import { useRoles, useCreateRole, useUpdateRole, useDeleteRole, Role, RoleFormData } from "@/hooks/useRoles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,26 +20,20 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Shield, Plus, Edit, Trash2, Loader2, Check } from "lucide-react";
-import { toast } from "sonner";
-
-interface Role {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-}
-
-interface Permission {
-  id: string;
-  name: string;
-  description: string | null;
-  resource: string;
-  action: string;
-}
 
 const AVAILABLE_PERMISSIONS = [
   { resource: "users", action: "read", label: "View Users" },
@@ -54,6 +48,11 @@ const AVAILABLE_PERMISSIONS = [
   { resource: "meetings", action: "create", label: "Create Meetings" },
   { resource: "meetings", action: "update", label: "Update Meetings" },
   { resource: "meetings", action: "delete", label: "Delete Meetings" },
+  { resource: "tasks", action: "read", label: "View Tasks" },
+  { resource: "tasks", action: "create", label: "Create Tasks" },
+  { resource: "tasks", action: "update", label: "Update Tasks" },
+  { resource: "tasks", action: "delete", label: "Delete Tasks" },
+  { resource: "tasks", action: "assign", label: "Assign Tasks to Others" },
   { resource: "knowledge", action: "read", label: "View Knowledge Base" },
   { resource: "knowledge", action: "create", label: "Create Knowledge" },
   { resource: "knowledge", action: "update", label: "Update Knowledge" },
@@ -63,39 +62,20 @@ const AVAILABLE_PERMISSIONS = [
 ];
 
 export default function RoleManagement() {
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: roles, isLoading } = useRoles();
+  const createRole = useCreateRole();
+  const updateRole = useUpdateRole();
+  const deleteRole = useDeleteRole();
+
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [formData, setFormData] = useState({
+  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<RoleFormData>({
     name: "",
     description: "",
-    permissions: [] as string[],
+    permissions: [],
   });
-  const [processing, setProcessing] = useState(false);
-
-  useEffect(() => {
-    fetchRoles();
-  }, []);
-
-  const fetchRoles = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("roles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      // Add empty permissions array to match interface
-      setRoles((data || []).map(r => ({ ...r })));
-    } catch (error: any) {
-      console.error("Error fetching roles:", error);
-      toast.error("Failed to fetch roles");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openCreateDialog = () => {
     setEditingRole(null);
@@ -119,59 +99,35 @@ export default function RoleManagement() {
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      toast.error("Role name is required");
       return;
     }
 
-    setProcessing(true);
     try {
       if (editingRole) {
-        // Update existing role
-        const { error } = await supabase
-          .from("roles")
-          .update({
-            name: formData.name,
-            description: formData.description || null,
-          })
-          .eq("id", editingRole.id);
-
-        if (error) throw error;
-        toast.success("Role updated successfully");
+        await updateRole.mutateAsync({ id: editingRole.id, data: formData });
       } else {
-        // Create new role
-        const { error } = await supabase.from("roles").insert({
-          name: formData.name,
-          description: formData.description || null,
-        });
-
-        if (error) throw error;
-        toast.success("Role created successfully");
+        await createRole.mutateAsync(formData);
       }
-
       setDialogOpen(false);
-      fetchRoles();
-    } catch (error: any) {
-      console.error("Error saving role:", error);
-      toast.error("Failed to save role");
-    } finally {
-      setProcessing(false);
+    } catch (error) {
+      // Error handled by mutation
     }
   };
 
-  const handleDeleteRole = async (roleId: string) => {
-    if (!confirm("Are you sure you want to delete this role? Users with this role will lose their permissions.")) {
-      return;
-    }
+  const openDeleteDialog = (roleId: string) => {
+    setDeletingRoleId(roleId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingRoleId) return;
 
     try {
-      const { error } = await supabase.from("roles").delete().eq("id", roleId);
-
-      if (error) throw error;
-      toast.success("Role deleted successfully");
-      fetchRoles();
-    } catch (error: any) {
-      console.error("Error deleting role:", error);
-      toast.error("Failed to delete role");
+      await deleteRole.mutateAsync(deletingRoleId);
+      setDeleteDialogOpen(false);
+      setDeletingRoleId(null);
+    } catch (error) {
+      // Error handled by mutation
     }
   };
 
@@ -196,6 +152,7 @@ export default function RoleManagement() {
   };
 
   const groupedPermissions = groupPermissionsByResource();
+  const isProcessing = createRole.isPending || updateRole.isPending;
 
   return (
     <div className="space-y-6">
@@ -220,7 +177,7 @@ export default function RoleManagement() {
             <CardTitle className="text-sm font-medium">Total Roles</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{roles.length}</div>
+            <div className="text-2xl font-bold">{roles?.length || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -250,7 +207,7 @@ export default function RoleManagement() {
           <CardDescription>View and manage user roles</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="flex h-32 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
@@ -265,7 +222,7 @@ export default function RoleManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {roles.length === 0 ? (
+                {!roles || roles.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground">
                       No roles found. Create your first role to get started.
@@ -305,7 +262,7 @@ export default function RoleManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteRole(role.id)}
+                            onClick={() => openDeleteDialog(role.id)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -339,7 +296,7 @@ export default function RoleManagement() {
                 placeholder="e.g., Manager, Editor, Viewer"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                disabled={processing}
+                disabled={isProcessing}
               />
             </div>
             <div className="space-y-2">
@@ -350,7 +307,7 @@ export default function RoleManagement() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                disabled={processing}
+                disabled={isProcessing}
               />
             </div>
             <div className="space-y-4">
@@ -381,7 +338,7 @@ export default function RoleManagement() {
                               id={permKey}
                               checked={formData.permissions.includes(permKey)}
                               onCheckedChange={() => togglePermission(permKey)}
-                              disabled={processing}
+                              disabled={isProcessing}
                             />
                           </div>
                         );
@@ -393,11 +350,11 @@ export default function RoleManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={processing}>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isProcessing}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={processing}>
-              {processing ? (
+            <Button onClick={handleSubmit} disabled={isProcessing}>
+              {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
@@ -412,6 +369,31 @@ export default function RoleManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Role</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this role? Users with this role will lose their permissions. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleteRole.isPending}>
+              {deleteRole.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

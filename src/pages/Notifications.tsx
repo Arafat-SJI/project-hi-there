@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { useState } from "react";
+import {
+  useNotifications,
+  useMarkAsRead,
+  useMarkAllAsRead,
+  useDeleteNotification,
+} from "@/hooks/useNotifications";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { toast } from "sonner";
 import {
   Bell,
   CheckCircle,
@@ -20,117 +23,13 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-interface Notification {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string;
-  type: "info" | "success" | "warning" | "error";
-  is_read: boolean;
-  read_at: string | null;
-  link: string | null;
-  metadata: Record<string, any>;
-  created_at: string;
-}
-
 export default function Notifications() {
-  const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    }
-  }, [user, filter]);
-
-  const fetchNotifications = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      let query = supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (filter === "unread") {
-        query = query.eq("is_read", false);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setNotifications((data || []) as Notification[]);
-    } catch (error: any) {
-      console.error("Fetch notifications error:", error);
-      toast.error("Failed to load notifications");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAsRead = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({
-          is_read: true,
-          read_at: new Date().toISOString(),
-        })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
-        )
-      );
-    } catch (error: any) {
-      console.error("Mark as read error:", error);
-      toast.error("Failed to mark as read");
-    }
-  };
-
-  const markAllAsRead = async () => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({
-          is_read: true,
-          read_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id)
-        .eq("is_read", false);
-
-      if (error) throw error;
-
-      toast.success("All notifications marked as read");
-      fetchNotifications();
-    } catch (error: any) {
-      console.error("Mark all as read error:", error);
-      toast.error("Failed to mark all as read");
-    }
-  };
-
-  const deleteNotification = async (id: string) => {
-    try {
-      const { error } = await supabase.from("notifications").delete().eq("id", id);
-
-      if (error) throw error;
-
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      toast.success("Notification deleted");
-    } catch (error: any) {
-      console.error("Delete notification error:", error);
-      toast.error("Failed to delete notification");
-    }
-  };
+  const { data: notifications, isLoading } = useNotifications(filter);
+  const markAsRead = useMarkAsRead();
+  const markAllAsRead = useMarkAllAsRead();
+  const deleteNotification = useDeleteNotification();
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -145,7 +44,7 @@ export default function Notifications() {
     }
   };
 
-  const getBadgeVariant = (type: string) => {
+  const getBadgeVariant = (type: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (type) {
       case "success":
         return "default";
@@ -158,7 +57,7 @@ export default function Notifications() {
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadCount = notifications?.filter((n) => !n.is_read).length || 0;
 
   return (
     <div className="space-y-6">
@@ -172,8 +71,16 @@ export default function Notifications() {
         </div>
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (
-            <Button variant="outline" onClick={markAllAsRead}>
-              <Check className="mr-2 h-4 w-4" />
+            <Button
+              variant="outline"
+              onClick={() => markAllAsRead.mutate()}
+              disabled={markAllAsRead.isPending}
+            >
+              {markAllAsRead.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="mr-2 h-4 w-4" />
+              )}
               Mark all as read
             </Button>
           )}
@@ -187,7 +94,7 @@ export default function Notifications() {
             <CardTitle className="text-sm font-medium">Total</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{notifications.length}</div>
+            <div className="text-2xl font-bold">{notifications?.length || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -230,11 +137,11 @@ export default function Notifications() {
           <CardDescription>Your recent activity and updates</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : notifications.length === 0 ? (
+          ) : !notifications || notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
               <Bell className="h-12 w-12 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
@@ -280,7 +187,8 @@ export default function Notifications() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => markAsRead(notification.id)}
+                                onClick={() => markAsRead.mutate(notification.id)}
+                                disabled={markAsRead.isPending}
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
@@ -288,7 +196,8 @@ export default function Notifications() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => deleteNotification(notification.id)}
+                              onClick={() => deleteNotification.mutate(notification.id)}
+                              disabled={deleteNotification.isPending}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

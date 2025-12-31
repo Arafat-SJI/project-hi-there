@@ -132,6 +132,15 @@ export default function Admin() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
+                <p className="font-medium">System Settings</p>
+                <p className="text-sm text-muted-foreground">Platform configuration</p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin/settings">Configure</Link>
+              </Button>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
                 <p className="font-medium">Environment Variables</p>
                 <p className="text-sm text-muted-foreground">API keys and secrets</p>
               </div>
@@ -153,13 +162,6 @@ export default function Admin() {
               <Button variant="outline" size="sm" asChild>
                 <Link to="/admin/deployment">View Status</Link>
               </Button>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <p className="font-medium">Database Migrations</p>
-                <p className="text-sm text-muted-foreground">Schema updates</p>
-              </div>
-              <Button variant="outline" size="sm">View</Button>
             </div>
           </CardContent>
         </Card>

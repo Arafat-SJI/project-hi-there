@@ -152,13 +152,21 @@
 │    Users     │       │   Profiles   │       │  User Roles  │
 │  (auth.users)│──────▶│              │◀──────│              │
 └──────────────┘       └──────────────┘       └──────────────┘
-        │                     │
-        │                     │
-        ▼                     ▼
+        │                     │                       │
+        │                     │                       │
+        ▼                     ▼                       ▼
 ┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-│   Clients    │       │   Meetings   │       │ Knowledge    │
-│              │◀──────│              │       │  Entries     │
+│   Clients    │◀──────│   Meetings   │       │    Tasks     │
+│              │       │              │       │  (assigned)  │
 └──────────────┘       └──────────────┘       └──────────────┘
+        │                     │                       │
+        └─────────────────────┴───────────────────────┘
+                              │
+                              ▼
+                       ┌──────────────┐
+                       │ Knowledge    │
+                       │  Entries     │
+                       └──────────────┘
                               │
                               ▼
                        ┌──────────────┐
@@ -392,7 +400,13 @@ collabai/
 │   ├── hooks/
 │   │   ├── useClients.ts      # Clients data
 │   │   ├── useMeetings.ts     # Meetings data
+│   │   ├── useTasks.ts        # Tasks data
 │   │   ├── useKnowledge.ts    # Knowledge data
+│   │   ├── useNotifications.ts # Notifications with real-time updates
+│   │   ├── useAIAgents.ts     # AI agents CRUD + execution
+│   │   ├── useDashboard.ts    # Dashboard analytics
+│   │   ├── useRoles.ts        # Role management
+│   │   ├── usePreferences.ts  # User preferences
 │   │   └── use-toast.ts       # Toast notifications
 │   │
 │   ├── integrations/
@@ -407,16 +421,29 @@ collabai/
 │   │   └── cache.ts           # Cache utilities
 │   │
 │   ├── pages/
-│   │   ├── Dashboard.tsx      # Main dashboard
+│   │   ├── Dashboard.tsx      # Real-time dashboard with analytics
 │   │   ├── Clients.tsx        # Clients list
 │   │   ├── ClientForm.tsx     # Client add/edit
 │   │   ├── ClientDetail.tsx   # Client details
 │   │   ├── Meetings.tsx       # Meetings list
 │   │   ├── MeetingForm.tsx    # Meeting add/edit
 │   │   ├── MeetingDetail.tsx  # Meeting details
+│   │   ├── Tasks.tsx          # Tasks list
+│   │   ├── TaskForm.tsx       # Task add/edit
+│   │   ├── TaskDetail.tsx     # Task details
 │   │   ├── Knowledge.tsx      # Knowledge base
 │   │   ├── AIChat.tsx         # AI assistant
+│   │   ├── AIAgents.tsx       # AI agents management + execution
+│   │   ├── Notifications.tsx  # User notifications
+│   │   ├── Profile.tsx        # User profile + password change
+│   │   ├── Settings.tsx       # User preferences
+│   │   ├── Feedback.tsx       # User feedback
 │   │   ├── Admin.tsx          # Admin panel
+│   │   ├── admin/
+│   │   │   ├── UserManagement.tsx    # User management
+│   │   │   ├── RoleManagement.tsx    # Role & permissions
+│   │   │   ├── ActivityLogs.tsx      # Audit logs
+│   │   │   └── SystemSettings.tsx    # Platform configuration
 │   │   ├── Login.tsx          # Login page
 │   │   ├── Signup.tsx         # Signup page
 │   │   └── NotFound.tsx       # 404 page

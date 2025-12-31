@@ -1,52 +1,21 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDashboardStats, useRecentActivity, getTimeAgo } from "@/hooks/useDashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  Users, 
-  Calendar, 
-  BookOpen, 
+import { Badge } from "@/components/ui/badge";
+import {
+  Users,
+  Calendar,
+  BookOpen,
   Brain,
   Plus,
   ArrowUpRight,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Loader2,
+  CheckSquare,
 } from "lucide-react";
-
-const stats = [
-  {
-    title: "Total Clients",
-    value: "24",
-    change: "+3 this month",
-    trend: "up",
-    icon: Users,
-    href: "/clients",
-  },
-  {
-    title: "Meetings",
-    value: "12",
-    change: "4 this week",
-    trend: "up",
-    icon: Calendar,
-    href: "/meetings",
-  },
-  {
-    title: "Knowledge Entries",
-    value: "156",
-    change: "+12 new",
-    trend: "up",
-    icon: BookOpen,
-    href: "/knowledge",
-  },
-  {
-    title: "AI Queries",
-    value: "89",
-    change: "This month",
-    trend: "neutral",
-    icon: Brain,
-    href: "/ai",
-  },
-];
 
 const quickActions = [
   {
@@ -56,40 +25,50 @@ const quickActions = [
     href: "/clients/new",
   },
   {
+    title: "Create Task",
+    description: "Add a new task",
+    icon: CheckSquare,
+    href: "/tasks/new",
+  },
+  {
     title: "Schedule Meeting",
     description: "Set up a new meeting",
     icon: Calendar,
     href: "/meetings/new",
   },
   {
-    title: "AI Assistant",
-    description: "Chat with your AI agent",
-    icon: Brain,
-    href: "/ai/chat",
-  },
-  {
-    title: "Knowledge Base",
-    description: "Search your knowledge",
+    title: "Add Knowledge",
+    description: "Upload to knowledge base",
     icon: BookOpen,
-    href: "/knowledge",
+    href: "/knowledge/new",
   },
-];
-
-const recentActivity = [
-  { action: "Meeting completed", detail: "Weekly sync with Acme Corp", time: "2 hours ago" },
-  { action: "Client added", detail: "New client: TechStart Inc", time: "5 hours ago" },
-  { action: "Document uploaded", detail: "Q4 Planning notes", time: "Yesterday" },
-  { action: "AI summary generated", detail: "Product review meeting", time: "Yesterday" },
 ];
 
 export default function Dashboard() {
   const { profile } = useAuth();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: recentActivity, isLoading: activityLoading } = useRecentActivity();
 
   const greeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
     if (hour < 18) return "Good afternoon";
     return "Good evening";
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "client":
+        return Users;
+      case "meeting":
+        return Calendar;
+      case "task":
+        return CheckSquare;
+      case "knowledge":
+        return BookOpen;
+      default:
+        return Clock;
+    }
   };
 
   return (
@@ -105,30 +84,99 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => (
-          <Link key={index} to={stat.href} className="group">
+      {statsLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Clients */}
+          <Link to="/clients" className="group">
             <Card className="transition-all duration-200 hover:border-border hover:shadow-soft">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <stat.icon className="h-5 w-5 text-primary" />
+                    <Users className="h-5 w-5 text-primary" />
                   </div>
                   <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
                 <div className="mt-4">
-                  <p className="text-2xl font-semibold text-foreground">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.title}</p>
+                  <p className="text-2xl font-semibold text-foreground">{stats?.clients.total || 0}</p>
+                  <p className="text-sm text-muted-foreground">Total Clients</p>
                 </div>
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                  {stat.trend === "up" && <TrendingUp className="h-3 w-3 text-green-600" />}
-                  <span>{stat.change}</span>
+                  {(stats?.clients.thisMonth || 0) > 0 && <TrendingUp className="h-3 w-3 text-green-600" />}
+                  <span>+{stats?.clients.thisMonth || 0} this month</span>
                 </div>
               </CardContent>
             </Card>
           </Link>
-        ))}
-      </div>
+
+          {/* Meetings */}
+          <Link to="/meetings" className="group">
+            <Card className="transition-all duration-200 hover:border-border hover:shadow-soft">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Calendar className="h-5 w-5 text-primary" />
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl font-semibold text-foreground">{stats?.meetings.total || 0}</p>
+                  <p className="text-sm text-muted-foreground">Total Meetings</p>
+                </div>
+                <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                  <span>{stats?.meetings.upcoming || 0} upcoming</span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Tasks */}
+          <Link to="/tasks" className="group">
+            <Card className="transition-all duration-200 hover:border-border hover:shadow-soft">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <CheckSquare className="h-5 w-5 text-primary" />
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl font-semibold text-foreground">{stats?.tasks.total || 0}</p>
+                  <p className="text-sm text-muted-foreground">Total Tasks</p>
+                </div>
+                <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                  <span>{stats?.tasks.pending || 0} pending, {stats?.tasks.inProgress || 0} in progress</span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Knowledge */}
+          <Link to="/knowledge" className="group">
+            <Card className="transition-all duration-200 hover:border-border hover:shadow-soft">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl font-semibold text-foreground">{stats?.knowledge.total || 0}</p>
+                  <p className="text-sm text-muted-foreground">Knowledge Entries</p>
+                </div>
+                <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                  {(stats?.knowledge.recent || 0) > 0 && <TrendingUp className="h-3 w-3 text-green-600" />}
+                  <span>+{stats?.knowledge.recent || 0} this week</span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Quick Actions */}
@@ -149,11 +197,11 @@ export default function Dashboard() {
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                       <action.icon className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">{action.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">{action.description}</p>
+                      <p className="text-xs text-muted-foreground">{action.description}</p>
                     </div>
-                    <Plus className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                   </Link>
                 ))}
               </div>
@@ -162,34 +210,95 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div>
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-medium">Recent Activity</CardTitle>
-              <CardDescription>Latest updates</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((item, index) => (
-                  <div key={index} className="flex gap-3">
-                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground">{item.action}</p>
-                      <p className="truncate text-xs text-muted-foreground">{item.detail}</p>
-                      <p className="text-xs text-muted-foreground/70">{item.time}</p>
-                    </div>
-                  </div>
-                ))}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-medium">Recent Activity</CardTitle>
+            <CardDescription>Latest updates and changes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {activityLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-              <Button variant="ghost" size="sm" className="mt-4 w-full text-muted-foreground">
-                View all activity
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            ) : !recentActivity || recentActivity.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                <Clock className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">No recent activity</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentActivity.map((item) => {
+                  const Icon = getActivityIcon(item.type);
+                  return (
+                    <div key={item.id} className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium text-foreground">{item.action}</p>
+                        <p className="text-xs text-muted-foreground">{item.detail}</p>
+                        <p className="text-xs text-muted-foreground">{getTimeAgo(item.time)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Task Summary */}
+      {stats && (stats.tasks.total > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Task Overview</CardTitle>
+            <CardDescription>Summary of your tasks by status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Pending</span>
+                  <Badge variant="outline">{stats.tasks.pending}</Badge>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-yellow-500"
+                    style={{ width: `${(stats.tasks.pending / stats.tasks.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">In Progress</span>
+                  <Badge variant="default">{stats.tasks.inProgress}</Badge>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-blue-500"
+                    style={{ width: `${(stats.tasks.inProgress / stats.tasks.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Completed</span>
+                  <Badge variant="secondary">{stats.tasks.completed}</Badge>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-green-500"
+                    style={{ width: `${(stats.tasks.completed / stats.tasks.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
