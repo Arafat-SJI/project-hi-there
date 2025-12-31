@@ -23,7 +23,7 @@ export function FinalCTA() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button 
               size="lg" 
-              className="h-14 px-10 text-base font-semibold shadow-lg"
+              className="h-14 rounded-full px-10 text-base font-semibold shadow-lg"
               asChild
             >
               <a href="https://collabai.software/try-demo" target="_blank" rel="noopener noreferrer">
@@ -34,7 +34,7 @@ export function FinalCTA() {
             <Button 
               size="lg" 
               variant="outline" 
-              className="h-14 px-10 text-base font-semibold bg-background/50 backdrop-blur-sm"
+              className="h-14 rounded-full px-10 text-base font-semibold bg-background/50 backdrop-blur-sm"
               asChild
             >
               <a href="https://collabai.software/contact" target="_blank" rel="noopener noreferrer">
