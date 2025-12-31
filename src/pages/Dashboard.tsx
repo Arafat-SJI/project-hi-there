@@ -14,7 +14,6 @@ import {
   Clock,
   TrendingUp,
   Loader2,
-  CheckSquare,
 } from "lucide-react";
 
 const quickActions = [
@@ -23,12 +22,6 @@ const quickActions = [
     description: "Create a new client record",
     icon: Users,
     href: "/clients/new",
-  },
-  {
-    title: "Create Task",
-    description: "Add a new task",
-    icon: CheckSquare,
-    href: "/tasks/new",
   },
   {
     title: "Schedule Meeting",
@@ -41,6 +34,12 @@ const quickActions = [
     description: "Upload to knowledge base",
     icon: BookOpen,
     href: "/knowledge/new",
+  },
+  {
+    title: "AI Agents",
+    description: "Manage AI agents",
+    icon: Brain,
+    href: "/ai-agents",
   },
 ];
 
@@ -62,8 +61,8 @@ export default function Dashboard() {
         return Users;
       case "meeting":
         return Calendar;
-      case "task":
-        return CheckSquare;
+      case "ai":
+        return Brain;
       case "knowledge":
         return BookOpen;
       default:
@@ -133,22 +132,22 @@ export default function Dashboard() {
             </Card>
           </Link>
 
-          {/* Tasks */}
-          <Link to="/tasks" className="group">
+          {/* AI Agents */}
+          <Link to="/ai-agents" className="group">
             <Card className="transition-all duration-200 hover:border-border hover:shadow-soft">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <CheckSquare className="h-5 w-5 text-primary" />
+                    <Brain className="h-5 w-5 text-primary" />
                   </div>
                   <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
                 <div className="mt-4">
-                  <p className="text-2xl font-semibold text-foreground">{stats?.tasks.total || 0}</p>
-                  <p className="text-sm text-muted-foreground">Total Tasks</p>
+                  <p className="text-2xl font-semibold text-foreground">{stats?.aiAgents.total || 0}</p>
+                  <p className="text-sm text-muted-foreground">AI Agents</p>
                 </div>
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                  <span>{stats?.tasks.pending || 0} pending, {stats?.tasks.inProgress || 0} in progress</span>
+                  <span>{stats?.aiAgents.runsToday || 0} runs today</span>
                 </div>
               </CardContent>
             </Card>
@@ -248,51 +247,26 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Task Summary */}
-      {stats && (stats.tasks.total > 0) && (
+      {/* AI Agents Summary */}
+      {stats && (stats.aiAgents.total > 0) && (
         <Card>
           <CardHeader>
-            <CardTitle>Task Overview</CardTitle>
-            <CardDescription>Summary of your tasks by status</CardDescription>
+            <CardTitle>AI Agents Overview</CardTitle>
+            <CardDescription>Summary of your AI agent activity</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Pending</span>
-                  <Badge variant="outline">{stats.tasks.pending}</Badge>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-yellow-500"
-                    style={{ width: `${(stats.tasks.pending / stats.tasks.total) * 100}%` }}
-                  />
+                  <span className="text-sm text-muted-foreground">Total Agents</span>
+                  <Badge variant="outline">{stats.aiAgents.total}</Badge>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">In Progress</span>
-                  <Badge variant="default">{stats.tasks.inProgress}</Badge>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-blue-500"
-                    style={{ width: `${(stats.tasks.inProgress / stats.tasks.total) * 100}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Completed</span>
-                  <Badge variant="secondary">{stats.tasks.completed}</Badge>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-green-500"
-                    style={{ width: `${(stats.tasks.completed / stats.tasks.total) * 100}%` }}
-                  />
+                  <span className="text-sm text-muted-foreground">Runs Today</span>
+                  <Badge variant="default">{stats.aiAgents.runsToday}</Badge>
                 </div>
               </div>
             </div>

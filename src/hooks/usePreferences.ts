@@ -49,7 +49,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   },
 };
 
-// Fetch user preferences
+// Fetch user preferences from metadata column
 export function usePreferences() {
   const { user } = useAuth();
 
@@ -60,32 +60,34 @@ export function usePreferences() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("preferences")
+        .select("metadata")
         .eq("id", user.id)
         .single();
 
       if (error) throw error;
 
-      // Merge with defaults to ensure all keys exist
-      const userPrefs = data?.preferences || {};
+      // Extract preferences from metadata.preferences
+      const metadata = data?.metadata as Record<string, unknown> | null;
+      const userPrefs = (metadata?.preferences as Record<string, unknown>) || {};
+      
       return {
         ...DEFAULT_PREFERENCES,
         ...userPrefs,
         notifications: {
           ...DEFAULT_PREFERENCES.notifications,
-          ...userPrefs.notifications,
+          ...(userPrefs.notifications as Record<string, unknown> || {}),
         },
         appearance: {
           ...DEFAULT_PREFERENCES.appearance,
-          ...userPrefs.appearance,
+          ...(userPrefs.appearance as Record<string, unknown> || {}),
         },
         privacy: {
           ...DEFAULT_PREFERENCES.privacy,
-          ...userPrefs.privacy,
+          ...(userPrefs.privacy as Record<string, unknown> || {}),
         },
         ai: {
           ...DEFAULT_PREFERENCES.ai,
-          ...userPrefs.ai,
+          ...(userPrefs.ai as Record<string, unknown> || {}),
         },
       } as UserPreferences;
     },
@@ -93,7 +95,7 @@ export function usePreferences() {
   });
 }
 
-// Update user preferences
+// Update user preferences in metadata column
 export function useUpdatePreferences() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -102,40 +104,47 @@ export function useUpdatePreferences() {
     mutationFn: async (preferences: Partial<UserPreferences>) => {
       if (!user) throw new Error("User not authenticated");
 
-      // Get current preferences
+      // Get current metadata
       const { data: currentProfile } = await supabase
         .from("profiles")
-        .select("preferences")
+        .select("metadata")
         .eq("id", user.id)
         .single();
 
-      const currentPrefs = currentProfile?.preferences || {};
+      const currentMetadata = (currentProfile?.metadata as Record<string, unknown>) || {};
+      const currentPrefs = (currentMetadata.preferences as Record<string, unknown>) || {};
 
       // Merge with current preferences
       const updatedPrefs = {
         ...currentPrefs,
         ...preferences,
         notifications: {
-          ...currentPrefs.notifications,
+          ...(currentPrefs.notifications as Record<string, unknown> || {}),
           ...preferences.notifications,
         },
         appearance: {
-          ...currentPrefs.appearance,
+          ...(currentPrefs.appearance as Record<string, unknown> || {}),
           ...preferences.appearance,
         },
         privacy: {
-          ...currentPrefs.privacy,
+          ...(currentPrefs.privacy as Record<string, unknown> || {}),
           ...preferences.privacy,
         },
         ai: {
-          ...currentPrefs.ai,
+          ...(currentPrefs.ai as Record<string, unknown> || {}),
           ...preferences.ai,
         },
       };
 
+      // Update metadata with new preferences
       const { data, error } = await supabase
         .from("profiles")
-        .update({ preferences: updatedPrefs })
+        .update({ 
+          metadata: JSON.parse(JSON.stringify({ 
+            ...currentMetadata, 
+            preferences: updatedPrefs 
+          }))
+        })
         .eq("id", user.id)
         .select()
         .single();
@@ -147,7 +156,7 @@ export function useUpdatePreferences() {
       queryClient.invalidateQueries({ queryKey: ["preferences", user?.id] });
       toast.success("Settings saved successfully!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error updating preferences:", error);
       toast.error("Failed to save settings");
     },
@@ -163,9 +172,23 @@ export function useResetPreferences() {
     mutationFn: async () => {
       if (!user) throw new Error("User not authenticated");
 
+      // Get current metadata to preserve other fields
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("metadata")
+        .eq("id", user.id)
+        .single();
+
+      const currentMetadata = (currentProfile?.metadata as Record<string, unknown>) || {};
+
       const { data, error } = await supabase
         .from("profiles")
-        .update({ preferences: DEFAULT_PREFERENCES })
+        .update({ 
+          metadata: JSON.parse(JSON.stringify({ 
+            ...currentMetadata, 
+            preferences: DEFAULT_PREFERENCES 
+          }))
+        })
         .eq("id", user.id)
         .select()
         .single();
@@ -177,7 +200,7 @@ export function useResetPreferences() {
       queryClient.invalidateQueries({ queryKey: ["preferences", user?.id] });
       toast.info("Settings reset to defaults");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error resetting preferences:", error);
       toast.error("Failed to reset settings");
     },

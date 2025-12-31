@@ -211,7 +211,7 @@ export default function Settings() {
               onValueChange={(value) =>
                 setSettings({
                   ...settings,
-                  appearance: { ...settings.appearance, theme: value },
+                  appearance: { ...settings.appearance, theme: value as "light" | "dark" | "system" },
                 })
               }
               disabled={isProcessing}
@@ -278,7 +278,7 @@ export default function Settings() {
               onValueChange={(value) =>
                 setSettings({
                   ...settings,
-                  privacy: { ...settings.privacy, profileVisibility: value },
+                  privacy: { ...settings.privacy, profileVisibility: value as "public" | "team" | "private" },
                 })
               }
               disabled={isProcessing}

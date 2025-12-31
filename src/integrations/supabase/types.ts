@@ -400,6 +400,30 @@ export type Database = {
           },
         ]
       }
+      meeting_transcripts: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          meeting_id: string
+          speaker: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          meeting_id: string
+          speaker: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          meeting_id?: string
+          speaker?: string
+        }
+        Relationships: []
+      }
       meetings: {
         Row: {
           client_id: string | null

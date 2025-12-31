@@ -11,12 +11,12 @@ export interface AIAgent {
   description: string | null;
   category: string | null;
   system_prompt: string;
-  data_sources: any;
-  provider_config: any;
+  data_sources: unknown;
+  provider_config: unknown;
   required_role: string | null;
   is_enabled: boolean;
   memory_enabled: boolean;
-  metadata: any;
+  metadata: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -25,12 +25,16 @@ export interface AgentRun {
   id: string;
   agent_id: string;
   user_id: string;
-  input: string;
+  input: string | null;
   output: string | null;
-  status: "pending" | "running" | "completed" | "failed";
-  error: string | null;
-  execution_time_ms: number | null;
-  metadata: any;
+  status: string | null;
+  error_message: string | null;
+  latency_ms: number | null;
+  context: unknown;
+  token_metrics: unknown;
+  provider_used: string | null;
+  model_used: string | null;
+  metadata: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -138,9 +142,9 @@ export function useCreateAgent() {
       invalidateKeys.ai(queryClient);
       toast.success("Agent created successfully!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error creating agent:", error);
-      toast.error(error.message || "Failed to create agent");
+      toast.error((error as Error).message || "Failed to create agent");
     },
   });
 }
@@ -176,9 +180,9 @@ export function useUpdateAgent() {
       invalidateKeys.ai(queryClient);
       toast.success("Agent updated successfully!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error updating agent:", error);
-      toast.error(error.message || "Failed to update agent");
+      toast.error((error as Error).message || "Failed to update agent");
     },
   });
 }
@@ -203,7 +207,7 @@ export function useToggleAgent() {
       invalidateKeys.ai(queryClient);
       toast.success(`Agent ${variables.is_enabled ? "enabled" : "disabled"}`);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error toggling agent:", error);
       toast.error("Failed to update agent status");
     },
@@ -224,7 +228,7 @@ export function useDeleteAgent() {
       invalidateKeys.ai(queryClient);
       toast.success("Agent deleted successfully");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error deleting agent:", error);
       toast.error("Failed to delete agent");
     },
@@ -258,7 +262,6 @@ export function useRunAgent() {
 
       try {
         // Call AI function to execute agent
-        // This is a placeholder - you would call your actual AI function here
         const { data, error } = await supabase.functions.invoke("run-ai-agent", {
           body: {
             agent_id: agentId,
@@ -277,7 +280,7 @@ export function useRunAgent() {
           .update({
             output: data.output,
             status: "completed",
-            execution_time_ms: executionTime,
+            latency_ms: executionTime,
             updated_at: new Date().toISOString(),
           })
           .eq("id", run.id);
@@ -285,14 +288,14 @@ export function useRunAgent() {
         if (updateError) throw updateError;
 
         return { runId: run.id, output: data.output };
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Update run with error
         await supabase
           .from("ai_agent_runs")
           .update({
             status: "failed",
-            error: error.message,
-            execution_time_ms: Date.now() - startTime,
+            error_message: (error as Error).message,
+            latency_ms: Date.now() - startTime,
             updated_at: new Date().toISOString(),
           })
           .eq("id", run.id);
@@ -304,9 +307,9 @@ export function useRunAgent() {
       queryClient.invalidateQueries({ queryKey: ["ai", "runs"] });
       toast.success("Agent executed successfully!");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error("Error running agent:", error);
-      toast.error(error.message || "Failed to execute agent");
+      toast.error((error as Error).message || "Failed to execute agent");
     },
   });
 }
