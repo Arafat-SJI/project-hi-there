@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Circle, Loader2, AlertCircle } from 'lucide-react';
-
+import { supabase } from '@/integrations/supabase/client';
 // V1 Framework Functions organized by category
 const V1_FUNCTIONS = {
   foundation: [
@@ -115,7 +115,7 @@ export default function EdgeFunctionCopyTool() {
     setSelectedFunctions(new Set());
   };
 
-  // Fetch functions from source project
+  // Fetch functions from source project via proxy
   const fetchSourceFunctions = async () => {
     if (!sourceProjectRef || !sourceApiToken) {
       setError('Please provide source project ref and API token');
@@ -126,20 +126,23 @@ export default function EdgeFunctionCopyTool() {
     setError(null);
 
     try {
-      const response = await fetch(
-        `https://api.supabase.com/v1/projects/${sourceProjectRef}/functions`,
-        {
-          headers: {
-            Authorization: `Bearer ${sourceApiToken}`,
-          },
-        }
-      );
+      const { data, error: invokeError } = await supabase.functions.invoke('supabase-management-proxy', {
+        body: {
+          action: 'list-functions',
+          projectRef: sourceProjectRef,
+          apiToken: sourceApiToken,
+        },
+      });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch functions: ${response.status} ${response.statusText}`);
+      if (invokeError) {
+        throw new Error(`Failed to fetch functions: ${invokeError.message}`);
       }
 
-      const functions: FunctionInfo[] = await response.json();
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      const functions: FunctionInfo[] = data;
       setAvailableFunctions(functions);
 
       // Auto-select V1 functions that exist
@@ -155,53 +158,49 @@ export default function EdgeFunctionCopyTool() {
     }
   };
 
-  // Get function code from source project
-  const getFunctionCode = async (slug: string): Promise<Blob> => {
-    const response = await fetch(
-      `https://api.supabase.com/v1/projects/${sourceProjectRef}/functions/${slug}/body`,
-      {
-        headers: {
-          Authorization: `Bearer ${sourceApiToken}`,
-        },
-      }
-    );
+  // Get function code from source project via proxy
+  const getFunctionCode = async (slug: string): Promise<string> => {
+    const { data, error: invokeError } = await supabase.functions.invoke('supabase-management-proxy', {
+      body: {
+        action: 'get-function-body',
+        projectRef: sourceProjectRef,
+        apiToken: sourceApiToken,
+        slug,
+      },
+    });
 
-    if (!response.ok) {
-      throw new Error(`Failed to get code for ${slug}: ${response.statusText}`);
+    if (invokeError) {
+      throw new Error(`Failed to get code for ${slug}: ${invokeError.message}`);
     }
 
-    return await response.blob();
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    return data.data; // base64 encoded blob
   };
 
-  // Deploy function to target project
-  const deployFunction = async (slug: string, codeBlob: Blob) => {
-    const formData = new FormData();
-    formData.append('file', codeBlob, `${slug}.tar.gz`);
-    formData.append(
-      'metadata',
-      JSON.stringify({
-        entrypoint_path: 'index.ts',
-        name: slug,
-      })
-    );
+  // Deploy function to target project via proxy
+  const deployFunction = async (slug: string, codeBase64: string) => {
+    const { data, error: invokeError } = await supabase.functions.invoke('supabase-management-proxy', {
+      body: {
+        action: 'deploy-function',
+        projectRef: targetProjectRef,
+        apiToken: targetApiToken,
+        slug,
+        codeBase64,
+      },
+    });
 
-    const response = await fetch(
-      `https://api.supabase.com/v1/projects/${targetProjectRef}/functions/deploy?slug=${slug}`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${targetApiToken}`,
-        },
-        body: formData,
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to deploy ${slug}: ${response.statusText} - ${errorText}`);
+    if (invokeError) {
+      throw new Error(`Failed to deploy ${slug}: ${invokeError.message}`);
     }
 
-    return await response.json();
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    return data;
   };
 
   // Copy selected functions
@@ -238,11 +237,11 @@ export default function EdgeFunctionCopyTool() {
       }));
 
       try {
-        // Get function code from source
-        const codeBlob = await getFunctionCode(slug);
+        // Get function code from source (base64)
+        const codeBase64 = await getFunctionCode(slug);
 
         // Deploy to target
-        await deployFunction(slug, codeBlob);
+        await deployFunction(slug, codeBase64);
 
         console.log(`✓ Copied ${slug}`);
       } catch (err) {
