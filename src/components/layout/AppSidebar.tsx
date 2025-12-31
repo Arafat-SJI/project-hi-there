@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Users,
   Calendar,
+  CheckSquare,
   BookOpen,
   Brain,
   Settings,
@@ -38,6 +39,11 @@ const regularUserItems: SidebarItem[] = [
     title: "Meetings",
     href: "/meetings",
     icon: Calendar,
+  },
+  {
+    title: "Tasks",
+    href: "/tasks",
+    icon: CheckSquare,
   },
   {
     title: "Knowledge Base",

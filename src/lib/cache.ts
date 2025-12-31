@@ -35,6 +35,13 @@ export const queryKeys = {
     search: (query: string) => ["knowledge", "search", query] as const,
   },
 
+  // Tasks
+  tasks: {
+    all: ["tasks"] as const,
+    list: (filters?: Record<string, any>) => ["tasks", "list", filters] as const,
+    detail: (id: string) => ["tasks", "detail", id] as const,
+  },
+
   // AI
   ai: {
     agents: ["ai", "agents"] as const,
@@ -89,6 +96,9 @@ export const invalidateKeys = {
   },
   knowledge: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.all });
+  },
+  tasks: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
   },
   ai: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agents });

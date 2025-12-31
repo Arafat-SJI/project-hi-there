@@ -72,6 +72,18 @@ export const knowledgeEntrySchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+export const taskSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  status: z.string().min(1, "Status is required"),
+  priority: z.string().min(1, "Priority is required"),
+  due_date: z.string().optional(),
+  assigned_to: z.string().optional().or(z.literal("")),
+  client_id: z.string().optional().or(z.literal("")),
+  meeting_id: z.string().optional().or(z.literal("")),
+});
+
 export type ClientFormData = z.infer<typeof clientSchema>;
 export type MeetingFormData = z.infer<typeof meetingSchema>;
 export type KnowledgeEntryFormData = z.infer<typeof knowledgeEntrySchema>;
+export type TaskFormData = z.infer<typeof taskSchema>;
