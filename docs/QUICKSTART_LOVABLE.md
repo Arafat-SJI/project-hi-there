@@ -116,85 +116,157 @@ All V1 tables created:
 
 ---
 
-### **PHASE 3: Deploy Edge Functions** ⏸️ **NOT STARTED** ⬅️ **YOU ARE HERE**
+### **PHASE 3: Deploy Edge Functions** ✅ **FUNCTIONS CREATED** → ⏸️ **DEPLOYMENT PENDING** ⬅️ **YOU ARE HERE**
 
-> **Note:** Shared utility files exist in `supabase/` folder (auth-middleware.ts, cors.ts, etc.) but these are NOT edge functions. Actual edge functions must be created in `supabase/functions/{function-name}/index.ts` format.
+> **✅ UPDATE:** All 24 edge functions have been created in `supabase/functions/` directory!
+> **⏸️ NEXT:** Deploy them to Supabase using the deployment guide.
 
-#### **Step 3.1: Deploy Foundation Functions**
+#### **Step 3.1: Deploy Foundation Functions** ✅ **CREATED**
 
-⏸️ Need to deploy:
-- [ ] validate-api-key - API key validation
-- [ ] audit-log-writer - Activity logging
-- [ ] send-email - Email sending via SendGrid
-- [ ] send-notification - Multi-channel notifications
+✅ Functions created, ready to deploy:
+- [x] validate-api-key - API key validation
+- [x] audit-log-writer - Activity logging
+- [x] send-email - Email sending via SendGrid
+- [x] send-notification - Multi-channel notifications
 
----
-
-#### **Step 3.2: Deploy AI Functions**
-
-⏸️ Need to deploy:
-- [ ] ai-chat-assistant - Chat with context
-- [ ] semantic-search - Vector similarity search
-- [ ] run-ai-agent - Execute AI agents with personalization
-- [ ] generate-embeddings - Create vector embeddings
-- [ ] generate-meeting-summary - Summarize meetings
-- [ ] generate-business-doc - Generate SOW, NDA, etc.
+**Files:** `supabase/functions/[function-name]/index.ts`
 
 ---
 
-#### **Step 3.3: Deploy Remaining Modules**
+#### **Step 3.2: Deploy AI Functions** ✅ **CREATED**
 
-⏸️ Need to deploy:
+✅ Functions created, ready to deploy:
+- [x] ai-chat-assistant - Chat with context
+- [x] semantic-search - Vector similarity search
+- [x] run-ai-agent - Execute AI agents with personalization
+- [x] generate-embeddings - Create vector embeddings
+- [x] generate-meeting-summary - Summarize meetings
+- [x] generate-business-doc - Generate SOW, NDA, etc.
 
-**MEETINGS:**
-- [ ] sync-zoom-files
-- [ ] zoom-transcript-processing
-- [ ] generate-meeting-summary
-- [ ] auto-embed-meetings
-- [ ] categorize-meeting
-- [ ] api-v1-meetings
-
-**KNOWLEDGE BASE:**
-- [ ] google-drive-sync
-- [ ] google-drive-upload
-- [ ] user-knowledge-upload
-- [ ] user-knowledge-drive-sync
-- [ ] user-knowledge-process
-- [ ] auto-embed-knowledge-files
-- [ ] unified-knowledge-search
-
-**CLIENTS:**
-- [ ] api-v1-clients
-
-**FEEDBACK:**
-- [ ] send-feedback-notification
+**Files:** `supabase/functions/[function-name]/index.ts`
 
 ---
 
-#### **Step 3.4: Set Environment Variables**
+#### **Step 3.3: Deploy Remaining Modules** ✅ **CREATED**
 
-⏸️ Need to add secrets in Lovable: **Settings** → **Environment Variables**
+✅ Functions created, ready to deploy:
 
+**MEETINGS:** (5 functions)
+- [x] sync-zoom-files
+- [x] zoom-transcript-processing
+- [x] auto-embed-meetings
+- [x] categorize-meeting
+- [x] api-v1-meetings
+
+**KNOWLEDGE BASE:** (7 functions)
+- [x] google-drive-sync
+- [x] google-drive-upload
+- [x] user-knowledge-upload
+- [x] user-knowledge-drive-sync
+- [x] user-knowledge-process
+- [x] auto-embed-knowledge-files
+- [x] unified-knowledge-search
+
+**CLIENTS:** (1 function)
+- [x] api-v1-clients
+
+**FEEDBACK:** (1 function)
+- [x] send-feedback-notification
+
+**Total:** ✅ 24/24 edge functions created and ready for deployment
+
+**Files:** All in `supabase/functions/*/index.ts`
+
+---
+
+#### **Step 3.4: Deploy Functions to Supabase** ⏸️ **ACTION REQUIRED**
+
+**📖 Follow:** `PRODUCTION_DEPLOYMENT_GUIDE.md` or `EDGE_FUNCTIONS_DEPLOYMENT.md`
+
+**Quick Deploy Options:**
+
+**Option A: Manual Upload (Easiest, No CLI)**
+1. Go to: https://supabase.com/dashboard/project/tjkqvbxtziheggurtvcz/functions
+2. Click "New Function"
+3. Copy code from `supabase/functions/[name]/index.ts`
+4. Deploy each of 24 functions
+
+**Option B: Supabase CLI (If Available)**
 ```bash
-# AI Services
-OPENAI_API_KEY=sk-...
-GEMINI_API_KEY=...  # Optional
+# Link to project
+supabase link --project-ref tjkqvbxtziheggurtvcz
+
+# Deploy all functions
+for func in supabase/functions/*; do
+  supabase functions deploy $(basename "$func")
+done
+```
+
+**Option C: Via Lovable.dev**
+1. Upload function files to Lovable
+2. Use Lovable AI to deploy to Supabase
+3. Lovable handles deployment automatically
+
+---
+
+#### **Step 3.5: Set Environment Variables** ⏸️ **ACTION REQUIRED**
+
+**Location:** Supabase Dashboard → Settings → Edge Functions → Secrets
+
+**CRITICAL (Required for AI features):**
+```bash
+OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxx
+```
+
+**Optional (Enable specific features):**
+```bash
+# Alternative AI
+GEMINI_API_KEY=xxxxxxxxxxxxx
 
 # Zoom Integration
-ZOOM_CLIENT_ID=...
-ZOOM_CLIENT_SECRET=...
-ZOOM_ACCOUNT_ID=...
+ZOOM_CLIENT_ID=xxxxxxxxxxxxx
+ZOOM_CLIENT_SECRET=xxxxxxxxxxxxx
+ZOOM_ACCOUNT_ID=xxxxxxxxxxxxx
 
 # Google OAuth & Drive
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
+GOOGLE_CLIENT_ID=xxxxxxxxxxxxx
+GOOGLE_CLIENT_SECRET=xxxxxxxxxxxxx
+GOOGLE_API_KEY=xxxxxxxxxxxxx
 
 # SendGrid (Email)
-SENDGRID_API_KEY=...
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxx
 
-# Slack (Optional)
-SLACK_WEBHOOK_URL=...
+# Slack (Notifications)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxxxx
 ```
+
+**Auto-set by Supabase (verify these exist):**
+```bash
+SUPABASE_URL=https://tjkqvbxtziheggurtvcz.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
+```
+
+---
+
+#### **Step 3.6: Deploy Database Migrations** ⏸️ **ACTION REQUIRED**
+
+**New migrations created:**
+
+1. **Create match_embeddings function:**
+   - File: `supabase/migrations/20251231183400_create_match_embeddings_function.sql`
+   - Run in Supabase SQL Editor
+   - Enables vector similarity search
+
+2. **Insert test data:**
+   - File: `supabase/migrations/20251231183500_insert_test_data.sql`
+   - Run in Supabase SQL Editor
+   - Creates 5 test clients, 3 knowledge entries, 5 categories, 3 AI agents
+
+**How to run:**
+1. Go to: https://supabase.com/dashboard/project/tjkqvbxtziheggurtvcz/sql/new
+2. Copy content from migration file
+3. Paste and click "Run"
+4. Verify success
 
 ---
 
@@ -260,7 +332,7 @@ Complete routing setup:
 
 ---
 
-### **PHASE 5: Testing & Verification** ⏳ **IN PROGRESS**
+### **PHASE 5: Testing & Verification** ⏳ **IN PROGRESS** ⬅️ **AFTER DEPLOYMENT**
 
 #### **Step 5.1: Test Authentication** ✅ **COMPLETED**
 
@@ -276,18 +348,115 @@ Complete routing setup:
 
 ---
 
-#### **Step 5.2: Test Edge Functions**
+#### **Step 5.2: Verify Database Setup** ⏸️ **DO AFTER MIGRATIONS**
 
-⏸️ Requires edge functions to be deployed first
+**Run verification queries:**
+
+```sql
+-- Check if test data exists
+SELECT COUNT(*) FROM clients; -- Should return 5
+SELECT COUNT(*) FROM knowledge_entries; -- Should return 3+
+SELECT COUNT(*) FROM knowledge_categories; -- Should return 5
+SELECT COUNT(*) FROM ai_agents; -- Should return 3
+
+-- Check if match_embeddings function exists
+SELECT routine_name FROM information_schema.routines
+WHERE routine_name = 'match_embeddings';
+
+-- Check pgvector extension
+SELECT * FROM pg_extension WHERE extname = 'vector';
+```
 
 ---
 
-#### **Step 5.3: Test CRUD Operations**
+#### **Step 5.3: Test Edge Functions** ⏸️ **DO AFTER DEPLOYMENT**
 
-- [ ] Clients: Create, edit, delete a client
-- [ ] Meetings: Create, edit, delete a meeting
-- [ ] Knowledge Base: View entries
-- [ ] Notifications: Test toast notifications
+**Quick Test Script:**
+
+Run `./verify-deployment.sh` from project root, or test manually:
+
+```bash
+# Test validate-api-key
+curl -X POST \
+  https://tjkqvbxtziheggurtvcz.supabase.co/functions/v1/validate-api-key \
+  -H "Authorization: Bearer YOUR_ANON_KEY" \
+  -d '{"apiKey": "test-key-12345678901234567890"}'
+
+# Expected: {"valid":true,"message":"API key is valid"}
+```
+
+**Test via Supabase Dashboard:**
+1. Go to Edge Functions
+2. Click on a function
+3. Click "Invoke" to test
+4. Check logs for errors
+
+---
+
+#### **Step 5.4: Test CRUD Operations** ⏸️ **READY TO TEST**
+
+**Test these features:**
+
+- [ ] **Clients:**
+  - [ ] Create a new client
+  - [ ] Edit client details
+  - [ ] View client detail page
+  - [ ] Delete a client
+  - [ ] Search for clients
+
+- [ ] **Meetings:**
+  - [ ] Create a new meeting
+  - [ ] Edit meeting details
+  - [ ] View meeting detail page
+  - [ ] Delete a meeting
+  - [ ] Filter meetings by status
+
+- [ ] **Knowledge Base:**
+  - [ ] View knowledge entries
+  - [ ] Browse by category
+  - [ ] Search knowledge entries
+  - [ ] View entry details
+
+- [ ] **Notifications:**
+  - [ ] Test toast notifications (appear on actions)
+  - [ ] Check in-app notifications
+
+---
+
+#### **Step 5.5: Test AI Features** ⏸️ **AFTER EDGE FUNCTIONS DEPLOYED**
+
+**Prerequisites:**
+- Edge functions deployed
+- `OPENAI_API_KEY` environment variable set
+
+**Tests:**
+
+- [ ] **AI Chat Assistant:**
+  - [ ] Go to `/ai/chat`
+  - [ ] Send message: "Hello, how can you help me?"
+  - [ ] Verify AI response appears
+  - [ ] Check chat history persists
+
+- [ ] **Semantic Search:**
+  - [ ] Search in Knowledge Base
+  - [ ] Verify results based on meaning (not just keywords)
+
+- [ ] **Meeting Summaries:**
+  - [ ] Create a meeting with description
+  - [ ] Generate summary (if feature visible in UI)
+  - [ ] Verify AI-generated summary
+
+---
+
+#### **Step 5.6: Performance & Browser Testing** ⏸️
+
+- [ ] Test on Chrome
+- [ ] Test on Firefox
+- [ ] Test on Safari
+- [ ] Test on mobile device
+- [ ] Check page load times (< 3 seconds)
+- [ ] Verify no console errors
+- [ ] Test offline behavior
 
 ---
 
