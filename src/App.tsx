@@ -22,9 +22,24 @@ import ClientDetail from "./pages/ClientDetail";
 import Meetings from "./pages/Meetings";
 import MeetingForm from "./pages/MeetingForm";
 import MeetingDetail from "./pages/MeetingDetail";
+import Tasks from "./pages/Tasks";
+import TaskForm from "./pages/TaskForm";
+import TaskDetail from "./pages/TaskDetail";
 import Knowledge from "./pages/Knowledge";
+import KnowledgeForm from "./pages/KnowledgeForm";
+import KnowledgeDetail from "./pages/KnowledgeDetail";
+import KnowledgeUpload from "./pages/KnowledgeUpload";
 import AIChat from "./pages/AIChat";
 import Admin from "./pages/Admin";
+import DeploymentStatus from "./pages/DeploymentStatus";
+import UserManagement from "./pages/admin/UserManagement";
+import RoleManagement from "./pages/admin/RoleManagement";
+import ActivityLogs from "./pages/admin/ActivityLogs";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import Notifications from "./pages/Notifications";
+import Feedback from "./pages/Feedback";
+import AIAgents from "./pages/AIAgents";
 
 const queryClient = new QueryClient();
 
@@ -58,14 +73,35 @@ const App = () => (
                 <Route path="/meetings/:id" element={<MeetingDetail />} />
                 <Route path="/meetings/:id/edit" element={<MeetingForm />} />
 
+                {/* Tasks */}
+                <Route path="/tasks" element={<Tasks />} />
+                <Route path="/tasks/new" element={<TaskForm />} />
+                <Route path="/tasks/:id" element={<TaskDetail />} />
+                <Route path="/tasks/:id/edit" element={<TaskForm />} />
+
                 {/* Knowledge Base */}
                 <Route path="/knowledge" element={<Knowledge />} />
+                <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
+                <Route path="/knowledge/new" element={<KnowledgeForm />} />
+                <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
+                <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
+
+                {/* User Pages */}
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/feedback" element={<Feedback />} />
 
                 {/* Admin-only routes */}
                 <Route element={<AdminRoute />}>
                   <Route path="/ai" element={<AIChat />} />
                   <Route path="/ai/chat" element={<AIChat />} />
+                  <Route path="/ai/agents" element={<AIAgents />} />
                   <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin/users" element={<UserManagement />} />
+                  <Route path="/admin/roles" element={<RoleManagement />} />
+                  <Route path="/admin/logs" element={<ActivityLogs />} />
+                  <Route path="/admin/deployment" element={<DeploymentStatus />} />
                 </Route>
               </Route>
             </Route>

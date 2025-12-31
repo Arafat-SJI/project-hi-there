@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,12 +12,120 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, LogOut, User, Settings, Search } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Bell, LogOut, User, Settings, Search, ExternalLink, FileText, Users, Calendar, Loader2, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/utils";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  link: string | null;
+  created_at: string;
+}
+
+interface SearchResult {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  content: string;
+  metadata: any;
+  similarity: number;
+}
 
 export function TopNav() {
   const { user, profile, signOut } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+
+    setLoadingNotifications(true);
+    try {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id, title, message, type, is_read, link, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      setNotifications(data || []);
+      setUnreadCount(data?.filter((n) => !n.is_read).length || 0);
+    } catch (error: any) {
+      console.error("Fetch notifications error:", error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() || !user) return;
+
+    setSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("semantic-search", {
+        body: {
+          query: searchQuery,
+          match_threshold: 0.5,
+          match_count: 10,
+          user_id: user.id,
+        },
+      });
+
+      if (error) throw error;
+
+      setSearchResults(data.results || []);
+
+      if (data.results?.length === 0) {
+        toast.info("No results found");
+      }
+    } catch (error: any) {
+      console.error("Search error:", error);
+      toast.error("Search failed. Ensure semantic-search function is deployed.");
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const getEntityIcon = (entityType: string) => {
+    switch (entityType) {
+      case "knowledge":
+        return <FileText className="h-4 w-4" />;
+      case "client":
+        return <Users className="h-4 w-4" />;
+      case "meeting":
+        return <Calendar className="h-4 w-4" />;
+      default:
+        return <FileText className="h-4 w-4" />;
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -34,9 +144,87 @@ export function TopNav() {
           <Input
             type="search"
             placeholder="Search anything..."
-            className="h-9 w-full max-w-sm border-transparent bg-muted/50 pl-9 text-sm placeholder:text-muted-foreground/70 focus:border-border focus:bg-background"
+            onClick={() => setSearchOpen(true)}
+            readOnly
+            className="h-9 w-full max-w-sm border-transparent bg-muted/50 pl-9 text-sm placeholder:text-muted-foreground/70 focus:border-border focus:bg-background cursor-pointer"
           />
         </div>
+
+        {/* Search Dialog */}
+        <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Search</DialogTitle>
+              <DialogDescription>
+                Search across clients, meetings, knowledge base, and more
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSearch} className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="What are you looking for?"
+                  disabled={searching}
+                  autoFocus
+                />
+                <Button type="submit" disabled={searching || !searchQuery.trim()}>
+                  {searching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </form>
+
+            {/* Search Results */}
+            <div className="mt-4 max-h-[400px] space-y-2 overflow-y-auto">
+              {searching ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : searchResults.length === 0 && searchQuery ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                  <Search className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    {searchQuery ? "No results found. Try a different query." : "Enter a search query to get started"}
+                  </p>
+                </div>
+              ) : (
+                searchResults.map((result) => (
+                  <div
+                    key={result.id}
+                    className="flex items-start gap-3 rounded-lg border p-3 hover:bg-accent cursor-pointer"
+                    onClick={() => {
+                      setSearchOpen(false);
+                      setSearchQuery("");
+                      setSearchResults([]);
+                    }}
+                  >
+                    <div className="mt-0.5">{getEntityIcon(result.entity_type)}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {result.entity_type}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {Math.round(result.similarity * 100)}% match
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm line-clamp-2">{result.content}</p>
+                      {result.metadata && Object.keys(result.metadata).length > 0 && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {JSON.stringify(result.metadata)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Right side */}
         <div className="flex items-center gap-2">
@@ -45,14 +233,72 @@ export function TopNav() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
                 <Bell className="h-[18px] w-[18px]" />
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full p-0 text-xs"
+                  >
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Badge>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+              <DropdownMenuLabel className="flex items-center justify-between">
+                Notifications
+                {unreadCount > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {unreadCount} new
+                  </Badge>
+                )}
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                No new notifications
+              <div className="max-h-[400px] overflow-y-auto">
+                {loadingNotifications ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Loading...
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No notifications
+                  </div>
+                ) : (
+                  <>
+                    {notifications.map((notification) => (
+                      <DropdownMenuItem key={notification.id} asChild>
+                        <Link
+                          to={notification.link || "/notifications"}
+                          className="flex flex-col gap-1 p-3"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium ${!notification.is_read ? "text-primary" : ""}`}>
+                              {notification.title}
+                            </span>
+                            {!notification.is_read && (
+                              <span className="h-2 w-2 rounded-full bg-primary" />
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground line-clamp-2">
+                            {notification.message}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(notification.created_at).toLocaleString()}
+                          </span>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link
+                        to="/notifications"
+                        className="flex items-center justify-center gap-2 p-2 text-sm font-medium"
+                      >
+                        View all notifications
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -94,6 +340,17 @@ export function TopNav() {
                   Settings
                 </Link>
               </DropdownMenuItem>
+              {profile?.role === "admin" && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="flex items-center gap-2 text-orange-600 dark:text-orange-400 font-medium">
+                      <Shield className="h-4 w-4" />
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={handleSignOut} 

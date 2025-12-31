@@ -1,5 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useMeeting, useDeleteMeeting } from "@/hooks/useMeetings";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -30,14 +32,25 @@ import {
   User,
   Loader2,
   FileText,
+  Sparkles,
+  CheckSquare,
+  MessageSquare,
+  Tag,
 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { useState } from "react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function MeetingDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [extractingActions, setExtractingActions] = useState(false);
+  const [categorizingMeeting, setCategorizingMeeting] = useState(false);
 
   const { data: meeting, isLoading } = useMeeting(id || "");
   const deleteMeeting = useDeleteMeeting();
@@ -46,6 +59,131 @@ export default function MeetingDetail() {
     if (id) {
       await deleteMeeting.mutateAsync(id);
       navigate("/meetings");
+    }
+  };
+
+  const handleGenerateSummary = async () => {
+    if (!meeting || !user || !id) return;
+
+    setGeneratingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-meeting-summary", {
+        body: {
+          meeting_id: id,
+          meeting_title: meeting.title,
+          meeting_description: meeting.description,
+          meeting_transcript: meeting.metadata?.transcript || null,
+          user_id: user.id,
+        },
+      });
+
+      if (error) throw error;
+
+      // Update meeting metadata with summary
+      const { error: updateError } = await supabase
+        .from("meetings")
+        .update({
+          metadata: {
+            ...meeting.metadata,
+            summary: data.summary,
+          },
+        })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      // Invalidate query to refetch meeting
+      queryClient.invalidateQueries({ queryKey: ["meetings", "detail", id] });
+
+      toast.success("Meeting summary generated successfully!");
+    } catch (error: any) {
+      console.error("Generate summary error:", error);
+      toast.error(error.message || "Failed to generate summary. Ensure edge function is deployed.");
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
+  const handleExtractActionItems = async () => {
+    if (!meeting || !user || !id) return;
+
+    setExtractingActions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-meeting-summary", {
+        body: {
+          meeting_id: id,
+          meeting_title: meeting.title,
+          meeting_description: meeting.description,
+          meeting_transcript: meeting.metadata?.transcript || null,
+          user_id: user.id,
+          extract_actions: true,
+        },
+      });
+
+      if (error) throw error;
+
+      // Update meeting metadata with action items
+      const { error: updateError } = await supabase
+        .from("meetings")
+        .update({
+          metadata: {
+            ...meeting.metadata,
+            action_items: data.action_items || [],
+          },
+        })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      queryClient.invalidateQueries({ queryKey: ["meetings", "detail", id] });
+
+      toast.success("Action items extracted successfully!");
+    } catch (error: any) {
+      console.error("Extract actions error:", error);
+      toast.error(error.message || "Failed to extract action items. Ensure edge function is deployed.");
+    } finally {
+      setExtractingActions(false);
+    }
+  };
+
+  const handleCategorizeMeeting = async () => {
+    if (!meeting || !user || !id) return;
+
+    setCategorizingMeeting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("categorize-meeting", {
+        body: {
+          meeting_id: id,
+          meeting_title: meeting.title,
+          meeting_description: meeting.description,
+          user_id: user.id,
+        },
+      });
+
+      if (error) throw error;
+
+      // Update meeting metadata with category
+      const { error: updateError } = await supabase
+        .from("meetings")
+        .update({
+          metadata: {
+            ...meeting.metadata,
+            category: data.category,
+            category_confidence: data.confidence,
+          },
+        })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      queryClient.invalidateQueries({ queryKey: ["meetings", "detail", id] });
+
+      toast.success(`Meeting categorized as: ${data.category}`);
+    } catch (error: any) {
+      console.error("Categorize meeting error:", error);
+      toast.error(error.message || "Failed to categorize meeting. Ensure edge function is deployed.");
+    } finally {
+      setCategorizingMeeting(false);
     }
   };
 
@@ -129,6 +267,64 @@ export default function MeetingDetail() {
         </div>
       </div>
 
+      {/* AI Insights Actions */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            AI-Powered Insights
+          </CardTitle>
+          <CardDescription>
+            Generate intelligent summaries, extract action items, and categorize this meeting
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={handleGenerateSummary}
+              disabled={generatingSummary || !meeting?.description}
+            >
+              {generatingSummary ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <MessageSquare className="mr-2 h-4 w-4" />
+              )}
+              {meeting?.metadata?.summary ? "Regenerate Summary" : "Generate Summary"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExtractActionItems}
+              disabled={extractingActions || !meeting?.description}
+            >
+              {extractingActions ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CheckSquare className="mr-2 h-4 w-4" />
+              )}
+              {meeting?.metadata?.action_items ? "Re-extract Actions" : "Extract Action Items"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleCategorizeMeeting}
+              disabled={categorizingMeeting}
+            >
+              {categorizingMeeting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Tag className="mr-2 h-4 w-4" />
+              )}
+              {meeting?.metadata?.category ? "Re-categorize" : "Categorize Meeting"}
+            </Button>
+          </div>
+          {(!meeting?.description && !meeting?.metadata?.transcript) && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Add a description or transcript to enable AI features
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Meeting Information */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -197,6 +393,22 @@ export default function MeetingDetail() {
               <p className="text-sm font-medium">Status</p>
               <div className="mt-1">{getStatusBadge(meeting.status)}</div>
             </div>
+            {meeting.metadata?.category && (
+              <div>
+                <p className="text-sm font-medium">Category</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <Badge variant="secondary" className="gap-1">
+                    <Tag className="h-3 w-3" />
+                    {meeting.metadata.category}
+                  </Badge>
+                  {meeting.metadata.category_confidence && (
+                    <span className="text-xs text-muted-foreground">
+                      {Math.round(meeting.metadata.category_confidence * 100)}% confidence
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
             <div>
               <p className="text-sm font-medium">Created</p>
               <p className="text-sm text-muted-foreground">
@@ -226,29 +438,70 @@ export default function MeetingDetail() {
         </Card>
       )}
 
-      {/* Summary - stored in metadata if available */}
-      {meeting.metadata && typeof meeting.metadata === 'object' && 'summary' in meeting.metadata && meeting.metadata.summary && (
-        <Card>
+      {/* AI Summary */}
+      {meeting.metadata?.summary && (
+        <Card className="border-primary/20">
           <CardHeader>
-            <CardTitle>AI Summary</CardTitle>
-            <CardDescription>Auto-generated meeting summary</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI-Generated Summary
+            </CardTitle>
+            <CardDescription>Intelligent meeting summary powered by AI</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-sm">{String(meeting.metadata.summary)}</p>
+            <div className="rounded-lg bg-primary/5 p-4">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{meeting.metadata.summary}</p>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Transcript - stored in metadata if available */}
-      {meeting.metadata && typeof meeting.metadata === 'object' && 'transcript' in meeting.metadata && meeting.metadata.transcript && (
-        <Card>
+      {/* Action Items */}
+      {meeting.metadata?.action_items && Array.isArray(meeting.metadata.action_items) && meeting.metadata.action_items.length > 0 && (
+        <Card className="border-primary/20">
           <CardHeader>
-            <CardTitle>Transcript</CardTitle>
-            <CardDescription>Full meeting transcript</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <CheckSquare className="h-5 w-5 text-primary" />
+              Action Items
+            </CardTitle>
+            <CardDescription>
+              {meeting.metadata.action_items.length} action {meeting.metadata.action_items.length === 1 ? 'item' : 'items'} extracted from this meeting
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="max-h-96 overflow-y-auto rounded-lg bg-muted p-4">
-              <p className="whitespace-pre-wrap text-sm font-mono">{String(meeting.metadata.transcript)}</p>
+            <div className="space-y-3">
+              {meeting.metadata.action_items.map((item: any, index: number) => (
+                <div key={index} className="flex items-start gap-3 rounded-lg border p-3">
+                  <CheckSquare className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium">{typeof item === 'string' ? item : item.task}</p>
+                    {typeof item === 'object' && item.assignee && (
+                      <p className="text-xs text-muted-foreground">Assigned to: {item.assignee}</p>
+                    )}
+                    {typeof item === 'object' && item.due_date && (
+                      <p className="text-xs text-muted-foreground">Due: {item.due_date}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Transcript */}
+      {meeting.metadata?.transcript && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Meeting Transcript
+            </CardTitle>
+            <CardDescription>Full recording transcription</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="max-h-96 overflow-y-auto rounded-lg border bg-muted/50 p-4">
+              <p className="whitespace-pre-wrap text-sm font-mono leading-relaxed">{meeting.metadata.transcript}</p>
             </div>
           </CardContent>
         </Card>

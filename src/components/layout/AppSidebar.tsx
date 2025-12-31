@@ -5,10 +5,15 @@ import {
   LayoutDashboard,
   Users,
   Calendar,
+  CheckSquare,
   BookOpen,
   Brain,
   Settings,
   ChevronRight,
+  Shield,
+  Activity,
+  UserCog,
+  Database,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -36,20 +41,25 @@ const sidebarItems: SidebarItem[] = [
     icon: Calendar,
   },
   {
+    title: "Tasks",
+    href: "/tasks",
+    icon: CheckSquare,
+  },
+  {
     title: "Knowledge Base",
     href: "/knowledge",
     icon: BookOpen,
   },
   {
-    title: "AI Agents",
+    title: "AI Chat",
     href: "/ai",
     icon: Brain,
     adminOnly: true,
   },
   {
-    title: "Admin",
+    title: "Admin Panel",
     href: "/admin",
-    icon: Settings,
+    icon: Shield,
     adminOnly: true,
   },
 ];
@@ -57,10 +67,10 @@ const sidebarItems: SidebarItem[] = [
 export function AppSidebar() {
   const location = useLocation();
   const { profile } = useAuth();
-  
+
   // Check if user has admin role
   const isAdmin = profile?.role === "admin" || profile?.role === "moderator";
-  
+
   // Filter sidebar items based on user role
   const visibleItems = sidebarItems.filter(item => !item.adminOnly || isAdmin);
 
@@ -74,8 +84,12 @@ export function AppSidebar() {
               <Brain className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-sidebar-foreground">Control Tower</span>
-              <span className="text-xs text-muted-foreground">CollabAi</span>
+              <span className="text-sm font-semibold text-sidebar-foreground">
+                Control Tower
+              </span>
+              <span className="text-xs text-muted-foreground">
+                CollabAi
+              </span>
             </div>
           </Link>
         </div>
@@ -107,8 +121,8 @@ export function AppSidebar() {
                   {item.badge && (
                     <span className={cn(
                       "rounded-full px-2 py-0.5 text-xs font-medium",
-                      isActive 
-                        ? "bg-primary-foreground/20 text-primary-foreground" 
+                      isActive
+                        ? "bg-primary-foreground/20 text-primary-foreground"
                         : "bg-primary/10 text-primary"
                     )}>
                       {item.badge}
