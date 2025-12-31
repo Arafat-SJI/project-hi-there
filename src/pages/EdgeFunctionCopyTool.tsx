@@ -155,8 +155,26 @@ export default function EdgeFunctionCopyTool() {
     }
   };
 
-  // Get function code from source project
-  const getFunctionCode = async (slug: string): Promise<Blob> => {
+  // Get function metadata from source project
+  const getFunctionMetadata = async (slug: string) => {
+    const response = await fetch(
+      `https://api.supabase.com/v1/projects/${sourceProjectRef}/functions/${slug}`,
+      {
+        headers: {
+          Authorization: `Bearer ${sourceApiToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to get metadata for ${slug}: ${response.statusText}`);
+    }
+
+    return await response.json();
+  };
+
+  // Get function code (ESZIP format) from source project
+  const getFunctionCode = async (slug: string): Promise<ArrayBuffer> => {
     const response = await fetch(
       `https://api.supabase.com/v1/projects/${sourceProjectRef}/functions/${slug}/body`,
       {
@@ -170,38 +188,53 @@ export default function EdgeFunctionCopyTool() {
       throw new Error(`Failed to get code for ${slug}: ${response.statusText}`);
     }
 
-    return await response.blob();
+    return await response.arrayBuffer();
   };
 
-  // Deploy function to target project
-  const deployFunction = async (slug: string, codeBlob: Blob) => {
-    const formData = new FormData();
-    formData.append('file', codeBlob, `${slug}.tar.gz`);
-    formData.append(
-      'metadata',
-      JSON.stringify({
-        entrypoint_path: 'index.ts',
-        name: slug,
-      })
-    );
-
-    const response = await fetch(
-      `https://api.supabase.com/v1/projects/${targetProjectRef}/functions/deploy?slug=${slug}`,
+  // Deploy function to target project using ESZIP format
+  const deployFunction = async (slug: string, eszipBytes: ArrayBuffer, metadata: any) => {
+    // Try PATCH first (update existing function)
+    const patchResponse = await fetch(
+      `https://api.supabase.com/v1/projects/${targetProjectRef}/functions/${slug}?verify_jwt=${metadata.verify_jwt || false}&import_map=${metadata.import_map || false}`,
       {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
           Authorization: `Bearer ${targetApiToken}`,
+          'Content-Type': 'application/vnd.denoland.eszip',
         },
-        body: formData,
+        body: eszipBytes,
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to deploy ${slug}: ${response.statusText} - ${errorText}`);
+    if (patchResponse.ok) {
+      return await patchResponse.json();
     }
 
-    return await response.json();
+    // If function doesn't exist (404), create it using POST
+    if (patchResponse.status === 404) {
+      const createResponse = await fetch(
+        `https://api.supabase.com/v1/projects/${targetProjectRef}/functions?slug=${slug}&name=${slug}&verify_jwt=${metadata.verify_jwt || false}&import_map=${metadata.import_map || false}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${targetApiToken}`,
+            'Content-Type': 'application/vnd.denoland.eszip',
+          },
+          body: eszipBytes,
+        }
+      );
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        throw new Error(`Failed to create ${slug}: ${createResponse.statusText} - ${errorText}`);
+      }
+
+      return await createResponse.json();
+    }
+
+    // Other error from PATCH
+    const errorText = await patchResponse.text();
+    throw new Error(`Failed to deploy ${slug}: ${patchResponse.statusText} - ${errorText}`);
   };
 
   // Copy selected functions
@@ -238,13 +271,16 @@ export default function EdgeFunctionCopyTool() {
       }));
 
       try {
-        // Get function code from source
-        const codeBlob = await getFunctionCode(slug);
+        // Get function metadata from source
+        const metadata = await getFunctionMetadata(slug);
 
-        // Deploy to target
-        await deployFunction(slug, codeBlob);
+        // Get function code (ESZIP bytes) from source
+        const eszipBytes = await getFunctionCode(slug);
 
-        console.log(`✓ Copied ${slug}`);
+        // Deploy to target using ESZIP format
+        await deployFunction(slug, eszipBytes, metadata);
+
+        console.log(`✓ Copied ${slug} (verify_jwt=${metadata.verify_jwt})`);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : `Failed to copy ${slug}`;
         errors.push(errorMsg);
