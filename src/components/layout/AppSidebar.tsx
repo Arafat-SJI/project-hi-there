@@ -8,7 +8,12 @@ import {
   Brain,
   Settings,
   ChevronRight,
+  Shield,
+  Activity,
+  UserCog,
+  Database,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SidebarItem {
   title: string;
@@ -17,7 +22,8 @@ interface SidebarItem {
   badge?: string;
 }
 
-const sidebarItems: SidebarItem[] = [
+// Regular user menu items
+const regularUserItems: SidebarItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
@@ -43,28 +49,73 @@ const sidebarItems: SidebarItem[] = [
     href: "/ai",
     icon: Brain,
   },
+];
+
+// Admin menu items
+const adminItems: SidebarItem[] = [
   {
-    title: "Admin",
+    title: "Admin Dashboard",
     href: "/admin",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "User Management",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
+    title: "Roles & Permissions",
+    href: "/admin/roles",
+    icon: Shield,
+  },
+  {
+    title: "Activity Logs",
+    href: "/admin/logs",
+    icon: Activity,
+  },
+  {
+    title: "System Settings",
+    href: "/admin/settings",
     icon: Settings,
+  },
+  {
+    title: "Database",
+    href: "/admin/database",
+    icon: Database,
   },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
+  const { profile } = useAuth();
+
+  // Determine which menu items to show based on user role
+  const isAdmin = profile?.role === "admin";
+  const sidebarItems = isAdmin ? adminItems : regularUserItems;
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar-background">
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-          <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-sm">
-              <Brain className="h-5 w-5 text-primary-foreground" />
+          <Link to={isAdmin ? "/admin" : "/dashboard"} className="flex items-center gap-3">
+            <div className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-lg shadow-sm",
+              isAdmin ? "bg-orange-600" : "bg-primary"
+            )}>
+              {isAdmin ? (
+                <Shield className="h-5 w-5 text-white" />
+              ) : (
+                <Brain className="h-5 w-5 text-primary-foreground" />
+              )}
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-sidebar-foreground">Control Tower</span>
-              <span className="text-xs text-muted-foreground">CollabAi</span>
+              <span className="text-sm font-semibold text-sidebar-foreground">
+                {isAdmin ? "Admin Panel" : "Control Tower"}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {isAdmin ? "System Management" : "CollabAi"}
+              </span>
             </div>
           </Link>
         </div>

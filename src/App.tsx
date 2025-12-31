@@ -29,6 +29,9 @@ import KnowledgeUpload from "./pages/KnowledgeUpload";
 import AIChat from "./pages/AIChat";
 import Admin from "./pages/Admin";
 import DeploymentStatus from "./pages/DeploymentStatus";
+import UserManagement from "./pages/admin/UserManagement";
+import RoleManagement from "./pages/admin/RoleManagement";
+import ActivityLogs from "./pages/admin/ActivityLogs";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
@@ -88,6 +91,9 @@ const App = () => (
                 {/* Admin - Protected by AdminRoute */}
                 <Route element={<AdminRoute />}>
                   <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin/users" element={<UserManagement />} />
+                  <Route path="/admin/roles" element={<RoleManagement />} />
+                  <Route path="/admin/logs" element={<ActivityLogs />} />
                   <Route path="/admin/deployment" element={<DeploymentStatus />} />
                 </Route>
               </Route>

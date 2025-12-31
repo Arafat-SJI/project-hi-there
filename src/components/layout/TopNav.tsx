@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Bell, LogOut, User, Settings, Search, ExternalLink, FileText, Users, Calendar, Loader2 } from "lucide-react";
+import { Bell, LogOut, User, Settings, Search, ExternalLink, FileText, Users, Calendar, Loader2, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -340,6 +340,17 @@ export function TopNav() {
                   Settings
                 </Link>
               </DropdownMenuItem>
+              {profile?.role === "admin" && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="flex items-center gap-2 text-orange-600 dark:text-orange-400 font-medium">
+                      <Shield className="h-4 w-4" />
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={handleSignOut} 

@@ -93,23 +93,29 @@ export default function Admin() {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
                 <p className="font-medium">View All Users</p>
-                <p className="text-sm text-muted-foreground">42 registered users</p>
+                <p className="text-sm text-muted-foreground">Manage user accounts</p>
               </div>
-              <Button variant="outline" size="sm">View</Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin/users">View</Link>
+              </Button>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
                 <p className="font-medium">Roles & Permissions</p>
                 <p className="text-sm text-muted-foreground">Manage access levels</p>
               </div>
-              <Button variant="outline" size="sm">Manage</Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin/roles">Manage</Link>
+              </Button>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
-                <p className="font-medium">Invite Users</p>
-                <p className="text-sm text-muted-foreground">Send invitations</p>
+                <p className="font-medium">Activity Logs</p>
+                <p className="text-sm text-muted-foreground">Monitor user activity</p>
               </div>
-              <Button variant="outline" size="sm">Invite</Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin/logs">View Logs</Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -205,24 +211,34 @@ export default function Admin() {
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
-              <p className="font-medium">Audit Logs</p>
+              <p className="font-medium">Activity Logs</p>
               <p className="text-sm text-muted-foreground">View system activity</p>
             </div>
-            <Button variant="outline" size="sm">View Logs</Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/logs">View Logs</Link>
+            </Button>
           </div>
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="font-medium">Row Level Security</p>
               <p className="text-sm text-muted-foreground">Database access policies</p>
             </div>
-            <Button variant="outline" size="sm">Configure</Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">
+                Configure
+              </a>
+            </Button>
           </div>
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="font-medium">API Access</p>
               <p className="text-sm text-muted-foreground">Manage API keys</p>
             </div>
-            <Button variant="outline" size="sm">Manage</Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">
+                Manage
+              </a>
+            </Button>
           </div>
         </CardContent>
       </Card>
