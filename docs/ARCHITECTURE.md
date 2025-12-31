@@ -1,12 +1,74 @@
 # CollabAi Technical Architecture
 
+![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-ff69b4?style=flat-square)
+![Backend: Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=flat-square)
+
 > **Technical architecture and data flow for CollabAi platform**
+>
+> Built entirely with [Lovable.dev](https://lovable.dev) + [Supabase](https://supabase.com)
+
+---
+
+## 🛠️ Development Platform
+
+### Lovable.dev - The Development Environment
+
+**Lovable.dev** is the AI-powered web IDE where all development happens:
+
+| Capability | Description |
+|------------|-------------|
+| **AI Chat** | Describe changes in plain English, Lovable generates code |
+| **Code Editor** | Full-featured web-based code editor |
+| **Instant Preview** | See changes in real-time in the browser |
+| **One-Click Publish** | Deploy to production with a single click |
+| **Supabase Integration** | Automatic database provisioning and management |
+| **GitHub Sync** | Optional sync to GitHub repository |
+
+### Development Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      LOVABLE.DEV (IDE)                          │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   AI Chat   │  │    Code     │  │   Preview   │              │
+│  │  Assistant  │  │   Editor    │  │   Window    │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│                         │                                        │
+│  ┌─────────────────────────────────────────────────┐            │
+│  │          One-Click Publish to Production        │            │
+│  └─────────────────────────────────────────────────┘            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         PRODUCTION                               │
+│  ┌─────────────────────────────────────────────────┐            │
+│  │   React App (Vite build, hosted on Lovable)     │            │
+│  └─────────────────────────────────────────────────┘            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### No Local Development Required
+
+- ❌ No `npm install`
+- ❌ No local Node.js
+- ❌ No terminal/CLI
+- ❌ No local database
+- ✅ Everything in the browser
 
 ---
 
 ## 🏗️ High-Level Architecture
 
 ```
+┌─────────────────────────────────────────────────────────────────┐
+│                    LOVABLE.DEV (Development)                     │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │   AI-Powered IDE  │  Code Editor  │  Preview  │  Publish   │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                         FRONTEND                                 │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
@@ -46,7 +108,14 @@
 
 ## 📦 Technology Stack
 
-### Frontend
+### Development Platform
+
+| Platform | Purpose | Docs |
+|----------|---------|------|
+| **Lovable.dev** | AI-powered IDE, preview, deployment | [docs.lovable.dev](https://docs.lovable.dev) |
+| **Supabase** | Backend-as-a-Service (PostgreSQL, Auth, Storage, Edge Functions) | [supabase.com/docs](https://supabase.com/docs) |
+
+### Frontend (React + Vite)
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
@@ -64,18 +133,17 @@
 
 ### Backend (Supabase)
 
-| Service | Purpose |
-|---------|---------|
-| PostgreSQL | Primary database |
-| Row Level Security | Data isolation |
-| Auth Service | Authentication |
-| Storage | File uploads |
-| Edge Functions | Serverless logic |
-| Realtime | Live subscriptions |
+| Service | Purpose | Dashboard Link |
+|---------|---------|----------------|
+| PostgreSQL | Primary database with RLS | Table Editor |
+| Auth Service | Authentication (email, OAuth) | Authentication |
+| Storage | File uploads & buckets | Storage |
+| Edge Functions | Serverless logic (Deno) | Edge Functions |
+| Realtime | Live subscriptions | Realtime |
 
 ---
 
-## 🗄️ Database Schema
+## 🗄️ Database Schema (Supabase PostgreSQL)
 
 ### Entity Relationship
 
@@ -106,6 +174,8 @@
 ```
 
 ### Core Tables
+
+Manage all tables in **Supabase Dashboard** → Table Editor.
 
 #### `profiles`
 ```sql
@@ -211,7 +281,7 @@ CREATE TABLE ai_agents (
 
 ---
 
-## 🔐 Security Model
+## 🔐 Security Model (Supabase RLS)
 
 ### Row Level Security (RLS)
 
@@ -220,6 +290,8 @@ Every table has RLS enabled with policies based on:
 1. **User ownership** - Users can only access their own data
 2. **Role-based access** - Admins have broader access
 3. **Authenticated access** - Some data visible to all logged-in users
+
+Configure RLS policies in **Supabase Dashboard** → Authentication → Policies.
 
 ### Security Definer Function
 
@@ -256,7 +328,7 @@ CREATE POLICY "Admins can view all profiles"
 
 ## 🔄 Data Flow
 
-### Authentication Flow
+### Authentication Flow (Supabase Auth)
 
 ```
 ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
@@ -356,7 +428,7 @@ collabai/
 ├── supabase/
 │   ├── config.toml            # Supabase config
 │   ├── migrations/            # Database migrations
-│   └── functions/             # Edge functions (coming)
+│   └── functions/             # Edge functions (Deno)
 │       ├── ai-chat/
 │       ├── meeting-processor/
 │       └── knowledge-search/
@@ -403,7 +475,7 @@ useMutation({
 
 ---
 
-## 🔌 Integration Points
+## 🔌 Integration Points (via Supabase Edge Functions)
 
 ### OpenAI Integration
 
@@ -433,14 +505,17 @@ const recordings = await fetch(
 
 ---
 
-## 📊 Monitoring
+## 📊 Monitoring (Supabase Dashboard)
 
-### Supabase Dashboard
+Access all monitoring in the **Supabase Dashboard**:
 
-- **Database:** Query performance, table sizes
-- **Auth:** Login attempts, user activity
-- **Edge Functions:** Invocations, errors, latency
-- **Storage:** Bucket usage, file counts
+| Feature | Dashboard Location |
+|---------|-------------------|
+| Database queries | Database → Query Performance |
+| Auth activity | Authentication → Users |
+| Edge function logs | Edge Functions → Logs |
+| Storage usage | Storage → Usage |
+| Realtime connections | Realtime → Dashboard |
 
 ### Browser DevTools
 
@@ -450,4 +525,18 @@ const recordings = await fetch(
 
 ---
 
-**Built with Lovable + Supabase** ❤️
+## 🔗 Quick Links
+
+| Resource | Link |
+|----------|------|
+| **Lovable Documentation** | [docs.lovable.dev](https://docs.lovable.dev) |
+| **Supabase Documentation** | [supabase.com/docs](https://supabase.com/docs) |
+| **React Documentation** | [react.dev](https://react.dev) |
+| **Tailwind CSS Docs** | [tailwindcss.com/docs](https://tailwindcss.com/docs) |
+
+---
+
+**Development Platform:** [Lovable.dev](https://lovable.dev)  
+**Backend Platform:** [Supabase](https://supabase.com)
+
+**Built with ❤️ using Lovable + Supabase**

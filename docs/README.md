@@ -1,6 +1,32 @@
-# CollabAi Documentation
+# CollabAi
 
-> **Enterprise-grade collaboration platform built with Lovable + Supabase**
+![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-ff69b4?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMjFDMTIgMjEgMyAxNS41IDMgOC41QzMgNS40NiA1LjQ2IDMgOC41IDNDMTAuMDQgMyAxMS41NCAzLjgyIDEyLjUgNS4wOUMxMy40NiAzLjgyIDE0Ljk2IDMgMTYuNSAzQzE5LjU0IDMgMjIgNS40NiAyMiA4LjVDMjIgMTUuNSAxMiAyMSAxMiAyMVoiIGZpbGw9IiNmZjY5YjQiLz48L3N2Zz4=)
+![Backend: Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+
+> **🚀 Built entirely with [Lovable.dev](https://lovable.dev) + [Supabase](https://supabase.com)**
+>
+> No local development environment required. All development, preview, and deployment happens in the browser.
+
+---
+
+## 🛠️ Development Framework
+
+| Platform | Role | Documentation |
+|----------|------|---------------|
+| **[Lovable.dev](https://lovable.dev)** | AI-powered frontend development, instant preview, one-click publish | [Lovable Docs](https://docs.lovable.dev) |
+| **[Supabase](https://supabase.com)** | PostgreSQL database, authentication, file storage, edge functions | [Supabase Docs](https://supabase.com/docs) |
+
+### Why Lovable + Supabase?
+
+- ✅ **No local setup** - Everything runs in the browser
+- ✅ **AI-assisted development** - Describe what you want, Lovable builds it
+- ✅ **Instant preview** - See changes immediately in the browser
+- ✅ **One-click deploy** - Click "Publish" to go live
+- ✅ **Full-stack in browser** - Frontend + backend, no CLI required
+- ✅ **Open-source backend** - Supabase is PostgreSQL-based, no vendor lock-in
 
 ---
 
@@ -18,11 +44,16 @@
 
 ## 🎯 Platform Overview
 
-**CollabAi** is a configurable multi-tenant SaaS platform for internal company use, built on:
+**CollabAi** is a configurable multi-tenant SaaS platform for internal company use.
 
-- **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS
-- **Backend:** Supabase (PostgreSQL + Auth + Storage + Edge Functions)
-- **Development:** Lovable.dev (AI-powered development platform)
+### Technology Stack
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Development** | [Lovable.dev](https://lovable.dev) | AI-powered web IDE, preview, deployment |
+| **Frontend** | React 18 + Vite + TypeScript + Tailwind CSS | Modern web application |
+| **Backend** | [Supabase](https://supabase.com) | PostgreSQL + Auth + Storage + Edge Functions |
+| **UI Components** | shadcn/ui | 51 pre-built accessible components |
 
 ### Core Modules
 
@@ -37,11 +68,27 @@
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Using Lovable + Supabase)
+
+**Prerequisites:**
+- [Lovable.dev](https://lovable.dev) account (free to start)
+- Supabase is auto-provisioned by Lovable (or connect external project)
+
+### Development Workflow
+
+```
+1. Open project in Lovable.dev (web-based IDE)
+2. Make changes via AI chat or code editor
+3. Preview instantly in browser
+4. Click "Publish" to deploy
+5. Configure backend in Supabase Dashboard
+```
+
+**No CLI, no local environment, no DevOps required.**
 
 ### For New Deployments
 
-1. **Fork/clone the project** in Lovable
+1. **Fork/remix the project** in Lovable
 2. **Connect Supabase** (auto-provisioned or external)
 3. **Configure branding** via Admin Panel
 4. **Enable features** as needed
@@ -61,7 +108,7 @@ See [QUICKSTART.md](./QUICKSTART.md) for detailed steps.
 | `demo@collabai.software` | User | `Demo@123` |
 | `admin@collabai.software` | Admin | `Admin@123` |
 
-### Supported Auth Methods
+### Supported Auth Methods (via Supabase Auth)
 
 - ✅ Email/Password
 - ✅ Google OAuth (requires configuration)
@@ -69,7 +116,7 @@ See [QUICKSTART.md](./QUICKSTART.md) for detailed steps.
 
 ---
 
-## 📊 Database Schema
+## 📊 Database Schema (Supabase PostgreSQL)
 
 The platform uses 14 core tables with Row Level Security (RLS):
 
@@ -90,41 +137,15 @@ notifications     - User notifications
 roles             - Role definitions
 ```
 
----
-
-## ⚙️ Technology Stack
-
-### Frontend
-
-- **React 18** - UI framework
-- **Vite** - Build tool
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **shadcn/ui** - UI components (51 components)
-- **React Query** - Data fetching & caching
-- **React Router v6** - Navigation
-- **React Hook Form + Zod** - Form handling
-- **Lucide React** - Icons
-
-### Backend (Supabase)
-
-- **PostgreSQL** - Database with RLS
-- **Supabase Auth** - Authentication
-- **Supabase Storage** - File storage
-- **Edge Functions** - Serverless logic (Deno)
-
-### Development
-
-- **Lovable.dev** - AI-powered development
-- **GitHub** - Version control
+Manage your database schema in the **Supabase Dashboard** → Table Editor.
 
 ---
 
-## 🔧 Configuration
+## ⚙️ Configuration
 
-### Environment Variables
+### Environment Variables (Supabase Edge Function Secrets)
 
-The following secrets are configured in Supabase:
+Configure secrets in **Supabase Dashboard** → Settings → Edge Function Secrets:
 
 | Secret | Required | Purpose |
 |--------|----------|---------|
@@ -159,7 +180,7 @@ collabai/
 │   ├── lib/                 # Utilities
 │   └── pages/               # Page components
 ├── supabase/
-│   ├── functions/           # Edge functions (coming)
+│   ├── functions/           # Edge functions (Deno)
 │   └── migrations/          # Database migrations
 ├── index.html
 ├── package.json
@@ -169,13 +190,14 @@ collabai/
 
 ---
 
-## 🚀 Deployment
+## 🚀 Deployment (via Lovable)
 
-### Lovable Deployment
+### How to Publish
 
-1. Click **Publish** in Lovable
-2. Configure custom domain (optional)
-3. Enable SSL (automatic)
+1. Click **"Publish"** button in Lovable (top right)
+2. Wait for build to complete
+3. Configure custom domain (optional)
+4. SSL is automatic
 
 ### Client Deployment Checklist
 
@@ -189,11 +211,19 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for the complete checklist:
 
 ---
 
-## 📞 Support
+## 📞 Support & Resources
 
-- **Documentation:** This folder (`/docs`)
-- **Lovable Docs:** https://docs.lovable.dev
-- **Supabase Docs:** https://supabase.com/docs
+| Resource | Link |
+|----------|------|
+| **Lovable Documentation** | [docs.lovable.dev](https://docs.lovable.dev) |
+| **Supabase Documentation** | [supabase.com/docs](https://supabase.com/docs) |
+| **Project Documentation** | This folder (`/docs`) |
+
+---
+
+**Development Platform:** [Lovable.dev](https://lovable.dev)  
+**Backend Platform:** [Supabase](https://supabase.com)  
+**Framework:** React 18 + Vite + TypeScript + Tailwind CSS
 
 ---
 
