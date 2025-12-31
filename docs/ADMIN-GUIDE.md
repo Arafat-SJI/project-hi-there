@@ -1,6 +1,24 @@
 # CollabAi Admin Guide
 
+![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-ff69b4?style=flat-square)
+![Backend: Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=flat-square)
+
 > **Configuration and administration guide for CollabAi platform**
+>
+> 🔧 **All backend management happens in [Supabase Dashboard](https://supabase.com/dashboard)**
+
+---
+
+## 🛠️ Administration Platforms
+
+| Task | Platform | Link |
+|------|----------|------|
+| **Frontend changes** | Lovable.dev | [lovable.dev](https://lovable.dev) |
+| **User management** | Supabase Dashboard | [supabase.com/dashboard](https://supabase.com/dashboard) → Auth |
+| **Database management** | Supabase Dashboard | [supabase.com/dashboard](https://supabase.com/dashboard) → Table Editor |
+| **API secrets** | Supabase Dashboard | [supabase.com/dashboard](https://supabase.com/dashboard) → Settings → Edge Functions |
+| **File storage** | Supabase Dashboard | [supabase.com/dashboard](https://supabase.com/dashboard) → Storage |
+| **Logs & monitoring** | Supabase Dashboard | [supabase.com/dashboard](https://supabase.com/dashboard) → Logs |
 
 ---
 
@@ -21,7 +39,7 @@ This guide covers admin-only configuration tasks:
 ### Requirements
 
 - User account with `admin` role in `user_roles` table
-- Access to `/admin` route
+- Access to `/admin` route in the app
 
 ### Verify Admin Access
 
@@ -30,19 +48,21 @@ This guide covers admin-only configuration tasks:
 3. Navigate to `/admin`
 
 If you don't see Admin:
-- Verify your role in Supabase → Table Editor → `user_roles`
+- Verify your role in **Supabase Dashboard** → Table Editor → `user_roles`
 - Ensure role is `admin` (not `user` or `moderator`)
 
 ---
 
-## 👥 User Management
+## 👥 User Management (Supabase Dashboard)
 
 ### Viewing Users
 
-In Supabase Dashboard:
-1. Go to Table Editor → `profiles`
+In **Supabase Dashboard**:
+1. Go to **Authentication** → **Users**
 2. View all user accounts
 3. Click row to see details
+
+Or in **Table Editor** → `profiles` for additional profile data.
 
 ### Creating Users
 
@@ -52,14 +72,14 @@ In Supabase Dashboard:
 3. Admin assigns role (see below)
 
 **Option 2: Supabase Dashboard**
-1. Go to Authentication → Users
-2. Click "Add User"
+1. Go to **Authentication** → **Users**
+2. Click **"Add User"**
 3. Enter email and password
 4. User receives confirmation email
 
 ### Assigning Roles
 
-**Via SQL Editor:**
+**Via SQL Editor** ([Supabase Dashboard](https://supabase.com/dashboard) → SQL Editor):
 
 ```sql
 -- Find user ID
@@ -71,8 +91,8 @@ VALUES ('USER-UUID-HERE', 'admin');  -- or 'moderator' or 'user'
 ```
 
 **Via Table Editor:**
-1. Go to Table Editor → `user_roles`
-2. Click "Insert Row"
+1. Go to **Table Editor** → `user_roles`
+2. Click **"Insert Row"**
 3. Enter `user_id` and `role`
 4. Save
 
@@ -105,7 +125,7 @@ DELETE FROM auth.users WHERE id = 'USER-UUID';
 
 ### Current Method (Database)
 
-Features are controlled by code. To enable/disable features, modify:
+Features are controlled by code. To enable/disable features, modify in **Lovable.dev**:
 
 1. `src/App.tsx` - Route definitions
 2. `src/components/layout/AppSidebar.tsx` - Sidebar items
@@ -123,9 +143,11 @@ Will add `app_config` table with settings like:
 
 ---
 
-## 🎨 Branding Configuration
+## 🎨 Branding Configuration (via Lovable.dev)
 
 ### Update App Name
+
+Open the project in **Lovable.dev** and modify:
 
 **File: `index.html`**
 ```html
@@ -141,7 +163,7 @@ Will add `app_config` table with settings like:
 ### Update Logo
 
 1. Create logo file (SVG or PNG)
-2. Upload to `src/assets/logo.svg`
+2. Upload to **Supabase Storage** or `src/assets/logo.svg`
 3. Import in components:
 
 ```tsx
@@ -151,7 +173,7 @@ import logo from '@/assets/logo.svg';
 
 ### Update Colors
 
-**File: `src/index.css`**
+**File: `src/index.css`** (edit in Lovable.dev)
 
 ```css
 :root {
@@ -174,12 +196,14 @@ import logo from '@/assets/logo.svg';
 
 ---
 
-## 🔌 Integration Setup
+## 🔌 Integration Setup (Supabase Edge Function Secrets)
+
+Configure all API keys in **Supabase Dashboard** → Settings → Edge Function Secrets.
 
 ### OpenAI (AI Features)
 
 1. Get API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-2. In Supabase Dashboard → Settings → Edge Function Secrets
+2. In **Supabase Dashboard** → Settings → Edge Function Secrets
 3. Add: `OPENAI_API_KEY=sk-proj-...`
 
 **Test:** Go to AI Chat, send a message
@@ -189,7 +213,7 @@ import logo from '@/assets/logo.svg';
 1. Create app at [Zoom Marketplace](https://marketplace.zoom.us/)
 2. Choose "Server-to-Server OAuth"
 3. Add scopes: `meeting:read:admin`, `recording:read:admin`
-4. Get credentials and add to Edge Function Secrets:
+4. Get credentials and add to **Edge Function Secrets**:
 
 ```
 ZOOM_CLIENT_ID=...
@@ -203,7 +227,7 @@ ZOOM_ACCOUNT_ID=...
 2. Enable Google+ API
 3. Create OAuth 2.0 credentials
 4. Add redirect URI: `https://YOUR-PROJECT.supabase.co/auth/v1/callback`
-5. In Supabase → Auth → Providers → Google:
+5. In **Supabase Dashboard** → Authentication → Providers → Google:
    - Enable provider
    - Add Client ID and Secret
 
@@ -211,27 +235,27 @@ ZOOM_ACCOUNT_ID=...
 
 1. Create account at [SendGrid](https://sendgrid.com)
 2. Create API key
-3. Add to Edge Function Secrets: `SENDGRID_API_KEY=...`
+3. Add to **Edge Function Secrets**: `SENDGRID_API_KEY=...`
 4. Verify sender domain
 
 ### Slack (Notifications)
 
 1. Create Slack app at [api.slack.com](https://api.slack.com)
 2. Create Incoming Webhook
-3. Add to Edge Function Secrets: `SLACK_WEBHOOK_URL=https://hooks.slack.com/...`
+3. Add to **Edge Function Secrets**: `SLACK_WEBHOOK_URL=https://hooks.slack.com/...`
 
 ---
 
-## 📊 Monitoring
+## 📊 Monitoring (Supabase Dashboard)
 
 ### User Activity
 
 **Via Supabase Dashboard:**
 
-1. Auth → Users - See login activity
-2. Logs → Auth Logs - Detailed auth events
+1. **Authentication** → **Users** - See login activity
+2. **Logs** → **Auth Logs** - Detailed auth events
 
-**Via SQL:**
+**Via SQL Editor:**
 
 ```sql
 -- Recent logins
@@ -246,7 +270,7 @@ LIMIT 20;
 
 ### Database Usage
 
-**Table sizes:**
+**Via SQL Editor:**
 ```sql
 SELECT 
   schemaname,
@@ -259,9 +283,9 @@ ORDER BY pg_total_relation_size(schemaname || '.' || tablename) DESC;
 
 ### Edge Function Logs
 
-1. Supabase Dashboard → Edge Functions
+1. **Supabase Dashboard** → **Edge Functions**
 2. Select function
-3. View Logs tab
+3. View **Logs** tab
 
 ---
 
@@ -277,6 +301,7 @@ ORDER BY pg_total_relation_size(schemaname || '.' || tablename) DESC;
 
 ### RLS Verification
 
+**Via SQL Editor:**
 ```sql
 -- Check all tables have RLS enabled
 SELECT 
@@ -290,7 +315,7 @@ WHERE schemaname = 'public';
 ### API Key Rotation
 
 1. Generate new key in provider dashboard
-2. Update in Supabase Edge Function Secrets
+2. Update in **Supabase Dashboard** → Edge Function Secrets
 3. Verify functionality
 4. Revoke old key
 
@@ -300,27 +325,27 @@ WHERE schemaname = 'public';
 
 ### User Can't Log In
 
-1. Check user exists in Auth → Users
+1. Check user exists in **Authentication** → **Users**
 2. Verify email is confirmed
 3. Check password is correct
-4. Review Auth logs for errors
+4. Review **Logs** → **Auth Logs** for errors
 
 ### User Missing Features
 
-1. Verify role in `user_roles` table
-2. Check sidebar filtering logic
+1. Verify role in **Table Editor** → `user_roles`
+2. Check sidebar filtering logic in code
 3. Confirm feature is enabled
 
 ### API Errors
 
-1. Check Edge Function logs
-2. Verify API keys are set correctly
+1. Check **Edge Functions** → Logs
+2. Verify API keys are set correctly in **Edge Function Secrets**
 3. Check API provider dashboard for issues
 
 ### Database Errors
 
-1. Check Supabase database logs
-2. Verify RLS policies
+1. Check **Logs** → **Database Logs**
+2. Verify RLS policies in **Authentication** → **Policies**
 3. Check for constraint violations
 
 ---
@@ -329,11 +354,18 @@ WHERE schemaname = 'public';
 
 ### Supabase Dashboard Links
 
-- **Table Editor:** `https://supabase.com/dashboard/project/[PROJECT]/editor`
-- **Auth Users:** `https://supabase.com/dashboard/project/[PROJECT]/auth/users`
-- **Edge Functions:** `https://supabase.com/dashboard/project/[PROJECT]/functions`
-- **Secrets:** `https://supabase.com/dashboard/project/[PROJECT]/settings/functions`
-- **Logs:** `https://supabase.com/dashboard/project/[PROJECT]/logs`
+Replace `[PROJECT]` with your project ID:
+
+| Page | URL |
+|------|-----|
+| **Table Editor** | `https://supabase.com/dashboard/project/[PROJECT]/editor` |
+| **Auth Users** | `https://supabase.com/dashboard/project/[PROJECT]/auth/users` |
+| **Auth Providers** | `https://supabase.com/dashboard/project/[PROJECT]/auth/providers` |
+| **Edge Functions** | `https://supabase.com/dashboard/project/[PROJECT]/functions` |
+| **Edge Function Secrets** | `https://supabase.com/dashboard/project/[PROJECT]/settings/functions` |
+| **Storage** | `https://supabase.com/dashboard/project/[PROJECT]/storage` |
+| **Database Logs** | `https://supabase.com/dashboard/project/[PROJECT]/logs` |
+| **SQL Editor** | `https://supabase.com/dashboard/project/[PROJECT]/sql/new` |
 
 ### Common SQL Queries
 
@@ -355,4 +387,18 @@ SELECT * FROM clients ORDER BY created_at DESC LIMIT 10;
 
 ---
 
-**Questions?** Check the [README](./README.md) or Supabase docs.
+## 🔗 Quick Links
+
+| Resource | Link |
+|----------|------|
+| **Lovable.dev** | [lovable.dev](https://lovable.dev) |
+| **Lovable Docs** | [docs.lovable.dev](https://docs.lovable.dev) |
+| **Supabase Dashboard** | [supabase.com/dashboard](https://supabase.com/dashboard) |
+| **Supabase Docs** | [supabase.com/docs](https://supabase.com/docs) |
+
+---
+
+**Development Platform:** [Lovable.dev](https://lovable.dev)  
+**Backend Platform:** [Supabase](https://supabase.com)
+
+**Questions?** Check the [README](./README.md) or platform documentation.

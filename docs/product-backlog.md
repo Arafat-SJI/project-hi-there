@@ -1,8 +1,24 @@
 # CollabAi Product Backlog
 
+![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-ff69b4?style=flat-square)
+![Backend: Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=flat-square)
+
 > **Version:** 1.0.0  
 > **Last Updated:** 2024-12-31  
 > **Status:** Active Development
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Development Platform** | [Lovable.dev](https://lovable.dev) | AI-powered IDE, instant preview, one-click publish |
+| **Backend Platform** | [Supabase](https://supabase.com) | PostgreSQL, Auth, Storage, Edge Functions |
+| **Frontend Framework** | React 18 + Vite + TypeScript | Modern web application |
+| **Styling** | Tailwind CSS + shadcn/ui | UI components and styling |
+
+**All development happens in [Lovable.dev](https://lovable.dev) - no local setup required.**
 
 ---
 
@@ -25,7 +41,7 @@ Transform CollabAi into a **rapidly deployable, configurable multi-tenant SaaS p
 
 | Module | Status | Description |
 |--------|--------|-------------|
-| **Authentication** | ✅ Complete | Email/password login with role-based access |
+| **Authentication** | ✅ Complete | Email/password login with role-based access (via Supabase Auth) |
 | **Dashboard** | ✅ Complete | Overview with key metrics |
 | **Clients** | ✅ Complete | CRUD operations for client management |
 | **Meetings** | ✅ Complete | Meeting scheduling with Zoom integration fields |
@@ -34,7 +50,7 @@ Transform CollabAi into a **rapidly deployable, configurable multi-tenant SaaS p
 | **Admin Panel** | ✅ Partial | Basic admin access, needs enhancement |
 | **UI/UX** | ✅ Complete | Premium SaaS design with CollabAi branding |
 
-### 📊 Database Schema (14 Tables)
+### 📊 Database Schema (14 Tables in Supabase)
 
 | Table | Purpose | RLS |
 |-------|---------|-----|
@@ -52,6 +68,8 @@ Transform CollabAi into a **rapidly deployable, configurable multi-tenant SaaS p
 | `feedback` | User feedback collection | ✅ |
 | `notifications` | User notifications | ✅ |
 | `zoom_files` | Zoom recording files | ✅ |
+
+Manage database in **Supabase Dashboard** → Table Editor.
 
 ### 🔧 Demo Accounts
 
@@ -82,6 +100,8 @@ Transform CollabAi into a **rapidly deployable, configurable multi-tenant SaaS p
 
 ### Sprint 2: App Configuration System
 
+*Development in [Lovable.dev](https://lovable.dev)*
+
 | ID | Story | Priority | Effort | Status |
 |----|-------|----------|--------|--------|
 | PB-004 | Create `app_config` database table | High | 0.5h | 🔲 Todo |
@@ -89,7 +109,7 @@ Transform CollabAi into a **rapidly deployable, configurable multi-tenant SaaS p
 | PB-006 | Admin branding settings page (logo, colors, name) | High | 2h | 🔲 Todo |
 | PB-007 | Admin feature toggles page | High | 2h | 🔲 Todo |
 
-**Database Migration Required:**
+**Database Migration (via Lovable → Supabase):**
 ```sql
 -- App configuration table for multi-tenant settings
 CREATE TABLE public.app_config (
@@ -124,6 +144,8 @@ CREATE TRIGGER update_app_config_updated_at
 
 ### Sprint 3: User Management
 
+*Development in [Lovable.dev](https://lovable.dev)*
+
 | ID | Story | Priority | Effort | Status |
 |----|-------|----------|--------|--------|
 | PB-008 | Admin user management page (list, view, edit) | Medium | 3h | 🔲 Todo |
@@ -131,7 +153,7 @@ CREATE TRIGGER update_app_config_updated_at
 | PB-010 | Role assignment dropdown UI | Medium | 1h | 🔲 Todo |
 | PB-011 | User deactivation toggle | Medium | 1h | 🔲 Todo |
 
-**Database Migration Required:**
+**Database Migration:**
 ```sql
 -- User invitations table
 CREATE TABLE public.user_invites (
@@ -163,13 +185,15 @@ CREATE POLICY "Admins can manage invites"
 | ID | Story | Priority | Effort | Status |
 |----|-------|----------|--------|--------|
 | PB-012 | Admin integration settings page | Medium | 2h | 🔲 Todo |
-| PB-013 | Secure API key storage (encrypted) | Medium | 1h | 🔲 Todo |
+| PB-013 | Secure API key storage (via Supabase Edge Function Secrets) | Medium | 1h | 🔲 Todo |
 | PB-014 | Connection test buttons (Zoom, OpenAI, etc.) | Medium | 2h | 🔲 Todo |
 | PB-015 | Integration status indicators | Medium | 1h | 🔲 Todo |
 
 ---
 
 ### Sprint 5: Edge Functions Deployment
+
+*Deploy via Lovable → auto-deployed to Supabase*
 
 | ID | Story | Priority | Effort | Status |
 |----|-------|----------|--------|--------|
@@ -235,7 +259,7 @@ CREATE POLICY "Admins can manage invites"
 
 ## 5. File Structure (New/Modified)
 
-### New Files to Create
+### New Files to Create (in Lovable.dev)
 
 ```
 src/
@@ -254,7 +278,7 @@ src/
 │       ├── DeploymentChecklist.tsx
 │       └── UserInviteForm.tsx
 supabase/
-└── functions/
+└── functions/                   # Edge functions (auto-deployed by Lovable)
     ├── ai-chat/
     │   └── index.ts             # AI conversation handler
     ├── meeting-processor/
@@ -280,29 +304,29 @@ supabase/
 
 Use this checklist when deploying CollabAi to a new client:
 
-### Pre-Deployment
-- [ ] Fork/copy Supabase project from template
-- [ ] Set all required environment variables
+### Pre-Deployment (Lovable + Supabase)
+- [ ] Fork/remix project in [Lovable.dev](https://lovable.dev)
+- [ ] Supabase project auto-provisioned or connected
 - [ ] Configure Site URL and Redirect URLs in Supabase Auth
 
-### Admin Setup
+### Admin Setup (Supabase Dashboard)
 - [ ] Create admin account via Supabase Auth
 - [ ] Assign admin role in `user_roles` table
 - [ ] Verify admin can access `/admin` route
 
-### Branding Configuration (via Admin Panel)
+### Branding Configuration (via Lovable.dev)
 - [ ] Set company name
 - [ ] Upload company logo
 - [ ] Configure primary/accent colors
 - [ ] Update favicon
 
-### Feature Configuration (via Admin Panel)
+### Feature Configuration (via Admin Panel / Code)
 - [ ] Enable/disable Clients module
 - [ ] Enable/disable Meetings module
 - [ ] Enable/disable Knowledge Base
 - [ ] Enable/disable AI Agents
 
-### Integration Setup (Optional)
+### Integration Setup (Supabase Edge Function Secrets)
 - [ ] Configure Zoom credentials (if meetings used)
 - [ ] Set OpenAI API key (if AI used)
 - [ ] Configure SendGrid (if email notifications needed)
@@ -319,10 +343,10 @@ Use this checklist when deploying CollabAi to a new client:
 - [ ] Confirm AI chat works (if enabled)
 - [ ] Test on mobile viewport
 
-### Go Live
-- [ ] Deploy frontend via Lovable Publish
+### Go Live (via Lovable)
+- [ ] Click **Publish** in Lovable.dev
 - [ ] Configure custom domain (if applicable)
-- [ ] Set up monitoring/alerts
+- [ ] Update Supabase Site URL to production URL
 - [ ] Document client-specific configurations
 
 ---
@@ -355,9 +379,10 @@ Use this checklist when deploying CollabAi to a new client:
 - **Type Safety:** JSONB with TypeScript interfaces
 
 ### Why Edge Functions for Backend Logic?
-- **Serverless:** Auto-scaling with traffic
+- **Serverless:** Auto-scaling with traffic (managed by Supabase)
 - **Security:** Server-side API key handling
 - **Integration:** Direct Supabase access with service role
+- **Auto-deploy:** Lovable automatically deploys edge functions
 
 ---
 
@@ -366,7 +391,7 @@ Use this checklist when deploying CollabAi to a new client:
 | Risk | Mitigation |
 |------|------------|
 | RLS policy misconfiguration | Use `has_role()` function consistently |
-| API key exposure | Store in Supabase secrets, access via edge functions |
+| API key exposure | Store in Supabase Edge Function Secrets |
 | Slow deployments | Use this checklist and template database |
 | Feature conflicts | Use feature flags, test modules independently |
 
@@ -382,5 +407,19 @@ Use this checklist when deploying CollabAi to a new client:
 | Edge function deployment success | 100% | 0% |
 
 ---
+
+## 🔗 Quick Links
+
+| Resource | Link |
+|----------|------|
+| **Lovable.dev** | [lovable.dev](https://lovable.dev) |
+| **Lovable Docs** | [docs.lovable.dev](https://docs.lovable.dev) |
+| **Supabase Dashboard** | [supabase.com/dashboard](https://supabase.com/dashboard) |
+| **Supabase Docs** | [supabase.com/docs](https://supabase.com/docs) |
+
+---
+
+**Development Platform:** [Lovable.dev](https://lovable.dev)  
+**Backend Platform:** [Supabase](https://supabase.com)
 
 *Document maintained by: CollabAi Development Team*
