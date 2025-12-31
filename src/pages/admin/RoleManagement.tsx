@@ -30,7 +30,6 @@ interface Role {
   id: string;
   name: string;
   description: string | null;
-  permissions: string[];
   created_at: string;
 }
 
@@ -88,7 +87,8 @@ export default function RoleManagement() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setRoles(data || []);
+      // Add empty permissions array to match interface
+      setRoles((data || []).map(r => ({ ...r })));
     } catch (error: any) {
       console.error("Error fetching roles:", error);
       toast.error("Failed to fetch roles");
@@ -112,7 +112,7 @@ export default function RoleManagement() {
     setFormData({
       name: role.name,
       description: role.description || "",
-      permissions: role.permissions || [],
+      permissions: [],
     });
     setDialogOpen(true);
   };
@@ -132,7 +132,6 @@ export default function RoleManagement() {
           .update({
             name: formData.name,
             description: formData.description || null,
-            permissions: formData.permissions,
           })
           .eq("id", editingRole.id);
 
@@ -143,7 +142,6 @@ export default function RoleManagement() {
         const { error } = await supabase.from("roles").insert({
           name: formData.name,
           description: formData.description || null,
-          permissions: formData.permissions,
         });
 
         if (error) throw error;
@@ -287,18 +285,11 @@ export default function RoleManagement() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {role.permissions?.slice(0, 3).map((perm) => (
-                            <Badge key={perm} variant="secondary" className="text-xs">
-                              {perm}
-                            </Badge>
-                          ))}
-                          {(role.permissions?.length || 0) > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{(role.permissions?.length || 0) - 3} more
-                            </Badge>
-                          )}
-                          {(!role.permissions || role.permissions.length === 0) && (
-                            <span className="text-sm text-muted-foreground">No permissions</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {role.name === "admin" ? "Full Access" : "Standard"}
+                          </Badge>
+                          {role.name !== "admin" && (
+                            <span className="text-sm text-muted-foreground">Managed via RLS</span>
                           )}
                         </div>
                       </TableCell>

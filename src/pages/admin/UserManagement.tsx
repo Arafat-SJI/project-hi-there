@@ -140,7 +140,7 @@ export default function UserManagement() {
         // Update existing role
         const { error } = await supabase
           .from("user_roles")
-          .update({ role: editRole })
+          .update({ role: editRole as "admin" | "moderator" | "user" })
           .eq("user_id", selectedUser.id);
 
         if (error) throw error;
@@ -148,7 +148,7 @@ export default function UserManagement() {
         // Insert new role
         const { error } = await supabase
           .from("user_roles")
-          .insert({ user_id: selectedUser.id, role: editRole });
+          .insert([{ user_id: selectedUser.id, role: editRole as "admin" | "moderator" | "user" }]);
 
         if (error) throw error;
       }
