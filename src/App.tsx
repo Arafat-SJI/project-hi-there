@@ -35,6 +35,7 @@ import DeploymentStatus from "./pages/DeploymentStatus";
 import UserManagement from "./pages/admin/UserManagement";
 import RoleManagement from "./pages/admin/RoleManagement";
 import ActivityLogs from "./pages/admin/ActivityLogs";
+import SystemSettings from "./pages/admin/SystemSettings";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
@@ -101,6 +102,7 @@ const App = () => (
                   <Route path="/admin/users" element={<UserManagement />} />
                   <Route path="/admin/roles" element={<RoleManagement />} />
                   <Route path="/admin/logs" element={<ActivityLogs />} />
+                  <Route path="/admin/settings" element={<SystemSettings />} />
                   <Route path="/admin/deployment" element={<DeploymentStatus />} />
                 </Route>
               </Route>

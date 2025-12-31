@@ -24,16 +24,7 @@ import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: string;
-  is_read: boolean;
-  link: string | null;
-  created_at: string;
-}
+import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
 
 interface SearchResult {
   id: string;
@@ -46,42 +37,14 @@ interface SearchResult {
 
 export function TopNav() {
   const { user, profile, signOut } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    }
-  }, [user]);
-
-  const fetchNotifications = async () => {
-    if (!user) return;
-
-    setLoadingNotifications(true);
-    try {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("id, title, message, type, is_read, link, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-
-      setNotifications(data || []);
-      setUnreadCount(data?.filter((n) => !n.is_read).length || 0);
-    } catch (error: any) {
-      console.error("Fetch notifications error:", error);
-    } finally {
-      setLoadingNotifications(false);
-    }
-  };
+  // Use React Query hooks for notifications
+  const { data: unreadCount } = useUnreadCount();
+  const { data: recentNotifications, isLoading: loadingNotifications } = useNotifications("all");
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,12 +196,12 @@ export function TopNav() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
                 <Bell className="h-[18px] w-[18px]" />
-                {unreadCount > 0 && (
+                {(unreadCount || 0) > 0 && (
                   <Badge
                     variant="destructive"
                     className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full p-0 text-xs"
                   >
-                    {unreadCount > 9 ? "9+" : unreadCount}
+                    {(unreadCount || 0) > 9 ? "9+" : unreadCount}
                   </Badge>
                 )}
               </Button>
@@ -246,7 +209,7 @@ export function TopNav() {
             <DropdownMenuContent align="end" className="w-80">
               <DropdownMenuLabel className="flex items-center justify-between">
                 Notifications
-                {unreadCount > 0 && (
+                {(unreadCount || 0) > 0 && (
                   <Badge variant="secondary" className="text-xs">
                     {unreadCount} new
                   </Badge>
@@ -258,13 +221,13 @@ export function TopNav() {
                   <div className="p-4 text-center text-sm text-muted-foreground">
                     Loading...
                   </div>
-                ) : notifications.length === 0 ? (
+                ) : !recentNotifications || recentNotifications.length === 0 ? (
                   <div className="p-4 text-center text-sm text-muted-foreground">
                     No notifications
                   </div>
                 ) : (
                   <>
-                    {notifications.map((notification) => (
+                    {recentNotifications.slice(0, 5).map((notification) => (
                       <DropdownMenuItem key={notification.id} asChild>
                         <Link
                           to={notification.link || "/notifications"}
