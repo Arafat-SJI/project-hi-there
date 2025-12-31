@@ -152,13 +152,21 @@
 │    Users     │       │   Profiles   │       │  User Roles  │
 │  (auth.users)│──────▶│              │◀──────│              │
 └──────────────┘       └──────────────┘       └──────────────┘
-        │                     │
-        │                     │
-        ▼                     ▼
+        │                     │                       │
+        │                     │                       │
+        ▼                     ▼                       ▼
 ┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-│   Clients    │       │   Meetings   │       │ Knowledge    │
-│              │◀──────│              │       │  Entries     │
+│   Clients    │◀──────│   Meetings   │       │    Tasks     │
+│              │       │              │       │  (assigned)  │
 └──────────────┘       └──────────────┘       └──────────────┘
+        │                     │                       │
+        └─────────────────────┴───────────────────────┘
+                              │
+                              ▼
+                       ┌──────────────┐
+                       │ Knowledge    │
+                       │  Entries     │
+                       └──────────────┘
                               │
                               ▼
                        ┌──────────────┐
@@ -392,6 +400,7 @@ collabai/
 │   ├── hooks/
 │   │   ├── useClients.ts      # Clients data
 │   │   ├── useMeetings.ts     # Meetings data
+│   │   ├── useTasks.ts        # Tasks data
 │   │   ├── useKnowledge.ts    # Knowledge data
 │   │   └── use-toast.ts       # Toast notifications
 │   │
@@ -414,6 +423,9 @@ collabai/
 │   │   ├── Meetings.tsx       # Meetings list
 │   │   ├── MeetingForm.tsx    # Meeting add/edit
 │   │   ├── MeetingDetail.tsx  # Meeting details
+│   │   ├── Tasks.tsx          # Tasks list
+│   │   ├── TaskForm.tsx       # Task add/edit
+│   │   ├── TaskDetail.tsx     # Task details
 │   │   ├── Knowledge.tsx      # Knowledge base
 │   │   ├── AIChat.tsx         # AI assistant
 │   │   ├── Admin.tsx          # Admin panel

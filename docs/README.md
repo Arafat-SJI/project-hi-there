@@ -62,6 +62,7 @@
 | **Dashboard** | KPIs, quick actions, activity feed | ✅ Complete |
 | **Clients** | Client/company management with CRUD | ✅ Complete |
 | **Meetings** | Meeting scheduling with Zoom fields | ✅ Complete |
+| **Tasks** | Task management with assignments & priorities | ✅ Complete |
 | **Knowledge Base** | Searchable knowledge entries | ✅ Complete |
 | **AI Chat** | AI assistant interface | ✅ Complete |
 | **Admin Panel** | User/role/config management | ✅ Complete |
@@ -118,13 +119,14 @@ See [QUICKSTART.md](./QUICKSTART.md) for detailed steps.
 
 ## 📊 Database Schema (Supabase PostgreSQL)
 
-The platform uses 14 core tables with Row Level Security (RLS):
+The platform uses 15 core tables with Row Level Security (RLS):
 
 ```
 profiles          - User profile information
 user_roles        - Role assignments (admin, moderator, user)
 clients           - Client/company data
 meetings          - Meeting records
+tasks             - Task tracking with assignments and priorities
 zoom_files        - Zoom recordings/transcripts
 knowledge_entries - Knowledge base articles
 knowledge_categories - Article categories
