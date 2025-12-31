@@ -3,19 +3,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { queryKeys, invalidateKeys } from "@/lib/cache";
 import { MeetingFormData } from "@/lib/validation";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface Meeting {
   id: string;
   title: string;
-  description?: string;
-  meeting_date: string;
-  duration_minutes?: number;
-  zoom_meeting_id?: string;
-  zoom_join_url?: string;
-  status: "scheduled" | "completed" | "cancelled";
-  client_id?: string;
-  transcript?: string;
-  summary?: string;
+  description: string | null;
+  scheduled_at: string | null;
+  duration_minutes: number | null;
+  zoom_meeting_id: string | null;
+  zoom_join_url: string | null;
+  zoom_start_url: string | null;
+  zoom_uuid: string | null;
+  zoom_id: string | null;
+  status: string | null;
+  client_id: string | null;
+  organizer_id: string;
+  location: string | null;
+  meeting_type: string | null;
+  metadata: any;
   created_at: string;
   updated_at: string;
 }
@@ -27,7 +33,7 @@ export function useMeetings(filters?: Record<string, any>) {
       let query = supabase
         .from("meetings")
         .select("*, clients(name)")
-        .order("meeting_date", { ascending: false });
+        .order("scheduled_at", { ascending: false });
 
       if (filters?.status) {
         query = query.eq("status", filters.status);
@@ -39,7 +45,7 @@ export function useMeetings(filters?: Record<string, any>) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as (Meeting & { clients?: { name: string } })[];
+      return data as (Meeting & { clients?: { name: string } | null })[];
     },
   });
 }
@@ -55,7 +61,7 @@ export function useMeeting(id: string) {
         .single();
 
       if (error) throw error;
-      return data as Meeting & { clients?: { name: string; email: string } };
+      return data as Meeting & { clients?: { name: string; email: string | null } | null };
     },
     enabled: !!id,
   });
@@ -64,12 +70,25 @@ export function useMeeting(id: string) {
 export function useCreateMeeting() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (data: MeetingFormData) => {
+      const insertData = {
+        title: data.title,
+        description: data.description || null,
+        scheduled_at: data.meeting_date || null,
+        duration_minutes: data.duration_minutes || null,
+        client_id: data.client_id || null,
+        zoom_meeting_id: data.zoom_meeting_id || null,
+        zoom_join_url: data.zoom_join_url || null,
+        status: "scheduled",
+        organizer_id: user?.id!,
+      };
+
       const { data: meeting, error } = await supabase
         .from("meetings")
-        .insert([{ ...data, status: "scheduled" }])
+        .insert([insertData])
         .select()
         .single();
 
@@ -99,9 +118,18 @@ export function useUpdateMeeting() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<MeetingFormData> }) => {
+      const updateData: any = {};
+      if (data.title !== undefined) updateData.title = data.title;
+      if (data.description !== undefined) updateData.description = data.description || null;
+      if (data.meeting_date !== undefined) updateData.scheduled_at = data.meeting_date || null;
+      if (data.duration_minutes !== undefined) updateData.duration_minutes = data.duration_minutes || null;
+      if (data.client_id !== undefined) updateData.client_id = data.client_id || null;
+      if (data.zoom_meeting_id !== undefined) updateData.zoom_meeting_id = data.zoom_meeting_id || null;
+      if (data.zoom_join_url !== undefined) updateData.zoom_join_url = data.zoom_join_url || null;
+
       const { data: meeting, error } = await supabase
         .from("meetings")
-        .update(data)
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();

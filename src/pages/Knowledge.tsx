@@ -161,10 +161,10 @@ export default function Knowledge() {
                   <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
                 </div>
                 <CardDescription className="flex items-center gap-2">
-                  {entry.category && (
-                    <Badge variant="outline">{entry.category}</Badge>
+                  {entry.knowledge_categories && (
+                    <Badge variant="outline">{entry.knowledge_categories.name}</Badge>
                   )}
-                  {getEmbeddingBadge(entry.embedding_status)}
+                  {entry.status && <Badge variant="secondary">{entry.status}</Badge>}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col justify-between gap-4">

@@ -169,14 +169,14 @@ export default function ClientDetail() {
       </div>
 
       {/* Notes */}
-      {client.notes && (
+      {client.metadata && typeof client.metadata === 'object' && 'notes' in client.metadata && client.metadata.notes && (
         <Card>
           <CardHeader>
             <CardTitle>Notes</CardTitle>
             <CardDescription>Additional information about this client</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-sm">{client.notes}</p>
+            <p className="whitespace-pre-wrap text-sm">{String(client.metadata.notes)}</p>
           </CardContent>
         </Card>
       )}

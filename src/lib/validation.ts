@@ -46,10 +46,10 @@ export function maxLength(value: string, max: number): boolean {
   return value.length <= max;
 }
 
-// Common validation schemas
+// Common validation schemas - aligned with form requirements
 export const clientSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
   company: z.string().optional(),
   phone: z.string().optional(),
   notes: z.string().optional(),
@@ -57,15 +57,18 @@ export const clientSchema = z.object({
 
 export const meetingSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  scheduled_at: z.string().min(1, "Date is required"),
-  duration: z.number().min(1, "Duration must be at least 1 minute").optional(),
+  meeting_date: z.string().min(1, "Date is required"),
+  duration_minutes: z.number().min(1, "Duration must be at least 1 minute").optional(),
   description: z.string().optional(),
+  client_id: z.string().optional().or(z.literal("")),
+  zoom_meeting_id: z.string().optional(),
+  zoom_join_url: z.string().optional(),
 });
 
 export const knowledgeEntrySchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required"),
-  category_id: z.string().uuid("Invalid category").optional(),
+  category: z.string().optional(),
   tags: z.array(z.string()).optional(),
 });
 

@@ -3,16 +3,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { queryKeys, invalidateKeys } from "@/lib/cache";
 import { KnowledgeEntryFormData } from "@/lib/validation";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface KnowledgeEntry {
   id: string;
   title: string;
   content: string;
-  category?: string;
-  tags?: string[];
-  file_url?: string;
-  file_type?: string;
-  embedding_status?: "pending" | "processing" | "completed" | "failed";
+  slug: string;
+  category_id: string | null;
+  tags: string[] | null;
+  summary: string | null;
+  status: string | null;
+  view_count: number | null;
+  author_id: string;
+  metadata: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KnowledgeCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  parent_id: string | null;
+  sort_order: number | null;
+  metadata: any;
   created_at: string;
   updated_at: string;
 }
@@ -23,11 +41,11 @@ export function useKnowledgeEntries(filters?: Record<string, any>) {
     queryFn: async () => {
       let query = supabase
         .from("knowledge_entries")
-        .select("*")
+        .select("*, knowledge_categories(*)")
         .order("created_at", { ascending: false });
 
-      if (filters?.category) {
-        query = query.eq("category", filters.category);
+      if (filters?.category_id) {
+        query = query.eq("category_id", filters.category_id);
       }
 
       if (filters?.search) {
@@ -38,7 +56,22 @@ export function useKnowledgeEntries(filters?: Record<string, any>) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as KnowledgeEntry[];
+      return data as (KnowledgeEntry & { knowledge_categories?: KnowledgeCategory | null })[];
+    },
+  });
+}
+
+export function useKnowledgeCategories() {
+  return useQuery({
+    queryKey: queryKeys.knowledge.categories,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("knowledge_categories")
+        .select("*")
+        .order("sort_order", { ascending: true });
+
+      if (error) throw error;
+      return data as KnowledgeCategory[];
     },
   });
 }
@@ -49,12 +82,12 @@ export function useKnowledgeEntry(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("knowledge_entries")
-        .select("*")
+        .select("*, knowledge_categories(*)")
         .eq("id", id)
         .single();
 
       if (error) throw error;
-      return data as KnowledgeEntry;
+      return data as KnowledgeEntry & { knowledge_categories?: KnowledgeCategory | null };
     },
     enabled: !!id,
   });
@@ -84,12 +117,29 @@ export function useKnowledgeSearch(query: string) {
 export function useCreateKnowledgeEntry() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (data: KnowledgeEntryFormData) => {
+      // Generate slug from title
+      const slug = data.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+        + "-" + Date.now();
+
+      const insertData = {
+        title: data.title,
+        content: data.content,
+        slug,
+        author_id: user?.id!,
+        tags: data.tags || null,
+        status: "published",
+      };
+
       const { data: entry, error } = await supabase
         .from("knowledge_entries")
-        .insert([{ ...data, embedding_status: "pending" }])
+        .insert([insertData])
         .select()
         .single();
 
@@ -125,9 +175,15 @@ export function useUpdateKnowledgeEntry() {
       id: string;
       data: Partial<KnowledgeEntryFormData>;
     }) => {
+      const updateData: any = {};
+      if (data.title !== undefined) updateData.title = data.title;
+      if (data.content !== undefined) updateData.content = data.content;
+      if (data.tags !== undefined) updateData.tags = data.tags || null;
+      if (data.category !== undefined) updateData.category_id = data.category || null;
+
       const { data: entry, error } = await supabase
         .from("knowledge_entries")
-        .update(data)
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();

@@ -53,13 +53,13 @@ export default function Meetings() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | null) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
       scheduled: "default",
       completed: "secondary",
       cancelled: "destructive",
     };
-    return <Badge variant={variants[status] || "default"}>{status}</Badge>;
+    return <Badge variant={variants[status || ""] || "default"}>{status || "unknown"}</Badge>;
   };
 
   return (
@@ -138,7 +138,7 @@ export default function Meetings() {
                     <TableCell>
                       {meeting.clients?.name || "-"}
                     </TableCell>
-                    <TableCell>{formatDateTime(meeting.meeting_date)}</TableCell>
+                    <TableCell>{meeting.scheduled_at ? formatDateTime(meeting.scheduled_at) : "-"}</TableCell>
                     <TableCell>
                       {meeting.duration_minutes ? `${meeting.duration_minutes} min` : "-"}
                     </TableCell>

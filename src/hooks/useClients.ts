@@ -7,10 +7,12 @@ import { useToast } from "@/hooks/use-toast";
 export interface Client {
   id: string;
   name: string;
-  email: string;
-  company?: string;
-  phone?: string;
-  notes?: string;
+  email: string | null;
+  company: string | null;
+  phone: string | null;
+  status: string | null;
+  metadata: any;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -60,9 +62,18 @@ export function useCreateClient() {
 
   return useMutation({
     mutationFn: async (data: ClientFormData) => {
+      // Map form data to database columns (notes stored in metadata)
+      const insertData = {
+        name: data.name,
+        email: data.email || null,
+        company: data.company || null,
+        phone: data.phone || null,
+        metadata: data.notes ? { notes: data.notes } : null,
+      };
+      
       const { data: client, error } = await supabase
         .from("clients")
-        .insert([data])
+        .insert([insertData])
         .select()
         .single();
 
@@ -92,9 +103,17 @@ export function useUpdateClient() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<ClientFormData> }) => {
+      // Map form data to database columns
+      const updateData: any = {};
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.email !== undefined) updateData.email = data.email || null;
+      if (data.company !== undefined) updateData.company = data.company || null;
+      if (data.phone !== undefined) updateData.phone = data.phone || null;
+      if (data.notes !== undefined) updateData.metadata = { notes: data.notes };
+      
       const { data: client, error } = await supabase
         .from("clients")
-        .update(data)
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
@@ -147,4 +166,12 @@ export function useDeleteClient() {
       });
     },
   });
+}
+
+// Helper to extract notes from client metadata
+export function getClientNotes(client: Client): string {
+  if (client.metadata && typeof client.metadata === 'object' && 'notes' in client.metadata) {
+    return String(client.metadata.notes) || '';
+  }
+  return '';
 }

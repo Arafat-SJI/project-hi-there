@@ -142,7 +142,7 @@ export default function MeetingDetail() {
               <div className="flex-1">
                 <p className="text-sm font-medium">Date & Time</p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDateTime(meeting.meeting_date)}
+                  {meeting.scheduled_at ? formatDateTime(meeting.scheduled_at) : "Not scheduled"}
                 </p>
               </div>
             </div>
@@ -226,21 +226,21 @@ export default function MeetingDetail() {
         </Card>
       )}
 
-      {/* Summary */}
-      {meeting.summary && (
+      {/* Summary - stored in metadata if available */}
+      {meeting.metadata && typeof meeting.metadata === 'object' && 'summary' in meeting.metadata && meeting.metadata.summary && (
         <Card>
           <CardHeader>
             <CardTitle>AI Summary</CardTitle>
             <CardDescription>Auto-generated meeting summary</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-sm">{meeting.summary}</p>
+            <p className="whitespace-pre-wrap text-sm">{String(meeting.metadata.summary)}</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Transcript */}
-      {meeting.transcript && (
+      {/* Transcript - stored in metadata if available */}
+      {meeting.metadata && typeof meeting.metadata === 'object' && 'transcript' in meeting.metadata && meeting.metadata.transcript && (
         <Card>
           <CardHeader>
             <CardTitle>Transcript</CardTitle>
@@ -248,7 +248,7 @@ export default function MeetingDetail() {
           </CardHeader>
           <CardContent>
             <div className="max-h-96 overflow-y-auto rounded-lg bg-muted p-4">
-              <p className="whitespace-pre-wrap text-sm font-mono">{meeting.transcript}</p>
+              <p className="whitespace-pre-wrap text-sm font-mono">{String(meeting.metadata.transcript)}</p>
             </div>
           </CardContent>
         </Card>
