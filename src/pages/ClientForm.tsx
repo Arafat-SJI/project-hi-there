@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useClient, useCreateClient, useUpdateClient } from "@/hooks/useClients";
+import { useClient, useCreateClient, useUpdateClient, getClientNotes } from "@/hooks/useClients";
 import { clientSchema, ClientFormData } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,10 +39,10 @@ export default function ClientForm() {
     if (client) {
       reset({
         name: client.name,
-        email: client.email,
+        email: client.email || "",
         company: client.company || "",
         phone: client.phone || "",
-        notes: client.notes || "",
+        notes: getClientNotes(client),
       });
     }
   }, [client, reset]);
@@ -116,9 +116,7 @@ export default function ClientForm() {
 
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email">
-                  Email <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"

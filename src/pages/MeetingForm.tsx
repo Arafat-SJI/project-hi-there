@@ -53,7 +53,7 @@ export default function MeetingForm() {
       reset({
         title: meeting.title,
         description: meeting.description || "",
-        meeting_date: meeting.meeting_date.slice(0, 16), // Format for datetime-local
+        meeting_date: meeting.scheduled_at ? meeting.scheduled_at.slice(0, 16) : "",
         duration_minutes: meeting.duration_minutes || undefined,
         client_id: meeting.client_id || "",
         zoom_meeting_id: meeting.zoom_meeting_id || "",
@@ -157,7 +157,7 @@ export default function MeetingForm() {
                 <Input
                   id="duration_minutes"
                   type="number"
-                  {...register("duration_minutes")}
+                  {...register("duration_minutes", { valueAsNumber: true })}
                   placeholder="60"
                   disabled={isSubmitting}
                 />
