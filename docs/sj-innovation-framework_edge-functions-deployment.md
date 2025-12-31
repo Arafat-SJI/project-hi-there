@@ -12,9 +12,37 @@ This guide helps you deploy V1 framework edge functions to new Supabase projects
 
 ## 🎯 Deployment Strategy Options
 
-### **Option A: Lovable.dev (Recommended for Beginners)** ⭐
+### **Option A: Edge Function Copy Tool** ⭐ **EASIEST!** **NEW!**
 
-**Best for:** Getting started quickly, no CLI experience needed
+**Best for:** Everyone! Non-technical users, fastest setup
+
+**Pros:**
+- ✅ No CLI installation required
+- ✅ Point-and-click web interface
+- ✅ Copy all 31 functions in one click
+- ✅ Real-time progress tracking
+- ✅ Works in 15 minutes
+- ✅ Built-in error handling
+- ✅ No manual file copying needed
+
+**Cons:**
+- ⚠️ Requires running local dev server
+- ⚠️ Need API tokens from both projects
+
+**How it works:**
+1. Run the copy tool: `npm run dev`
+2. Open browser to http://localhost:5173/edge-function-copy
+3. Enter source & target project credentials
+4. Select functions (or click "Select All V1")
+5. Click "Copy" and wait for completion!
+
+**See:** [`EDGE_FUNCTION_COPY_TOOL.md`](./EDGE_FUNCTION_COPY_TOOL.md) for complete guide
+
+---
+
+### **Option B: Lovable.dev (Good for Beginners)**
+
+**Best for:** Getting started quickly with AI assistance
 
 **Pros:**
 - ✅ No CLI installation required
@@ -38,7 +66,7 @@ This guide helps you deploy V1 framework edge functions to new Supabase projects
 
 ---
 
-### **Option B: Supabase CLI (Recommended for Developers)** ⭐
+### **Option C: Supabase CLI (Recommended for Developers)** ⭐
 
 **Best for:** Developers comfortable with terminal, production deployments
 
@@ -57,21 +85,21 @@ This guide helps you deploy V1 framework edge functions to new Supabase projects
 
 ---
 
-### **Option C: Management API**
+### **Option D: Management API (Advanced)**
 
-**Best for:** Advanced automation scenarios
+**Best for:** Custom automation, CI/CD pipelines
 
 **Pros:**
 - ✅ Fully programmatic
 - ✅ Can copy from existing project
+- ✅ Scriptable/automatable
 
 **Cons:**
-- ❌ Complex to set up
-- ❌ Fragile (API changes)
-- ❌ Still requires env var setup
-- ❌ Not officially supported for functions
+- ⚠️ More complex to set up
+- ⚠️ Requires API tokens
+- ⚠️ Still requires env var setup
 
-**Verdict:** **Not recommended** - Use Lovable or CLI instead
+**Note:** The **Edge Function Copy Tool** (Option A) uses this API under the hood with a user-friendly interface!
 
 ---
 
@@ -81,13 +109,16 @@ This guide helps you deploy V1 framework edge functions to new Supabase projects
 
 | Your Situation | Recommended Option |
 |----------------|-------------------|
+| **Want easiest/fastest method** | **Edge Function Copy Tool** ⭐ |
+| **Non-technical user** | **Edge Function Copy Tool** ⭐ |
+| **Copying from existing project** | **Edge Function Copy Tool** ⭐ |
 | New to coding, want AI help | **Lovable.dev** |
 | Using Claude Code for development | **Lovable.dev** |
 | Comfortable with terminal | **Supabase CLI** |
 | Need automation scripts | **Supabase CLI** |
-| Production deployment | **Both work great** |
+| Production deployment | **CLI or Copy Tool** |
 
-**This guide covers both Lovable and CLI workflows.**
+**This guide covers all workflows: Copy Tool, Lovable, CLI, and API.**
 
 ---
 

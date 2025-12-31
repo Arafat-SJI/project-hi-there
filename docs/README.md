@@ -16,7 +16,9 @@ This folder contains all documentation for the **SJ Innovation Framework V1 (Opt
 
 | Document | Purpose | When to Use |
 |----------|---------|-------------|
-| **[`QUICKSTART_LOVABLE.md`](./QUICKSTART_LOVABLE.md)** | **Complete Lovable + Claude Code workflow** | **Starting new project (No CLI)** ⭐ RECOMMENDED |
+| **[`EDGE_FUNCTION_COPY_TOOL.md`](./EDGE_FUNCTION_COPY_TOOL.md)** | **🎯 Copy edge functions tool** | **EASIEST way to copy functions** ⭐⭐⭐ |
+| **[`NEXT_STEPS.md`](./NEXT_STEPS.md)** | **After copying edge functions** | **What to do after using copy tool** ⭐ |
+| **[`QUICKSTART_LOVABLE.md`](./QUICKSTART_LOVABLE.md)** | **Complete Lovable + Claude Code workflow** | **Starting new project (No CLI)** ⭐ |
 
 ### **Essential Guides**
 
