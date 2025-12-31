@@ -94,7 +94,7 @@ export function PricingPreview() {
 
         {/* CTA */}
         <div className="mt-12 text-center">
-          <Button size="lg" variant="outline" className="h-12 px-8" asChild>
+          <Button size="lg" variant="outline" className="h-12 rounded-full px-8" asChild>
             <Link to="/pricing">See Full Pricing</Link>
           </Button>
         </div>
