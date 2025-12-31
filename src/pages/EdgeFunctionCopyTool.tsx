@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Circle, Loader2, AlertCircle } from 'lucide-react';
-
+import { supabase } from '@/integrations/supabase/client';
 // V1 Framework Functions organized by category
 const V1_FUNCTIONS = {
   foundation: [
@@ -67,10 +67,10 @@ interface CopyProgress {
 }
 
 export default function EdgeFunctionCopyTool() {
-  // Form state
-  const [sourceProjectRef, setSourceProjectRef] = useState('');
+  // Form state - hardcoded project refs
+  const [sourceProjectRef, setSourceProjectRef] = useState('ttlmdbgptqlvjswtcrnq');
   const [sourceApiToken, setSourceApiToken] = useState('');
-  const [targetProjectRef, setTargetProjectRef] = useState('');
+  const [targetProjectRef, setTargetProjectRef] = useState('tjkqvbxtziheggurtvcz');
   const [targetApiToken, setTargetApiToken] = useState('');
 
   // Function selection state
@@ -115,7 +115,7 @@ export default function EdgeFunctionCopyTool() {
     setSelectedFunctions(new Set());
   };
 
-  // Fetch functions from source project
+  // Fetch functions from source project via proxy
   const fetchSourceFunctions = async () => {
     if (!sourceProjectRef || !sourceApiToken) {
       setError('Please provide source project ref and API token');
@@ -126,20 +126,23 @@ export default function EdgeFunctionCopyTool() {
     setError(null);
 
     try {
-      const response = await fetch(
-        `https://api.supabase.com/v1/projects/${sourceProjectRef}/functions`,
-        {
-          headers: {
-            Authorization: `Bearer ${sourceApiToken}`,
-          },
-        }
-      );
+      const { data, error: invokeError } = await supabase.functions.invoke('supabase-management-proxy', {
+        body: {
+          action: 'list-functions',
+          projectRef: sourceProjectRef,
+          apiToken: sourceApiToken,
+        },
+      });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch functions: ${response.status} ${response.statusText}`);
+      if (invokeError) {
+        throw new Error(`Failed to fetch functions: ${invokeError.message}`);
       }
 
-      const functions: FunctionInfo[] = await response.json();
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      const functions: FunctionInfo[] = data;
       setAvailableFunctions(functions);
 
       // Auto-select V1 functions that exist
