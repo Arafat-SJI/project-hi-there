@@ -61,12 +61,10 @@ const App = () => (
                 {/* Knowledge Base */}
                 <Route path="/knowledge" element={<Knowledge />} />
 
-                {/* AI */}
-                <Route path="/ai" element={<AIChat />} />
-                <Route path="/ai/chat" element={<AIChat />} />
-
-                {/* Admin - Protected by AdminRoute */}
+                {/* Admin-only routes */}
                 <Route element={<AdminRoute />}>
+                  <Route path="/ai" element={<AIChat />} />
+                  <Route path="/ai/chat" element={<AIChat />} />
                   <Route path="/admin" element={<Admin />} />
                 </Route>
               </Route>
