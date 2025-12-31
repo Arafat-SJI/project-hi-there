@@ -13,7 +13,7 @@ import { Loader2, Upload, User as UserIcon, Shield, Lock } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 
 export default function Profile() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -43,7 +43,6 @@ export default function Profile() {
 
       if (error) throw error;
 
-      await refreshProfile();
       toast.success("Profile updated successfully!");
     } catch (error: any) {
       console.error("Profile update error:", error);
@@ -96,7 +95,6 @@ export default function Profile() {
       if (updateError) throw updateError;
 
       setFormData({ ...formData, avatar_url: data.publicUrl });
-      await refreshProfile();
       toast.success("Avatar updated successfully!");
     } catch (error: any) {
       console.error("Avatar upload error:", error);
@@ -315,27 +313,15 @@ export default function Profile() {
               </div>
             </div>
             <div>
-              <Label className="text-muted-foreground">Account Created</Label>
+              <Label className="text-muted-foreground">Email</Label>
               <p className="text-sm font-medium">
-                {profile?.created_at
-                  ? new Date(profile.created_at).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : "N/A"}
+                {user?.email || "N/A"}
               </p>
             </div>
             <div>
-              <Label className="text-muted-foreground">Last Updated</Label>
-              <p className="text-sm font-medium">
-                {profile?.updated_at
-                  ? new Date(profile.updated_at).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : "N/A"}
+              <Label className="text-muted-foreground">User ID</Label>
+              <p className="text-sm font-medium font-mono text-xs">
+                {user?.id || "N/A"}
               </p>
             </div>
           </div>
