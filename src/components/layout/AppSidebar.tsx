@@ -39,7 +39,7 @@ const sidebarItems: SidebarItem[] = [
     icon: BookOpen,
   },
   {
-    title: "AI Agents",
+    title: "AI Chat",
     href: "/ai",
     icon: Brain,
   },

@@ -26,6 +26,11 @@ import Knowledge from "./pages/Knowledge";
 import AIChat from "./pages/AIChat";
 import Admin from "./pages/Admin";
 import DeploymentStatus from "./pages/DeploymentStatus";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import Notifications from "./pages/Notifications";
+import Feedback from "./pages/Feedback";
+import AIAgents from "./pages/AIAgents";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +70,13 @@ const App = () => (
                 {/* AI */}
                 <Route path="/ai" element={<AIChat />} />
                 <Route path="/ai/chat" element={<AIChat />} />
+                <Route path="/ai/agents" element={<AIAgents />} />
+
+                {/* User Pages */}
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/feedback" element={<Feedback />} />
 
                 {/* Admin - Protected by AdminRoute */}
                 <Route element={<AdminRoute />}>
