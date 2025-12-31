@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Users,
@@ -14,17 +15,16 @@ import {
   UserCog,
   Database,
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface SidebarItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  adminOnly?: boolean;
 }
 
-// Regular user menu items
-const regularUserItems: SidebarItem[] = [
+const sidebarItems: SidebarItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
@@ -54,40 +54,13 @@ const regularUserItems: SidebarItem[] = [
     title: "AI Chat",
     href: "/ai",
     icon: Brain,
+    adminOnly: true,
   },
-];
-
-// Admin menu items
-const adminItems: SidebarItem[] = [
   {
-    title: "Admin Dashboard",
+    title: "Admin Panel",
     href: "/admin",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "User Management",
-    href: "/admin/users",
-    icon: Users,
-  },
-  {
-    title: "Roles & Permissions",
-    href: "/admin/roles",
     icon: Shield,
-  },
-  {
-    title: "Activity Logs",
-    href: "/admin/logs",
-    icon: Activity,
-  },
-  {
-    title: "System Settings",
-    href: "/admin/settings",
-    icon: Settings,
-  },
-  {
-    title: "Database",
-    href: "/admin/database",
-    icon: Database,
+    adminOnly: true,
   },
 ];
 
@@ -95,32 +68,27 @@ export function AppSidebar() {
   const location = useLocation();
   const { profile } = useAuth();
 
-  // Determine which menu items to show based on user role
-  const isAdmin = profile?.role === "admin";
-  const sidebarItems = isAdmin ? adminItems : regularUserItems;
+  // Check if user has admin role
+  const isAdmin = profile?.role === "admin" || profile?.role === "moderator";
+
+  // Filter sidebar items based on user role
+  const visibleItems = sidebarItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar-background">
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-          <Link to={isAdmin ? "/admin" : "/dashboard"} className="flex items-center gap-3">
-            <div className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-lg shadow-sm",
-              isAdmin ? "bg-orange-600" : "bg-primary"
-            )}>
-              {isAdmin ? (
-                <Shield className="h-5 w-5 text-white" />
-              ) : (
-                <Brain className="h-5 w-5 text-primary-foreground" />
-              )}
+          <Link to="/dashboard" className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-sm">
+              <Brain className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-sidebar-foreground">
-                {isAdmin ? "Admin Panel" : "Control Tower"}
+                Control Tower
               </span>
               <span className="text-xs text-muted-foreground">
-                {isAdmin ? "System Management" : "CollabAi"}
+                CollabAi
               </span>
             </div>
           </Link>
@@ -129,7 +97,7 @@ export function AppSidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <div className="space-y-1">
-            {sidebarItems.map((item) => {
+            {visibleItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href ||
                              location.pathname.startsWith(item.href + "/");
@@ -153,8 +121,8 @@ export function AppSidebar() {
                   {item.badge && (
                     <span className={cn(
                       "rounded-full px-2 py-0.5 text-xs font-medium",
-                      isActive 
-                        ? "bg-primary-foreground/20 text-primary-foreground" 
+                      isActive
+                        ? "bg-primary-foreground/20 text-primary-foreground"
                         : "bg-primary/10 text-primary"
                     )}>
                       {item.badge}

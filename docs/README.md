@@ -1,381 +1,232 @@
-# SJ Innovation Framework Documentation
+# CollabAi
 
-> **Complete framework documentation for extracting and reusing the SJ Dashboard codebase**
+![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-ff69b4?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMjFDMTIgMjEgMyAxNS41IDMgOC41QzMgNS40NiA1LjQ2IDMgOC41IDNDMTAuMDQgMyAxMS41NCAzLjgyIDEyLjUgNS4wOUMxMy40NiAzLjgyIDE0Ljk2IDMgMTYuNSAzQzE5LjU0IDMgMjIgNS40NiAyMiA4LjVDMjIgMTUuNSAxMiAyMSAxMiAyMVoiIGZpbGw9IiNmZjY5YjQiLz48L3N2Zz4=)
+![Backend: Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+
+> **🚀 Built entirely with [Lovable.dev](https://lovable.dev) + [Supabase](https://supabase.com)**
+>
+> No local development environment required. All development, preview, and deployment happens in the browser.
 
 ---
 
-## 📚 Documentation Structure
+## 🛠️ Development Framework
 
-This folder contains all documentation for the **SJ Innovation Framework V1 (Option B + Meetings)**.
+| Platform | Role | Documentation |
+|----------|------|---------------|
+| **[Lovable.dev](https://lovable.dev)** | AI-powered frontend development, instant preview, one-click publish | [Lovable Docs](https://docs.lovable.dev) |
+| **[Supabase](https://supabase.com)** | PostgreSQL database, authentication, file storage, edge functions | [Supabase Docs](https://supabase.com/docs) |
+
+### Why Lovable + Supabase?
+
+- ✅ **No local setup** - Everything runs in the browser
+- ✅ **AI-assisted development** - Describe what you want, Lovable builds it
+- ✅ **Instant preview** - See changes immediately in the browser
+- ✅ **One-click deploy** - Click "Publish" to go live
+- ✅ **Full-stack in browser** - Frontend + backend, no CLI required
+- ✅ **Open-source backend** - Supabase is PostgreSQL-based, no vendor lock-in
 
 ---
 
-## 🗂️ Core Framework Guides
-
-### **🚀 Quick Start** (Start Here!)
-
-| Document | Purpose | When to Use |
-|----------|---------|-------------|
-| **[`EDGE_FUNCTION_COPY_TOOL.md`](./EDGE_FUNCTION_COPY_TOOL.md)** | **🎯 Copy edge functions tool** | **EASIEST way to copy functions** ⭐⭐⭐ |
-| **[`NEXT_STEPS.md`](./NEXT_STEPS.md)** | **After copying edge functions** | **What to do after using copy tool** ⭐ |
-| **[`QUICKSTART_LOVABLE.md`](./QUICKSTART_LOVABLE.md)** | **Complete Lovable + Claude Code workflow** | **Starting new project (No CLI)** ⭐ |
-
-### **Essential Guides**
-
-| Document | Purpose | When to Use |
-|----------|---------|-------------|
-| [`sj-innovation-framework_extraction-guide.md`](./sj-innovation-framework_extraction-guide.md) | **What to copy** - Complete file listing | Starting new project (Local) |
-| [`sj-innovation-framework_setup.md`](./sj-innovation-framework_setup.md) | **How to configure** - Setup steps (CLI-based) | After copying files locally |
-| [`sj-innovation-framework_cleanup-checklist.md`](./sj-innovation-framework_cleanup-checklist.md) | **Pre-deployment cleanup** | Before deploying |
-
-### **Reference Guides**
+## 📚 Documentation Index
 
 | Document | Purpose |
 |----------|---------|
-| [`sj-innovation-framework_architecture.md`](./sj-innovation-framework_architecture.md) | Visual diagrams & architecture |
-| [`sj-innovation-framework_lovable-guide.md`](./sj-innovation-framework_lovable-guide.md) | Lovable.dev integration |
-| [`sj-innovation-framework_edge-functions-deployment.md`](./sj-innovation-framework_edge-functions-deployment.md) | **Edge functions deployment** ⭐ NEW |
-
-### **Automation Scripts**
-
-| Script | Purpose |
-|--------|---------|
-| [`copy-framework.sh`](./copy-framework.sh) | Copy framework files to new project |
-| [`copy-edge-functions.sh`](./copy-edge-functions.sh) | Copy edge functions to new project ⭐ NEW |
-| [`deploy-edge-functions.sh`](./deploy-edge-functions.sh) | Deploy edge functions via Supabase CLI ⭐ NEW |
+| [**QUICKSTART.md**](./QUICKSTART.md) | Getting started guide for new deployments |
+| [**product-backlog.md**](./product-backlog.md) | Product roadmap and feature backlog |
+| [**ARCHITECTURE.md**](./ARCHITECTURE.md) | Technical architecture and data flow |
+| [**DEPLOYMENT.md**](./DEPLOYMENT.md) | Deployment checklist for new clients |
+| [**ADMIN-GUIDE.md**](./ADMIN-GUIDE.md) | Admin configuration and user management |
 
 ---
 
-## 📦 Module Documentation
+## 🎯 Platform Overview
 
-### **V1 Framework Modules**
+**CollabAi** is a configurable multi-tenant SaaS platform for internal company use.
 
-Detailed documentation for each framework module:
+### Technology Stack
 
-| Module | Document | Description |
-|--------|----------|-------------|
-| **AI Agents** | [`sj-innovation-framework_ai-agents.md`](./sj-innovation-framework_ai-agents.md) | AI agents, semantic search, chat, personalization |
-| **Knowledge Base** | [`sj-innovation-framework_knowledge-base.md`](./sj-innovation-framework_knowledge-base.md) | Admin & personal knowledge, vector search, Google Drive |
-| **Meetings** | [`sj-innovation-framework_meetings-zoom.md`](./sj-innovation-framework_meetings-zoom.md) | Zoom integration, transcripts, AI summarization |
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Development** | [Lovable.dev](https://lovable.dev) | AI-powered web IDE, preview, deployment |
+| **Frontend** | React 18 + Vite + TypeScript + Tailwind CSS | Modern web application |
+| **Backend** | [Supabase](https://supabase.com) | PostgreSQL + Auth + Storage + Edge Functions |
+| **UI Components** | shadcn/ui | 51 pre-built accessible components |
 
-### **Coming Soon**
+### Core Modules
 
-Additional module docs being created:
-- Authentication & Security
-- Users & Admin
-- Clients Management
-- Notifications System
-- Feedback Collection
-
----
-
-## 🎯 What's Included in V1
-
-### ✅ **Included Features**
-
-- **Authentication** - Google OAuth + Email/Password
-- **User Management** - Users, roles, departments
-- **Clients** - Contact/company management
-- **Meetings** - Zoom integration with transcripts
-- **Knowledge Base** - Admin + personal knowledge libraries
-- **AI Agents Framework** - Multi-provider AI with personalization
-- **Admin Panel** - User/role/AI management
-- **Notifications** - Toast, bell icon, email, Slack
-- **Feedback** - User feedback collection
-- **51 UI Components** - shadcn/ui library
-- **Security** - XSS protection, input validation, RLS
-- **Infrastructure** - Caching, performance monitoring, edge functions
-
-### ❌ **Excluded from V1**
-
-- Projects & Tasks
-- OKRs & EOS
-- Productivity Tracking
-- Email Generation
-- PODs Management
-- Deals & Opportunities
-- HubSpot Integration
-- ActiveCollab Integration
+| Module | Description | Status |
+|--------|-------------|--------|
+| **Dashboard** | KPIs, quick actions, activity feed | ✅ Complete |
+| **Clients** | Client/company management with CRUD | ✅ Complete |
+| **Meetings** | Meeting scheduling with Zoom fields | ✅ Complete |
+| **Knowledge Base** | Searchable knowledge entries | ✅ Complete |
+| **AI Chat** | AI assistant interface | ✅ Complete |
+| **Admin Panel** | User/role/config management | ✅ Complete |
 
 ---
 
-## 🚀 Quick Start Workflow
+## 🚀 Quick Start (Using Lovable + Supabase)
 
-### **Recommended: Lovable + Claude Code** ⭐
+**Prerequisites:**
+- [Lovable.dev](https://lovable.dev) account (free to start)
+- Supabase is auto-provisioned by Lovable (or connect external project)
 
-**For users who want AI assistance and no CLI:**
+### Development Workflow
 
 ```
-1. Create project on Lovable.dev (5 minutes)
-2. Upload framework documentation (3 files)
-3. Let Lovable AI build database schema
-4. Upload edge functions (31 functions)
-5. Set environment variables in UI
-6. Use Claude Code for customization
-7. Deploy with one click
-
-Total time: 2-3 hours to production
+1. Open project in Lovable.dev (web-based IDE)
+2. Make changes via AI chat or code editor
+3. Preview instantly in browser
+4. Click "Publish" to deploy
+5. Configure backend in Supabase Dashboard
 ```
 
-**Complete guide:** [`QUICKSTART_LOVABLE.md`](./QUICKSTART_LOVABLE.md)
+**No CLI, no local environment, no DevOps required.**
 
-**Best for:**
-- ✅ First-time users
-- ✅ No CLI experience
-- ✅ Want AI assistance
-- ✅ Rapid prototyping
-- ✅ Using Claude Code
+### For New Deployments
 
----
+1. **Fork/remix the project** in Lovable
+2. **Connect Supabase** (auto-provisioned or external)
+3. **Configure branding** via Admin Panel
+4. **Enable features** as needed
+5. **Invite users** and assign roles
+6. **Publish** to production
 
-### **Alternative: Local Development (CLI)**
-
-**For developers comfortable with terminal:**
-
-```bash
-# 1. Copy framework files
-./copy-framework.sh ../my-new-app
-
-# 2. Navigate to new project
-cd ../my-new-app
-
-# 3. Install dependencies
-npm install
-
-# 4. Set up Supabase
-supabase init
-supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
-
-# 5. Deploy edge functions
-./deploy-edge-functions.sh
-
-# 6. Start development
-npm run dev
-```
-
-**Complete guide:** [`sj-innovation-framework_setup.md`](./sj-innovation-framework_setup.md)
-
-**Best for:**
-- ✅ Developers with CLI experience
-- ✅ Need local development
-- ✅ Version control focus
-- ✅ Custom deployment workflows
+See [QUICKSTART.md](./QUICKSTART.md) for detailed steps.
 
 ---
 
-## 📖 Reading Guide
+## 🔐 Authentication
 
-### **🚀 If you're starting a new project (Recommended):**
+### Demo Accounts
 
-1. **Read:** [`QUICKSTART_LOVABLE.md`](./QUICKSTART_LOVABLE.md) - Complete Lovable + Claude Code workflow
-2. **Glance:** [`sj-innovation-framework_architecture.md`](./sj-innovation-framework_architecture.md) - See visual diagrams
-3. **Follow:** QUICKSTART guide step-by-step
-4. **Reference:** Module docs as needed:
-   - [`sj-innovation-framework_ai-agents.md`](./sj-innovation-framework_ai-agents.md) - When implementing AI
-   - [`sj-innovation-framework_knowledge-base.md`](./sj-innovation-framework_knowledge-base.md) - When adding knowledge features
-   - [`sj-innovation-framework_meetings-zoom.md`](./sj-innovation-framework_meetings-zoom.md) - When integrating Zoom
-5. **Deploy:** One click in Lovable
+| Email | Role | Password |
+|-------|------|----------|
+| `demo@collabai.software` | User | `Demo@123` |
+| `admin@collabai.software` | Admin | `Admin@123` |
 
-**Time:** 15 minutes reading + 2-3 hours building
+### Supported Auth Methods (via Supabase Auth)
 
----
-
-### **If you want to understand architecture first:**
-
-1. **Read:** [`sj-innovation-framework_architecture.md`](./sj-innovation-framework_architecture.md) - Visual overview
-2. **Read:** Module docs for features you need
-3. **Decide:** Lovable vs Local workflow
-4. **Follow:** Appropriate quick start guide
+- ✅ Email/Password
+- ✅ Google OAuth (requires configuration)
+- 🔲 Magic Link (coming soon)
 
 ---
 
-### **If you prefer local/CLI development:**
+## 📊 Database Schema (Supabase PostgreSQL)
 
-1. **Read:** [`sj-innovation-framework_extraction-guide.md`](./sj-innovation-framework_extraction-guide.md) - What to copy
-2. **Do:** Run `./copy-framework.sh ../your-app-name`
-3. **Read:** [`sj-innovation-framework_setup.md`](./sj-innovation-framework_setup.md) - Configure everything
-4. **Reference:** Module docs as you implement features
-5. **Read:** [`sj-innovation-framework_cleanup-checklist.md`](./sj-innovation-framework_cleanup-checklist.md) - Pre-deploy cleanup
-
----
-
-## 🏗️ Framework Architecture
-
-The framework follows a **modular, layered architecture**:
+The platform uses 14 core tables with Row Level Security (RLS):
 
 ```
-Layer 1: Configuration (Vite, Tailwind, TypeScript)
-    ↓
-Layer 2: Core Infrastructure (Auth, UI, Utilities, Types)
-    ↓
-Layer 3: Business Logic (Pages, Components, Hooks, API)
-    ↓
-Layer 4: Integrations (Supabase, Google, Zoom, AI)
+profiles          - User profile information
+user_roles        - Role assignments (admin, moderator, user)
+clients           - Client/company data
+meetings          - Meeting records
+zoom_files        - Zoom recordings/transcripts
+knowledge_entries - Knowledge base articles
+knowledge_categories - Article categories
+ai_agents         - AI agent configurations
+ai_agent_runs     - AI execution logs
+ai_chat_history   - Chat conversations
+embeddings        - Vector embeddings for RAG
+feedback          - User feedback
+notifications     - User notifications
+roles             - Role definitions
 ```
 
-**See [`sj-innovation-framework_architecture.md`](./sj-innovation-framework_architecture.md) for visual diagrams.**
+Manage your database schema in the **Supabase Dashboard** → Table Editor.
 
 ---
 
-## 🎨 Design Patterns
+## ⚙️ Configuration
 
-The framework implements these proven patterns:
+### Environment Variables (Supabase Edge Function Secrets)
 
-- **Cache-Aside Pattern** - For performance
-- **Query Key Factory** - For React Query
-- **Protected Route Pattern** - For security
-- **Edge Function Wrapper** - For type safety
-- **RLS Enforcement** - For data isolation
-- **Multi-Provider Routing** - For AI flexibility
+Configure secrets in **Supabase Dashboard** → Settings → Edge Function Secrets:
 
----
-
-## 💡 Module Quick Reference
-
-### **AI Agents Module**
-
-**Use when you need:**
-- Chat assistants
-- Semantic search
-- Meeting summarization
-- Document generation
-- Custom AI workflows
-
-**Key Files:**
-- `/src/hooks/useAI.ts`
-- `/src/hooks/useAIAgents.ts`
-- `/supabase/functions/ai-chat-assistant/`
-- `/supabase/functions/semantic-search/`
-
-**Database Tables:**
-- `ai_agents`, `ai_agent_runs`, `embeddings`, `ai_chat_history`
+| Secret | Required | Purpose |
+|--------|----------|---------|
+| `SUPABASE_URL` | ✅ Auto-set | Project URL |
+| `SUPABASE_ANON_KEY` | ✅ Auto-set | Public API key |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ Auto-set | Admin API key |
+| `OPENAI_API_KEY` | ✅ For AI | OpenAI integration |
+| `ZOOM_CLIENT_ID` | 🔲 Optional | Zoom integration |
+| `ZOOM_CLIENT_SECRET` | 🔲 Optional | Zoom integration |
+| `ZOOM_ACCOUNT_ID` | 🔲 Optional | Zoom integration |
+| `GOOGLE_CLIENT_ID` | 🔲 Optional | Google Drive sync |
+| `GOOGLE_CLIENT_SECRET` | 🔲 Optional | Google Drive sync |
+| `SENDGRID_API_KEY` | 🔲 Optional | Email notifications |
+| `SLACK_WEBHOOK_URL` | 🔲 Optional | Slack notifications |
 
 ---
 
-### **Knowledge Base Module**
+## 📁 Project Structure
 
-**Use when you need:**
-- Document management
-- File uploads
-- Google Drive sync
-- Vector search
-- Personal knowledge libraries
-
-**Key Files:**
-- `/src/pages/KnowledgeBase.tsx`
-- `/src/hooks/useKnowledge.ts`
-- `/supabase/functions/generate-embeddings/`
-
-**Database Tables:**
-- `knowledge_entries`, `knowledge_categories`, `knowledge_files`, `user_knowledge_files`
-
----
-
-### **Meetings Module**
-
-**Use when you need:**
-- Zoom integration
-- Meeting management
-- Transcript processing
-- AI meeting summaries
-- Recording storage
-
-**Key Files:**
-- `/src/pages/meetings/`
-- `/src/hooks/useMeetings.ts`
-- `/supabase/functions/sync-zoom-files/`
-- `/supabase/functions/generate-meeting-summary/`
-
-**Database Tables:**
-- `meetings`, `zoom_files`, `meeting_assignments`, `meeting_transcripts`
+```
+collabai/
+├── docs/                    # Documentation
+├── public/                  # Static assets
+├── src/
+│   ├── components/
+│   │   ├── auth/            # Authentication components
+│   │   ├── layout/          # Layout (Sidebar, TopNav)
+│   │   └── ui/              # shadcn/ui components
+│   ├── contexts/            # React contexts (Auth)
+│   ├── hooks/               # Custom hooks
+│   ├── integrations/        # Supabase client
+│   ├── lib/                 # Utilities
+│   └── pages/               # Page components
+├── supabase/
+│   ├── functions/           # Edge functions (Deno)
+│   └── migrations/          # Database migrations
+├── index.html
+├── package.json
+├── tailwind.config.ts
+└── vite.config.ts
+```
 
 ---
 
-## 🔧 Customization Guide
+## 🚀 Deployment (via Lovable)
 
-### **Adding a New Module**
+### How to Publish
 
-1. Create database tables (with RLS)
-2. Create edge functions (if needed)
-3. Create React hooks for data fetching
-4. Create UI components
-5. Add routes to `App.tsx`
-6. Add menu items to `AppSidebar.tsx`
-7. Document in a new module doc file
+1. Click **"Publish"** button in Lovable (top right)
+2. Wait for build to complete
+3. Configure custom domain (optional)
+4. SSL is automatic
 
-### **Removing a Module**
+### Client Deployment Checklist
 
-1. Follow `sj-innovation-framework_cleanup-checklist.md`
-2. Delete pages, components, hooks
-3. Remove routes and menu items
-4. Clean up database tables (optional)
-5. Remove edge functions (optional)
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the complete checklist:
 
----
-
-## 📊 Framework Statistics
-
-| Metric | Value |
-|--------|-------|
-| **UI Components** | 51 (shadcn/ui) |
-| **Custom Hooks** | 100+ |
-| **Pages** | 20+ (V1) |
-| **Edge Functions** | 12 (V1) |
-| **Database Tables** | 25+ (V1) |
-| **TypeScript** | 100% |
-| **Test Coverage** | TBD |
+- [ ] Supabase project configured
+- [ ] Admin account created
+- [ ] Branding configured
+- [ ] Features enabled
+- [ ] Users invited
 
 ---
 
-## 🆘 Support & Resources
+## 📞 Support & Resources
 
-### **Within This Repo**
-
-- **Framework Docs:** `/docs/framework/` (you are here)
-- **Existing Module Docs:** `/docs/` (parent directory)
-- **Database Migrations:** `/supabase/migrations/`
-- **Edge Functions:** `/supabase/functions/`
-
-### **External Resources**
-
-- [Supabase Documentation](https://supabase.com/docs)
-- [React Router v6](https://reactrouter.com/)
-- [shadcn/ui Components](https://ui.shadcn.com/)
-- [TanStack Query](https://tanstack.com/query/latest)
-- [Tailwind CSS](https://tailwindcss.com/)
+| Resource | Link |
+|----------|------|
+| **Lovable Documentation** | [docs.lovable.dev](https://docs.lovable.dev) |
+| **Supabase Documentation** | [supabase.com/docs](https://supabase.com/docs) |
+| **Project Documentation** | This folder (`/docs`) |
 
 ---
 
-## 🔄 Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-12-25 | Initial framework documentation release |
+**Development Platform:** [Lovable.dev](https://lovable.dev)  
+**Backend Platform:** [Supabase](https://supabase.com)  
+**Framework:** React 18 + Vite + TypeScript + Tailwind CSS
 
 ---
 
-## 📝 Contributing
-
-To contribute to framework documentation:
-
-1. Update relevant module doc
-2. Update this README if structure changes
-3. Keep examples current
-4. Test all code snippets
-5. Maintain consistent formatting
-
----
-
-## 📧 Questions?
-
-If you have questions about the framework:
-
-1. Check module-specific docs first
-2. Review architecture diagrams
-3. Look at existing code examples
-4. Consult parent `/docs/` folder for feature-specific details
-
----
-
-**Happy Building! 🚀**
+**Version:** 1.0.0  
+**Last Updated:** 2024-12-31  
+**Built with ❤️ using Lovable + Supabase**

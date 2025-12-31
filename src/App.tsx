@@ -86,19 +86,17 @@ const App = () => (
                 <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
                 <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
 
-                {/* AI */}
-                <Route path="/ai" element={<AIChat />} />
-                <Route path="/ai/chat" element={<AIChat />} />
-                <Route path="/ai/agents" element={<AIAgents />} />
-
                 {/* User Pages */}
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/feedback" element={<Feedback />} />
 
-                {/* Admin - Protected by AdminRoute */}
+                {/* Admin-only routes */}
                 <Route element={<AdminRoute />}>
+                  <Route path="/ai" element={<AIChat />} />
+                  <Route path="/ai/chat" element={<AIChat />} />
+                  <Route path="/ai/agents" element={<AIAgents />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/admin/users" element={<UserManagement />} />
                   <Route path="/admin/roles" element={<RoleManagement />} />
