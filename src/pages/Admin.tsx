@@ -141,17 +141,11 @@ export default function Admin() {
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
-                <p className="font-medium">Environment Variables</p>
-                <p className="text-sm text-muted-foreground">API keys and secrets</p>
+                <p className="font-medium">Integrations</p>
+                <p className="text-sm text-muted-foreground">Third-party API connections</p>
               </div>
               <Button variant="outline" size="sm" asChild>
-                <a
-                  href="https://supabase.com/dashboard"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Configure
-                </a>
+                <Link to="/admin/integrations">Configure</Link>
               </Button>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">

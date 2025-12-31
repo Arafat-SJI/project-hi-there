@@ -1,90 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAppConfig, useUpdateAppConfig, useResetAppConfig, AppConfig } from "@/hooks/useAppConfig";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Settings, Save, RefreshCw, Building2, Mail, Zap, Shield } from "lucide-react";
-import { toast } from "sonner";
+import { Settings, Save, RefreshCw, Building2, Mail, Zap, Shield, Loader2 } from "lucide-react";
 
 export default function SystemSettings() {
-  const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState({
-    // Platform Branding
-    platformName: "CollabAi",
-    platformTagline: "AI-Powered Collaboration Platform",
-    supportEmail: "support@collabai.software",
+  const { data: config, isLoading } = useAppConfig();
+  const updateConfig = useUpdateAppConfig();
+  const resetConfig = useResetAppConfig();
 
-    // Feature Flags
-    features: {
-      enableAIChat: true,
-      enableKnowledgeBase: true,
-      enableMeetings: true,
-      enableTasks: true,
-      enableNotifications: true,
-      enableSemanticSearch: true,
-    },
+  const [settings, setSettings] = useState<AppConfig | null>(null);
 
-    // Email Settings
-    email: {
-      enableEmailNotifications: true,
-      fromName: "CollabAi",
-      fromEmail: "noreply@collabai.software",
-    },
-
-    // System Settings
-    system: {
-      maintenanceMode: false,
-      allowSignups: true,
-      requireEmailVerification: false,
-      sessionTimeout: 7, // days
-    },
-  });
+  // Load config into local state when it arrives
+  useEffect(() => {
+    if (config) {
+      setSettings(config);
+    }
+  }, [config]);
 
   const handleSave = async () => {
-    setLoading(true);
-    try {
-      // In a real app, this would save to a system_settings table
-      // For now, we'll just show a success message
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("Settings saved successfully!");
-    } catch (error: any) {
-      console.error("Error saving settings:", error);
-      toast.error("Failed to save settings");
-    } finally {
-      setLoading(false);
-    }
+    if (!settings) return;
+    await updateConfig.mutateAsync(settings);
   };
 
-  const handleReset = () => {
-    setSettings({
-      platformName: "CollabAi",
-      platformTagline: "AI-Powered Collaboration Platform",
-      supportEmail: "support@collabai.software",
-      features: {
-        enableAIChat: true,
-        enableKnowledgeBase: true,
-        enableMeetings: true,
-        enableTasks: true,
-        enableNotifications: true,
-        enableSemanticSearch: true,
-      },
-      email: {
-        enableEmailNotifications: true,
-        fromName: "CollabAi",
-        fromEmail: "noreply@collabai.software",
-      },
-      system: {
-        maintenanceMode: false,
-        allowSignups: true,
-        requireEmailVerification: false,
-        sessionTimeout: 7,
-      },
-    });
-    toast.info("Settings reset to defaults");
+  const handleReset = async () => {
+    await resetConfig.mutateAsync();
   };
+
+  const isProcessing = updateConfig.isPending || resetConfig.isPending;
+
+  if (isLoading || !settings) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -97,12 +52,16 @@ export default function SystemSettings() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleReset} disabled={loading}>
+          <Button variant="outline" onClick={handleReset} disabled={isProcessing}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Reset
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            <Save className="mr-2 h-4 w-4" />
+          <Button onClick={handleSave} disabled={isProcessing}>
+            {isProcessing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
             Save Changes
           </Button>
         </div>
@@ -122,9 +81,15 @@ export default function SystemSettings() {
             <Label htmlFor="platformName">Platform Name</Label>
             <Input
               id="platformName"
-              value={settings.platformName}
-              onChange={(e) => setSettings({ ...settings, platformName: e.target.value })}
+              value={settings.branding.companyName}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  branding: { ...settings.branding, companyName: e.target.value },
+                })
+              }
               placeholder="CollabAi"
+              disabled={isProcessing}
             />
           </div>
 
@@ -132,9 +97,15 @@ export default function SystemSettings() {
             <Label htmlFor="platformTagline">Platform Tagline</Label>
             <Input
               id="platformTagline"
-              value={settings.platformTagline}
-              onChange={(e) => setSettings({ ...settings, platformTagline: e.target.value })}
+              value={settings.branding.tagline}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  branding: { ...settings.branding, tagline: e.target.value },
+                })
+              }
               placeholder="AI-Powered Collaboration Platform"
+              disabled={isProcessing}
             />
           </div>
 
@@ -143,9 +114,15 @@ export default function SystemSettings() {
             <Input
               id="supportEmail"
               type="email"
-              value={settings.supportEmail}
-              onChange={(e) => setSettings({ ...settings, supportEmail: e.target.value })}
+              value={settings.branding.supportEmail}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  branding: { ...settings.branding, supportEmail: e.target.value },
+                })
+              }
               placeholder="support@collabai.software"
+              disabled={isProcessing}
             />
           </div>
         </CardContent>
@@ -176,6 +153,7 @@ export default function SystemSettings() {
                   features: { ...settings.features, enableAIChat: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -196,6 +174,7 @@ export default function SystemSettings() {
                   features: { ...settings.features, enableKnowledgeBase: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -216,6 +195,7 @@ export default function SystemSettings() {
                   features: { ...settings.features, enableMeetings: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -236,6 +216,7 @@ export default function SystemSettings() {
                   features: { ...settings.features, enableTasks: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -256,6 +237,7 @@ export default function SystemSettings() {
                   features: { ...settings.features, enableNotifications: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -276,6 +258,7 @@ export default function SystemSettings() {
                   features: { ...settings.features, enableSemanticSearch: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
         </CardContent>
@@ -306,6 +289,7 @@ export default function SystemSettings() {
                   email: { ...settings.email, enableEmailNotifications: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -323,6 +307,7 @@ export default function SystemSettings() {
                 })
               }
               placeholder="CollabAi"
+              disabled={isProcessing}
             />
           </div>
 
@@ -339,6 +324,7 @@ export default function SystemSettings() {
                 })
               }
               placeholder="noreply@collabai.software"
+              disabled={isProcessing}
             />
           </div>
         </CardContent>
@@ -369,6 +355,7 @@ export default function SystemSettings() {
                   system: { ...settings.system, maintenanceMode: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -389,6 +376,7 @@ export default function SystemSettings() {
                   system: { ...settings.system, allowSignups: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -409,6 +397,7 @@ export default function SystemSettings() {
                   system: { ...settings.system, requireEmailVerification: checked },
                 })
               }
+              disabled={isProcessing}
             />
           </div>
 
@@ -428,6 +417,7 @@ export default function SystemSettings() {
                   system: { ...settings.system, sessionTimeout: parseInt(e.target.value) || 7 },
                 })
               }
+              disabled={isProcessing}
             />
             <p className="text-sm text-muted-foreground">
               Number of days before a user session expires

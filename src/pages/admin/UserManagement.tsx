@@ -30,9 +30,11 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, UserPlus, Edit, Trash2, Shield, Mail, Calendar, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Search, UserPlus, Edit, Trash2, Shield, Mail, Calendar, Loader2, Ban, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
+import { useUserInvites, useCreateUserInvite, useDeleteUserInvite, useResendUserInvite } from "@/hooks/useUserInvites";
 
 interface UserProfile {
   id: string;
@@ -42,6 +44,9 @@ interface UserProfile {
   role: string | null;
   created_at: string;
   last_sign_in_at: string | null;
+  is_active: boolean;
+  deactivated_at: string | null;
+  deactivated_by: string | null;
 }
 
 export default function UserManagement() {
@@ -57,6 +62,12 @@ export default function UserManagement() {
   const [editRole, setEditRole] = useState("");
   const [processing, setProcessing] = useState(false);
 
+  // Invite hooks
+  const { data: pendingInvites = [], isLoading: invitesLoading } = useUserInvites();
+  const createInvite = useCreateUserInvite();
+  const deleteInvite = useDeleteUserInvite();
+  const resendInvite = useResendUserInvite();
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -67,7 +78,7 @@ export default function UserManagement() {
       // Fetch all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, email, full_name, avatar_url, created_at, is_active, deactivated_at, deactivated_by")
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -85,6 +96,7 @@ export default function UserManagement() {
             ...profile,
             role: roleData?.role || null,
             last_sign_in_at: null, // Would need auth.users table access
+            is_active: profile.is_active ?? true,
           };
         })
       );
@@ -106,19 +118,15 @@ export default function UserManagement() {
 
     setProcessing(true);
     try {
-      // In a real implementation, you would call an edge function to:
-      // 1. Create the user account
-      // 2. Send invitation email
-      // 3. Assign role
-
-      // For now, just show success message
-      toast.success(`Invitation sent to ${inviteEmail}`);
+      await createInvite.mutateAsync({
+        email: inviteEmail,
+        role: inviteRole,
+      });
       setInviteDialogOpen(false);
       setInviteEmail("");
       setInviteRole("user");
     } catch (error: any) {
-      console.error("Error inviting user:", error);
-      toast.error("Failed to send invitation");
+      // Error handling is done in the mutation hook
     } finally {
       setProcessing(false);
     }
@@ -193,6 +201,34 @@ export default function UserManagement() {
     }
   };
 
+  const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      const { data: currentUserData } = await supabase.auth.getUser();
+
+      if (!currentUserData.user) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          is_active: !currentStatus,
+          deactivated_at: !currentStatus ? null : new Date().toISOString(),
+          deactivated_by: !currentStatus ? null : currentUserData.user.id,
+        })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast.success(`User ${!currentStatus ? "activated" : "deactivated"} successfully`);
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error toggling user status:", error);
+      toast.error("Failed to update user status");
+    }
+  };
+
   const openEditDialog = (user: UserProfile) => {
     setSelectedUser(user);
     setEditRole(user.role || "user");
@@ -233,13 +269,23 @@ export default function UserManagement() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{users.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {users.filter((u) => u.is_active).length}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -254,15 +300,67 @@ export default function UserManagement() {
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Regular Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Pending Invites</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {users.filter((u) => !u.role || u.role === "user").length}
-            </div>
+            <div className="text-2xl font-bold">{pendingInvites.length}</div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Pending Invites */}
+      {pendingInvites.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Invitations</CardTitle>
+            <CardDescription>Users who have been invited but haven't accepted yet</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {invitesLoading ? (
+              <div className="flex h-20 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pendingInvites.map((invite) => (
+                  <div
+                    key={invite.id}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">{invite.email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Role: {invite.role} • Expires {formatDate(invite.expires_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => resendInvite.mutate(invite.id)}
+                        disabled={resendInvite.isPending}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteInvite.mutate(invite.id)}
+                        disabled={deleteInvite.isPending}
+                      >
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search and Table */}
       <Card>
@@ -291,6 +389,7 @@ export default function UserManagement() {
                   <TableHead>User</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -298,13 +397,13 @@ export default function UserManagement() {
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow key={user.id} className={!user.is_active ? "opacity-60" : ""}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
@@ -328,6 +427,18 @@ export default function UserManagement() {
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {user.role || "user"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.is_active}
+                            onCheckedChange={() => handleToggleUserStatus(user.id, user.is_active)}
+                            disabled={user.id === currentUser?.id}
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {user.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(user.created_at)}
