@@ -1,4 +1,32 @@
-# Welcome to your Lovable project
+# SJ Control Tower Framework
+
+**Next-generation project management and AI-powered productivity platform**
+
+## 🎯 What's This?
+
+The SJ Control Tower Framework is a comprehensive, production-ready foundation for building modern web applications with:
+
+- ✅ **31 Edge Functions** - AI-powered backend services
+- ✅ **51 UI Components** - Beautiful shadcn/ui components
+- ✅ **Complete Auth System** - Google OAuth + Email/Password
+- ✅ **AI Agents** - Semantic search, embeddings, chat assistants
+- ✅ **Knowledge Base** - Document management with AI
+- ✅ **Meetings Integration** - Zoom sync and transcripts
+- ✅ **Client Management** - CRM functionality
+- ✅ **Notifications** - Multi-channel notification system
+
+## 🚀 Quick Start
+
+### **Edge Function Copy Tool** (NEW!)
+
+The easiest way to get started is using our **Edge Function Copy Tool**:
+
+1. Start the dev server: `npm run dev`
+2. Open: http://localhost:5173/edge-function-copy
+3. Enter your Supabase project credentials
+4. Select and copy the functions you need!
+
+**No CLI required!** See [docs/EDGE_FUNCTION_COPY_TOOL.md](docs/EDGE_FUNCTION_COPY_TOOL.md) for details.
 
 ## Project info
 
