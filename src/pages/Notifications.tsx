@@ -63,7 +63,7 @@ export default function Notifications() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setNotifications(data || []);
+      setNotifications((data || []) as Notification[]);
     } catch (error: any) {
       console.error("Fetch notifications error:", error);
       toast.error("Failed to load notifications");
