@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,9 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, LogOut, Settings, User } from "lucide-react";
+import { Bell, LogOut, User, Settings, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/utils";
-import { Link } from "react-router-dom";
 
 export function TopNav() {
   const { user, profile, signOut } = useAuth();
@@ -25,21 +26,26 @@ export function TopNav() {
   };
 
   return (
-    <header className="fixed left-64 right-0 top-0 z-30 h-16 border-b bg-background">
+    <header className="fixed left-64 right-0 top-0 z-30 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="flex h-full items-center justify-between px-6">
-        {/* Search / Breadcrumbs could go here */}
-        <div className="flex-1">
-          {/* Placeholder for future breadcrumbs or search */}
+        {/* Search */}
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search anything..."
+            className="h-9 w-full max-w-sm border-transparent bg-muted/50 pl-9 text-sm placeholder:text-muted-foreground/70 focus:border-border focus:bg-background"
+          />
         </div>
 
-        {/* Right side actions */}
-        <div className="flex items-center gap-4">
+        {/* Right side */}
+        <div className="flex items-center gap-2">
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+              <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
+                <Bell className="h-[18px] w-[18px]" />
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
@@ -51,51 +57,49 @@ export function TopNav() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User menu */}
+          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
-                <Avatar className="h-8 w-8">
+              <Button variant="ghost" className="h-9 gap-2 pl-2 pr-3 hover:bg-muted">
+                <Avatar className="h-7 w-7">
                   <AvatarImage src={profile?.avatar_url || undefined} />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-primary/10 text-xs font-medium text-primary">
                     {getInitials(profile?.full_name || user?.email || "U")}
                   </AvatarFallback>
                 </Avatar>
-                <div className="hidden text-left md:block">
-                  <p className="text-sm font-medium">
+                <div className="hidden flex-col items-start text-left md:flex">
+                  <span className="text-sm font-medium text-foreground">
                     {profile?.full_name || "User"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {profile?.role || "user"}
-                  </p>
+                  </span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col">
-                  <span>{profile?.full_name || "User"}</span>
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {user?.email}
-                  </span>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">{profile?.full_name || "User"}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
+                <Link to="/profile" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
                   Profile
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/settings" className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
+                <Link to="/settings" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
                   Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-                <LogOut className="mr-2 h-4 w-4" />
+              <DropdownMenuItem 
+                onClick={handleSignOut} 
+                className="flex items-center gap-2 text-destructive focus:text-destructive"
+              >
+                <LogOut className="h-4 w-4" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
