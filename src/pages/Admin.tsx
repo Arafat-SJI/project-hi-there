@@ -35,8 +35,8 @@ export default function Admin() {
     },
     {
       title: "Edge Functions",
-      value: "31",
-      change: "All operational",
+      value: "24",
+      change: "Ready to deploy",
       icon: Zap,
     },
   ];
@@ -141,11 +141,11 @@ export default function Admin() {
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
-                <p className="font-medium">Edge Functions</p>
-                <p className="text-sm text-muted-foreground">Deploy and manage</p>
+                <p className="font-medium">Deployment Status</p>
+                <p className="text-sm text-muted-foreground">Monitor edge functions</p>
               </div>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/edge-function-copy">Deploy</Link>
+                <Link to="/admin/deployment">View Status</Link>
               </Button>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">

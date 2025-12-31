@@ -25,6 +25,7 @@ import MeetingDetail from "./pages/MeetingDetail";
 import Knowledge from "./pages/Knowledge";
 import AIChat from "./pages/AIChat";
 import Admin from "./pages/Admin";
+import DeploymentStatus from "./pages/DeploymentStatus";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
                 {/* Admin - Protected by AdminRoute */}
                 <Route element={<AdminRoute />}>
                   <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin/deployment" element={<DeploymentStatus />} />
                 </Route>
               </Route>
             </Route>
