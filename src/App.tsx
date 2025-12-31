@@ -13,7 +13,6 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
-import EdgeFunctionCopyTool from "./pages/EdgeFunctionCopyTool";
 
 // Protected pages
 import Dashboard from "./pages/Dashboard";
@@ -41,7 +40,6 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/edge-function-copy" element={<EdgeFunctionCopyTool />} />
 
             {/* Protected routes with dashboard layout */}
             <Route element={<ProtectedRoute />}>

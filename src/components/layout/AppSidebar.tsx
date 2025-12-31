@@ -7,8 +7,6 @@ import {
   BookOpen,
   Brain,
   Settings,
-  FileText,
-  Zap,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -43,16 +41,6 @@ const sidebarItems: SidebarItem[] = [
     title: "AI Agents",
     href: "/ai",
     icon: Brain,
-  },
-  {
-    title: "Documents",
-    href: "/documents",
-    icon: FileText,
-  },
-  {
-    title: "Edge Functions",
-    href: "/edge-function-copy",
-    icon: Zap,
   },
   {
     title: "Admin",
