@@ -25,14 +25,14 @@ serve(async (req) => {
       )
     }
 
-    const prompts = {
+    const prompts: Record<string, string> = {
       sow: 'Generate a professional Statement of Work (SOW) document',
       nda: 'Generate a professional Non-Disclosure Agreement (NDA)',
       contract: 'Generate a professional service contract',
       proposal: 'Generate a professional project proposal',
     }
 
-    const systemPrompt = prompts[doc_type] || 'Generate a professional business document'
+    const systemPrompt = prompts[doc_type as string] || 'Generate a professional business document'
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -62,10 +62,11 @@ serve(async (req) => {
       JSON.stringify({ document, token_usage: data.usage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Generate business doc error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
