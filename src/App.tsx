@@ -23,6 +23,9 @@ import Meetings from "./pages/Meetings";
 import MeetingForm from "./pages/MeetingForm";
 import MeetingDetail from "./pages/MeetingDetail";
 import Knowledge from "./pages/Knowledge";
+import KnowledgeForm from "./pages/KnowledgeForm";
+import KnowledgeDetail from "./pages/KnowledgeDetail";
+import KnowledgeUpload from "./pages/KnowledgeUpload";
 import AIChat from "./pages/AIChat";
 import Admin from "./pages/Admin";
 import DeploymentStatus from "./pages/DeploymentStatus";
@@ -66,6 +69,10 @@ const App = () => (
 
                 {/* Knowledge Base */}
                 <Route path="/knowledge" element={<Knowledge />} />
+                <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
+                <Route path="/knowledge/new" element={<KnowledgeForm />} />
+                <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
+                <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
 
                 {/* AI */}
                 <Route path="/ai" element={<AIChat />} />
