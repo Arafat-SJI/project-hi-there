@@ -28,11 +28,13 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 }
 
 interface ProxyRequest {
-  action: 'list-functions' | 'get-function-body' | 'deploy-function';
+  action: 'list-functions' | 'get-function-metadata' | 'get-function-body' | 'deploy-function';
   projectRef: string;
   apiToken: string;
   slug?: string;
   codeBase64?: string;
+  verifyJwt?: boolean;
+  importMap?: boolean;
 }
 
 serve(async (req) => {
@@ -43,7 +45,7 @@ serve(async (req) => {
 
   try {
     const body: ProxyRequest = await req.json();
-    const { action, projectRef, apiToken, slug, codeBase64 } = body;
+    const { action, projectRef, apiToken, slug, codeBase64, verifyJwt, importMap } = body;
 
     console.log(`[supabase-management-proxy] Action: ${action}, Project: ${projectRef}, Slug: ${slug || 'N/A'}`);
 
@@ -66,6 +68,21 @@ serve(async (req) => {
       case 'list-functions': {
         console.log(`[supabase-management-proxy] Fetching functions list for ${projectRef}`);
         response = await fetch(baseUrl, {
+          method: 'GET',
+          headers: authHeaders,
+        });
+        break;
+      }
+
+      case 'get-function-metadata': {
+        if (!slug) {
+          return new Response(
+            JSON.stringify({ error: 'Missing required field: slug' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        console.log(`[supabase-management-proxy] Fetching metadata for ${slug}`);
+        response = await fetch(`${baseUrl}/${slug}`, {
           method: 'GET',
           headers: authHeaders,
         });
@@ -113,29 +130,38 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        console.log(`[supabase-management-proxy] Deploying function ${slug} to ${projectRef}`);
+        
+        // Decode base64 to ESZIP bytes
+        const eszipBytes = base64ToArrayBuffer(codeBase64);
+        console.log(`[supabase-management-proxy] Deploying ${slug} to ${projectRef}, ESZIP size: ${eszipBytes.byteLength} bytes, verify_jwt=${verifyJwt}, import_map=${importMap}`);
 
-        // Decode base64 to binary
-        const binaryString = atob(codeBase64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const codeBlob = new Blob([bytes], { type: 'application/gzip' });
-
-        // Create form data
-        const formData = new FormData();
-        formData.append('file', codeBlob, `${slug}.tar.gz`);
-        formData.append('metadata', JSON.stringify({
-          entrypoint_path: 'index.ts',
-          name: slug,
-        }));
-
-        response = await fetch(`${baseUrl}/deploy?slug=${slug}`, {
-          method: 'POST',
-          headers: authHeaders,
-          body: formData,
+        // Try PATCH first (update existing function)
+        const patchUrl = `${baseUrl}/${slug}?verify_jwt=${verifyJwt || false}&import_map=${importMap || false}`;
+        console.log(`[supabase-management-proxy] Trying PATCH: ${patchUrl}`);
+        
+        response = await fetch(patchUrl, {
+          method: 'PATCH',
+          headers: {
+            ...authHeaders,
+            'Content-Type': 'application/vnd.denoland.eszip',
+          },
+          body: eszipBytes,
         });
+
+        // If function doesn't exist (404), create it using POST
+        if (response.status === 404) {
+          const postUrl = `${baseUrl}?slug=${slug}&name=${slug}&verify_jwt=${verifyJwt || false}&import_map=${importMap || false}`;
+          console.log(`[supabase-management-proxy] PATCH returned 404, trying POST: ${postUrl}`);
+          
+          response = await fetch(postUrl, {
+            method: 'POST',
+            headers: {
+              ...authHeaders,
+              'Content-Type': 'application/vnd.denoland.eszip',
+            },
+            body: eszipBytes,
+          });
+        }
         break;
       }
 

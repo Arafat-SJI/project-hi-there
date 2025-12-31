@@ -158,86 +158,70 @@ export default function EdgeFunctionCopyTool() {
     }
   };
 
-  // Get function metadata from source project
+  // Get function metadata from source project via proxy
   const getFunctionMetadata = async (slug: string) => {
-    const response = await fetch(
-      `https://api.supabase.com/v1/projects/${sourceProjectRef}/functions/${slug}`,
-      {
-        headers: {
-          Authorization: `Bearer ${sourceApiToken}`,
-        },
-      }
-    );
+    const { data, error } = await supabase.functions.invoke('supabase-management-proxy', {
+      body: {
+        action: 'get-function-metadata',
+        projectRef: sourceProjectRef,
+        apiToken: sourceApiToken,
+        slug,
+      },
+    });
 
-    if (!response.ok) {
-      throw new Error(`Failed to get metadata for ${slug}: ${response.statusText}`);
+    if (error) {
+      throw new Error(`Failed to get metadata for ${slug}: ${error.message}`);
+    }
+    if (data?.error) {
+      throw new Error(`Failed to get metadata for ${slug}: ${data.error}`);
     }
 
-    return await response.json();
+    return data;
   };
 
-  // Get function code (ESZIP format) from source project
-  const getFunctionCode = async (slug: string): Promise<ArrayBuffer> => {
-    const response = await fetch(
-      `https://api.supabase.com/v1/projects/${sourceProjectRef}/functions/${slug}/body`,
-      {
-        headers: {
-          Authorization: `Bearer ${sourceApiToken}`,
-        },
-      }
-    );
+  // Get function code (ESZIP format) from source project via proxy
+  const getFunctionCode = async (slug: string): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke('supabase-management-proxy', {
+      body: {
+        action: 'get-function-body',
+        projectRef: sourceProjectRef,
+        apiToken: sourceApiToken,
+        slug,
+      },
+    });
 
-    if (!response.ok) {
-      throw new Error(`Failed to get code for ${slug}: ${response.statusText}`);
+    if (error) {
+      throw new Error(`Failed to get code for ${slug}: ${error.message}`);
+    }
+    if (data?.error) {
+      throw new Error(`Failed to get code for ${slug}: ${data.error}`);
     }
 
-    return await response.arrayBuffer();
+    return data.data; // base64 encoded ESZIP
   };
 
-  // Deploy function to target project using ESZIP format
-  const deployFunction = async (slug: string, eszipBytes: ArrayBuffer, metadata: any) => {
-    // Try PATCH first (update existing function)
-    const patchResponse = await fetch(
-      `https://api.supabase.com/v1/projects/${targetProjectRef}/functions/${slug}?verify_jwt=${metadata.verify_jwt || false}&import_map=${metadata.import_map || false}`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${targetApiToken}`,
-          'Content-Type': 'application/vnd.denoland.eszip',
-        },
-        body: eszipBytes,
-      }
-    );
+  // Deploy function to target project via proxy
+  const deployFunction = async (slug: string, codeBase64: string, metadata: any) => {
+    const { data, error } = await supabase.functions.invoke('supabase-management-proxy', {
+      body: {
+        action: 'deploy-function',
+        projectRef: targetProjectRef,
+        apiToken: targetApiToken,
+        slug,
+        codeBase64,
+        verifyJwt: metadata.verify_jwt || false,
+        importMap: metadata.import_map || false,
+      },
+    });
 
-    if (patchResponse.ok) {
-      return await patchResponse.json();
+    if (error) {
+      throw new Error(`Failed to deploy ${slug}: ${error.message}`);
+    }
+    if (data?.error) {
+      throw new Error(`Failed to deploy ${slug}: ${data.error}${data.details ? ` - ${data.details}` : ''}`);
     }
 
-    // If function doesn't exist (404), create it using POST
-    if (patchResponse.status === 404) {
-      const createResponse = await fetch(
-        `https://api.supabase.com/v1/projects/${targetProjectRef}/functions?slug=${slug}&name=${slug}&verify_jwt=${metadata.verify_jwt || false}&import_map=${metadata.import_map || false}`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${targetApiToken}`,
-            'Content-Type': 'application/vnd.denoland.eszip',
-          },
-          body: eszipBytes,
-        }
-      );
-
-      if (!createResponse.ok) {
-        const errorText = await createResponse.text();
-        throw new Error(`Failed to create ${slug}: ${createResponse.statusText} - ${errorText}`);
-      }
-
-      return await createResponse.json();
-    }
-
-    // Other error from PATCH
-    const errorText = await patchResponse.text();
-    throw new Error(`Failed to deploy ${slug}: ${patchResponse.statusText} - ${errorText}`);
+    return data;
   };
 
   // Copy selected functions
@@ -277,11 +261,11 @@ export default function EdgeFunctionCopyTool() {
         // Get function metadata from source
         const metadata = await getFunctionMetadata(slug);
 
-        // Get function code (ESZIP bytes) from source
-        const eszipBytes = await getFunctionCode(slug);
+        // Get function code as base64 from source
+        const codeBase64 = await getFunctionCode(slug);
 
-        // Deploy to target using ESZIP format
-        await deployFunction(slug, eszipBytes, metadata);
+        // Deploy to target via proxy
+        await deployFunction(slug, codeBase64, metadata);
 
         console.log(`✓ Copied ${slug} (verify_jwt=${metadata.verify_jwt})`);
       } catch (err) {
