@@ -67,10 +67,10 @@ interface CopyProgress {
 }
 
 export default function EdgeFunctionCopyTool() {
-  // Form state
-  const [sourceProjectRef, setSourceProjectRef] = useState('');
+  // Form state - hardcoded project refs
+  const [sourceProjectRef, setSourceProjectRef] = useState('ttlmdbgptqlvjswtcrnq');
   const [sourceApiToken, setSourceApiToken] = useState('');
-  const [targetProjectRef, setTargetProjectRef] = useState('');
+  const [targetProjectRef, setTargetProjectRef] = useState('tjkqvbxtziheggurtvcz');
   const [targetApiToken, setTargetApiToken] = useState('');
 
   // Function selection state
