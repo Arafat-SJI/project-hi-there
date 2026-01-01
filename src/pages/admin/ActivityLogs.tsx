@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 interface ActivityLog {
   id: string;
@@ -61,58 +62,66 @@ const ACTION_COLORS: Record<string, "default" | "secondary" | "destructive" | "o
   access: "outline",
 };
 
-// Demo data since activity_logs table doesn't exist
-const DEMO_LOGS: ActivityLog[] = [
-  {
-    id: "1",
-    user_id: "2d711b86-45bf-43ae-b216-7eb917668b58",
-    action: "login",
-    resource_type: "session",
-    resource_id: null,
-    details: { method: "password" },
-    ip_address: "192.168.1.1",
-    user_agent: "Chrome/120.0",
-    created_at: new Date().toISOString(),
-    user_email: "admin@collabai.software",
-  },
-  {
-    id: "2",
-    user_id: "2d711b86-45bf-43ae-b216-7eb917668b58",
-    action: "create",
-    resource_type: "client",
-    resource_id: "abc-123",
-    details: { name: "Richardson Law Group" },
-    ip_address: "192.168.1.1",
-    user_agent: "Chrome/120.0",
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    user_email: "admin@collabai.software",
-  },
-  {
-    id: "3",
-    user_id: "2d711b86-45bf-43ae-b216-7eb917668b58",
-    action: "update",
-    resource_type: "meeting",
-    resource_id: "def-456",
-    details: { title: "Q4 Review" },
-    ip_address: "192.168.1.1",
-    user_agent: "Chrome/120.0",
-    created_at: new Date(Date.now() - 7200000).toISOString(),
-    user_email: "admin@collabai.software",
-  },
-];
-
 export default function ActivityLogs() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    // Use demo data since table doesn't exist
-    setTimeout(() => {
-      setLogs(DEMO_LOGS);
-      setLoading(false);
-    }, 500);
+    fetchActivityLogs();
   }, []);
+
+  const fetchActivityLogs = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch activity logs with user email from auth.users
+      const { data, error } = await supabase
+        .from("activity_logs")
+        .select(`
+          id,
+          user_id,
+          action,
+          resource_type,
+          resource_id,
+          details,
+          ip_address,
+          user_agent,
+          created_at
+        `)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error("Error fetching activity logs:", error);
+        toast.error("Failed to load activity logs");
+        return;
+      }
+
+      // Fetch user emails separately
+      const userIds = [...new Set(data?.map((log) => log.user_id) || [])];
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("id, email")
+        .in("id", userIds);
+
+      const userEmailMap = new Map(
+        usersData?.map((user) => [user.id, user.email]) || []
+      );
+
+      const logsWithEmails = data?.map((log) => ({
+        ...log,
+        user_email: userEmailMap.get(log.user_id) || "Unknown",
+      })) || [];
+
+      setLogs(logsWithEmails);
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      toast.error("Failed to load activity logs");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleExport = () => {
     const csv = [
