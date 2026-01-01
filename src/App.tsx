@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { AdminLayout } from "@/components/layout/AdminLayout";
 
 // Public pages
 import Index from "./pages/Index";
@@ -86,11 +87,19 @@ const App = () => (
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/feedback" element={<Feedback />} />
 
-                {/* Admin-only routes */}
+                {/* AI routes (admin only but uses regular layout) */}
                 <Route element={<AdminRoute />}>
                   <Route path="/ai" element={<AIChat />} />
                   <Route path="/ai/chat" element={<AIChat />} />
                   <Route path="/ai/agents" element={<AIAgents />} />
+                </Route>
+              </Route>
+            </Route>
+
+            {/* Admin Panel routes with dedicated admin layout */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AdminRoute />}>
+                <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/admin/users" element={<UserManagement />} />
                   <Route path="/admin/roles" element={<RoleManagement />} />
