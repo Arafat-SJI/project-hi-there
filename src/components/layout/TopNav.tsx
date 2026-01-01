@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,59 +21,32 @@ import {
 import { Bell, LogOut, User, Settings, Search, ExternalLink, FileText, Users, Calendar, Loader2, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/utils";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
 import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
-
-interface SearchResult {
-  id: string;
-  entity_type: string;
-  entity_id: string;
-  content: string;
-  metadata: any;
-  similarity: number;
-}
+import { useSemanticSearch } from "@/hooks/useSemanticSearch";
 
 export function TopNav() {
-  const { user, profile, signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
 
   // Use React Query hooks for notifications
   const { data: unreadCount } = useUnreadCount();
   const { data: recentNotifications, isLoading: loadingNotifications } = useNotifications("all");
 
+  // Use semantic search hook
+  const {
+    query: searchQuery,
+    results: searchResults,
+    isSearching: searching,
+    search,
+    clearResults,
+    setQuery: setSearchQuery,
+  } = useSemanticSearch();
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim() || !user) return;
-
-    setSearching(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("semantic-search", {
-        body: {
-          query: searchQuery,
-          match_threshold: 0.5,
-          match_count: 10,
-          user_id: user.id,
-        },
-      });
-
-      if (error) throw error;
-
-      setSearchResults(data.results || []);
-
-      if (data.results?.length === 0) {
-        toast.info("No results found");
-      }
-    } catch (error: any) {
-      console.error("Search error:", error);
-      toast.error("Search failed. Ensure semantic-search function is deployed.");
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
+    if (!searchQuery.trim()) return;
+    await search(searchQuery);
   };
 
   const getEntityIcon = (entityType: string) => {
@@ -161,8 +133,7 @@ export function TopNav() {
                     className="flex items-start gap-3 rounded-lg border p-3 hover:bg-accent cursor-pointer"
                     onClick={() => {
                       setSearchOpen(false);
-                      setSearchQuery("");
-                      setSearchResults([]);
+                      clearResults();
                     }}
                   >
                     <div className="mt-0.5">{getEntityIcon(result.entity_type)}</div>
