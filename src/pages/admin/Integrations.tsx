@@ -183,10 +183,6 @@ export default function Integrations() {
   const handleTestConnection = async (integration: Integration) => {
     setTesting(integration.id);
     try {
-      // In a real implementation, you would call an edge function to test the connection
-      // For now, simulate a test
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
       // Check if required fields are filled
       const hasAllRequiredFields = integration.fields
         .filter((f) => f.required)
@@ -197,10 +193,55 @@ export default function Integrations() {
         return;
       }
 
-      toast.success(`${integration.name} connection successful!`);
+      // Get the API key or credentials based on integration type
+      let apiKey = "";
+      let service = integration.id;
+
+      switch (integration.id) {
+        case "openai":
+          apiKey = integration.fields.find((f) => f.key === "openai_api_key")?.value || "";
+          break;
+        case "sendgrid":
+          apiKey = integration.fields.find((f) => f.key === "sendgrid_api_key")?.value || "";
+          break;
+        case "zoom":
+          // Zoom requires account_id:client_id:client_secret format
+          const accountId = integration.fields.find((f) => f.key === "zoom_account_id")?.value || "";
+          const clientId = integration.fields.find((f) => f.key === "zoom_client_id")?.value || "";
+          const clientSecret = integration.fields.find((f) => f.key === "zoom_client_secret")?.value || "";
+          apiKey = `${accountId}:${clientId}:${clientSecret}`;
+          break;
+        case "google":
+          toast.info("Google Drive requires OAuth2 flow, direct testing not available");
+          return;
+        default:
+          toast.error("Testing not implemented for this integration");
+          return;
+      }
+
+      // Call the validate-api-key edge function
+      const { data, error } = await supabase.functions.invoke("validate-api-key", {
+        body: { apiKey, service },
+      });
+
+      if (error) {
+        console.error("Validation error:", error);
+        toast.error(`Connection test failed: ${error.message}`);
+        return;
+      }
+
+      if (data.valid) {
+        toast.success(`${integration.name} connection successful!`, {
+          description: data.message,
+        });
+      } else {
+        toast.error(`${integration.name} connection failed`, {
+          description: data.message || "Invalid credentials",
+        });
+      }
     } catch (error: any) {
       console.error("Connection test error:", error);
-      toast.error(`Failed to connect to ${integration.name}`);
+      toast.error(`Failed to test ${integration.name} connection`);
     } finally {
       setTesting(null);
     }

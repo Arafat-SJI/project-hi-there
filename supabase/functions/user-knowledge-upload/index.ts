@@ -53,11 +53,16 @@ serve(async (req) => {
           .insert([{
             user_id: userId,
             source_id: sourceId,
+            source_type: 'upload',
             file_name: fileName,
             file_path: filePath,
             file_size: file.size,
             mime_type: file.type,
             processing_status: 'pending',
+            metadata: {
+              original_name: fileName,
+              uploaded_at: new Date().toISOString(),
+            },
           }])
           .select()
           .single()
