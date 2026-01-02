@@ -1,13 +1,21 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, Bot, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Send, Bot, Loader2, DollarSign } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getInitials } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 export interface ChatMessage {
   id: string;
@@ -16,10 +24,23 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+interface AIModel {
+  id: string;
+  name: string;
+  model_id: string;
+  input_cost_per_1k: number;
+  output_cost_per_1k: number;
+  features: Record<string, boolean>;
+  is_default: boolean;
+  ai_providers?: {
+    name: string;
+  };
+}
+
 interface AIChatInterfaceProps {
   messages: ChatMessage[];
   isLoading: boolean;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, modelId?: string) => void;
   sessionId?: string;
   title?: string;
   description?: string;
@@ -39,27 +60,106 @@ export function AIChatInterface({
 }: AIChatInterfaceProps) {
   const { profile } = useAuth();
   const [input, setInput] = useState("");
+  const [models, setModels] = useState<AIModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>("");
+
+  useEffect(() => {
+    loadModels();
+  }, []);
+
+  const loadModels = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("ai_models")
+        .select("*, ai_providers(name)")
+        .eq("category", "chat")
+        .eq("enabled", true)
+        .order("is_default", { ascending: false })
+        .order("name");
+
+      if (error) throw error;
+
+      setModels(data || []);
+      // Set default model
+      const defaultModel = data?.find((m) => m.is_default);
+      if (defaultModel) {
+        setSelectedModel(defaultModel.id);
+      }
+    } catch (error) {
+      console.error("Failed to load AI models:", error);
+    }
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    onSendMessage(input);
+    onSendMessage(input, selectedModel);
     setInput("");
+  };
+
+  const selectedModelData = models.find((m) => m.id === selectedModel);
+  const getCostIndicator = (model?: AIModel) => {
+    if (!model) return null;
+    const avgCost = (model.input_cost_per_1k + model.output_cost_per_1k) / 2;
+    if (avgCost < 0.001) return { label: "Low", color: "bg-green-500" };
+    if (avgCost < 0.005) return { label: "Medium", color: "bg-yellow-500" };
+    return { label: "High", color: "bg-red-500" };
   };
 
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription className="flex items-center gap-2">
-          {description}
-          {sessionId && (
-            <Badge variant="secondary" className="text-xs">
-              Session: {sessionId.slice(-8)}
-            </Badge>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription className="flex items-center gap-2">
+              {description}
+              {sessionId && (
+                <Badge variant="secondary" className="text-xs">
+                  Session: {sessionId.slice(-8)}
+                </Badge>
+              )}
+            </CardDescription>
+          </div>
+          {models.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {models.map((model) => {
+                    const costInfo = getCostIndicator(model);
+                    return (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{model.name}</span>
+                          {costInfo && (
+                            <Badge variant="outline" className="gap-1">
+                              <div className={`h-2 w-2 rounded-full ${costInfo.color}`} />
+                              {costInfo.label}
+                            </Badge>
+                          )}
+                          {model.is_default && (
+                            <Badge variant="secondary" className="text-xs">
+                              Default
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              {selectedModelData && (
+                <div className="text-xs text-muted-foreground">
+                  {selectedModelData.ai_providers?.name}
+                </div>
+              )}
+            </div>
           )}
-        </CardDescription>
+        </div>
       </CardHeader>
       <CardContent className="flex h-[calc(100%-100px)] flex-col gap-4">
         {/* Messages */}

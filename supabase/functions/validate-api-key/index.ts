@@ -34,6 +34,15 @@ serve(async (req) => {
       case 'zoom':
         validationResult = await validateZoom(apiKey)
         break
+      case 'anthropic':
+        validationResult = await validateAnthropic(apiKey)
+        break
+      case 'google_ai':
+        validationResult = await validateGoogleAI(apiKey)
+        break
+      case 'perplexity':
+        validationResult = await validatePerplexity(apiKey)
+        break
       default:
         return new Response(
           JSON.stringify({ valid: false, error: `Unknown service: ${service}` }),
@@ -180,6 +189,144 @@ async function validateZoom(credentials: string) {
     return {
       valid: false,
       message: `Zoom validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Anthropic API key
+async function validateAnthropic(apiKey: string) {
+  try {
+    // Test a simple API call to list available models
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'test' }],
+      }),
+    })
+
+    if (response.ok || response.status === 400) {
+      // 400 is acceptable as it means the API key is valid but the request format might be intentionally minimal
+      return {
+        valid: true,
+        message: 'Anthropic API key is valid',
+        details: { status: response.status },
+      }
+    } else if (response.status === 401) {
+      return {
+        valid: false,
+        message: 'Invalid Anthropic API key',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.error?.message || 'Invalid Anthropic API key',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Anthropic validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Google AI (Gemini) API key
+async function validateGoogleAI(apiKey: string) {
+  try {
+    // Test the models endpoint
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        valid: true,
+        message: 'Google AI API key is valid',
+        details: {
+          models_count: data.models?.length || 0,
+        },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.error?.message || 'Invalid Google AI API key',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Google AI validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Perplexity API key
+async function validatePerplexity(apiKey: string) {
+  try {
+    // Test a simple chat completion request
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar',
+        messages: [{ role: 'user', content: 'test' }],
+        max_tokens: 1,
+      }),
+    })
+
+    if (response.ok || response.status === 400) {
+      // 400 is acceptable as it means the API key is valid
+      return {
+        valid: true,
+        message: 'Perplexity API key is valid',
+        details: { status: response.status },
+      }
+    } else if (response.status === 401) {
+      return {
+        valid: false,
+        message: 'Invalid Perplexity API key',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.error?.message || 'Invalid Perplexity API key',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Perplexity validation error: ${message}`,
       details: {},
     }
   }

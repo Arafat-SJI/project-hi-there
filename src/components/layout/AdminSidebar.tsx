@@ -11,6 +11,8 @@ import {
   Database,
   ArrowLeft,
   CheckCircle2,
+  Brain,
+  BarChart,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -49,6 +51,16 @@ const adminItems: SidebarItem[] = [
     title: "Integrations",
     href: "/admin/integrations",
     icon: Zap,
+  },
+  {
+    title: "AI Models",
+    href: "/admin/ai-models",
+    icon: Brain,
+  },
+  {
+    title: "AI Usage Analytics",
+    href: "/admin/ai-usage",
+    icon: BarChart,
   },
   {
     title: "Deployment Status",

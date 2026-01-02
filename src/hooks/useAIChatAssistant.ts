@@ -16,6 +16,7 @@ export interface ChatOptions {
   include_history?: boolean;
   max_tokens?: number;
   temperature?: number;
+  model_id?: string;
 }
 
 export function useAIChatAssistant(initialMessage?: string) {
@@ -71,6 +72,7 @@ export function useAIChatAssistant(initialMessage?: string) {
             agent_slug: options.agent_slug,
             max_tokens: options.max_tokens,
             temperature: options.temperature,
+            model_id: options.model_id,
           },
         });
 
