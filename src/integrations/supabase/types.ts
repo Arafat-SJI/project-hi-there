@@ -168,6 +168,148 @@ export type Database = {
           },
         ]
       }
+      ai_models: {
+        Row: {
+          category: string
+          context_window: number
+          created_at: string
+          embedding_cost_per_1k: number
+          enabled: boolean
+          features: Json
+          id: string
+          input_cost_per_1k: number
+          is_default: boolean
+          model_id: string
+          name: string
+          output_cost_per_1k: number
+          provider_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          context_window?: number
+          created_at?: string
+          embedding_cost_per_1k?: number
+          enabled?: boolean
+          features?: Json
+          id?: string
+          input_cost_per_1k?: number
+          is_default?: boolean
+          model_id: string
+          name: string
+          output_cost_per_1k?: number
+          provider_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          context_window?: number
+          created_at?: string
+          embedding_cost_per_1k?: number
+          enabled?: boolean
+          features?: Json
+          id?: string
+          input_cost_per_1k?: number
+          is_default?: boolean
+          model_id?: string
+          name?: string
+          output_cost_per_1k?: number
+          provider_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_models_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "ai_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_providers: {
+        Row: {
+          api_key_secret_name: string | null
+          base_url: string | null
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_secret_name?: string | null
+          base_url?: string | null
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_secret_name?: string | null
+          base_url?: string | null
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_usage_logs: {
+        Row: {
+          created_at: string
+          embedding_tokens: number
+          estimated_cost: number
+          function_name: string | null
+          id: string
+          input_tokens: number
+          metadata: Json | null
+          model_id: string | null
+          output_tokens: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          embedding_tokens?: number
+          estimated_cost?: number
+          function_name?: string | null
+          id?: string
+          input_tokens?: number
+          metadata?: Json | null
+          model_id?: string | null
+          output_tokens?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          embedding_tokens?: number
+          estimated_cost?: number
+          function_name?: string | null
+          id?: string
+          input_tokens?: number
+          metadata?: Json | null
+          model_id?: string | null
+          output_tokens?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "ai_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_config: {
         Row: {
           category: string

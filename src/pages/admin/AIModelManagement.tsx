@@ -58,7 +58,7 @@ interface AIModel {
   embedding_cost_per_1k: number;
   enabled: boolean;
   is_default: boolean;
-  features: Record<string, boolean>;
+  features: Record<string, boolean> | null;
 }
 
 const providerIcons: Record<string, React.ReactNode> = {
@@ -93,7 +93,13 @@ export default function AIModelManagement() {
         .order("name");
 
       if (providersError) throw providersError;
-      setProviders(providersData || []);
+      setProviders((providersData || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        enabled: p.enabled,
+        created_at: p.created_at,
+      })));
 
       // Load models
       const { data: modelsData, error: modelsError } = await supabase
@@ -102,7 +108,20 @@ export default function AIModelManagement() {
         .order("category, name");
 
       if (modelsError) throw modelsError;
-      setModels(modelsData || []);
+      setModels((modelsData || []).map((m) => ({
+        id: m.id,
+        provider_id: m.provider_id,
+        name: m.name,
+        model_id: m.model_id,
+        category: m.category as "chat" | "embedding",
+        context_window: m.context_window,
+        input_cost_per_1k: Number(m.input_cost_per_1k),
+        output_cost_per_1k: Number(m.output_cost_per_1k),
+        embedding_cost_per_1k: Number(m.embedding_cost_per_1k),
+        enabled: m.enabled,
+        is_default: m.is_default,
+        features: (m.features as Record<string, boolean>) || {},
+      })));
     } catch (error: any) {
       console.error("Error loading data:", error);
       toast.error("Failed to load AI models data");
@@ -208,8 +227,9 @@ export default function AIModelManagement() {
     return `$${cost.toFixed(4)}`;
   };
 
-  const getFeatureBadges = (features: Record<string, boolean>) => {
+  const getFeatureBadges = (features: Record<string, boolean> | null) => {
     const badges = [];
+    if (!features) return badges;
     if (features.vision) badges.push({ label: "Vision", icon: <Eye className="h-3 w-3" /> });
     if (features.reasoning) badges.push({ label: "Reasoning", icon: <Brain className="h-3 w-3" /> });
     if (features.fast) badges.push({ label: "Fast", icon: <Rocket className="h-3 w-3" /> });
