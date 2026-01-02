@@ -60,10 +60,10 @@ export default function KnowledgeAnalytics() {
     // Total views
     const totalViews = entries.reduce((sum, e) => sum + (e.view_count || 0), 0);
 
-    // Average reading time
+    // Average reading time (calculated from content length)
     const avgReadingTime =
-      entries.reduce((sum, e) => sum + (e.reading_time_minutes || 0), 0) /
-        (entries.filter((e) => e.reading_time_minutes).length || 1);
+      entries.reduce((sum, e) => sum + Math.ceil((e.content?.split(/\s+/).length || 0) / 200), 0) /
+        (entries.length || 1);
 
     return {
       mostViewed,
