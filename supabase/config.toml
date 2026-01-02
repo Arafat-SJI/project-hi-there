@@ -1,10 +1,95 @@
 project_id = "tjkqvbxtziheggurtvcz"
 
+# Admin functions - require authentication
 [functions.check-environment]
 verify_jwt = true
 
 [functions.seed-template-data]
 verify_jwt = true
 
+[functions.validate-api-key]
+verify_jwt = true
+
+[functions.sync-ai-models]
+verify_jwt = true
+
+[functions.sync-zoom-files]
+verify_jwt = true
+
+# API endpoints - require authentication
+[functions.api-v1-clients]
+verify_jwt = true
+
+[functions.api-v1-meetings]
+verify_jwt = true
+
+# OAuth functions - require authentication
+[functions.oauth-exchange-token]
+verify_jwt = true
+
+[functions.oauth-refresh-token]
+verify_jwt = true
+
+[functions.generate-business-doc]
+verify_jwt = true
+
+# Background/service functions - disable JWT (use service role internally)
+[functions.unified-knowledge-search]
+verify_jwt = false
+
+[functions.semantic-search]
+verify_jwt = false
+
+[functions.ai-chat-assistant]
+verify_jwt = false
+
+[functions.auto-embed-knowledge-entry]
+verify_jwt = false
+
+[functions.auto-embed-knowledge-files]
+verify_jwt = false
+
+[functions.auto-embed-meetings]
+verify_jwt = false
+
+[functions.generate-embeddings]
+verify_jwt = false
+
+[functions.generate-meeting-summary]
+verify_jwt = false
+
 [functions.categorize-meeting]
+verify_jwt = false
+
+[functions.send-notification]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-feedback-notification]
+verify_jwt = false
+
+[functions.audit-log-writer]
+verify_jwt = false
+
+[functions.run-ai-agent]
+verify_jwt = false
+
+[functions.user-knowledge-process]
+verify_jwt = false
+
+[functions.google-drive-sync]
+verify_jwt = false
+
+[functions.google-drive-upload]
+verify_jwt = false
+
+[functions.user-knowledge-drive-sync]
+verify_jwt = false
+
+[functions.user-knowledge-upload]
+verify_jwt = false
+
+[functions.zoom-transcript-processing]
 verify_jwt = false
