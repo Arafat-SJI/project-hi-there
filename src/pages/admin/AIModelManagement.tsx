@@ -29,9 +29,12 @@ import {
   Calculator,
   Settings,
   AlertCircle,
+  RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useSyncModels, useSyncAllModels } from "@/hooks/useModelSync";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +43,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface AIProvider {
   id: string;
@@ -85,6 +95,10 @@ export default function AIModelManagement() {
   const [inputTokens, setInputTokens] = useState(1000);
   const [outputTokens, setOutputTokens] = useState(1000);
   const [embeddingTokens, setEmbeddingTokens] = useState(1000);
+
+  // Sync mutations
+  const syncModels = useSyncModels();
+  const syncAllModels = useSyncAllModels();
 
   useEffect(() => {
     loadData();
@@ -250,6 +264,54 @@ export default function AIModelManagement() {
     return badges;
   };
 
+  // Sync handler for individual provider
+  const handleSyncProvider = async (providerSlug: string) => {
+    try {
+      const result = await syncModels.mutateAsync({ providerSlug });
+
+      if (result.success) {
+        toast.success(
+          `Synced ${result.synced || 0} new models, updated ${result.updated || 0} existing models${
+            result.errors ? `, ${result.errors} errors` : ''
+          }`
+        );
+        loadData(); // Reload the data
+      }
+    } catch (error: any) {
+      console.error("Error syncing models:", error);
+      toast.error(error.message || "Failed to sync models");
+    }
+  };
+
+  // Sync handler for all providers
+  const handleSyncAll = async () => {
+    try {
+      const results = await syncAllModels.mutateAsync();
+
+      let totalSynced = 0;
+      let totalUpdated = 0;
+      let totalErrors = 0;
+
+      Object.values(results).forEach((result) => {
+        if (result.success) {
+          totalSynced += result.synced || 0;
+          totalUpdated += result.updated || 0;
+          totalErrors += result.errors || 0;
+        }
+      });
+
+      toast.success(
+        `Synced ${totalSynced} new models, updated ${totalUpdated} existing models${
+          totalErrors ? `, ${totalErrors} errors` : ''
+        }`
+      );
+      loadData(); // Reload the data
+    } catch (error: any) {
+      console.error("Error syncing all models:", error);
+      toast.error(error.message || "Failed to sync models");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -268,13 +330,49 @@ export default function AIModelManagement() {
             Configure AI providers, models, and pricing for your platform
           </p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline">
-              <Calculator className="mr-2 h-4 w-4" />
-              Cost Calculator
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          {/* Sync Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={syncModels.isPending || syncAllModels.isPending}
+              >
+                {(syncModels.isPending || syncAllModels.isPending) ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Sync Models
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleSyncAll}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Sync All Providers
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {providers.map((provider) => (
+                <DropdownMenuItem
+                  key={provider.id}
+                  onClick={() => handleSyncProvider(provider.slug)}
+                >
+                  {providerIcons[provider.slug]}
+                  <span className="ml-2">Sync {provider.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Cost Calculator */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Calculator className="mr-2 h-4 w-4" />
+                Cost Calculator
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Cost Calculator</DialogTitle>
@@ -358,6 +456,7 @@ export default function AIModelManagement() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Providers Overview */}
