@@ -53,7 +53,12 @@ interface ConfigRow {
 // Transform flat config rows to nested structure
 function transformConfig(rows: ConfigRow[]): AppConfig {
   const config: any = {
-    branding: {},
+    branding: {
+      companyName: '',
+      tagline: '',
+      supportEmail: '',
+      logoUrl: '', // Default empty string for optional field
+    },
     features: {},
     email: {},
     system: {},
@@ -75,11 +80,14 @@ function flattenConfig(config: AppConfig): Array<{ key: string; value: any; cate
 
   Object.entries(config).forEach(([category, values]) => {
     Object.entries(values).forEach(([key, value]) => {
-      rows.push({
-        key: `${category}.${key}`,
-        value,
-        category,
-      });
+      // Skip undefined or null values to avoid NOT NULL constraint violations
+      if (value !== undefined && value !== null) {
+        rows.push({
+          key: `${category}.${key}`,
+          value,
+          category,
+        });
+      }
     });
   });
 
