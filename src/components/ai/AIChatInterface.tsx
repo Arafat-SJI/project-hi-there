@@ -30,11 +30,11 @@ interface AIModel {
   model_id: string;
   input_cost_per_1k: number;
   output_cost_per_1k: number;
-  features: Record<string, boolean>;
+  features: Record<string, boolean> | null;
   is_default: boolean;
-  ai_providers?: {
+  ai_providers: {
     name: string;
-  };
+  } | null;
 }
 
 interface AIChatInterfaceProps {
@@ -79,9 +79,20 @@ export function AIChatInterface({
 
       if (error) throw error;
 
-      setModels(data || []);
+      const transformedModels: AIModel[] = (data || []).map((m) => ({
+        id: m.id,
+        name: m.name,
+        model_id: m.model_id,
+        input_cost_per_1k: Number(m.input_cost_per_1k),
+        output_cost_per_1k: Number(m.output_cost_per_1k),
+        features: (m.features as Record<string, boolean>) || {},
+        is_default: m.is_default,
+        ai_providers: m.ai_providers as { name: string } | null,
+      }));
+
+      setModels(transformedModels);
       // Set default model
-      const defaultModel = data?.find((m) => m.is_default);
+      const defaultModel = transformedModels.find((m) => m.is_default);
       if (defaultModel) {
         setSelectedModel(defaultModel.id);
       }
