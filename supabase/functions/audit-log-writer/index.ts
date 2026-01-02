@@ -20,28 +20,28 @@ serve(async (req) => {
     const {
       user_id,
       action,
-      entity_type,
-      entity_id,
-      metadata
+      resource_type,
+      resource_id,
+      details
     } = await req.json()
 
     // Validate required fields
-    if (!action || !entity_type) {
+    if (!action) {
       return new Response(
-        JSON.stringify({ error: 'Action and entity_type are required' }),
+        JSON.stringify({ error: 'Action is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
-    // Insert audit log
+    // Insert activity log
     const { data, error } = await supabaseClient
-      .from('audit_logs')
+      .from('activity_logs')
       .insert([{
         user_id: user_id || null,
         action,
-        entity_type,
-        entity_id: entity_id || null,
-        metadata: metadata || {},
+        resource_type: resource_type || null,
+        resource_id: resource_id || null,
+        details: details || {},
         ip_address: req.headers.get('x-forwarded-for') || 'unknown',
         user_agent: req.headers.get('user-agent') || 'unknown',
       }])
@@ -49,12 +49,14 @@ serve(async (req) => {
 
     if (error) throw error
 
+    console.log(`Activity logged: ${action} on ${resource_type || 'system'}`)
+
     return new Response(
-      JSON.stringify({ success: true, log: data[0] }),
+      JSON.stringify({ success: true, log: data?.[0] }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error: unknown) {
-    console.error('Audit log error:', error)
+    console.error('Activity log error:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
       JSON.stringify({ error: message }),
