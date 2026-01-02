@@ -444,6 +444,70 @@ export function generateOAuthState(): string {
 }
 
 /**
+ * Store OAuth state in localStorage for CSRF validation
+ */
+export function storeOAuthState(state: string, providerId: string): void {
+  const stateData = {
+    state,
+    providerId,
+    timestamp: Date.now(),
+  };
+  localStorage.setItem(`oauth_state_${state}`, JSON.stringify(stateData));
+}
+
+/**
+ * Retrieve and validate OAuth state from localStorage
+ */
+export function retrieveOAuthState(state: string): { providerId: string } | null {
+  const key = `oauth_state_${state}`;
+  const stored = localStorage.getItem(key);
+
+  if (!stored) return null;
+
+  try {
+    const stateData = JSON.parse(stored);
+
+    // Check if state is expired (5 minutes)
+    const fiveMinutes = 5 * 60 * 1000;
+    if (Date.now() - stateData.timestamp > fiveMinutes) {
+      localStorage.removeItem(key);
+      return null;
+    }
+
+    // Remove state after retrieval (one-time use)
+    localStorage.removeItem(key);
+
+    return { providerId: stateData.providerId };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Clear expired OAuth states from localStorage
+ */
+export function clearExpiredOAuthStates(): void {
+  const fiveMinutes = 5 * 60 * 1000;
+  const keys = Object.keys(localStorage);
+
+  keys.forEach((key) => {
+    if (key.startsWith('oauth_state_')) {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          const stateData = JSON.parse(stored);
+          if (Date.now() - stateData.timestamp > fiveMinutes) {
+            localStorage.removeItem(key);
+          }
+        } catch {
+          localStorage.removeItem(key);
+        }
+      }
+    }
+  });
+}
+
+/**
  * Extract sensitive field keys from fields array
  */
 export function getSensitiveFieldKeys(fields: IntegrationField[]): string[] {

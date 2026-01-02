@@ -22,7 +22,13 @@ import { ProviderDetailHeader } from '@/components/integrations/ProviderDetailHe
 import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
 import { UsageStats } from '@/components/integrations/UsageStats';
-import { areRequiredFieldsFilled, getSensitiveFieldKeys } from '@/lib/integration-utils';
+import {
+  areRequiredFieldsFilled,
+  getSensitiveFieldKeys,
+  generateOAuthState,
+  storeOAuthState,
+  buildOAuthAuthorizationUrl,
+} from '@/lib/integration-utils';
 
 export default function ProviderDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -149,18 +155,35 @@ export default function ProviderDetail() {
 
   // Handle OAuth connect
   const handleOAuthConnect = () => {
-    if (!provider) return;
+    if (!provider || !provider.oauth_config) {
+      toast({
+        title: 'OAuth Configuration Missing',
+        description: 'This provider does not have OAuth configuration set up.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    toast({
-      title: 'OAuth Not Implemented',
-      description: 'OAuth flow will be implemented in Phase 4',
-      variant: 'default',
-    });
+    try {
+      // 1. Generate and store state for CSRF protection
+      const state = generateOAuthState();
+      storeOAuthState(state, provider.id);
 
-    // TODO: Phase 4 - Implement OAuth flow
-    // 1. Generate state and store in session
-    // 2. Build authorization URL
-    // 3. Redirect to provider authorization page
+      // 2. Build redirect URI
+      const redirectUri = `${window.location.origin}/admin/integrations/oauth/callback`;
+
+      // 3. Build authorization URL
+      const authUrl = buildOAuthAuthorizationUrl(provider, state, redirectUri);
+
+      // 4. Redirect to provider authorization page
+      window.location.href = authUrl;
+    } catch (error) {
+      toast({
+        title: 'OAuth Error',
+        description: error instanceof Error ? error.message : 'Failed to initiate OAuth flow',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Handle disconnect
