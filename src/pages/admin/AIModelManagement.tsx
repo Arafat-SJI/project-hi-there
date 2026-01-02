@@ -107,9 +107,9 @@ export default function AIModelManagement() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load providers with integration status
+      // Load providers directly from ai_providers table
       const { data: providersData, error: providersError } = await supabase
-        .from("ai_providers_with_integration_status")
+        .from("ai_providers")
         .select("*")
         .order("name");
 
@@ -118,12 +118,12 @@ export default function AIModelManagement() {
         id: p.id,
         name: p.name,
         slug: p.slug,
-        enabled: p.provider_enabled,
+        enabled: p.enabled,
         created_at: p.created_at,
-        integration_provider_id: p.integration_provider_id,
-        integration_provider_name: p.integration_provider_name,
-        connection_status: p.connection_status,
-        is_connected: p.is_connected || false,
+        integration_provider_id: null,
+        integration_provider_name: null,
+        connection_status: null,
+        is_connected: false,
       })));
 
       // Load models

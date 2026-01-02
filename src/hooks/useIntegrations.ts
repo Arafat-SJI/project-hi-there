@@ -390,6 +390,8 @@ export function useSetDefaultService() {
 
 interface UsageLogsFilters {
   providerId?: string;
+  categoryId?: string;
+  dateRange?: string;
   startDate?: Date;
   endDate?: Date;
   status?: 'success' | 'error' | 'partial';

@@ -3,7 +3,7 @@
  * Dashboard for tracking integration usage, costs, and performance
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,23 @@ import { exportUsageDataToCSV, exportUsageDataToExcel } from '@/lib/export-utils
 
 type DateRange = '7d' | '30d' | '90d' | 'all';
 
+interface UsageLog {
+  id: string;
+  provider_id: string | null;
+  service_id: string | null;
+  user_id: string | null;
+  action: string;
+  status: 'success' | 'error';
+  estimated_cost: number | null;
+  error_message: string | null;
+  request_metadata: Record<string, unknown> | null;
+  response_metadata: Record<string, unknown> | null;
+  created_at: string;
+  provider: { name: string; slug: string };
+  service: { name: string; service_key: string };
+  user: { email: string };
+}
+
 export default function IntegrationAnalytics() {
   const [dateRange, setDateRange] = useState<DateRange>('30d');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -51,8 +68,16 @@ export default function IntegrationAnalytics() {
     providerId: selectedProvider !== 'all' ? selectedProvider : undefined,
   });
 
+  // Transform logs with proper typing
+  const typedUsageLogs: UsageLog[] = useMemo(() => {
+    return (usageLogs || []).map((log) => ({
+      ...log,
+      status: log.status as 'success' | 'error',
+    }));
+  }, [usageLogs]);
+
   // Calculate statistics
-  const stats = calculateStats(usageLogs || []);
+  const stats = calculateStats(typedUsageLogs);
 
   // Handle export
   const handleExport = async (format: 'csv' | 'excel') => {
@@ -61,9 +86,9 @@ export default function IntegrationAnalytics() {
       const filename = `integration-usage-${dateRange}-${Date.now()}`;
 
       if (format === 'csv') {
-        await exportUsageDataToCSV(usageLogs || [], filename);
+        await exportUsageDataToCSV(typedUsageLogs, filename);
       } else {
-        await exportUsageDataToExcel(usageLogs || [], filename);
+        await exportUsageDataToExcel(typedUsageLogs, filename);
       }
     } catch (error) {
       console.error('Export failed:', error);
@@ -91,7 +116,7 @@ export default function IntegrationAnalytics() {
           <Button
             variant="outline"
             onClick={() => handleExport('csv')}
-            disabled={isExporting || !usageLogs?.length}
+            disabled={isExporting || !typedUsageLogs?.length}
           >
             <Download className="mr-2 h-4 w-4" />
             Export CSV
@@ -99,7 +124,7 @@ export default function IntegrationAnalytics() {
           <Button
             variant="outline"
             onClick={() => handleExport('excel')}
-            disabled={isExporting || !usageLogs?.length}
+            disabled={isExporting || !typedUsageLogs?.length}
           >
             <Download className="mr-2 h-4 w-4" />
             Export Excel
@@ -251,7 +276,7 @@ export default function IntegrationAnalytics() {
           <CardDescription>API calls by day showing success and failure rates</CardDescription>
         </CardHeader>
         <CardContent>
-          <UsageChart data={usageLogs || []} dateRange={dateRange} isLoading={isLoading} />
+          <UsageChart data={typedUsageLogs} dateRange={dateRange} isLoading={isLoading} />
         </CardContent>
       </Card>
 
@@ -263,7 +288,7 @@ export default function IntegrationAnalytics() {
         </CardHeader>
         <CardContent>
           <ProviderUsageTable
-            usageLogs={usageLogs || []}
+            usageLogs={typedUsageLogs}
             providers={providers || []}
             isLoading={isLoading}
           />
@@ -274,7 +299,7 @@ export default function IntegrationAnalytics() {
 }
 
 // Calculate aggregate statistics
-function calculateStats(logs: any[]) {
+function calculateStats(logs: UsageLog[]) {
   if (!logs || logs.length === 0) {
     return {
       totalCalls: 0,
@@ -291,9 +316,12 @@ function calculateStats(logs: any[]) {
   const successfulCalls = logs.filter((log) => log.status === 'success').length;
   const failedCalls = totalCalls - successfulCalls;
   const successRate = totalCalls > 0 ? (successfulCalls / totalCalls) * 100 : 0;
-  const totalCost = logs.reduce((sum, log) => sum + (log.cost || 0), 0);
+  const totalCost = logs.reduce((sum, log) => sum + (log.estimated_cost || 0), 0);
   const avgCostPerCall = totalCalls > 0 ? totalCost / totalCalls : 0;
-  const totalResponseTime = logs.reduce((sum, log) => sum + (log.response_time || 0), 0);
+  const totalResponseTime = logs.reduce((sum, log) => {
+    const responseTime = (log.response_metadata as Record<string, number> | null)?.response_time || 0;
+    return sum + responseTime;
+  }, 0);
   const avgResponseTime = totalCalls > 0 ? Math.round(totalResponseTime / totalCalls) : 0;
 
   return {
