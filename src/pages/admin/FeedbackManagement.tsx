@@ -416,7 +416,7 @@ export default function FeedbackManagement() {
                   <TableHead>Rating</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right">Response</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -429,7 +429,11 @@ export default function FeedbackManagement() {
                   </TableRow>
                 ) : (
                   filteredFeedback.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow
+                      key={item.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleViewFeedback(item)}
+                    >
                       <TableCell>{getTypeBadge(item.type)}</TableCell>
                       <TableCell>
                         <div className="max-w-[250px]">
@@ -458,14 +462,15 @@ export default function FeedbackManagement() {
                         {formatDate(item.created_at, "PP")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewFeedback(item)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
+                        {item.admin_notes ? (
+                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                            Responded
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            No response
+                          </Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
