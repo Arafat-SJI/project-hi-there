@@ -37,6 +37,8 @@ export interface AppConfig {
     allowSignups: boolean;
     requireEmailVerification: boolean;
     sessionTimeout: number;
+    onboardingCompleted?: boolean;
+    templateDataSeeded?: boolean;
   };
 }
 
@@ -154,7 +156,6 @@ export function useResetAppConfig() {
           companyName: "CollabAi",
           tagline: "AI-Powered Collaboration Platform",
           supportEmail: "support@collabai.software",
-          logoUrl: undefined,
         },
         features: {
           enableAIChat: true,

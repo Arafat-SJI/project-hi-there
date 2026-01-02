@@ -1,15 +1,15 @@
-import { Navigate, Outlet, useNavigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import { useEffect } from "react";
 import { toast } from "sonner";
+import { useEffect, useRef } from "react";
 
 interface ModuleRouteProps {
   module?: string;
   requiredRole?: "admin" | "moderator" | "user";
-  requiresFeatureFlag?: string;
+  requiresFeatureFlag?: "enableMeetings" | "enableTasks" | "enableKnowledgeBase" | "enableAIChat" | "enableNotifications" | "enableClients" | "enableAIAgents" | "enableFeedback";
   children?: React.ReactNode;
 }
 
@@ -20,10 +20,20 @@ export function ModuleRoute({
   children,
 }: ModuleRouteProps) {
   const { user, profile, loading } = useAuth();
-  const { isFeatureEnabled, isLoading: configLoading } = useFeatureFlags();
-  const navigate = useNavigate();
+  const { isFeatureEnabled, isLoading: flagsLoading } = useFeatureFlags();
+  const toastShownRef = useRef(false);
 
-  if (loading || configLoading) {
+  // Show toast when feature is disabled (only once)
+  useEffect(() => {
+    if (!flagsLoading && requiresFeatureFlag && !isFeatureEnabled(requiresFeatureFlag) && !toastShownRef.current) {
+      toastShownRef.current = true;
+      toast.error("This feature is currently disabled", {
+        description: "Contact your administrator to enable this module.",
+      });
+    }
+  }, [flagsLoading, requiresFeatureFlag, isFeatureEnabled]);
+
+  if (loading || flagsLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -33,6 +43,11 @@ export function ModuleRoute({
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Check feature flag if required
+  if (requiresFeatureFlag && !isFeatureEnabled(requiresFeatureFlag)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Check role if required
@@ -54,20 +69,8 @@ export function ModuleRoute({
     }
   }
 
-  // Check feature flag if required
-  useEffect(() => {
-    if (requiresFeatureFlag) {
-      const enabled = isFeatureEnabled(requiresFeatureFlag as any);
-      if (!enabled) {
-        toast.error(`This feature is currently disabled. Please contact your administrator.`);
-        navigate("/dashboard", { replace: true });
-      }
-    }
-  }, [requiresFeatureFlag, isFeatureEnabled, navigate]);
-
   // Check module-specific permissions if needed
   if (module) {
-    // This could be extended to check module-specific settings in app_config
     console.log(`Module access check: ${module}`);
   }
 
