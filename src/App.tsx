@@ -29,6 +29,7 @@ import Knowledge from "./pages/Knowledge";
 import KnowledgeForm from "./pages/KnowledgeForm";
 import KnowledgeDetail from "./pages/KnowledgeDetail";
 import KnowledgeUpload from "./pages/KnowledgeUpload";
+import KnowledgeByCategory from "./pages/KnowledgeByCategory";
 import AIChat from "./pages/AIChat";
 import Admin from "./pages/Admin";
 import DeploymentStatus from "./pages/DeploymentStatus";
@@ -40,6 +41,8 @@ import Integrations from "./pages/admin/Integrations";
 import AIModelManagement from "./pages/admin/AIModelManagement";
 import AIUsageAnalytics from "./pages/admin/AIUsageAnalytics";
 import EnvironmentValidator from "./pages/admin/EnvironmentValidator";
+import KnowledgeCategories from "./pages/admin/KnowledgeCategories";
+import KnowledgeAnalytics from "./pages/admin/KnowledgeAnalytics";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
@@ -98,6 +101,7 @@ const App = () => (
                   <Route path="/knowledge" element={<Knowledge />} />
                   <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
                   <Route path="/knowledge/personal" element={<PersonalKnowledge />} />
+                  <Route path="/knowledge/category/:slug" element={<KnowledgeByCategory />} />
                   <Route path="/knowledge/new" element={<KnowledgeForm />} />
                   <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
                   <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
@@ -134,6 +138,8 @@ const App = () => (
                   <Route path="/admin/integrations" element={<Integrations />} />
                   <Route path="/admin/ai-models" element={<AIModelManagement />} />
                   <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
+                  <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
+                  <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />
                   <Route path="/admin/deployment" element={<DeploymentStatus />} />
                   <Route path="/admin/environment" element={<EnvironmentValidator />} />
                 </Route>
