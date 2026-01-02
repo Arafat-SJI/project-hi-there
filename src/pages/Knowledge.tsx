@@ -234,9 +234,9 @@ export default function Knowledge() {
                           {entry.knowledge_categories.name}
                         </Badge>
                       )}
-                      {entry.reading_time_minutes && (
+                      {entry.content && (
                         <span className="text-xs text-muted-foreground">
-                          {entry.reading_time_minutes} min read
+                          {Math.ceil(entry.content.split(/\s+/).length / 200)} min read
                         </span>
                       )}
                     </CardDescription>
@@ -342,9 +342,9 @@ export default function Knowledge() {
                         {entry.status}
                       </Badge>
                     )}
-                    {entry.reading_time_minutes && (
+                    {entry.content && (
                       <span className="text-xs text-muted-foreground">
-                        {entry.reading_time_minutes} min
+                        {Math.ceil(entry.content.split(/\s+/).length / 200)} min
                       </span>
                     )}
                   </CardDescription>

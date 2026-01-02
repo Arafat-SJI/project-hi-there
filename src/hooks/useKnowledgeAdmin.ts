@@ -39,27 +39,29 @@ export function useCategories(includeStats = false) {
         return categories as KnowledgeCategory[];
       }
 
-      // Fetch stats for each category
+      // Fetch stats for each category by counting entries directly
       const categoriesWithStats: CategoryWithStats[] = await Promise.all(
         categories.map(async (category) => {
-          const { data: stats, error: statsError } = await supabase.rpc(
-            'get_category_stats',
-            { category_uuid: category.id }
-          );
+          const { data: entries } = await supabase
+            .from('knowledge_entries')
+            .select('status, view_count, updated_at')
+            .eq('category_id', category.id);
 
-          if (statsError) {
-            console.error('Error fetching stats for category:', category.id, statsError);
-          }
+          const stats: CategoryStats = {
+            entry_count: entries?.length || 0,
+            published_count: entries?.filter((e) => e.status === 'published').length || 0,
+            draft_count: entries?.filter((e) => e.status === 'draft').length || 0,
+            total_views: entries?.reduce((sum, e) => sum + (e.view_count || 0), 0) || 0,
+            last_updated: entries?.length
+              ? entries.sort((a, b) => 
+                  new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+                )[0]?.updated_at
+              : null,
+          };
 
           return {
             ...category,
-            stats: stats?.[0] || {
-              entry_count: 0,
-              published_count: 0,
-              draft_count: 0,
-              total_views: 0,
-              last_updated: null,
-            },
+            stats,
           };
         })
       );
@@ -307,12 +309,24 @@ export function useCategoryStats(categoryId: string | undefined) {
     queryFn: async () => {
       if (!categoryId) throw new Error('Category ID is required');
 
-      const { data, error } = await supabase.rpc('get_category_stats', {
-        category_uuid: categoryId,
-      });
+      const { data: entries } = await supabase
+        .from('knowledge_entries')
+        .select('status, view_count, updated_at')
+        .eq('category_id', categoryId);
 
-      if (error) throw error;
-      return data[0] as CategoryStats;
+      const stats: CategoryStats = {
+        entry_count: entries?.length || 0,
+        published_count: entries?.filter((e) => e.status === 'published').length || 0,
+        draft_count: entries?.filter((e) => e.status === 'draft').length || 0,
+        total_views: entries?.reduce((sum, e) => sum + (e.view_count || 0), 0) || 0,
+        last_updated: entries?.length
+          ? entries.sort((a, b) => 
+              new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            )[0]?.updated_at
+          : null,
+      };
+
+      return stats;
     },
     enabled: !!categoryId,
   });
@@ -320,30 +334,36 @@ export function useCategoryStats(categoryId: string | undefined) {
 
 /**
  * Hook to get embedding statistics across all knowledge entries
+ * Note: embedding_status column doesn't exist yet, using embeddings table instead
  */
 export function useEmbeddingStats() {
   return useQuery({
     queryKey: ['knowledge-embedding-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Count published entries
+      const { data: entries, error } = await supabase
         .from('knowledge_entries')
-        .select('embedding_status, embedding_count')
+        .select('id')
         .eq('status', 'published');
 
       if (error) throw error;
 
+      // Count entries with embeddings
+      const { data: embeddings } = await supabase
+        .from('embeddings')
+        .select('entity_id')
+        .eq('entity_type', 'knowledge_entry');
+
+      const entryIdsWithEmbeddings = new Set(embeddings?.map((e) => e.entity_id) || []);
+      const totalChunks = embeddings?.length || 0;
+
       const stats = {
-        total: data.length,
-        pending: data.filter((e) => e.embedding_status === 'pending').length,
-        processing: data.filter((e) => e.embedding_status === 'processing')
-          .length,
-        completed: data.filter((e) => e.embedding_status === 'completed')
-          .length,
-        failed: data.filter((e) => e.embedding_status === 'failed').length,
-        totalChunks: data.reduce(
-          (sum, e) => sum + (e.embedding_count || 0),
-          0
-        ),
+        total: entries?.length || 0,
+        pending: 0,
+        processing: 0,
+        completed: entries?.filter((e) => entryIdsWithEmbeddings.has(e.id)).length || 0,
+        failed: 0,
+        totalChunks,
       };
 
       return stats;

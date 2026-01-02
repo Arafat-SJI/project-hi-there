@@ -185,9 +185,9 @@ export default function KnowledgeForm() {
       const { data: models } = await supabase
         .from("ai_models")
         .select("*")
-        .eq("is_active", true)
+        .eq("enabled", true)
         .eq("is_default", true)
-        .single();
+        .maybeSingle();
 
       if (!models) {
         toast.error("No default AI model configured");

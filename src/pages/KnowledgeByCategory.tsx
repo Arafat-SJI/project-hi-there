@@ -167,9 +167,9 @@ export default function KnowledgeByCategory() {
                                 {entry.status}
                               </Badge>
                             )}
-                            {entry.reading_time_minutes && (
+                            {entry.content && (
                               <span className="text-xs">
-                                {entry.reading_time_minutes} min read
+                                {Math.ceil(entry.content.split(/\s+/).length / 200)} min read
                               </span>
                             )}
                             {entry.view_count !== null && entry.view_count > 0 && (
@@ -202,11 +202,6 @@ export default function KnowledgeByCategory() {
                       )}
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <span>Published {formatDate(entry.created_at)}</span>
-                        {entry.embedding_status === "completed" && (
-                          <Badge variant="secondary" className="text-xs">
-                            AI Indexed
-                          </Badge>
-                        )}
                       </div>
                     </CardContent>
                   </Card>

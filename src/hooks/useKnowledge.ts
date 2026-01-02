@@ -19,10 +19,6 @@ export interface KnowledgeEntry {
   metadata: any;
   created_at: string;
   updated_at: string;
-  embedding_status?: string | null;
-  embedding_count?: number | null;
-  last_embedded_at?: string | null;
-  reading_time_minutes?: number | null;
 }
 
 export interface KnowledgeCategory {
@@ -251,14 +247,6 @@ export function useTriggerEmbedding() {
 
   return useMutation({
     mutationFn: async (entryId: string) => {
-      // Update status to processing
-      const { error: updateError } = await supabase
-        .from("knowledge_entries")
-        .update({ embedding_status: "processing" })
-        .eq("id", entryId);
-
-      if (updateError) throw updateError;
-
       // Call the edge function to generate embeddings
       const { data, error } = await supabase.functions.invoke(
         "auto-embed-knowledge-files",
@@ -291,77 +279,47 @@ export function useTriggerEmbedding() {
 }
 
 /**
- * Hook to increment view count for an entry
+ * Hook to increment view count for an entry (updates directly)
  */
 export function useIncrementViewCount() {
   return useMutation({
     mutationFn: async (entryId: string) => {
-      const { error } = await supabase.rpc("increment_view_count", {
-        entry_id: entryId,
-      });
+      // Get current view count and increment
+      const { data: entry, error: fetchError } = await supabase
+        .from("knowledge_entries")
+        .select("view_count")
+        .eq("id", entryId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const { error } = await supabase
+        .from("knowledge_entries")
+        .update({ view_count: (entry?.view_count || 0) + 1 })
+        .eq("id", entryId);
 
       if (error) throw error;
     },
   });
 }
 
+// Note: Bookmark functionality requires knowledge_bookmarks table to be created
+// Placeholder hooks that return disabled state
+
 /**
- * Hook to toggle bookmark status for an entry
+ * Hook to toggle bookmark status for an entry (placeholder - table not yet created)
  */
 export function useToggleBookmark() {
-  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (entryId: string) => {
-      // Check if bookmark exists
-      const { data: existing } = await supabase
-        .from("knowledge_bookmarks")
-        .select("id")
-        .eq("user_id", user?.id!)
-        .eq("entry_id", entryId)
-        .single();
-
-      if (existing) {
-        // Remove bookmark
-        const { error } = await supabase
-          .from("knowledge_bookmarks")
-          .delete()
-          .eq("id", existing.id);
-
-        if (error) throw error;
-        return { action: "removed" };
-      } else {
-        // Add bookmark
-        const { error } = await supabase
-          .from("knowledge_bookmarks")
-          .insert({
-            user_id: user?.id!,
-            entry_id: entryId,
-          });
-
-        if (error) throw error;
-        return { action: "added" };
-      }
+    mutationFn: async (_entryId: string) => {
+      throw new Error("Bookmarks feature not yet available");
     },
-    onSuccess: (data, entryId) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.knowledge.entry(entryId),
-      });
-      invalidateKeys.knowledge(queryClient);
+    onError: () => {
       toast({
-        title: data.action === "added" ? "Bookmarked" : "Bookmark removed",
-        description:
-          data.action === "added"
-            ? "Article saved to your bookmarks"
-            : "Article removed from bookmarks",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update bookmark",
+        title: "Coming Soon",
+        description: "Bookmarks feature is not yet available",
         variant: "destructive",
       });
     },
@@ -369,47 +327,24 @@ export function useToggleBookmark() {
 }
 
 /**
- * Hook to fetch user's bookmarked entries
+ * Hook to fetch user's bookmarked entries (placeholder)
  */
 export function useBookmarkedEntries() {
-  const { user } = useAuth();
-
   return useQuery({
-    queryKey: ["knowledge-bookmarks", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("knowledge_bookmarks")
-        .select("*, knowledge_entries(*)")
-        .eq("user_id", user?.id!)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
+    queryKey: ["knowledge-bookmarks"],
+    queryFn: async () => [] as any[],
+    enabled: false,
   });
 }
 
 /**
- * Hook to check if an entry is bookmarked
+ * Hook to check if an entry is bookmarked (placeholder)
  */
-export function useIsBookmarked(entryId: string) {
-  const { user } = useAuth();
-
+export function useIsBookmarked(_entryId: string) {
   return useQuery({
-    queryKey: ["knowledge-bookmark-status", entryId, user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("knowledge_bookmarks")
-        .select("id")
-        .eq("user_id", user?.id!)
-        .eq("entry_id", entryId)
-        .single();
-
-      if (error && error.code !== "PGRST116") throw error;
-      return !!data;
-    },
-    enabled: !!user && !!entryId,
+    queryKey: ["knowledge-bookmark-status"],
+    queryFn: async () => false,
+    enabled: false,
   });
 }
 

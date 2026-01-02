@@ -151,28 +151,10 @@ export default function KnowledgeDetail() {
     );
   }
 
-  const getEmbeddingBadge = () => {
-    switch (entry.embedding_status) {
-      case "completed":
-        return (
-          <Badge variant="secondary" className="gap-1">
-            <Sparkles className="h-3 w-3" />
-            AI Indexed
-          </Badge>
-        );
-      case "processing":
-        return (
-          <Badge variant="default" className="gap-1">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Processing
-          </Badge>
-        );
-      case "failed":
-        return <Badge variant="destructive">Indexing Failed</Badge>;
-      default:
-        return <Badge variant="outline">Pending Index</Badge>;
-    }
-  };
+  // Calculate reading time from content
+  const readingTimeMinutes = entry.content 
+    ? Math.ceil(entry.content.split(/\s+/).length / 200) 
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -216,11 +198,10 @@ export default function KnowledgeDetail() {
                 </Badge>
               )}
               {entry.status && <Badge variant="secondary">{entry.status}</Badge>}
-              {getEmbeddingBadge()}
-              {entry.reading_time_minutes && (
+              {readingTimeMinutes > 0 && (
                 <span className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
-                  {entry.reading_time_minutes} min read
+                  {readingTimeMinutes} min read
                 </span>
               )}
               {entry.view_count !== null && (
@@ -344,45 +325,33 @@ export default function KnowledgeDetail() {
             </CardContent>
           </Card>
 
-          {/* Embedding Status & Actions */}
-          {entry.embedding_status !== "completed" && (
-            <Card className="border-yellow-500/50">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  AI Indexing Status
-                </CardTitle>
-                <CardDescription>
-                  {entry.embedding_status === "pending" &&
-                    "This article is pending AI indexing for semantic search."}
-                  {entry.embedding_status === "processing" &&
-                    "AI indexing is currently in progress..."}
-                  {entry.embedding_status === "failed" &&
-                    "AI indexing failed. You can retry indexing below."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReEmbed}
-                  disabled={
-                    triggerEmbedding.isPending ||
-                    entry.embedding_status === "processing"
-                  }
-                >
-                  {triggerEmbedding.isPending ? (
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="mr-2 h-3 w-3" />
-                  )}
-                  {entry.embedding_status === "failed"
-                    ? "Retry Indexing"
-                    : "Re-index Now"}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          {/* Re-index Button */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                AI Indexing
+              </CardTitle>
+              <CardDescription>
+                Trigger AI indexing for semantic search
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReEmbed}
+                disabled={triggerEmbedding.isPending}
+              >
+                {triggerEmbedding.isPending ? (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-3 w-3" />
+                )}
+                Re-index Now
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Related Articles */}
           {relatedEntries.length > 0 && (
@@ -469,22 +438,6 @@ export default function KnowledgeDetail() {
                   </div>
                 </div>
               </div>
-              {entry.last_embedded_at && (
-                <div className="flex items-start gap-2">
-                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">AI Indexed</div>
-                    <div className="text-muted-foreground">
-                      {formatDate(entry.last_embedded_at)}
-                    </div>
-                  </div>
-                </div>
-              )}
-              {entry.embedding_count && (
-                <div className="pt-2 text-xs text-muted-foreground">
-                  {entry.embedding_count} embedding chunks
-                </div>
-              )}
             </CardContent>
           </Card>
         </aside>
