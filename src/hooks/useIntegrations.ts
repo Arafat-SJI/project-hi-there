@@ -1,6 +1,7 @@
 /**
  * Integration Hub Hooks
  * React Query hooks for integration management
+ * NOTE: These are placeholder implementations - tables don't exist yet
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,6 +16,100 @@ import {
   sortCategoriesByOrder,
   sortProvidersByOrder,
 } from '@/lib/integration-utils';
+
+// ============================================
+// MOCK DATA - Until tables are created
+// ============================================
+
+const MOCK_CATEGORIES: IntegrationCategory[] = [
+  {
+    id: '1',
+    name: 'AI Providers',
+    slug: 'ai',
+    description: 'Connect AI and LLM services',
+    icon: 'Brain',
+    display_order: 1,
+    enabled: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    name: 'Meeting Platforms',
+    slug: 'meetings',
+    description: 'Video conferencing integrations',
+    icon: 'Video',
+    display_order: 2,
+    enabled: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    name: 'Email Services',
+    slug: 'email',
+    description: 'Transactional email providers',
+    icon: 'Mail',
+    display_order: 3,
+    enabled: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
+const MOCK_PROVIDERS: IntegrationProvider[] = [
+  {
+    id: '1',
+    category_id: '1',
+    name: 'OpenAI',
+    slug: 'openai',
+    description: 'GPT models for text generation and embeddings',
+    logo_url: null,
+    docs_url: 'https://platform.openai.com/docs',
+    auth_type: 'api_key',
+    oauth_config: null,
+    is_available: true,
+    is_coming_soon: false,
+    is_beta: false,
+    display_order: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    category_id: '2',
+    name: 'Zoom',
+    slug: 'zoom',
+    description: 'Video conferencing and recording',
+    logo_url: null,
+    docs_url: 'https://developers.zoom.us/docs',
+    auth_type: 'oauth2',
+    oauth_config: null,
+    is_available: true,
+    is_coming_soon: false,
+    is_beta: false,
+    display_order: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    category_id: '3',
+    name: 'SendGrid',
+    slug: 'sendgrid',
+    description: 'Transactional email delivery',
+    logo_url: null,
+    docs_url: 'https://docs.sendgrid.com',
+    auth_type: 'api_key',
+    oauth_config: null,
+    is_available: true,
+    is_coming_soon: false,
+    is_beta: false,
+    display_order: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
 // ============================================
 // QUERY KEYS
@@ -45,14 +140,8 @@ export function useIntegrationCategories() {
   return useQuery({
     queryKey: integrationKeys.categories(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('integration_categories')
-        .select('*')
-        .eq('enabled', true)
-        .order('display_order');
-
-      if (error) throw error;
-      return sortCategoriesByOrder(data as IntegrationCategory[]);
+      // Return mock data - tables don't exist yet
+      return sortCategoriesByOrder(MOCK_CATEGORIES);
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -71,16 +160,12 @@ export function useIntegrationProviders(categoryId?: string) {
       ? integrationKeys.providersByCategory(categoryId)
       : integrationKeys.providers(),
     queryFn: async () => {
-      let query = supabase.from('integration_providers').select('*');
-
+      // Return mock data - tables don't exist yet
+      let providers = MOCK_PROVIDERS;
       if (categoryId) {
-        query = query.eq('category_id', categoryId);
+        providers = providers.filter(p => p.category_id === categoryId);
       }
-
-      const { data, error } = await query.order('display_order');
-
-      if (error) throw error;
-      return sortProvidersByOrder(data as IntegrationProvider[]);
+      return sortProvidersByOrder(providers);
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -93,14 +178,10 @@ export function useIntegrationProvider(slug: string) {
   return useQuery({
     queryKey: integrationKeys.provider(slug),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('integration_providers')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-
-      if (error) throw error;
-      return data as IntegrationProvider;
+      // Return mock data - tables don't exist yet
+      const provider = MOCK_PROVIDERS.find(p => p.slug === slug);
+      if (!provider) throw new Error('Provider not found');
+      return provider;
     },
     staleTime: 10 * 60 * 1000,
     enabled: !!slug,
@@ -117,15 +198,9 @@ export function useIntegrationProvider(slug: string) {
 export function useIntegrationFields(providerId: string) {
   return useQuery({
     queryKey: integrationKeys.fields(providerId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('integration_fields')
-        .select('*')
-        .eq('provider_id', providerId)
-        .order('display_order');
-
-      if (error) throw error;
-      return data as IntegrationField[];
+    queryFn: async (): Promise<IntegrationField[]> => {
+      // Return empty array - tables don't exist yet
+      return [];
     },
     staleTime: 10 * 60 * 1000,
     enabled: !!providerId,
@@ -142,19 +217,9 @@ export function useIntegrationFields(providerId: string) {
 export function useOrganizationIntegrations() {
   return useQuery({
     queryKey: integrationKeys.orgIntegrations(),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('organization_integrations')
-        .select(
-          `
-          *,
-          provider:integration_providers(*)
-        `
-        )
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as (OrganizationIntegration & { provider: IntegrationProvider })[];
+    queryFn: async (): Promise<(OrganizationIntegration & { provider: IntegrationProvider })[]> => {
+      // Return empty array - tables don't exist yet
+      return [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -166,15 +231,9 @@ export function useOrganizationIntegrations() {
 export function useOrganizationIntegration(providerId: string) {
   return useQuery({
     queryKey: integrationKeys.orgIntegration(providerId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('organization_integrations')
-        .select('*')
-        .eq('provider_id', providerId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as OrganizationIntegration | null;
+    queryFn: async (): Promise<OrganizationIntegration | null> => {
+      // Return null - tables don't exist yet
+      return null;
     },
     staleTime: 5 * 60 * 1000,
     enabled: !!providerId,
@@ -196,29 +255,11 @@ export function useUpdateIntegration() {
       providerId: string;
       config: Record<string, any>;
       enabled?: boolean;
-    }) => {
-      const { data, error } = await supabase
-        .from('organization_integrations')
-        .upsert(
-          {
-            provider_id: providerId,
-            organization_id: null, // Single org for now
-            config,
-            enabled,
-            connection_status: 'disconnected',
-          },
-          {
-            onConflict: 'organization_id,provider_id',
-          }
-        )
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as OrganizationIntegration;
+    }): Promise<OrganizationIntegration> => {
+      // Placeholder - tables don't exist yet
+      throw new Error('Integration tables not configured. Please run migrations first.');
     },
     onSuccess: (data) => {
-      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
       queryClient.invalidateQueries({
         queryKey: integrationKeys.orgIntegration(data.provider_id),
@@ -252,32 +293,6 @@ export function useTestConnection() {
       if (error) throw error;
       return data as { valid: boolean; message: string; details?: Record<string, any> };
     },
-    onSuccess: async (result, variables) => {
-      // Get provider ID
-      const { data: provider } = await supabase
-        .from('integration_providers')
-        .select('id')
-        .eq('slug', variables.providerSlug)
-        .single();
-
-      if (provider) {
-        // Update connection status
-        await supabase
-          .from('organization_integrations')
-          .update({
-            connection_status: result.valid ? 'connected' : 'error',
-            connection_message: result.message,
-            last_tested_at: new Date().toISOString(),
-          })
-          .eq('provider_id', provider.id);
-
-        // Invalidate queries
-        queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
-        queryClient.invalidateQueries({
-          queryKey: integrationKeys.orgIntegration(provider.id),
-        });
-      }
-    },
   });
 }
 
@@ -289,17 +304,8 @@ export function useDisconnectIntegration() {
 
   return useMutation({
     mutationFn: async ({ providerId }: { providerId: string }) => {
-      const { error } = await supabase
-        .from('organization_integrations')
-        .update({
-          enabled: false,
-          connection_status: 'disconnected',
-          config: {},
-          oauth_tokens: null,
-        })
-        .eq('provider_id', providerId);
-
-      if (error) throw error;
+      // Placeholder - tables don't exist yet
+      throw new Error('Integration tables not configured. Please run migrations first.');
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
@@ -320,15 +326,9 @@ export function useDisconnectIntegration() {
 export function useIntegrationServices(providerId: string) {
   return useQuery({
     queryKey: integrationKeys.services(providerId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('integration_services')
-        .select('*')
-        .eq('provider_id', providerId)
-        .order('display_order');
-
-      if (error) throw error;
-      return data as IntegrationService[];
+    queryFn: async (): Promise<IntegrationService[]> => {
+      // Return empty array - tables don't exist yet
+      return [];
     },
     staleTime: 10 * 60 * 1000,
     enabled: !!providerId,
@@ -348,16 +348,9 @@ export function useToggleService() {
     }: {
       serviceId: string;
       enabled: boolean;
-    }) => {
-      const { data, error } = await supabase
-        .from('integration_services')
-        .update({ enabled })
-        .eq('id', serviceId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as IntegrationService;
+    }): Promise<IntegrationService> => {
+      // Placeholder - tables don't exist yet
+      throw new Error('Integration tables not configured. Please run migrations first.');
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({
@@ -380,23 +373,9 @@ export function useSetDefaultService() {
     }: {
       providerId: string;
       serviceId: string;
-    }) => {
-      // First, unset all defaults for this provider
-      await supabase
-        .from('integration_services')
-        .update({ is_default: false })
-        .eq('provider_id', providerId);
-
-      // Then set the selected service as default
-      const { data, error } = await supabase
-        .from('integration_services')
-        .update({ is_default: true })
-        .eq('id', serviceId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as IntegrationService;
+    }): Promise<IntegrationService> => {
+      // Placeholder - tables don't exist yet
+      throw new Error('Integration tables not configured. Please run migrations first.');
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({
@@ -424,47 +403,13 @@ interface UsageLogsFilters {
 export function useIntegrationUsageLogs(filters: UsageLogsFilters = {}) {
   return useQuery({
     queryKey: integrationKeys.usageLogs(filters),
-    queryFn: async () => {
-      let query = supabase
-        .from('integration_usage_logs')
-        .select(
-          `
-          *,
-          provider:integration_providers(name, slug),
-          service:integration_services(name, service_key),
-          user:auth.users(email)
-        `
-        )
-        .order('created_at', { ascending: false });
-
-      if (filters.providerId) {
-        query = query.eq('provider_id', filters.providerId);
-      }
-
-      if (filters.status) {
-        query = query.eq('status', filters.status);
-      }
-
-      if (filters.startDate) {
-        query = query.gte('created_at', filters.startDate.toISOString());
-      }
-
-      if (filters.endDate) {
-        query = query.lte('created_at', filters.endDate.toISOString());
-      }
-
-      if (filters.limit) {
-        query = query.limit(filters.limit);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as (IntegrationUsageLog & {
-        provider: { name: string; slug: string };
-        service: { name: string; service_key: string };
-        user: { email: string };
-      })[];
+    queryFn: async (): Promise<(IntegrationUsageLog & {
+      provider: { name: string; slug: string };
+      service: { name: string; service_key: string };
+      user: { email: string };
+    })[]> => {
+      // Return empty array - tables don't exist yet
+      return [];
     },
     staleTime: 1 * 60 * 1000, // 1 minute
   });
@@ -477,32 +422,13 @@ export function useProviderUsageStats(providerId: string, days: number = 30) {
   return useQuery({
     queryKey: [...integrationKeys.usageLogs({ providerId }), 'stats', days],
     queryFn: async () => {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-
-      const { data, error } = await supabase
-        .from('integration_usage_logs')
-        .select('status, estimated_cost, created_at')
-        .eq('provider_id', providerId)
-        .gte('created_at', startDate.toISOString());
-
-      if (error) throw error;
-
-      const logs = data as IntegrationUsageLog[];
-
-      // Calculate statistics
-      const totalCalls = logs.length;
-      const successfulCalls = logs.filter((log) => log.status === 'success').length;
-      const failedCalls = logs.filter((log) => log.status === 'error').length;
-      const totalCost = logs.reduce((sum, log) => sum + log.estimated_cost, 0);
-      const successRate = totalCalls > 0 ? (successfulCalls / totalCalls) * 100 : 0;
-
+      // Return empty stats - tables don't exist yet
       return {
-        totalCalls,
-        successfulCalls,
-        failedCalls,
-        totalCost,
-        successRate: Math.round(successRate * 100) / 100,
+        totalCalls: 0,
+        successfulCalls: 0,
+        failedCalls: 0,
+        totalCost: 0,
+        successRate: 0,
       };
     },
     staleTime: 5 * 60 * 1000,
@@ -511,64 +437,49 @@ export function useProviderUsageStats(providerId: string, days: number = 30) {
 }
 
 // ============================================
-// COMBINED HOOKS
+// GROUPED DATA
 // ============================================
 
-/**
- * Get provider with its organization integration and fields
- */
-export function useProviderWithDetails(slug: string) {
-  const provider = useIntegrationProvider(slug);
-  const orgIntegration = useOrganizationIntegration(provider.data?.id || '');
-  const fields = useIntegrationFields(provider.data?.id || '');
-  const services = useIntegrationServices(provider.data?.id || '');
-
-  return {
-    provider: provider.data,
-    orgIntegration: orgIntegration.data,
-    fields: fields.data || [],
-    services: services.data || [],
-    isLoading:
-      provider.isLoading || orgIntegration.isLoading || fields.isLoading || services.isLoading,
-    error: provider.error || orgIntegration.error || fields.error || services.error,
+interface GroupedProviders {
+  category: IntegrationCategory;
+  providers: (IntegrationProvider & { orgIntegration?: OrganizationIntegration })[];
+  stats: {
+    totalProviders: number;
+    connectedProviders: number;
   };
 }
 
 /**
- * Get providers grouped by category with their org integrations
+ * Get all providers grouped by category with connection status
  */
 export function useProvidersGroupedByCategory() {
-  const categories = useIntegrationCategories();
-  const providers = useIntegrationProviders();
-  const orgIntegrations = useOrganizationIntegrations();
+  const categoriesQuery = useIntegrationCategories();
+  const providersQuery = useIntegrationProviders();
+  const orgIntegrationsQuery = useOrganizationIntegrations();
 
-  const grouped = categories.data?.map((category) => {
-    const categoryProviders = providers.data?.filter(
-      (p) => p.category_id === category.id
-    ) || [];
+  const isLoading =
+    categoriesQuery.isLoading || providersQuery.isLoading || orgIntegrationsQuery.isLoading;
+  const error = categoriesQuery.error || providersQuery.error || orgIntegrationsQuery.error;
 
-    const providersWithIntegrations = categoryProviders.map((provider) => {
-      const orgIntegration = orgIntegrations.data?.find(
-        (oi) => oi.provider_id === provider.id
-      );
+  const grouped: GroupedProviders[] | undefined = categoriesQuery.data?.map((category) => {
+    const categoryProviders =
+      providersQuery.data?.filter((p) => p.category_id === category.id) || [];
 
-      return {
-        ...provider,
-        orgIntegration,
-      };
-    });
+    // Attach org integration to each provider
+    const providersWithIntegration = categoryProviders.map((provider) => ({
+      ...provider,
+      orgIntegration: orgIntegrationsQuery.data?.find((i) => i.provider_id === provider.id),
+    }));
 
-    // Calculate category stats
-    const totalProviders = providersWithIntegrations.length;
-    const connectedProviders = providersWithIntegrations.filter(
+    const connectedProviders = providersWithIntegration.filter(
       (p) => p.orgIntegration?.connection_status === 'connected'
     ).length;
 
     return {
       category,
-      providers: providersWithIntegrations,
+      providers: providersWithIntegration,
       stats: {
-        totalProviders,
+        totalProviders: categoryProviders.length,
         connectedProviders,
       },
     };
@@ -576,7 +487,7 @@ export function useProvidersGroupedByCategory() {
 
   return {
     grouped,
-    isLoading: categories.isLoading || providers.isLoading || orgIntegrations.isLoading,
-    error: categories.error || providers.error || orgIntegrations.error,
+    isLoading,
+    error,
   };
 }

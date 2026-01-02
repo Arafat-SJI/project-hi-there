@@ -1,9 +1,8 @@
 /**
  * Webhook Handler Utilities
  * Types and helpers for managing provider webhooks
+ * NOTE: These are placeholder implementations - tables don't exist yet
  */
-
-import { supabase } from '@/lib/supabase';
 
 // ============================================
 // WEBHOOK TYPES
@@ -83,10 +82,6 @@ export interface WebhookLog {
 
 /**
  * Verify Zoom webhook signature
- * @param payload - Raw webhook payload
- * @param timestamp - Webhook timestamp header
- * @param signature - Webhook signature header
- * @param secretToken - Webhook secret token
  */
 export async function verifyZoomWebhookSignature(
   payload: string,
@@ -95,7 +90,6 @@ export async function verifyZoomWebhookSignature(
   secretToken: string
 ): Promise<boolean> {
   try {
-    // Zoom uses HMAC SHA256
     const message = `v0:${timestamp}:${payload}`;
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -120,10 +114,6 @@ export async function verifyZoomWebhookSignature(
 
 /**
  * Verify SendGrid webhook signature
- * @param payload - Raw webhook payload
- * @param signature - Webhook signature header
- * @param timestamp - Webhook timestamp header
- * @param publicKey - SendGrid public key for verification
  */
 export async function verifySendGridWebhookSignature(
   payload: string,
@@ -132,9 +122,6 @@ export async function verifySendGridWebhookSignature(
   publicKey: string
 ): Promise<boolean> {
   try {
-    // SendGrid uses ECDSA signature verification
-    // This would require the Web Crypto API or a library
-    // For now, return true and log a warning
     console.warn('SendGrid webhook signature verification not fully implemented');
     return true;
   } catch (error) {
@@ -145,9 +132,6 @@ export async function verifySendGridWebhookSignature(
 
 /**
  * Verify HubSpot webhook signature
- * @param payload - Raw webhook payload
- * @param signature - X-HubSpot-Signature header
- * @param appSecret - HubSpot app secret
  */
 export async function verifyHubSpotWebhookSignature(
   payload: string,
@@ -155,7 +139,6 @@ export async function verifyHubSpotWebhookSignature(
   appSecret: string
 ): Promise<boolean> {
   try {
-    // HubSpot uses SHA256
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
       'raw',
@@ -178,149 +161,69 @@ export async function verifyHubSpotWebhookSignature(
 
 // ============================================
 // WEBHOOK SUBSCRIPTION MANAGEMENT
+// NOTE: Placeholder implementations - tables don't exist yet
 // ============================================
 
 /**
  * Create webhook subscription for a provider
- * @param organizationId - Organization ID
- * @param providerId - Provider ID
- * @param events - Events to subscribe to
  */
 export async function createWebhookSubscription(
   organizationId: string,
   providerId: string,
   events: WebhookEvent[]
 ): Promise<{ success: boolean; subscription?: WebhookSubscription; error?: string }> {
-  try {
-    // Generate webhook URL
-    const webhookUrl = `${window.location.origin}/api/webhooks/${providerId}`;
-
-    // Generate secret token
-    const secretToken = generateWebhookSecret();
-
-    const { data, error } = await supabase
-      .from('webhook_subscriptions')
-      .insert({
-        organization_id: organizationId,
-        provider_id: providerId,
-        webhook_url: webhookUrl,
-        events,
-        is_active: true,
-        secret_token: secretToken,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, subscription: data };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+  // Placeholder - table doesn't exist
+  console.warn('createWebhookSubscription: webhook_subscriptions table not configured');
+  return {
+    success: false,
+    error: 'Webhook tables not configured. Please run migrations first.',
+  };
 }
 
 /**
  * Delete webhook subscription
- * @param subscriptionId - Subscription ID
  */
 export async function deleteWebhookSubscription(
   subscriptionId: string
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { error } = await supabase
-      .from('webhook_subscriptions')
-      .delete()
-      .eq('id', subscriptionId);
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+  // Placeholder - table doesn't exist
+  console.warn('deleteWebhookSubscription: webhook_subscriptions table not configured');
+  return {
+    success: false,
+    error: 'Webhook tables not configured. Please run migrations first.',
+  };
 }
 
 /**
  * Log webhook event
- * @param subscriptionId - Subscription ID
- * @param event - Webhook event type
- * @param payload - Event payload
  */
 export async function logWebhookEvent(
   subscriptionId: string,
   event: WebhookEvent,
   payload: Record<string, any>
 ): Promise<{ success: boolean; log?: WebhookLog; error?: string }> {
-  try {
-    const { data, error } = await supabase
-      .from('webhook_logs')
-      .insert({
-        subscription_id: subscriptionId,
-        event,
-        payload,
-        status: 'pending',
-        retry_count: 0,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, log: data };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+  // Placeholder - table doesn't exist
+  console.warn('logWebhookEvent: webhook_logs table not configured');
+  return {
+    success: false,
+    error: 'Webhook tables not configured. Please run migrations first.',
+  };
 }
 
 /**
  * Update webhook log status
- * @param logId - Log ID
- * @param status - New status
- * @param errorMessage - Optional error message
  */
 export async function updateWebhookLogStatus(
   logId: string,
   status: 'processing' | 'completed' | 'failed',
   errorMessage?: string
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    const updateData: any = {
-      status,
-      processed_at: new Date().toISOString(),
-    };
-
-    if (errorMessage) {
-      updateData.error_message = errorMessage;
-    }
-
-    const { error } = await supabase.from('webhook_logs').update(updateData).eq('id', logId);
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+  // Placeholder - table doesn't exist
+  console.warn('updateWebhookLogStatus: webhook_logs table not configured');
+  return {
+    success: false,
+    error: 'Webhook tables not configured. Please run migrations first.',
+  };
 }
 
 // ============================================
@@ -338,11 +241,8 @@ export function generateWebhookSecret(): string {
 
 /**
  * Parse webhook event type from provider-specific format
- * @param provider - Provider slug
- * @param rawEvent - Raw event type from provider
  */
 export function parseWebhookEvent(provider: WebhookProvider, rawEvent: string): WebhookEvent | null {
-  // Map provider-specific event names to our standardized event types
   const eventMappings: Record<WebhookProvider, Record<string, WebhookEvent>> = {
     zoom: {
       'meeting.created': 'meeting.created',
@@ -396,10 +296,6 @@ export function parseWebhookEvent(provider: WebhookProvider, rawEvent: string): 
 
 /**
  * Build webhook registration request for provider
- * @param provider - Provider slug
- * @param webhookUrl - Webhook URL to register
- * @param events - Events to subscribe to
- * @param accessToken - Provider access token
  */
 export async function registerProviderWebhook(
   provider: WebhookProvider,
@@ -407,107 +303,10 @@ export async function registerProviderWebhook(
   events: string[],
   accessToken: string
 ): Promise<{ success: boolean; webhookId?: string; error?: string }> {
-  try {
-    switch (provider) {
-      case 'zoom':
-        return await registerZoomWebhook(webhookUrl, events, accessToken);
-      case 'hubspot':
-        return await registerHubSpotWebhook(webhookUrl, events, accessToken);
-      // Add more providers as needed
-      default:
-        return {
-          success: false,
-          error: `Webhook registration not implemented for ${provider}`,
-        };
-    }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
-/**
- * Register Zoom webhook subscription
- */
-async function registerZoomWebhook(
-  webhookUrl: string,
-  events: string[],
-  accessToken: string
-): Promise<{ success: boolean; webhookId?: string; error?: string }> {
-  try {
-    const response = await fetch('https://api.zoom.us/v2/webhooks', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: webhookUrl,
-        events,
-        auth_user: '',
-        auth_password: '',
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.message || 'Failed to register Zoom webhook',
-      };
-    }
-
-    const data = await response.json();
-    return { success: true, webhookId: data.webhook_id };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
-/**
- * Register HubSpot webhook subscription
- */
-async function registerHubSpotWebhook(
-  webhookUrl: string,
-  events: string[],
-  accessToken: string
-): Promise<{ success: boolean; webhookId?: string; error?: string }> {
-  try {
-    // HubSpot uses app-level webhook subscriptions
-    // This would typically be configured in HubSpot developer portal
-    // For API-based registration, use the webhooks API
-    const response = await fetch('https://api.hubapi.com/webhooks/v3/subscriptions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        eventType: events[0], // HubSpot subscribes one event at a time
-        propertyName: '',
-        active: true,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.message || 'Failed to register HubSpot webhook',
-      };
-    }
-
-    const data = await response.json();
-    return { success: true, webhookId: data.id };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+  // Placeholder - not fully implemented
+  console.warn(`registerProviderWebhook: Not implemented for ${provider}`);
+  return {
+    success: false,
+    error: `Webhook registration not implemented for ${provider}`,
+  };
 }
