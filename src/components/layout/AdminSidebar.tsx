@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useBranding } from "@/contexts/BrandingContext";
+import { useIntegrationStatus } from "@/hooks/useIntegrationStatus";
+import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Collapsible,
   CollapsibleContent,
@@ -120,6 +127,7 @@ const sidebarGroups: SidebarGroup[] = [
 export function AdminSidebar() {
   const location = useLocation();
   const { companyName } = useBranding();
+  const { status: integrationStatus } = useIntegrationStatus();
 
   // Track which groups are expanded
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -199,6 +207,7 @@ export function AdminSidebar() {
                     {group.items.map((item) => {
                       const Icon = item.icon;
                       const isActive = location.pathname === item.href;
+                      const isIntegrations = item.href === '/admin/integrations';
 
                       return (
                         <Link
@@ -220,6 +229,14 @@ export function AdminSidebar() {
                             )}
                           />
                           <span className="flex-1">{item.title}</span>
+                          {isIntegrations && integrationStatus && integrationStatus.connected > 0 && (
+                            <Badge
+                              variant={isActive ? "secondary" : "default"}
+                              className="h-5 min-w-[20px] px-1.5 text-xs"
+                            >
+                              {integrationStatus.connected}
+                            </Badge>
+                          )}
                         </Link>
                       );
                     })}

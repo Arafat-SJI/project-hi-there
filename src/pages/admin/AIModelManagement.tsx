@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -26,9 +27,14 @@ import {
   Rocket,
   Star,
   Calculator,
+  Settings,
+  AlertCircle,
+  RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useSyncModels, useSyncAllModels } from "@/hooks/useModelSync";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +43,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface AIProvider {
   id: string;
@@ -44,6 +57,10 @@ interface AIProvider {
   slug: string;
   enabled: boolean;
   created_at: string;
+  integration_provider_id: string | null;
+  integration_provider_name: string | null;
+  connection_status: 'connected' | 'disconnected' | 'error' | null;
+  is_connected: boolean;
 }
 
 interface AIModel {
@@ -79,6 +96,10 @@ export default function AIModelManagement() {
   const [outputTokens, setOutputTokens] = useState(1000);
   const [embeddingTokens, setEmbeddingTokens] = useState(1000);
 
+  // Sync mutations
+  const syncModels = useSyncModels();
+  const syncAllModels = useSyncAllModels();
+
   useEffect(() => {
     loadData();
   }, []);
@@ -86,9 +107,9 @@ export default function AIModelManagement() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load providers
+      // Load providers with integration status
       const { data: providersData, error: providersError } = await supabase
-        .from("ai_providers")
+        .from("ai_providers_with_integration_status")
         .select("*")
         .order("name");
 
@@ -97,8 +118,12 @@ export default function AIModelManagement() {
         id: p.id,
         name: p.name,
         slug: p.slug,
-        enabled: p.enabled,
+        enabled: p.provider_enabled,
         created_at: p.created_at,
+        integration_provider_id: p.integration_provider_id,
+        integration_provider_name: p.integration_provider_name,
+        connection_status: p.connection_status,
+        is_connected: p.is_connected || false,
       })));
 
       // Load models
@@ -239,6 +264,54 @@ export default function AIModelManagement() {
     return badges;
   };
 
+  // Sync handler for individual provider
+  const handleSyncProvider = async (providerSlug: string) => {
+    try {
+      const result = await syncModels.mutateAsync({ providerSlug });
+
+      if (result.success) {
+        toast.success(
+          `Synced ${result.synced || 0} new models, updated ${result.updated || 0} existing models${
+            result.errors ? `, ${result.errors} errors` : ''
+          }`
+        );
+        loadData(); // Reload the data
+      }
+    } catch (error: any) {
+      console.error("Error syncing models:", error);
+      toast.error(error.message || "Failed to sync models");
+    }
+  };
+
+  // Sync handler for all providers
+  const handleSyncAll = async () => {
+    try {
+      const results = await syncAllModels.mutateAsync();
+
+      let totalSynced = 0;
+      let totalUpdated = 0;
+      let totalErrors = 0;
+
+      Object.values(results).forEach((result) => {
+        if (result.success) {
+          totalSynced += result.synced || 0;
+          totalUpdated += result.updated || 0;
+          totalErrors += result.errors || 0;
+        }
+      });
+
+      toast.success(
+        `Synced ${totalSynced} new models, updated ${totalUpdated} existing models${
+          totalErrors ? `, ${totalErrors} errors` : ''
+        }`
+      );
+      loadData(); // Reload the data
+    } catch (error: any) {
+      console.error("Error syncing all models:", error);
+      toast.error(error.message || "Failed to sync models");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -257,13 +330,49 @@ export default function AIModelManagement() {
             Configure AI providers, models, and pricing for your platform
           </p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline">
-              <Calculator className="mr-2 h-4 w-4" />
-              Cost Calculator
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          {/* Sync Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={syncModels.isPending || syncAllModels.isPending}
+              >
+                {(syncModels.isPending || syncAllModels.isPending) ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Sync Models
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleSyncAll}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Sync All Providers
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {providers.map((provider) => (
+                <DropdownMenuItem
+                  key={provider.id}
+                  onClick={() => handleSyncProvider(provider.slug)}
+                >
+                  {providerIcons[provider.slug]}
+                  <span className="ml-2">Sync {provider.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Cost Calculator */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Calculator className="mr-2 h-4 w-4" />
+                Cost Calculator
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Cost Calculator</DialogTitle>
@@ -347,37 +456,65 @@ export default function AIModelManagement() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Providers Overview */}
       <Card>
         <CardHeader>
           <CardTitle>AI Providers</CardTitle>
-          <CardDescription>Enable or disable AI providers for your platform</CardDescription>
+          <CardDescription>
+            Enable or disable AI providers for your platform. Configure API keys in the Integrations section.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {providers.map((provider) => (
               <Card key={provider.id} className="border-2">
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-lg border p-2">
-                        {providerIcons[provider.slug]}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-lg border p-2">
+                          {providerIcons[provider.slug]}
+                        </div>
+                        <div>
+                          <p className="font-semibold">{provider.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {models.filter((m) => m.provider_id === provider.id && m.enabled).length}{" "}
+                            models
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold">{provider.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {models.filter((m) => m.provider_id === provider.id && m.enabled).length}{" "}
-                          models
-                        </p>
-                      </div>
+                      <Switch
+                        checked={provider.enabled}
+                        onCheckedChange={(enabled) => toggleProvider(provider.id, enabled)}
+                        disabled={updating}
+                      />
                     </div>
-                    <Switch
-                      checked={provider.enabled}
-                      onCheckedChange={(enabled) => toggleProvider(provider.id, enabled)}
-                      disabled={updating}
-                    />
+
+                    {/* API Key Status */}
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      {provider.is_connected ? (
+                        <Badge variant="default" className="gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          API Configured
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Not Configured
+                        </Badge>
+                      )}
+
+                      {provider.integration_provider_id && (
+                        <Link to={`/admin/integrations/${provider.slug}`}>
+                          <Button variant="ghost" size="sm">
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

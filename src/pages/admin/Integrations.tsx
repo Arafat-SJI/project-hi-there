@@ -90,7 +90,7 @@ export default function Integrations() {
         </div>
         <Button
           variant="outline"
-          onClick={() => navigate('/admin/integration-analytics')}
+          onClick={() => navigate('/admin/integrations/analytics')}
         >
           <BarChart3 className="mr-2 h-4 w-4" />
           View Analytics
