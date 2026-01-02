@@ -1,519 +1,227 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, ExternalLink, Key, Mail, Video, Brain, Cloud, Sparkles, Zap } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+/**
+ * Integration Hub - Main Page
+ * Category-based view of all available integrations
+ */
 
-interface Integration {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  enabled: boolean;
-  fields: IntegrationField[];
-  docsUrl?: string;
-}
-
-interface IntegrationField {
-  key: string;
-  label: string;
-  type: "text" | "password" | "url";
-  placeholder: string;
-  required?: boolean;
-  value: string;
-}
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Loader2, Search, BarChart3, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useProvidersGroupedByCategory } from '@/hooks/useIntegrations';
+import { ProviderCard } from '@/components/integrations/ProviderCard';
+import {
+  getCategoryIcon,
+  filterProvidersByQuery,
+  IntegrationProvider,
+  OrganizationIntegration,
+} from '@/lib/integration-utils';
 
 export default function Integrations() {
-  const [testing, setTesting] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
+  const { grouped, isLoading, error } = useProvidersGroupedByCategory();
 
-  const [integrations, setIntegrations] = useState<Integration[]>([
-    {
-      id: "openai",
-      name: "OpenAI",
-      description: "Enable AI chat and semantic search with GPT models",
-      icon: <Brain className="h-5 w-5" />,
-      enabled: true,
-      docsUrl: "https://platform.openai.com/docs/api-reference",
-      fields: [
-        {
-          key: "openai_api_key",
-          label: "API Key",
-          type: "password",
-          placeholder: "sk-...",
-          required: true,
-          value: "",
-        },
-        {
-          key: "openai_org_id",
-          label: "Organization ID",
-          type: "text",
-          placeholder: "org-...",
-          required: false,
-          value: "",
-        },
-      ],
-    },
-    {
-      id: "zoom",
-      name: "Zoom",
-      description: "Connect Zoom for meeting recordings and transcriptions",
-      icon: <Video className="h-5 w-5" />,
-      enabled: false,
-      docsUrl: "https://marketplace.zoom.us/docs/api-reference/zoom-api",
-      fields: [
-        {
-          key: "zoom_client_id",
-          label: "Client ID",
-          type: "text",
-          placeholder: "Your Zoom Client ID",
-          required: true,
-          value: "",
-        },
-        {
-          key: "zoom_client_secret",
-          label: "Client Secret",
-          type: "password",
-          placeholder: "Your Zoom Client Secret",
-          required: true,
-          value: "",
-        },
-        {
-          key: "zoom_account_id",
-          label: "Account ID",
-          type: "text",
-          placeholder: "Your Zoom Account ID",
-          required: true,
-          value: "",
-        },
-      ],
-    },
-    {
-      id: "sendgrid",
-      name: "SendGrid",
-      description: "Send email notifications and invitations",
-      icon: <Mail className="h-5 w-5" />,
-      enabled: false,
-      docsUrl: "https://docs.sendgrid.com/api-reference",
-      fields: [
-        {
-          key: "sendgrid_api_key",
-          label: "API Key",
-          type: "password",
-          placeholder: "SG...",
-          required: true,
-          value: "",
-        },
-        {
-          key: "sendgrid_from_email",
-          label: "From Email",
-          type: "text",
-          placeholder: "noreply@yourdomain.com",
-          required: true,
-          value: "",
-        },
-        {
-          key: "sendgrid_from_name",
-          label: "From Name",
-          type: "text",
-          placeholder: "CollabAi",
-          required: false,
-          value: "",
-        },
-      ],
-    },
-    {
-      id: "google",
-      name: "Google Drive",
-      description: "Store and sync files with Google Drive",
-      icon: <Cloud className="h-5 w-5" />,
-      enabled: false,
-      docsUrl: "https://developers.google.com/drive/api/guides/about-sdk",
-      fields: [
-        {
-          key: "google_client_id",
-          label: "Client ID",
-          type: "text",
-          placeholder: "Your Google Client ID",
-          required: true,
-          value: "",
-        },
-        {
-          key: "google_client_secret",
-          label: "Client Secret",
-          type: "password",
-          placeholder: "Your Google Client Secret",
-          required: true,
-          value: "",
-        },
-      ],
-    },
-    {
-      id: "anthropic",
-      name: "Anthropic Claude",
-      description: "Enable Claude AI models for advanced reasoning and vision",
-      icon: <Sparkles className="h-5 w-5" />,
-      enabled: false,
-      docsUrl: "https://docs.anthropic.com/",
-      fields: [
-        {
-          key: "anthropic_api_key",
-          label: "API Key",
-          type: "password",
-          placeholder: "sk-ant-...",
-          required: true,
-          value: "",
-        },
-      ],
-    },
-    {
-      id: "google_ai",
-      name: "Google AI (Gemini)",
-      description: "Enable Google Gemini models for multimodal AI capabilities",
-      icon: <Brain className="h-5 w-5" />,
-      enabled: false,
-      docsUrl: "https://ai.google.dev/",
-      fields: [
-        {
-          key: "google_ai_api_key",
-          label: "API Key",
-          type: "password",
-          placeholder: "AIza...",
-          required: true,
-          value: "",
-        },
-      ],
-    },
-    {
-      id: "perplexity",
-      name: "Perplexity",
-      description: "Enable Perplexity AI for real-time web search and reasoning",
-      icon: <Zap className="h-5 w-5" />,
-      enabled: false,
-      docsUrl: "https://docs.perplexity.ai/",
-      fields: [
-        {
-          key: "perplexity_api_key",
-          label: "API Key",
-          type: "password",
-          placeholder: "pplx-...",
-          required: true,
-          value: "",
-        },
-      ],
-    },
-  ]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
-  const handleToggleIntegration = (integrationId: string) => {
-    setIntegrations((prev) =>
-      prev.map((integration) =>
-        integration.id === integrationId
-          ? { ...integration, enabled: !integration.enabled }
-          : integration
-      )
+  // Expand all categories by default on first load
+  useState(() => {
+    if (grouped && expandedCategories.length === 0) {
+      setExpandedCategories(grouped.map((g) => g.category.id));
+    }
+  });
+
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories((prev) =>
+      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
     );
   };
 
-  const handleFieldChange = (integrationId: string, fieldKey: string, value: string) => {
-    setIntegrations((prev) =>
-      prev.map((integration) =>
-        integration.id === integrationId
-          ? {
-              ...integration,
-              fields: integration.fields.map((field) =>
-                field.key === fieldKey ? { ...field, value } : field
-              ),
-            }
-          : integration
-      )
+  const filteredGrouped = grouped
+    ?.filter((group) => {
+      // Filter by category
+      if (filterCategory !== 'all' && group.category.slug !== filterCategory) {
+        return false;
+      }
+      return true;
+    })
+    .map((group) => ({
+      ...group,
+      providers: filterProvidersByQuery(group.providers, searchQuery),
+    }))
+    .filter((group) => group.providers.length > 0); // Only show categories with matching providers
+
+  if (isLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     );
-  };
+  }
 
-  const handleTestConnection = async (integration: Integration) => {
-    setTesting(integration.id);
-    try {
-      // Check if required fields are filled
-      const hasAllRequiredFields = integration.fields
-        .filter((f) => f.required)
-        .every((f) => f.value.trim() !== "");
-
-      if (!hasAllRequiredFields) {
-        toast.error("Please fill in all required fields");
-        return;
-      }
-
-      // Get the API key or credentials based on integration type
-      let apiKey = "";
-      let service = integration.id;
-
-      switch (integration.id) {
-        case "openai":
-          apiKey = integration.fields.find((f) => f.key === "openai_api_key")?.value || "";
-          break;
-        case "sendgrid":
-          apiKey = integration.fields.find((f) => f.key === "sendgrid_api_key")?.value || "";
-          break;
-        case "zoom":
-          // Zoom requires account_id:client_id:client_secret format
-          const accountId = integration.fields.find((f) => f.key === "zoom_account_id")?.value || "";
-          const clientId = integration.fields.find((f) => f.key === "zoom_client_id")?.value || "";
-          const clientSecret = integration.fields.find((f) => f.key === "zoom_client_secret")?.value || "";
-          apiKey = `${accountId}:${clientId}:${clientSecret}`;
-          break;
-        case "anthropic":
-          apiKey = integration.fields.find((f) => f.key === "anthropic_api_key")?.value || "";
-          break;
-        case "google_ai":
-          apiKey = integration.fields.find((f) => f.key === "google_ai_api_key")?.value || "";
-          break;
-        case "perplexity":
-          apiKey = integration.fields.find((f) => f.key === "perplexity_api_key")?.value || "";
-          break;
-        case "google":
-          toast.info("Google Drive requires OAuth2 flow, direct testing not available");
-          return;
-        default:
-          toast.error("Testing not implemented for this integration");
-          return;
-      }
-
-      // Call the validate-api-key edge function
-      const { data, error } = await supabase.functions.invoke("validate-api-key", {
-        body: { apiKey, service },
-      });
-
-      if (error) {
-        console.error("Validation error:", error);
-        toast.error(`Connection test failed: ${error.message}`);
-        return;
-      }
-
-      if (data.valid) {
-        toast.success(`${integration.name} connection successful!`, {
-          description: data.message,
-        });
-      } else {
-        toast.error(`${integration.name} connection failed`, {
-          description: data.message || "Invalid credentials",
-        });
-      }
-    } catch (error: any) {
-      console.error("Connection test error:", error);
-      toast.error(`Failed to test ${integration.name} connection`);
-    } finally {
-      setTesting(null);
-    }
-  };
-
-  const handleSaveIntegration = async (integration: Integration) => {
-    setSaving(true);
-    try {
-      // In a real implementation, you would:
-      // 1. Store sensitive data in app_config with is_sensitive = true
-      // 2. Or use Supabase Edge Function Secrets for better security
-
-      // For now, we'll store in app_config
-      const updates = integration.fields.map((field) =>
-        supabase.from("app_config").upsert(
-          {
-            key: `integrations.${integration.id}.${field.key}`,
-            value: field.value,
-            category: "integrations",
-            description: `${integration.name} - ${field.label}`,
-            is_sensitive: field.type === "password",
-          },
-          { onConflict: "key" }
-        )
-      );
-
-      // Also save the enabled status
-      updates.push(
-        supabase.from("app_config").upsert(
-          {
-            key: `integrations.${integration.id}.enabled`,
-            value: integration.enabled,
-            category: "integrations",
-            description: `${integration.name} - Enabled`,
-            is_sensitive: false,
-          },
-          { onConflict: "key" }
-        )
-      );
-
-      const results = await Promise.all(updates);
-      const errors = results.filter((r) => r.error);
-
-      if (errors.length > 0) {
-        throw errors[0].error;
-      }
-
-      toast.success(`${integration.name} settings saved!`);
-    } catch (error: any) {
-      console.error("Save error:", error);
-      toast.error(`Failed to save ${integration.name} settings`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const getIntegrationStatus = (integration: Integration): "configured" | "partial" | "not_configured" => {
-    const requiredFields = integration.fields.filter((f) => f.required);
-    const filledFields = requiredFields.filter((f) => f.value.trim() !== "");
-
-    if (filledFields.length === 0) return "not_configured";
-    if (filledFields.length === requiredFields.length) return "configured";
-    return "partial";
-  };
+  if (error) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center gap-4">
+        <p className="text-destructive">Failed to load integrations</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Integration Management</h1>
-        <p className="text-muted-foreground">
-          Configure third-party service integrations and API credentials
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Integration Hub</h1>
+          <p className="text-muted-foreground">
+            Configure third-party service integrations
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/admin/integration-analytics')}
+        >
+          <BarChart3 className="mr-2 h-4 w-4" />
+          View Analytics
+        </Button>
       </div>
 
-      {/* Integration Cards */}
-      <div className="grid gap-6">
-        {integrations.map((integration) => {
-          const status = getIntegrationStatus(integration);
+      {/* Search & Filter */}
+      <div className="flex gap-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search integrations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter: All" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {grouped?.map((group) => (
+              <SelectItem key={group.category.id} value={group.category.slug}>
+                {group.category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Categories with Providers */}
+      <div className="space-y-4">
+        {filteredGrouped?.length === 0 && (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <p className="text-muted-foreground">No integrations found</p>
+              {searchQuery && (
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setFilterCategory('all');
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {filteredGrouped?.map((group) => {
+          const CategoryIcon = getCategoryIcon(group.category.icon);
+          const isExpanded = expandedCategories.includes(group.category.id);
 
           return (
-            <Card key={integration.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-lg border p-2">{integration.icon}</div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <CardTitle>{integration.name}</CardTitle>
-                        {status === "configured" && integration.enabled && (
-                          <Badge variant="default" className="gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Connected
-                          </Badge>
-                        )}
-                        {status === "partial" && (
-                          <Badge variant="secondary" className="gap-1">
-                            <Key className="h-3 w-3" />
-                            Partial
-                          </Badge>
-                        )}
-                        {!integration.enabled && (
-                          <Badge variant="outline" className="gap-1">
-                            <XCircle className="h-3 w-3" />
-                            Disabled
-                          </Badge>
-                        )}
+            <Collapsible
+              key={group.category.id}
+              open={isExpanded}
+              onOpenChange={() => toggleCategory(group.category.id)}
+            >
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <ChevronRight
+                          className={`h-5 w-5 transition-transform ${
+                            isExpanded ? 'rotate-90' : ''
+                          }`}
+                        />
+                        <CategoryIcon className="h-5 w-5" />
+                        <CardTitle>{group.category.name}</CardTitle>
                       </div>
-                      <CardDescription>{integration.description}</CardDescription>
-                      {integration.docsUrl && (
-                        <a
-                          href={integration.docsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                        >
-                          View Documentation
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
+                      <div className="text-sm text-muted-foreground">
+                        {group.stats.totalProviders} provider
+                        {group.stats.totalProviders !== 1 ? 's' : ''}
+                        {group.stats.connectedProviders > 0 &&
+                          `, ${group.stats.connectedProviders} connected`}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {integration.enabled ? "Enabled" : "Disabled"}
-                    </span>
-                    <Switch
-                      checked={integration.enabled}
-                      onCheckedChange={() => handleToggleIntegration(integration.id)}
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              {integration.enabled && (
-                <CardContent className="space-y-4">
-                  {/* Integration Fields */}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {integration.fields.map((field) => (
-                      <div key={field.key} className="space-y-2">
-                        <Label htmlFor={field.key}>
-                          {field.label}
-                          {field.required && <span className="text-destructive ml-1">*</span>}
-                        </Label>
-                        <Input
-                          id={field.key}
-                          type={field.type}
-                          placeholder={field.placeholder}
-                          value={field.value}
-                          onChange={(e) =>
-                            handleFieldChange(integration.id, field.key, e.target.value)
+                    <CardDescription className="text-left ml-11">
+                      {group.category.description}
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                  <CardContent>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                      {group.providers.map((provider) => (
+                        <ProviderCard
+                          key={provider.id}
+                          provider={
+                            provider as IntegrationProvider
+                          }
+                          orgIntegration={
+                            provider.orgIntegration as OrganizationIntegration | undefined
                           }
                         />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      onClick={() => handleSaveIntegration(integration)}
-                      disabled={saving}
-                    >
-                      {saving ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Settings"
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleTestConnection(integration)}
-                      disabled={testing === integration.id || status === "not_configured"}
-                    >
-                      {testing === integration.id ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Testing...
-                        </>
-                      ) : (
-                        "Test Connection"
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           );
         })}
       </div>
 
-      {/* Security Notice */}
-      <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
-            <Key className="h-5 w-5" />
-            Security Notice
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-amber-900 dark:text-amber-100">
-          <p>
-            API keys and secrets are stored in the app_config table with encryption. For production
-            deployments, consider using Supabase Edge Function Secrets for enhanced security.
-            Never share your API keys publicly or commit them to version control.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Help Text */}
+      {!searchQuery && filterCategory === 'all' && (
+        <Card className="border-dashed">
+          <CardContent className="py-6">
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg bg-primary/10 p-3">
+                <Search className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">Need help finding an integration?</h3>
+                <p className="text-sm text-muted-foreground">
+                  Use the search bar to find specific providers, or filter by category to browse
+                  available integrations. Click on any provider card to configure it.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

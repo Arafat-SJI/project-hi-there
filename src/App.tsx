@@ -38,6 +38,8 @@ import RoleManagement from "./pages/admin/RoleManagement";
 import ActivityLogs from "./pages/admin/ActivityLogs";
 import SystemSettings from "./pages/admin/SystemSettings";
 import Integrations from "./pages/admin/Integrations";
+import ProviderDetail from "./pages/admin/ProviderDetail";
+import OAuthCallback from "./pages/admin/OAuthCallback";
 import AIModelManagement from "./pages/admin/AIModelManagement";
 import AIUsageAnalytics from "./pages/admin/AIUsageAnalytics";
 import EnvironmentValidator from "./pages/admin/EnvironmentValidator";
@@ -135,6 +137,8 @@ const App = () => (
                   <Route path="/admin/logs" element={<ActivityLogs />} />
                   <Route path="/admin/settings" element={<SystemSettings />} />
                   <Route path="/admin/integrations" element={<Integrations />} />
+                  <Route path="/admin/integrations/oauth/callback" element={<OAuthCallback />} />
+                  <Route path="/admin/integrations/:slug" element={<ProviderDetail />} />
                   <Route path="/admin/ai-models" element={<AIModelManagement />} />
                   <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
                   <Route path="/admin/feedback" element={<FeedbackManagement />} />
