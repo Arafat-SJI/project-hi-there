@@ -1,1 +1,7 @@
 project_id = "tjkqvbxtziheggurtvcz"
+
+[functions.check-environment]
+verify_jwt = true
+
+[functions.seed-template-data]
+verify_jwt = true
