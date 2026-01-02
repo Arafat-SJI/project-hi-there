@@ -102,7 +102,10 @@ export default function TaskForm() {
   const onSubmit = async (data: TaskFormData) => {
     try {
       const formattedData = {
-        ...data,
+        title: data.title,
+        description: data.description || null,
+        status: data.status,
+        priority: data.priority,
         assigned_to: data.assigned_to || null,
         client_id: data.client_id || null,
         meeting_id: data.meeting_id || null,
@@ -112,7 +115,7 @@ export default function TaskForm() {
       if (isEdit && id) {
         await updateTask.mutateAsync({ id, data: formattedData });
       } else {
-        await createTask.mutateAsync(formattedData);
+        await createTask.mutateAsync(formattedData as any);
       }
 
       navigate("/tasks");
@@ -243,15 +246,15 @@ export default function TaskForm() {
               <div className="space-y-2">
                 <Label htmlFor="assigned_to">Assigned To</Label>
                 <Select
-                  value={assignedTo}
-                  onValueChange={(value) => setValue("assigned_to", value)}
+                  value={assignedTo || "_none"}
+                  onValueChange={(value) => setValue("assigned_to", value === "_none" ? "" : value)}
                   disabled={isSubmitting}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a user (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="_none">None</SelectItem>
                     {users?.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.full_name || user.email}
@@ -268,15 +271,15 @@ export default function TaskForm() {
               <div className="space-y-2">
                 <Label htmlFor="client_id">Client</Label>
                 <Select
-                  value={clientId}
-                  onValueChange={(value) => setValue("client_id", value)}
+                  value={clientId || "_none"}
+                  onValueChange={(value) => setValue("client_id", value === "_none" ? "" : value)}
                   disabled={isSubmitting}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a client (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="_none">None</SelectItem>
                     {clients?.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
@@ -293,15 +296,15 @@ export default function TaskForm() {
               <div className="space-y-2">
                 <Label htmlFor="meeting_id">Related Meeting</Label>
                 <Select
-                  value={meetingId}
-                  onValueChange={(value) => setValue("meeting_id", value)}
+                  value={meetingId || "_none"}
+                  onValueChange={(value) => setValue("meeting_id", value === "_none" ? "" : value)}
                   disabled={isSubmitting}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a meeting (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="_none">None</SelectItem>
                     {meetings?.map((meeting) => (
                       <SelectItem key={meeting.id} value={meeting.id}>
                         {meeting.title}
