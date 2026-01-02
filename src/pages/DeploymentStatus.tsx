@@ -12,6 +12,7 @@ interface EdgeFunction {
   description: string;
   required: boolean;
   envVars?: string[];
+  requiresAuth?: boolean;
 }
 
 interface FunctionStatus {
@@ -20,11 +21,12 @@ interface FunctionStatus {
   responding: boolean;
   error?: string;
   loading: boolean;
+  authRequired?: boolean;
 }
 
 const EDGE_FUNCTIONS: EdgeFunction[] = [
   // Foundation (4)
-  { name: "validate-api-key", category: "Foundation", description: "API key validation", required: true },
+  { name: "validate-api-key", category: "Foundation", description: "API key validation", required: true, requiresAuth: true },
   { name: "audit-log-writer", category: "Foundation", description: "Activity logging", required: true },
   { name: "send-email", category: "Foundation", description: "Email sending", required: false, envVars: ["SENDGRID_API_KEY"] },
   { name: "send-notification", category: "Foundation", description: "Notifications", required: true },
@@ -35,14 +37,14 @@ const EDGE_FUNCTIONS: EdgeFunction[] = [
   { name: "run-ai-agent", category: "AI", description: "Execute AI agents", required: true, envVars: ["OPENAI_API_KEY"] },
   { name: "generate-embeddings", category: "AI", description: "Create embeddings", required: true, envVars: ["OPENAI_API_KEY"] },
   { name: "generate-meeting-summary", category: "AI", description: "Summarize meetings", required: false, envVars: ["OPENAI_API_KEY"] },
-  { name: "generate-business-doc", category: "AI", description: "Generate documents", required: false, envVars: ["OPENAI_API_KEY"] },
+  { name: "generate-business-doc", category: "AI", description: "Generate documents", required: false, envVars: ["OPENAI_API_KEY"], requiresAuth: true },
 
   // Meetings (5)
-  { name: "sync-zoom-files", category: "Meetings", description: "Sync Zoom recordings", required: false, envVars: ["ZOOM_CLIENT_ID", "ZOOM_CLIENT_SECRET"] },
+  { name: "sync-zoom-files", category: "Meetings", description: "Sync Zoom recordings", required: false, envVars: ["ZOOM_CLIENT_ID", "ZOOM_CLIENT_SECRET"], requiresAuth: true },
   { name: "zoom-transcript-processing", category: "Meetings", description: "Process transcripts", required: false },
   { name: "auto-embed-meetings", category: "Meetings", description: "Embed meeting data", required: false, envVars: ["OPENAI_API_KEY"] },
   { name: "categorize-meeting", category: "Meetings", description: "Auto-categorize meetings", required: false, envVars: ["OPENAI_API_KEY"] },
-  { name: "api-v1-meetings", category: "Meetings", description: "Meeting CRUD API", required: true },
+  { name: "api-v1-meetings", category: "Meetings", description: "Meeting CRUD API", required: true, requiresAuth: true },
 
   // Knowledge Base (7)
   { name: "google-drive-sync", category: "Knowledge", description: "Sync Google Drive", required: false, envVars: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"] },
@@ -54,8 +56,18 @@ const EDGE_FUNCTIONS: EdgeFunction[] = [
   { name: "unified-knowledge-search", category: "Knowledge", description: "Search knowledge base", required: true },
 
   // Clients & Feedback (2)
-  { name: "api-v1-clients", category: "Clients", description: "Client CRUD API", required: true },
+  { name: "api-v1-clients", category: "Clients", description: "Client CRUD API", required: true, requiresAuth: true },
   { name: "send-feedback-notification", category: "Feedback", description: "Feedback notifications", required: false },
+
+  // Admin (4)
+  { name: "check-environment", category: "Admin", description: "Check environment", required: false, requiresAuth: true },
+  { name: "seed-template-data", category: "Admin", description: "Seed template data", required: false, requiresAuth: true },
+  { name: "sync-ai-models", category: "Admin", description: "Sync AI models", required: false, requiresAuth: true },
+  
+  // OAuth (3)
+  { name: "oauth-exchange-token", category: "OAuth", description: "OAuth token exchange", required: false, requiresAuth: true },
+  { name: "oauth-refresh-token", category: "OAuth", description: "OAuth token refresh", required: false, requiresAuth: true },
+  { name: "auto-embed-knowledge-entry", category: "Knowledge", description: "Embed knowledge entries", required: false, envVars: ["OPENAI_API_KEY"] },
 ];
 
 export default function DeploymentStatus() {
@@ -97,9 +109,39 @@ export default function DeploymentStatus() {
       [functionName]: { ...prev[functionName], loading: true }
     }));
 
+    // Get current session for auth-required functions
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // Check if this function requires auth
+    const funcConfig = EDGE_FUNCTIONS.find(f => f.name === functionName);
+    const requiresAuth = funcConfig?.requiresAuth ?? false;
+    
+    if (requiresAuth && !session) {
+      setFunctionStatuses(prev => ({
+        ...prev,
+        [functionName]: {
+          ...prev[functionName],
+          deployed: true,
+          responding: false,
+          loading: false,
+          authRequired: true,
+          error: "Requires authentication - log in to test"
+        }
+      }));
+      return;
+    }
+
+    // Prepare test payloads for specific functions
+    const testPayloads: Record<string, object> = {
+      'validate-api-key': { apiKey: 'test-key', service: 'openai' },
+      'ai-chat-assistant': { message: 'test', user_id: session?.user?.id || 'test' },
+      'semantic-search': { query: 'test', limit: 1 },
+      'unified-knowledge-search': { query: 'test', limit: 1 },
+    };
+
     try {
       const { data, error } = await supabase.functions.invoke(functionName, {
-        body: {},
+        body: testPayloads[functionName] || {},
       });
 
       setFunctionStatuses(prev => ({
@@ -158,7 +200,10 @@ export default function DeploymentStatus() {
       return <Badge variant="secondary">Testing...</Badge>;
     }
     if (status.deployed && status.responding) {
-      return <Badge variant="default" className="bg-green-500">Active</Badge>;
+      return <Badge className="bg-green-500 text-white">Active</Badge>;
+    }
+    if (status.authRequired) {
+      return <Badge variant="outline" className="border-yellow-500 text-yellow-600">Auth Required</Badge>;
     }
     if (status.deployed && !status.responding) {
       return <Badge variant="destructive">Error</Badge>;
