@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useBranding } from "@/contexts/BrandingContext";
 import {
   LayoutDashboard,
   Users,
@@ -9,6 +10,7 @@ import {
   Zap,
   Database,
   ArrowLeft,
+  CheckCircle2,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -53,10 +55,16 @@ const adminItems: SidebarItem[] = [
     href: "/admin/deployment",
     icon: Database,
   },
+  {
+    title: "Environment Check",
+    href: "/admin/environment",
+    icon: CheckCircle2,
+  },
 ];
 
 export function AdminSidebar() {
   const location = useLocation();
+  const { companyName, logoUrl } = useBranding();
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar-background">
@@ -72,7 +80,7 @@ export function AdminSidebar() {
                 Admin Panel
               </span>
               <span className="text-xs text-muted-foreground">
-                CollabAi
+                {companyName}
               </span>
             </div>
           </Link>

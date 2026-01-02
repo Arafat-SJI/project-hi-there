@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Brain } from "lucide-react";
+import { useBranding } from "@/contexts/BrandingContext";
 
 import { HeroSection } from "@/components/landing/HeroSection";
 import { ProblemSolution } from "@/components/landing/ProblemSolution";
@@ -12,17 +13,23 @@ import { FinalCTA } from "@/components/landing/FinalCTA";
 import { Footer } from "@/components/landing/Footer";
 
 export default function Index() {
+  const { companyName, tagline, logoUrl } = useBranding();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Brain className="h-5 w-5 text-primary-foreground" />
-            </div>
+            {logoUrl ? (
+              <img src={logoUrl} alt={companyName} className="h-9 w-9 rounded-lg object-cover" />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+                <Brain className="h-5 w-5 text-primary-foreground" />
+              </div>
+            )}
             <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-semibold text-foreground">CollabAI</span>
+              <span className="text-lg font-semibold text-foreground">{companyName}</span>
               <span className="text-sm font-medium text-muted-foreground">Control Tower</span>
             </div>
           </Link>

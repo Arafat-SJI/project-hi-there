@@ -8,6 +8,7 @@ export interface AppConfig {
     companyName: string;
     tagline: string;
     supportEmail: string;
+    logoUrl?: string;
   };
   // Features
   features: {
@@ -17,6 +18,12 @@ export interface AppConfig {
     enableTasks: boolean;
     enableNotifications: boolean;
     enableSemanticSearch: boolean;
+    enableClients: boolean;
+    enableAIAgents: boolean;
+    enablePersonalKnowledge: boolean;
+    enableFeedback: boolean;
+    enableGoogleDrive: boolean;
+    enableZoomSync: boolean;
   };
   // Email
   email: {
@@ -147,6 +154,7 @@ export function useResetAppConfig() {
           companyName: "CollabAi",
           tagline: "AI-Powered Collaboration Platform",
           supportEmail: "support@collabai.software",
+          logoUrl: undefined,
         },
         features: {
           enableAIChat: true,
@@ -155,6 +163,12 @@ export function useResetAppConfig() {
           enableTasks: true,
           enableNotifications: true,
           enableSemanticSearch: true,
+          enableClients: true,
+          enableAIAgents: true,
+          enablePersonalKnowledge: true,
+          enableFeedback: true,
+          enableGoogleDrive: false,
+          enableZoomSync: false,
         },
         email: {
           enableEmailNotifications: true,
