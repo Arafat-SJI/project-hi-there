@@ -100,20 +100,17 @@ export default function AIUsageAnalytics() {
     try {
       const startDate = getDateRangeFilter();
 
-      // Build query for usage logs with joins
+      // Build query for usage logs - join with ai_models only (no FK to auth.users)
       let query = supabase
         .from("ai_usage_logs")
         .select(
           `
           *,
-          ai_models!inner (
+          ai_models (
             name,
-            ai_providers!inner (
+            ai_providers (
               name
             )
-          ),
-          users:user_id (
-            email
           )
         `
         )
@@ -124,6 +121,20 @@ export default function AIUsageAnalytics() {
       const { data: logsData, error: logsError } = await query;
 
       if (logsError) throw logsError;
+
+      // Get unique user IDs to fetch emails from profiles table
+      const userIds = [...new Set((logsData || []).map((log: any) => log.user_id).filter(Boolean))];
+      
+      // Fetch user emails from profiles table
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, email")
+        .in("id", userIds);
+
+      const userEmailMap = new Map<string, string>();
+      (profilesData || []).forEach((profile: any) => {
+        userEmailMap.set(profile.id, profile.email || "Unknown");
+      });
 
       // Transform data
       const transformedLogs: UsageLog[] = (logsData || []).map((log: any) => ({
@@ -136,7 +147,7 @@ export default function AIUsageAnalytics() {
         embedding_tokens: log.embedding_tokens,
         estimated_cost: log.estimated_cost,
         created_at: log.created_at,
-        user_email: log.users?.email || "Unknown",
+        user_email: userEmailMap.get(log.user_id) || "Unknown",
         model_name: log.ai_models?.name || "Unknown",
         provider_name: log.ai_models?.ai_providers?.name || "Unknown",
       }));

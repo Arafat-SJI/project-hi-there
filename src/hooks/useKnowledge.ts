@@ -237,3 +237,139 @@ export function useDeleteKnowledgeEntry() {
     },
   });
 }
+
+/**
+ * Hook to manually trigger embedding generation for an entry
+ */
+export function useTriggerEmbedding() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (entryId: string) => {
+      // Call the edge function to generate embeddings
+      const { data, error } = await supabase.functions.invoke(
+        "auto-embed-knowledge-files",
+        {
+          body: { entry_id: entryId },
+        }
+      );
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, entryId) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.knowledge.entry(entryId),
+      });
+      invalidateKeys.knowledge(queryClient);
+      toast({
+        title: "Success",
+        description: "Embedding generation started",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to trigger embedding generation",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+/**
+ * Hook to increment view count for an entry (updates directly)
+ */
+export function useIncrementViewCount() {
+  return useMutation({
+    mutationFn: async (entryId: string) => {
+      // Get current view count and increment
+      const { data: entry, error: fetchError } = await supabase
+        .from("knowledge_entries")
+        .select("view_count")
+        .eq("id", entryId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const { error } = await supabase
+        .from("knowledge_entries")
+        .update({ view_count: (entry?.view_count || 0) + 1 })
+        .eq("id", entryId);
+
+      if (error) throw error;
+    },
+  });
+}
+
+// Note: Bookmark functionality requires knowledge_bookmarks table to be created
+// Placeholder hooks that return disabled state
+
+/**
+ * Hook to toggle bookmark status for an entry (placeholder - table not yet created)
+ */
+export function useToggleBookmark() {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (_entryId: string) => {
+      throw new Error("Bookmarks feature not yet available");
+    },
+    onError: () => {
+      toast({
+        title: "Coming Soon",
+        description: "Bookmarks feature is not yet available",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+/**
+ * Hook to fetch user's bookmarked entries (placeholder)
+ */
+export function useBookmarkedEntries() {
+  return useQuery({
+    queryKey: ["knowledge-bookmarks"],
+    queryFn: async () => [] as any[],
+    enabled: false,
+  });
+}
+
+/**
+ * Hook to check if an entry is bookmarked (placeholder)
+ */
+export function useIsBookmarked(_entryId: string) {
+  return useQuery({
+    queryKey: ["knowledge-bookmark-status"],
+    queryFn: async () => false,
+    enabled: false,
+  });
+}
+
+/**
+ * Hook to get related entries based on semantic similarity
+ */
+export function useRelatedEntries(entryId: string, limit = 5) {
+  return useQuery({
+    queryKey: ["knowledge-related", entryId, limit],
+    queryFn: async () => {
+      // Call edge function for semantic search
+      const { data, error } = await supabase.functions.invoke(
+        "unified-knowledge-search",
+        {
+          body: {
+            entry_id: entryId,
+            limit,
+            search_type: "similar",
+          },
+        }
+      );
+
+      if (error) throw error;
+      return data?.results || [];
+    },
+    enabled: !!entryId,
+  });
+}

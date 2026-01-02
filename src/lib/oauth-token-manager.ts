@@ -1,6 +1,7 @@
 /**
  * OAuth Token Manager
  * Handles OAuth token refresh and validation
+ * NOTE: These are placeholder implementations - tables don't exist yet
  */
 
 import { supabase } from '@/lib/supabase';
@@ -78,89 +79,18 @@ export async function refreshOAuthToken(
 
 /**
  * Get valid OAuth access token, refreshing if necessary
+ * NOTE: Placeholder - organization_integrations table doesn't exist yet
  * @param orgIntegrationId - Organization integration ID
  */
 export async function getValidAccessToken(
   orgIntegrationId: string
 ): Promise<{ success: boolean; accessToken?: string; error?: string }> {
-  try {
-    // Fetch current integration
-    const { data: integration, error: fetchError } = await supabase
-      .from('organization_integrations')
-      .select('provider_id, oauth_tokens')
-      .eq('id', orgIntegrationId)
-      .single();
-
-    if (fetchError || !integration) {
-      return {
-        success: false,
-        error: 'Integration not found',
-      };
-    }
-
-    const tokens = integration.oauth_tokens as OAuthTokens | null;
-
-    if (!tokens?.access_token) {
-      return {
-        success: false,
-        error: 'No access token available',
-      };
-    }
-
-    // Check if token is expired
-    if (isTokenExpired(tokens.expires_at)) {
-      // Token is expired, try to refresh
-      if (!tokens.refresh_token) {
-        return {
-          success: false,
-          error: 'Access token expired and no refresh token available',
-        };
-      }
-
-      const refreshResult = await refreshOAuthToken(
-        integration.provider_id,
-        tokens.refresh_token
-      );
-
-      if (!refreshResult.success || !refreshResult.tokens) {
-        return {
-          success: false,
-          error: refreshResult.error || 'Failed to refresh token',
-        };
-      }
-
-      // Update integration with new tokens
-      const { error: updateError } = await supabase
-        .from('organization_integrations')
-        .update({
-          oauth_tokens: refreshResult.tokens,
-          last_tested_at: new Date().toISOString(),
-        })
-        .eq('id', orgIntegrationId);
-
-      if (updateError) {
-        console.error('Failed to update tokens:', updateError);
-        // Still return the new token even if update failed
-      }
-
-      return {
-        success: true,
-        accessToken: refreshResult.tokens.access_token,
-      };
-    }
-
-    // Token is still valid
-    return {
-      success: true,
-      accessToken: tokens.access_token,
-    };
-  } catch (error) {
-    console.error('Get valid access token error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+  // Placeholder implementation - table doesn't exist
+  console.warn('getValidAccessToken: organization_integrations table not configured');
+  return {
+    success: false,
+    error: 'Integration tables not configured. Please run migrations first.',
+  };
 }
 
 /**

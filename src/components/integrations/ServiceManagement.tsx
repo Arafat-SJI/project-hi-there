@@ -56,7 +56,7 @@ export function ServiceManagement({
                       Default
                     </Badge>
                   )}
-                  {service.is_beta && (
+                  {(service as any).is_beta && (
                     <Badge variant="outline" className="text-xs">
                       Beta
                     </Badge>

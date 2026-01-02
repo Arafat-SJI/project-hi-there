@@ -1,6 +1,7 @@
 /**
  * OAuth Callback Page
  * Handles OAuth 2.0 redirect and token exchange
+ * NOTE: Placeholder - integration tables don't exist yet
  */
 
 import { useEffect, useState } from 'react';
@@ -59,51 +60,11 @@ export default function OAuthCallback() {
       // 5. Get provider ID from state
       const { providerId } = stateData;
 
-      // 6. Fetch provider details to get slug
-      const { data: provider, error: providerError } = await supabase
-        .from('integration_providers')
-        .select('slug, name, oauth_config')
-        .eq('id', providerId)
-        .single();
-
-      if (providerError || !provider) {
-        setStatus('error');
-        setMessage('Failed to fetch provider details');
-        return;
-      }
-
-      setProviderSlug(provider.slug);
-
-      // 7. Exchange authorization code for tokens via edge function
-      const redirectUri = `${window.location.origin}/admin/integrations/oauth/callback`;
-
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke(
-        'oauth-exchange-token',
-        {
-          body: {
-            code,
-            providerId,
-            redirectUri,
-          },
-        }
-      );
-
-      if (tokenError || !tokenData?.success) {
-        setStatus('error');
-        setMessage(
-          tokenData?.message || tokenError?.message || 'Failed to exchange authorization code for tokens'
-        );
-        return;
-      }
-
-      // 8. Success!
-      setStatus('success');
-      setMessage(`Successfully connected to ${provider.name}!`);
-
-      // 9. Redirect to provider detail page after 2 seconds
-      setTimeout(() => {
-        navigate(`/admin/integrations/${provider.slug}`);
-      }, 2000);
+      // 6. Note: integration_providers table doesn't exist yet
+      // For now, show a placeholder message
+      setStatus('error');
+      setMessage('Integration tables not configured. OAuth flow cannot be completed. Please run database migrations first.');
+      
     } catch (error) {
       setStatus('error');
       setMessage(

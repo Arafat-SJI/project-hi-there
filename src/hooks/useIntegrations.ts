@@ -49,7 +49,7 @@ export function useIntegrationCategories() {
         .from('integration_categories')
         .select('*')
         .eq('enabled', true)
-        .order('display_order');
+        .order('display_order', { ascending: true });
 
       if (error) throw error;
       return sortCategoriesByOrder(data as IntegrationCategory[]);
@@ -71,14 +71,16 @@ export function useIntegrationProviders(categoryId?: string) {
       ? integrationKeys.providersByCategory(categoryId)
       : integrationKeys.providers(),
     queryFn: async () => {
-      let query = supabase.from('integration_providers').select('*');
+      let query = supabase
+        .from('integration_providers')
+        .select('*')
+        .order('display_order', { ascending: true });
 
       if (categoryId) {
         query = query.eq('category_id', categoryId);
       }
 
-      const { data, error } = await query.order('display_order');
-
+      const { data, error } = await query;
       if (error) throw error;
       return sortProvidersByOrder(data as IntegrationProvider[]);
     },
@@ -117,12 +119,12 @@ export function useIntegrationProvider(slug: string) {
 export function useIntegrationFields(providerId: string) {
   return useQuery({
     queryKey: integrationKeys.fields(providerId),
-    queryFn: async () => {
+    queryFn: async (): Promise<IntegrationField[]> => {
       const { data, error } = await supabase
         .from('integration_fields')
         .select('*')
         .eq('provider_id', providerId)
-        .order('display_order');
+        .order('display_order', { ascending: true });
 
       if (error) throw error;
       return data as IntegrationField[];
@@ -142,16 +144,17 @@ export function useIntegrationFields(providerId: string) {
 export function useOrganizationIntegrations() {
   return useQuery({
     queryKey: integrationKeys.orgIntegrations(),
-    queryFn: async () => {
+    queryFn: async (): Promise<(OrganizationIntegration & { provider: IntegrationProvider })[]> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('organization_integrations')
-        .select(
-          `
+        .select(`
           *,
           provider:integration_providers(*)
-        `
-        )
-        .order('created_at', { ascending: false });
+        `)
+        .eq('user_id', user.id);
 
       if (error) throw error;
       return data as (OrganizationIntegration & { provider: IntegrationProvider })[];
@@ -166,10 +169,14 @@ export function useOrganizationIntegrations() {
 export function useOrganizationIntegration(providerId: string) {
   return useQuery({
     queryKey: integrationKeys.orgIntegration(providerId),
-    queryFn: async () => {
+    queryFn: async (): Promise<OrganizationIntegration | null> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('organization_integrations')
         .select('*')
+        .eq('user_id', user.id)
         .eq('provider_id', providerId)
         .maybeSingle();
 
@@ -196,21 +203,22 @@ export function useUpdateIntegration() {
       providerId: string;
       config: Record<string, any>;
       enabled?: boolean;
-    }) => {
+    }): Promise<OrganizationIntegration> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('organization_integrations')
-        .upsert(
-          {
-            provider_id: providerId,
-            organization_id: null, // Single org for now
-            config,
-            enabled,
-            connection_status: 'disconnected',
-          },
-          {
-            onConflict: 'organization_id,provider_id',
-          }
-        )
+        .upsert({
+          user_id: user.id,
+          provider_id: providerId,
+          config,
+          enabled,
+          connection_status: 'connected',
+          last_tested_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,provider_id',
+        })
         .select()
         .single();
 
@@ -218,7 +226,6 @@ export function useUpdateIntegration() {
       return data as OrganizationIntegration;
     },
     onSuccess: (data) => {
-      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
       queryClient.invalidateQueries({
         queryKey: integrationKeys.orgIntegration(data.provider_id),
@@ -231,8 +238,6 @@ export function useUpdateIntegration() {
  * Test integration connection
  */
 export function useTestConnection() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({
       providerSlug,
@@ -252,32 +257,6 @@ export function useTestConnection() {
       if (error) throw error;
       return data as { valid: boolean; message: string; details?: Record<string, any> };
     },
-    onSuccess: async (result, variables) => {
-      // Get provider ID
-      const { data: provider } = await supabase
-        .from('integration_providers')
-        .select('id')
-        .eq('slug', variables.providerSlug)
-        .single();
-
-      if (provider) {
-        // Update connection status
-        await supabase
-          .from('organization_integrations')
-          .update({
-            connection_status: result.valid ? 'connected' : 'error',
-            connection_message: result.message,
-            last_tested_at: new Date().toISOString(),
-          })
-          .eq('provider_id', provider.id);
-
-        // Invalidate queries
-        queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
-        queryClient.invalidateQueries({
-          queryKey: integrationKeys.orgIntegration(provider.id),
-        });
-      }
-    },
   });
 }
 
@@ -289,14 +268,13 @@ export function useDisconnectIntegration() {
 
   return useMutation({
     mutationFn: async ({ providerId }: { providerId: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { error } = await supabase
         .from('organization_integrations')
-        .update({
-          enabled: false,
-          connection_status: 'disconnected',
-          config: {},
-          oauth_tokens: null,
-        })
+        .delete()
+        .eq('user_id', user.id)
         .eq('provider_id', providerId);
 
       if (error) throw error;
@@ -320,12 +298,12 @@ export function useDisconnectIntegration() {
 export function useIntegrationServices(providerId: string) {
   return useQuery({
     queryKey: integrationKeys.services(providerId),
-    queryFn: async () => {
+    queryFn: async (): Promise<IntegrationService[]> => {
       const { data, error } = await supabase
         .from('integration_services')
         .select('*')
         .eq('provider_id', providerId)
-        .order('display_order');
+        .order('display_order', { ascending: true });
 
       if (error) throw error;
       return data as IntegrationService[];
@@ -348,7 +326,7 @@ export function useToggleService() {
     }: {
       serviceId: string;
       enabled: boolean;
-    }) => {
+    }): Promise<IntegrationService> => {
       const { data, error } = await supabase
         .from('integration_services')
         .update({ enabled })
@@ -380,14 +358,14 @@ export function useSetDefaultService() {
     }: {
       providerId: string;
       serviceId: string;
-    }) => {
+    }): Promise<IntegrationService> => {
       // First, unset all defaults for this provider
       await supabase
         .from('integration_services')
         .update({ is_default: false })
         .eq('provider_id', providerId);
 
-      // Then set the selected service as default
+      // Then set the new default
       const { data, error } = await supabase
         .from('integration_services')
         .update({ is_default: true })
@@ -424,18 +402,21 @@ interface UsageLogsFilters {
 export function useIntegrationUsageLogs(filters: UsageLogsFilters = {}) {
   return useQuery({
     queryKey: integrationKeys.usageLogs(filters),
-    queryFn: async () => {
+    queryFn: async (): Promise<(IntegrationUsageLog & {
+      provider: { name: string; slug: string };
+      service: { name: string; service_key: string };
+      user: { email: string };
+    })[]> => {
       let query = supabase
         .from('integration_usage_logs')
-        .select(
-          `
+        .select(`
           *,
           provider:integration_providers(name, slug),
           service:integration_services(name, service_key),
-          user:auth.users(email)
-        `
-        )
-        .order('created_at', { ascending: false });
+          user:profiles(email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(filters.limit || 100);
 
       if (filters.providerId) {
         query = query.eq('provider_id', filters.providerId);
@@ -453,18 +434,9 @@ export function useIntegrationUsageLogs(filters: UsageLogsFilters = {}) {
         query = query.lte('created_at', filters.endDate.toISOString());
       }
 
-      if (filters.limit) {
-        query = query.limit(filters.limit);
-      }
-
       const { data, error } = await query;
-
       if (error) throw error;
-      return data as (IntegrationUsageLog & {
-        provider: { name: string; slug: string };
-        service: { name: string; service_key: string };
-        user: { email: string };
-      })[];
+      return data as any;
     },
     staleTime: 1 * 60 * 1000, // 1 minute
   });
@@ -482,27 +454,23 @@ export function useProviderUsageStats(providerId: string, days: number = 30) {
 
       const { data, error } = await supabase
         .from('integration_usage_logs')
-        .select('status, estimated_cost, created_at')
+        .select('status, estimated_cost')
         .eq('provider_id', providerId)
         .gte('created_at', startDate.toISOString());
 
       if (error) throw error;
 
-      const logs = data as IntegrationUsageLog[];
-
-      // Calculate statistics
-      const totalCalls = logs.length;
-      const successfulCalls = logs.filter((log) => log.status === 'success').length;
-      const failedCalls = logs.filter((log) => log.status === 'error').length;
-      const totalCost = logs.reduce((sum, log) => sum + log.estimated_cost, 0);
-      const successRate = totalCalls > 0 ? (successfulCalls / totalCalls) * 100 : 0;
+      const totalCalls = data?.length || 0;
+      const successfulCalls = data?.filter(d => d.status === 'success').length || 0;
+      const failedCalls = data?.filter(d => d.status === 'error').length || 0;
+      const totalCost = data?.reduce((sum, d) => sum + (d.estimated_cost || 0), 0) || 0;
 
       return {
         totalCalls,
         successfulCalls,
         failedCalls,
         totalCost,
-        successRate: Math.round(successRate * 100) / 100,
+        successRate: totalCalls > 0 ? (successfulCalls / totalCalls) * 100 : 0,
       };
     },
     staleTime: 5 * 60 * 1000,
@@ -511,64 +479,49 @@ export function useProviderUsageStats(providerId: string, days: number = 30) {
 }
 
 // ============================================
-// COMBINED HOOKS
+// GROUPED DATA
 // ============================================
 
-/**
- * Get provider with its organization integration and fields
- */
-export function useProviderWithDetails(slug: string) {
-  const provider = useIntegrationProvider(slug);
-  const orgIntegration = useOrganizationIntegration(provider.data?.id || '');
-  const fields = useIntegrationFields(provider.data?.id || '');
-  const services = useIntegrationServices(provider.data?.id || '');
-
-  return {
-    provider: provider.data,
-    orgIntegration: orgIntegration.data,
-    fields: fields.data || [],
-    services: services.data || [],
-    isLoading:
-      provider.isLoading || orgIntegration.isLoading || fields.isLoading || services.isLoading,
-    error: provider.error || orgIntegration.error || fields.error || services.error,
+interface GroupedProviders {
+  category: IntegrationCategory;
+  providers: (IntegrationProvider & { orgIntegration?: OrganizationIntegration })[];
+  stats: {
+    totalProviders: number;
+    connectedProviders: number;
   };
 }
 
 /**
- * Get providers grouped by category with their org integrations
+ * Get all providers grouped by category with connection status
  */
 export function useProvidersGroupedByCategory() {
-  const categories = useIntegrationCategories();
-  const providers = useIntegrationProviders();
-  const orgIntegrations = useOrganizationIntegrations();
+  const categoriesQuery = useIntegrationCategories();
+  const providersQuery = useIntegrationProviders();
+  const orgIntegrationsQuery = useOrganizationIntegrations();
 
-  const grouped = categories.data?.map((category) => {
-    const categoryProviders = providers.data?.filter(
-      (p) => p.category_id === category.id
-    ) || [];
+  const isLoading =
+    categoriesQuery.isLoading || providersQuery.isLoading || orgIntegrationsQuery.isLoading;
+  const error = categoriesQuery.error || providersQuery.error || orgIntegrationsQuery.error;
 
-    const providersWithIntegrations = categoryProviders.map((provider) => {
-      const orgIntegration = orgIntegrations.data?.find(
-        (oi) => oi.provider_id === provider.id
-      );
+  const grouped: GroupedProviders[] | undefined = categoriesQuery.data?.map((category) => {
+    const categoryProviders =
+      providersQuery.data?.filter((p) => p.category_id === category.id) || [];
 
-      return {
-        ...provider,
-        orgIntegration,
-      };
-    });
+    // Attach org integration to each provider
+    const providersWithIntegration = categoryProviders.map((provider) => ({
+      ...provider,
+      orgIntegration: orgIntegrationsQuery.data?.find((i) => i.provider_id === provider.id),
+    }));
 
-    // Calculate category stats
-    const totalProviders = providersWithIntegrations.length;
-    const connectedProviders = providersWithIntegrations.filter(
+    const connectedProviders = providersWithIntegration.filter(
       (p) => p.orgIntegration?.connection_status === 'connected'
     ).length;
 
     return {
       category,
-      providers: providersWithIntegrations,
+      providers: providersWithIntegration,
       stats: {
-        totalProviders,
+        totalProviders: categoryProviders.length,
         connectedProviders,
       },
     };
@@ -576,7 +529,7 @@ export function useProvidersGroupedByCategory() {
 
   return {
     grouped,
-    isLoading: categories.isLoading || providers.isLoading || orgIntegrations.isLoading,
-    error: categories.error || providers.error || orgIntegrations.error,
+    isLoading,
+    error,
   };
 }

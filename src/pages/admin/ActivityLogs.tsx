@@ -160,15 +160,17 @@ export default function ActivityLogs() {
         .limit(100);
 
       if (error) {
-        console.warn("Activity logs table not available, using demo data:", error.message);
+        console.warn("Activity logs table not available:", error.message);
         setUsingDemoData(true);
         setLogs(DEMO_LOGS);
         return;
       }
 
+      // Table exists - use real data (even if empty)
+      setUsingDemoData(false);
+      
       if (!data || data.length === 0) {
-        setUsingDemoData(true);
-        setLogs(DEMO_LOGS);
+        setLogs([]);
         return;
       }
 

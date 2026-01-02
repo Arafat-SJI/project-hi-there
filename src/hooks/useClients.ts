@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { queryKeys, invalidateKeys } from "@/lib/cache";
 import { ClientFormData } from "@/lib/validation";
 import { useToast } from "@/hooks/use-toast";
+import { logCrud } from "@/lib/activity-logger";
 
 export interface Client {
   id: string;
@@ -80,8 +81,9 @@ export function useCreateClient() {
       if (error) throw error;
       return client as Client;
     },
-    onSuccess: () => {
+    onSuccess: (client) => {
       invalidateKeys.clients(queryClient);
+      logCrud("create", "client", client.id, { name: client.name });
       toast({
         title: "Success",
         description: "Client created successfully",
@@ -121,8 +123,9 @@ export function useUpdateClient() {
       if (error) throw error;
       return client as Client;
     },
-    onSuccess: () => {
+    onSuccess: (client) => {
       invalidateKeys.clients(queryClient);
+      logCrud("update", "client", client.id, { name: client.name });
       toast({
         title: "Success",
         description: "Client updated successfully",
@@ -151,8 +154,9 @@ export function useDeleteClient() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       invalidateKeys.clients(queryClient);
+      logCrud("delete", "client", id);
       toast({
         title: "Success",
         description: "Client deleted successfully",

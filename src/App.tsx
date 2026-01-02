@@ -29,6 +29,7 @@ import Knowledge from "./pages/Knowledge";
 import KnowledgeForm from "./pages/KnowledgeForm";
 import KnowledgeDetail from "./pages/KnowledgeDetail";
 import KnowledgeUpload from "./pages/KnowledgeUpload";
+import KnowledgeByCategory from "./pages/KnowledgeByCategory";
 import AIChat from "./pages/AIChat";
 import Admin from "./pages/Admin";
 import DeploymentStatus from "./pages/DeploymentStatus";
@@ -43,12 +44,15 @@ import IntegrationAnalytics from "./pages/admin/IntegrationAnalytics";
 import AIModelManagement from "./pages/admin/AIModelManagement";
 import AIUsageAnalytics from "./pages/admin/AIUsageAnalytics";
 import EnvironmentValidator from "./pages/admin/EnvironmentValidator";
+import FeedbackManagement from "./pages/admin/FeedbackManagement";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
 import AIAgents from "./pages/AIAgents";
 import Tasks from "./pages/Tasks";
+import TaskForm from "./pages/TaskForm";
+import TaskDetail from "./pages/TaskDetail";
 import PersonalKnowledge from "./pages/PersonalKnowledge";
 
 const queryClient = new QueryClient();
@@ -89,6 +93,9 @@ const App = () => (
                 {/* Tasks */}
                 <Route element={<ModuleRoute requiresFeatureFlag="enableTasks" />}>
                   <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/tasks/new" element={<TaskForm />} />
+                  <Route path="/tasks/:id" element={<TaskDetail />} />
+                  <Route path="/tasks/:id/edit" element={<TaskForm />} />
                 </Route>
 
                 {/* Knowledge Base */}
@@ -96,6 +103,7 @@ const App = () => (
                   <Route path="/knowledge" element={<Knowledge />} />
                   <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
                   <Route path="/knowledge/personal" element={<PersonalKnowledge />} />
+                  <Route path="/knowledge/category/:slug" element={<KnowledgeByCategory />} />
                   <Route path="/knowledge/new" element={<KnowledgeForm />} />
                   <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
                   <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
@@ -135,6 +143,7 @@ const App = () => (
                   <Route path="/admin/integrations/:slug" element={<ProviderDetail />} />
                   <Route path="/admin/ai-models" element={<AIModelManagement />} />
                   <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
+                  <Route path="/admin/feedback" element={<FeedbackManagement />} />
                   <Route path="/admin/deployment" element={<DeploymentStatus />} />
                   <Route path="/admin/environment" element={<EnvironmentValidator />} />
                 </Route>

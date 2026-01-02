@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,11 +10,26 @@ import {
   Database,
   Zap,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  MessageSquare,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 export default function Admin() {
+  const [pendingFeedbackCount, setPendingFeedbackCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPendingFeedback = async () => {
+      const { count } = await supabase
+        .from("feedback")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingFeedbackCount(count || 0);
+    };
+    fetchPendingFeedback();
+  }, []);
+
   const stats = [
     {
       title: "Total Users",
@@ -160,6 +176,33 @@ export default function Admin() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Feedback Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Feedback Management
+            {pendingFeedbackCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {pendingFeedbackCount} pending
+              </Badge>
+            )}
+          </CardTitle>
+          <CardDescription>Review and manage user feedback</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <p className="font-medium">All Feedback</p>
+              <p className="text-sm text-muted-foreground">Bug reports, features & suggestions</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/feedback">Manage</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* System Health */}
       <Card>

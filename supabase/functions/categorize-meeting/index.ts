@@ -1,46 +1,60 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured')
+      throw new Error('OPENAI_API_KEY is not configured');
     }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    )
+    );
 
-    const { file_id } = await req.json()
+    const { meeting_id, meeting_title, meeting_description } = await req.json();
+    console.log('Categorizing meeting:', { meeting_id, meeting_title });
 
-    if (!file_id) {
+    if (!meeting_id) {
       return new Response(
-        JSON.stringify({ error: 'file_id is required' }),
+        JSON.stringify({ error: 'meeting_id is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
+      );
     }
 
-    // Get meeting file
-    const { data: file } = await supabaseClient
-      .from('zoom_files')
-      .select('transcript_text, meeting_topic')
-      .eq('id', file_id)
-      .single()
+    // Build content for categorization
+    let content = '';
+    if (meeting_title) content += `Title: ${meeting_title}\n`;
+    if (meeting_description) content += `Description: ${meeting_description}\n`;
 
-    if (!file || !file.transcript_text) {
-      throw new Error('Transcript not found')
+    // If no title/description provided, fetch from database
+    if (!content.trim()) {
+      const { data: meeting, error } = await supabaseClient
+        .from('meetings')
+        .select('title, description')
+        .eq('id', meeting_id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching meeting:', error);
+        throw new Error('Meeting not found');
+      }
+
+      content = `Title: ${meeting.title || 'Untitled'}\nDescription: ${meeting.description || 'No description'}`;
     }
+
+    console.log('Content for categorization:', content);
 
     // Categorize using OpenAI
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -54,48 +68,55 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'Categorize meetings into: client_meeting, internal_meeting, planning, review, standup, or other. Extract key topics and sentiment.'
+            content: `You are a meeting categorization assistant. Categorize meetings into one of these categories:
+- client_meeting: External meetings with clients or customers
+- internal_meeting: Team or company internal meetings
+- planning: Sprint planning, project planning, roadmap discussions
+- review: Code reviews, performance reviews, retrospectives
+- standup: Daily standups, quick sync meetings
+- interview: Job interviews, candidate screenings
+- training: Training sessions, workshops, onboarding
+- other: Anything that doesn't fit above categories
+
+Respond with a JSON object containing:
+- category: one of the categories above
+- confidence: a number between 0 and 1 indicating your confidence`
           },
           {
             role: 'user',
-            content: `Categorize this meeting. Respond in JSON format with: primary_category, secondary_categories (array), key_topics (array), sentiment.
-
-Topic: ${file.meeting_topic}
-Transcript: ${file.transcript_text.substring(0, 2000)}`
+            content: `Categorize this meeting:\n\n${content}`
           }
         ],
         response_format: { type: "json_object" }
       }),
-    })
+    });
 
     if (!openaiResponse.ok) {
-      throw new Error('Failed to categorize meeting')
+      const errorText = await openaiResponse.text();
+      console.error('OpenAI API error:', errorText);
+      throw new Error('Failed to categorize meeting');
     }
 
-    const data = await openaiResponse.json()
-    const categorization = JSON.parse(data.choices[0].message.content)
+    const data = await openaiResponse.json();
+    const result = JSON.parse(data.choices[0].message.content);
+    console.log('Categorization result:', result);
 
-    // Save categorization
-    await supabaseClient
-      .from('meeting_categorizations')
-      .upsert([{
-        meeting_file_id: file_id,
-        ...categorization,
-        category_confidence: 0.85,
-      }], {
-        onConflict: 'meeting_file_id',
-      })
+    // Ensure we have the expected format
+    const response = {
+      category: result.category || 'other',
+      confidence: result.confidence || 0.5
+    };
 
     return new Response(
-      JSON.stringify(categorization),
+      JSON.stringify(response),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    )
+    );
   } catch (error: unknown) {
-    console.error('Categorize meeting error:', error)
-    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Categorize meeting error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    )
+    );
   }
-})
+});

@@ -1,22 +1,18 @@
 /**
  * Provider Detail Page
  * Dynamic provider configuration with form fields, services, and stats
+ * NOTE: Placeholder - integration tables don't exist yet
  */
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import {
-  useProviderWithDetails,
-  useUpdateIntegration,
-  useTestConnection,
-  useDisconnectIntegration,
-  useToggleService,
-  useSetDefaultService,
+  useIntegrationProvider,
   useProviderUsageStats,
 } from '@/hooks/useIntegrations';
 import { ProviderDetailHeader } from '@/components/integrations/ProviderDetailHeader';
@@ -34,12 +30,10 @@ import {
 
 export default function ProviderDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  // Fetch data
-  const { provider, orgIntegration, fields, services, isLoading, error } = useProviderWithDetails(
-    slug || ''
-  );
+  // Fetch provider data
+  const { data: provider, isLoading, error } = useIntegrationProvider(slug || '');
   const { data: usageStats, isLoading: statsLoading } = useProviderUsageStats(
     provider?.id || '',
     30
@@ -282,119 +276,131 @@ export default function ProviderDetail() {
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
-  // Error state
+  // Error state or no provider
   if (error || !provider) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-4">
-        <AlertCircle className="h-12 w-12 text-destructive" />
-        <p className="text-destructive">Failed to load provider details</p>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
+      <div className="space-y-6">
+        <Button variant="ghost" onClick={() => navigate('/admin/integrations')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Integrations
+        </Button>
+        
+        <div className="flex h-96 flex-col items-center justify-center gap-4">
+          <AlertCircle className="h-12 w-12 text-destructive" />
+          <p className="text-destructive">Provider not found</p>
+          <Button onClick={() => navigate('/admin/integrations')}>
+            View All Integrations
+          </Button>
+        </div>
       </div>
     );
   }
-
-  const isOAuth = provider.auth_type === 'oauth2';
-  const sensitiveFieldKeys = getSensitiveFieldKeys(fields);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <ProviderDetailHeader
-        provider={provider}
-        orgIntegration={orgIntegration}
-        onTestConnection={handleTestConnection}
-        onDisconnect={handleDisconnect}
-        onOAuthConnect={handleOAuthConnect}
-        isTesting={testConnection.isPending}
-        isDisconnecting={disconnectIntegration.isPending}
-      />
+      {/* Back button */}
+      <Button variant="ghost" onClick={() => navigate('/admin/integrations')}>
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Integrations
+      </Button>
 
-      {/* Configuration Form */}
-      {!isOAuth && fields.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Configuration</CardTitle>
-            <CardDescription>
-              Enter your {provider.name} credentials and settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSave();
-              }}
-              className="space-y-4"
-            >
-              {/* Dynamic fields */}
-              {fields.map((field) => (
-                <DynamicFormField
-                  key={field.id}
-                  field={field}
-                  value={formValues[field.field_key] || ''}
-                  onChange={(value) => handleFieldChange(field.field_key, value)}
-                  showMasked={!!orgIntegration}
-                />
-              ))}
-
-              {/* Save button */}
-              <div className="flex items-center gap-2 pt-4">
-                <Button type="submit" disabled={!hasChanges || isSaving}>
-                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Configuration
-                </Button>
-
-                {hasChanges && (
-                  <p className="text-sm text-muted-foreground">You have unsaved changes</p>
-                )}
-              </div>
-
-              {/* Security note */}
-              {sensitiveFieldKeys.length > 0 && (
-                <div className="mt-4 p-3 rounded-lg bg-muted text-sm">
-                  <p className="font-medium mb-1">Security Note</p>
-                  <p className="text-muted-foreground">
-                    Sensitive fields (API keys, passwords) are encrypted and stored securely. They
-                    are never displayed in full after saving.
-                  </p>
-                </div>
-              )}
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* OAuth Instructions */}
-      {isOAuth && !orgIntegration?.connection_status === 'connected' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>OAuth 2.0 Authentication</CardTitle>
-            <CardDescription>Connect your {provider.name} account</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Click the "Connect with {provider.name}" button above to authorize this application
-                to access your {provider.name} account. You'll be redirected to {provider.name} to
-                approve the connection.
+      {/* Provider Header */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            {provider.name}
+          </CardTitle>
+          <CardDescription>{provider.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Authentication</p>
+              <p className="text-sm text-muted-foreground capitalize">
+                {provider.auth_type.replace('_', ' ')}
               </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Status</p>
+              <p className="text-sm text-muted-foreground">
+                {provider.is_available ? 'Available' : 'Not Available'}
+                {provider.is_beta && ' (Beta)'}
+                {provider.is_coming_soon && ' (Coming Soon)'}
+              </p>
+            </div>
+            {provider.docs_url && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Documentation</p>
+                <a
+                  href={provider.docs_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  View Docs
+                </a>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-              {provider.oauth_config?.scopes && (
-                <div>
-                  <p className="text-sm font-medium mb-2">Required Permissions:</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                    {provider.oauth_config.scopes.map((scope) => (
-                      <li key={scope}>{scope}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+      {/* Configuration Notice */}
+      <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
+            <AlertCircle className="h-5 w-5" />
+            Integration Tables Not Configured
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            The integration hub requires additional database tables to be created before
+            provider configuration can be completed. These tables include:
+          </p>
+          <ul className="mt-2 list-disc list-inside text-sm text-amber-800 dark:text-amber-200 space-y-1">
+            <li>integration_categories</li>
+            <li>integration_providers</li>
+            <li>integration_fields</li>
+            <li>organization_integrations</li>
+            <li>integration_services</li>
+            <li>integration_usage_logs</li>
+          </ul>
+          <p className="mt-4 text-sm text-amber-800 dark:text-amber-200">
+            Please run database migrations to create these tables before configuring integrations.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Usage Statistics Placeholder */}
+      {usageStats && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Usage Statistics (Last 30 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="text-center p-4 rounded-lg bg-muted">
+                <p className="text-2xl font-bold">{usageStats.totalCalls}</p>
+                <p className="text-sm text-muted-foreground">Total Calls</p>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-muted">
+                <p className="text-2xl font-bold">{usageStats.successfulCalls}</p>
+                <p className="text-sm text-muted-foreground">Successful</p>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-muted">
+                <p className="text-2xl font-bold">{usageStats.failedCalls}</p>
+                <p className="text-sm text-muted-foreground">Failed</p>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-muted">
+                <p className="text-2xl font-bold">{usageStats.successRate.toFixed(1)}%</p>
+                <p className="text-sm text-muted-foreground">Success Rate</p>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -186,12 +186,8 @@ export default function Integrations() {
                       {group.providers.map((provider) => (
                         <ProviderCard
                           key={provider.id}
-                          provider={
-                            provider as IntegrationProvider
-                          }
-                          orgIntegration={
-                            provider.orgIntegration as OrganizationIntegration | undefined
-                          }
+                          provider={provider as IntegrationProvider}
+                          orgIntegration={(provider as any).orgIntegration as OrganizationIntegration | undefined}
                         />
                       ))}
                     </div>

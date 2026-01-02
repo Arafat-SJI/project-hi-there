@@ -42,9 +42,9 @@ export interface IntegrationCategory {
 }
 
 export interface OAuthConfig {
-  authorize_url: string;
-  token_url: string;
-  scopes: string[];
+  authorize_url?: string;
+  token_url?: string;
+  scopes?: string[];
   client_id?: string;
   client_secret?: string;
   response_type?: string;
@@ -56,15 +56,15 @@ export interface IntegrationProvider {
   category_id: string;
   name: string;
   slug: string;
-  description: string;
+  description: string | null;
   logo_url: string | null;
   docs_url: string | null;
-  auth_type: AuthType;
-  oauth_config: OAuthConfig | null;
-  is_available: boolean;
-  is_coming_soon: boolean;
-  is_beta: boolean;
-  display_order: number;
+  auth_type: string;
+  oauth_config: OAuthConfig | Record<string, any> | null;
+  is_available: boolean | null;
+  is_coming_soon: boolean | null;
+  is_beta: boolean | null;
+  display_order: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -74,35 +74,29 @@ export interface IntegrationField {
   provider_id: string;
   field_key: string;
   label: string;
-  field_type: 'text' | 'password' | 'url' | 'email' | 'select' | 'textarea';
+  field_type: string;
   placeholder: string | null;
   default_value: string | null;
-  is_required: boolean;
-  is_sensitive: boolean;
+  is_required: boolean | null;
+  is_sensitive: boolean | null;
   help_text: string | null;
   validation_regex: string | null;
-  select_options: { value: string; label: string }[] | null;
-  display_order: number;
+  select_options: any | null;
+  display_order: number | null;
   created_at: string;
 }
 
 export interface OrganizationIntegration {
   id: string;
-  organization_id: string | null;
+  user_id: string;
   provider_id: string;
-  enabled: boolean;
-  config: Record<string, any>;
-  connection_status: ConnectionStatus;
+  enabled: boolean | null;
+  config: Record<string, any> | null;
+  connection_status: string | null;
   connection_message: string | null;
   last_tested_at: string | null;
   last_sync_at: string | null;
-  oauth_tokens: {
-    access_token: string;
-    refresh_token?: string;
-    expires_at?: string;
-    token_type: string;
-  } | null;
-  created_by: string | null;
+  oauth_tokens: Record<string, any> | null;
   created_at: string;
   updated_at: string;
 }
@@ -113,33 +107,29 @@ export interface IntegrationService {
   name: string;
   service_key: string;
   description: string | null;
-  features: Record<string, boolean> | null;
-  has_cost: boolean;
-  cost_model: {
-    type: 'per_api_call' | 'tiered' | 'flat' | 'per_token';
-    rate?: number;
-    currency?: string;
-  } | null;
-  enabled: boolean;
-  is_default: boolean;
-  requires_config: boolean;
-  display_order: number;
+  features: Record<string, any> | null;
+  has_cost: boolean | null;
+  cost_model: Record<string, any> | null;
+  enabled: boolean | null;
+  is_default: boolean | null;
+  is_beta: boolean | null;
+  requires_config: boolean | null;
+  display_order: number | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface IntegrationUsageLog {
   id: string;
-  organization_id: string | null;
   provider_id: string | null;
   service_id: string | null;
   user_id: string | null;
   action: string;
-  status: IntegrationStatus;
+  status: string;
   request_metadata: Record<string, any> | null;
   response_metadata: Record<string, any> | null;
   error_message: string | null;
-  estimated_cost: number;
+  estimated_cost: number | null;
   created_at: string;
 }
 
@@ -219,15 +209,15 @@ export function getProviderIcon(slug: string): LucideIcon {
 /**
  * Get connection status icon
  */
-export function getConnectionStatusIcon(status: ConnectionStatus): LucideIcon {
-  const iconMap: Record<ConnectionStatus, LucideIcon> = {
+export function getConnectionStatusIcon(status: string | null): LucideIcon {
+  const iconMap: Record<string, LucideIcon> = {
     connected: CheckCircle2,
     disconnected: Circle,
     error: XCircle,
     testing: Clock,
   };
 
-  return iconMap[status];
+  return iconMap[status || 'disconnected'] || Circle;
 }
 
 // ============================================
@@ -238,44 +228,44 @@ export function getConnectionStatusIcon(status: ConnectionStatus): LucideIcon {
  * Get badge variant for connection status
  */
 export function getConnectionStatusVariant(
-  status: ConnectionStatus
+  status: string | null
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
-  const variantMap: Record<ConnectionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     connected: 'default',
     disconnected: 'secondary',
     error: 'destructive',
     testing: 'outline',
   };
 
-  return variantMap[status];
+  return variantMap[status || 'disconnected'] || 'secondary';
 }
 
 /**
  * Get human-readable connection status label
  */
-export function getConnectionStatusLabel(status: ConnectionStatus): string {
-  const labelMap: Record<ConnectionStatus, string> = {
+export function getConnectionStatusLabel(status: string | null): string {
+  const labelMap: Record<string, string> = {
     connected: 'Connected',
     disconnected: 'Not Connected',
     error: 'Error',
     testing: 'Testing...',
   };
 
-  return labelMap[status];
+  return labelMap[status || 'disconnected'] || 'Unknown';
 }
 
 /**
  * Get auth type label
  */
-export function getAuthTypeLabel(authType: AuthType): string {
-  const labelMap: Record<AuthType, string> = {
+export function getAuthTypeLabel(authType: string): string {
+  const labelMap: Record<string, string> = {
     api_key: 'API Key',
     oauth2: 'OAuth 2.0',
     basic: 'Basic Auth',
     service_account: 'Service Account',
   };
 
-  return labelMap[authType];
+  return labelMap[authType] || authType;
 }
 
 /**

@@ -158,6 +158,25 @@ export default function SystemSettings() {
               disabled={isProcessing}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="logoUrl">Logo URL</Label>
+            <Input
+              id="logoUrl"
+              value={settings.branding.logoUrl || ''}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  branding: { ...settings.branding, logoUrl: e.target.value },
+                })
+              }
+              placeholder="https://example.com/logo.png"
+              disabled={isProcessing}
+            />
+            <p className="text-sm text-muted-foreground">
+              URL to your company logo (optional)
+            </p>
+          </div>
         </CardContent>
       </Card>
 
