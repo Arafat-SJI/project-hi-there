@@ -43,8 +43,7 @@ export function useTasks(filters?: Record<string, any>) {
         .select(`
           *,
           clients(name),
-          meetings(title),
-          assigned_user:profiles!tasks_assigned_to_fkey(full_name, email)
+          meetings(title)
         `)
         .order("created_at", { ascending: false });
 
@@ -80,9 +79,7 @@ export function useTask(id: string) {
         .select(`
           *,
           clients(name),
-          meetings(title),
-          assigned_user:profiles!tasks_assigned_to_fkey(full_name, email),
-          creator:profiles!tasks_created_by_fkey(full_name, email)
+          meetings(title)
         `)
         .eq("id", id)
         .single();

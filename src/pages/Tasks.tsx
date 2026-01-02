@@ -291,10 +291,12 @@ export default function Tasks() {
                         <div className="w-full bg-secondary rounded-full h-2 max-w-[100px]">
                           <div
                             className="bg-primary h-2 rounded-full transition-all"
-                            style={{ width: `${task.progress_percentage}%` }}
+                            style={{ width: `${task.status === 'completed' ? 100 : task.status === 'in_progress' ? 50 : 0}%` }}
                           />
                         </div>
-                        <span className="text-xs text-muted-foreground">{task.progress_percentage}%</span>
+                        <span className="text-xs text-muted-foreground">
+                          {task.status === 'completed' ? 100 : task.status === 'in_progress' ? 50 : 0}%
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
