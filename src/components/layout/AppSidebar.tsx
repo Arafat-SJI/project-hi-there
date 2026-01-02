@@ -1,6 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useBranding } from "@/contexts/BrandingContext";
 import {
   LayoutDashboard,
   Users,
@@ -22,6 +24,7 @@ interface SidebarItem {
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
   adminOnly?: boolean;
+  requiresFeature?: string;
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -39,22 +42,26 @@ const sidebarItems: SidebarItem[] = [
     title: "Meetings",
     href: "/meetings",
     icon: Calendar,
+    requiresFeature: "enableMeetings",
   },
   {
     title: "Tasks",
     href: "/tasks",
     icon: CheckSquare,
+    requiresFeature: "enableTasks",
   },
   {
     title: "Knowledge Base",
     href: "/knowledge",
     icon: BookOpen,
+    requiresFeature: "enableKnowledgeBase",
   },
   {
     title: "AI Chat",
     href: "/ai",
     icon: Brain,
     adminOnly: true,
+    requiresFeature: "enableAIChat",
   },
   {
     title: "Admin Panel",
@@ -67,12 +74,24 @@ const sidebarItems: SidebarItem[] = [
 export function AppSidebar() {
   const location = useLocation();
   const { profile } = useAuth();
+  const { isFeatureEnabled } = useFeatureFlags();
+  const { companyName, logoUrl } = useBranding();
 
   // Check if user has admin role
   const isAdmin = profile?.role === "admin" || profile?.role === "moderator";
 
-  // Filter sidebar items based on user role
-  const visibleItems = sidebarItems.filter(item => !item.adminOnly || isAdmin);
+  // Filter sidebar items based on user role and feature flags
+  const visibleItems = sidebarItems.filter(item => {
+    // Check admin-only items
+    if (item.adminOnly && !isAdmin) return false;
+
+    // Check feature flags
+    if (item.requiresFeature && !isFeatureEnabled(item.requiresFeature as any)) {
+      return false;
+    }
+
+    return true;
+  });
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar-background">
@@ -80,15 +99,19 @@ export function AppSidebar() {
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
           <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-sm">
-              <Brain className="h-5 w-5 text-primary-foreground" />
-            </div>
+            {logoUrl ? (
+              <img src={logoUrl} alt={companyName} className="h-9 w-9 rounded-lg object-cover" />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-sm">
+                <Brain className="h-5 w-5 text-primary-foreground" />
+              </div>
+            )}
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-sidebar-foreground">
                 Control Tower
               </span>
               <span className="text-xs text-muted-foreground">
-                CollabAi
+                {companyName}
               </span>
             </div>
           </Link>

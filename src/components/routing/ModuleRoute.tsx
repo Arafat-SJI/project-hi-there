@@ -1,7 +1,10 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 interface ModuleRouteProps {
   module?: string;
@@ -17,8 +20,10 @@ export function ModuleRoute({
   children,
 }: ModuleRouteProps) {
   const { user, profile, loading } = useAuth();
+  const { isFeatureEnabled, isLoading: configLoading } = useFeatureFlags();
+  const navigate = useNavigate();
 
-  if (loading) {
+  if (loading || configLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -49,12 +54,16 @@ export function ModuleRoute({
     }
   }
 
-  // Check feature flag if required (placeholder for future implementation)
-  if (requiresFeatureFlag) {
-    // This would check app_config or user settings for feature flags
-    // For now, we'll allow access if user is authenticated
-    console.log(`Feature flag check: ${requiresFeatureFlag}`);
-  }
+  // Check feature flag if required
+  useEffect(() => {
+    if (requiresFeatureFlag) {
+      const enabled = isFeatureEnabled(requiresFeatureFlag as any);
+      if (!enabled) {
+        toast.error(`This feature is currently disabled. Please contact your administrator.`);
+        navigate("/dashboard", { replace: true });
+      }
+    }
+  }, [requiresFeatureFlag, isFeatureEnabled, navigate]);
 
   // Check module-specific permissions if needed
   if (module) {

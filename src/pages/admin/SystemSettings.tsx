@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Settings, Save, RefreshCw, Building2, Mail, Zap, Shield, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Settings, Save, RefreshCw, Building2, Mail, Zap, Shield, Loader2, Database } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function SystemSettings() {
   const { data: config, isLoading } = useAppConfig();
@@ -14,6 +17,12 @@ export default function SystemSettings() {
   const resetConfig = useResetAppConfig();
 
   const [settings, setSettings] = useState<AppConfig | null>(null);
+  const [seedOptions, setSeedOptions] = useState({
+    seedAIAgents: true,
+    seedKnowledgeCategories: true,
+    seedSampleData: false,
+  });
+  const [isSeeding, setIsSeeding] = useState(false);
 
   // Load config into local state when it arrives
   useEffect(() => {
@@ -29,6 +38,30 @@ export default function SystemSettings() {
 
   const handleReset = async () => {
     await resetConfig.mutateAsync();
+  };
+
+  const handleSeedData = async () => {
+    setIsSeeding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-template-data", {
+        body: { options: seedOptions },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(`Successfully seeded: ${data.seeded.join(", ")}`);
+        if (data.errors.length > 0) {
+          toast.warning(`Errors: ${data.errors.join(", ")}`);
+        }
+      } else {
+        toast.error("Failed to seed template data");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to seed template data");
+    } finally {
+      setIsSeeding(false);
+    }
   };
 
   const isProcessing = updateConfig.isPending || resetConfig.isPending;
@@ -261,6 +294,199 @@ export default function SystemSettings() {
               disabled={isProcessing}
             />
           </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Clients Module</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable client/CRM management
+              </p>
+            </div>
+            <Switch
+              checked={settings.features.enableClients}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  features: { ...settings.features, enableClients: checked },
+                })
+              }
+              disabled={isProcessing}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>AI Agents</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable AI agents management
+              </p>
+            </div>
+            <Switch
+              checked={settings.features.enableAIAgents}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  features: { ...settings.features, enableAIAgents: checked },
+                })
+              }
+              disabled={isProcessing}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Personal Knowledge</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable user personal file uploads
+              </p>
+            </div>
+            <Switch
+              checked={settings.features.enablePersonalKnowledge}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  features: { ...settings.features, enablePersonalKnowledge: checked },
+                })
+              }
+              disabled={isProcessing}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Feedback Collection</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable user feedback submission
+              </p>
+            </div>
+            <Switch
+              checked={settings.features.enableFeedback}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  features: { ...settings.features, enableFeedback: checked },
+                })
+              }
+              disabled={isProcessing}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Google Drive Integration</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable Google Drive file sync
+              </p>
+            </div>
+            <Switch
+              checked={settings.features.enableGoogleDrive}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  features: { ...settings.features, enableGoogleDrive: checked },
+                })
+              }
+              disabled={isProcessing}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Zoom Integration</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable Zoom meeting sync
+              </p>
+            </div>
+            <Switch
+              checked={settings.features.enableZoomSync}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  features: { ...settings.features, enableZoomSync: checked },
+                })
+              }
+              disabled={isProcessing}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Template Data Seeding */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            <CardTitle>Template Data Seeding</CardTitle>
+          </div>
+          <CardDescription>Populate the platform with default templates and sample data</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="seedAIAgents"
+                checked={seedOptions.seedAIAgents}
+                onCheckedChange={(checked) =>
+                  setSeedOptions({ ...seedOptions, seedAIAgents: checked as boolean })
+                }
+              />
+              <label htmlFor="seedAIAgents" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Seed Default AI Agents (Meeting Summarizer, Document Analyzer, etc.)
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="seedKnowledgeCategories"
+                checked={seedOptions.seedKnowledgeCategories}
+                onCheckedChange={(checked) =>
+                  setSeedOptions({ ...seedOptions, seedKnowledgeCategories: checked as boolean })
+                }
+              />
+              <label htmlFor="seedKnowledgeCategories" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Seed Knowledge Base Categories
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="seedSampleData"
+                checked={seedOptions.seedSampleData}
+                onCheckedChange={(checked) =>
+                  setSeedOptions({ ...seedOptions, seedSampleData: checked as boolean })
+                }
+              />
+              <label htmlFor="seedSampleData" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Seed Sample Data (demo clients, meetings, etc.)
+              </label>
+            </div>
+          </div>
+
+          <Button onClick={handleSeedData} disabled={isSeeding} variant="outline" className="w-full">
+            {isSeeding ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Seeding Data...
+              </>
+            ) : (
+              <>
+                <Database className="mr-2 h-4 w-4" />
+                Seed Template Data
+              </>
+            )}
+          </Button>
         </CardContent>
       </Card>
 

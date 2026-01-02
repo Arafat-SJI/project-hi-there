@@ -4,8 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { BrandingProvider } from "@/contexts/BrandingContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import { ModuleRoute } from "@/components/routing/ModuleRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 
@@ -35,6 +37,7 @@ import RoleManagement from "./pages/admin/RoleManagement";
 import ActivityLogs from "./pages/admin/ActivityLogs";
 import SystemSettings from "./pages/admin/SystemSettings";
 import Integrations from "./pages/admin/Integrations";
+import EnvironmentValidator from "./pages/admin/EnvironmentValidator";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
@@ -48,10 +51,11 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <BrandingProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
@@ -70,33 +74,43 @@ const App = () => (
                 <Route path="/clients/:id/edit" element={<ClientForm />} />
 
                 {/* Meetings */}
-                <Route path="/meetings" element={<Meetings />} />
-                <Route path="/meetings/new" element={<MeetingForm />} />
-                <Route path="/meetings/:id" element={<MeetingDetail />} />
-                <Route path="/meetings/:id/edit" element={<MeetingForm />} />
+                <Route element={<ModuleRoute requiresFeatureFlag="enableMeetings" />}>
+                  <Route path="/meetings" element={<Meetings />} />
+                  <Route path="/meetings/new" element={<MeetingForm />} />
+                  <Route path="/meetings/:id" element={<MeetingDetail />} />
+                  <Route path="/meetings/:id/edit" element={<MeetingForm />} />
+                </Route>
 
                 {/* Tasks */}
-                <Route path="/tasks" element={<Tasks />} />
+                <Route element={<ModuleRoute requiresFeatureFlag="enableTasks" />}>
+                  <Route path="/tasks" element={<Tasks />} />
+                </Route>
 
                 {/* Knowledge Base */}
-                <Route path="/knowledge" element={<Knowledge />} />
-                <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
-                <Route path="/knowledge/personal" element={<PersonalKnowledge />} />
-                <Route path="/knowledge/new" element={<KnowledgeForm />} />
-                <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
-                <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
+                <Route element={<ModuleRoute requiresFeatureFlag="enableKnowledgeBase" />}>
+                  <Route path="/knowledge" element={<Knowledge />} />
+                  <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
+                  <Route path="/knowledge/personal" element={<PersonalKnowledge />} />
+                  <Route path="/knowledge/new" element={<KnowledgeForm />} />
+                  <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
+                  <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
+                </Route>
 
                 {/* User Pages */}
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/notifications" element={<Notifications />} />
+                <Route element={<ModuleRoute requiresFeatureFlag="enableNotifications" />}>
+                  <Route path="/notifications" element={<Notifications />} />
+                </Route>
                 <Route path="/feedback" element={<Feedback />} />
 
                 {/* AI routes (admin only but uses regular layout) */}
                 <Route element={<AdminRoute />}>
-                  <Route path="/ai" element={<AIChat />} />
-                  <Route path="/ai/chat" element={<AIChat />} />
-                  <Route path="/ai/agents" element={<AIAgents />} />
+                  <Route element={<ModuleRoute requiresFeatureFlag="enableAIChat" />}>
+                    <Route path="/ai" element={<AIChat />} />
+                    <Route path="/ai/chat" element={<AIChat />} />
+                    <Route path="/ai/agents" element={<AIAgents />} />
+                  </Route>
                 </Route>
               </Route>
             </Route>
@@ -112,6 +126,7 @@ const App = () => (
                   <Route path="/admin/settings" element={<SystemSettings />} />
                   <Route path="/admin/integrations" element={<Integrations />} />
                   <Route path="/admin/deployment" element={<DeploymentStatus />} />
+                  <Route path="/admin/environment" element={<EnvironmentValidator />} />
                 </Route>
               </Route>
             </Route>
@@ -119,8 +134,9 @@ const App = () => (
             {/* 404 catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </BrandingProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
