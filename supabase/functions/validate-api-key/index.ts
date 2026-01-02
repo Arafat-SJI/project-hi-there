@@ -43,6 +43,30 @@ serve(async (req) => {
       case 'perplexity':
         validationResult = await validatePerplexity(apiKey)
         break
+      case 'salesforce':
+        validationResult = await validateSalesforce(apiKey)
+        break
+      case 'hubspot':
+        validationResult = await validateHubSpot(apiKey)
+        break
+      case 'mailgun':
+        validationResult = await validateMailgun(apiKey)
+        break
+      case 'postmark':
+        validationResult = await validatePostmark(apiKey)
+        break
+      case 'amazon_ses':
+        validationResult = await validateAmazonSES(apiKey)
+        break
+      case 'jira':
+        validationResult = await validateJira(apiKey)
+        break
+      case 'asana':
+        validationResult = await validateAsana(apiKey)
+        break
+      case 'monday':
+        validationResult = await validateMonday(apiKey)
+        break
       default:
         return new Response(
           JSON.stringify({ valid: false, error: `Unknown service: ${service}` }),
@@ -327,6 +351,397 @@ async function validatePerplexity(apiKey: string) {
     return {
       valid: false,
       message: `Perplexity validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Salesforce credentials (expects instance_url:access_token format or just access_token)
+async function validateSalesforce(credentials: string) {
+  try {
+    // Parse credentials - can be either "instance_url:access_token" or just "access_token"
+    let instanceUrl = 'https://login.salesforce.com'
+    let accessToken = credentials
+
+    if (credentials.includes(':')) {
+      const parts = credentials.split(':')
+      instanceUrl = parts[0]
+      accessToken = parts.slice(1).join(':')
+    }
+
+    // Test Salesforce API with a simple query
+    const response = await fetch(`${instanceUrl}/services/data/v58.0/limits`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        valid: true,
+        message: 'Salesforce credentials are valid',
+        details: {
+          instance: instanceUrl,
+          api_version: 'v58.0',
+        },
+      }
+    } else if (response.status === 401) {
+      return {
+        valid: false,
+        message: 'Invalid Salesforce access token',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData[0]?.message || 'Invalid Salesforce credentials',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Salesforce validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate HubSpot API key
+async function validateHubSpot(apiKey: string) {
+  try {
+    // Test HubSpot API with account info endpoint
+    const response = await fetch(
+      `https://api.hubapi.com/account-info/v3/api-usage/daily?hapikey=${apiKey}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (response.ok) {
+      return {
+        valid: true,
+        message: 'HubSpot API key is valid',
+        details: { status: response.status },
+      }
+    } else if (response.status === 401 || response.status === 403) {
+      return {
+        valid: false,
+        message: 'Invalid HubSpot API key',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.message || 'Invalid HubSpot API key',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `HubSpot validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Mailgun API key (expects domain:api_key format)
+async function validateMailgun(credentials: string) {
+  try {
+    // Parse credentials - expects "domain:api_key" format
+    const [domain, apiKey] = credentials.split(':')
+
+    if (!domain || !apiKey) {
+      return {
+        valid: false,
+        message: 'Mailgun credentials must be in format: domain:api_key',
+        details: {},
+      }
+    }
+
+    // Test Mailgun API
+    const authString = btoa(`api:${apiKey}`)
+    const response = await fetch(`https://api.mailgun.net/v3/domains/${domain}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${authString}`,
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        valid: true,
+        message: 'Mailgun API key is valid',
+        details: {
+          domain: data.domain?.name,
+          state: data.domain?.state,
+        },
+      }
+    } else if (response.status === 401) {
+      return {
+        valid: false,
+        message: 'Invalid Mailgun API key',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.message || 'Invalid Mailgun credentials',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Mailgun validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Postmark API key (Server Token)
+async function validatePostmark(apiKey: string) {
+  try {
+    // Test Postmark API with server info endpoint
+    const response = await fetch('https://api.postmarkapp.com/server', {
+      method: 'GET',
+      headers: {
+        'X-Postmark-Server-Token': apiKey,
+        'Accept': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        valid: true,
+        message: 'Postmark API key is valid',
+        details: {
+          server_name: data.Name,
+          server_id: data.ID,
+        },
+      }
+    } else if (response.status === 401 || response.status === 422) {
+      return {
+        valid: false,
+        message: 'Invalid Postmark API key',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.Message || 'Invalid Postmark API key',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Postmark validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Amazon SES credentials (expects access_key_id:secret_access_key:region format)
+async function validateAmazonSES(credentials: string) {
+  try {
+    // For SES, we can't directly validate without AWS SDK
+    // Return a message indicating OAuth/proper setup is needed
+    return {
+      valid: false,
+      message: 'Amazon SES requires OAuth 2.0 or AWS SDK integration. Please use the OAuth flow or configure via AWS console.',
+      details: {
+        note: 'Direct API key validation not supported for SES',
+      },
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Amazon SES validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Jira credentials (expects email:api_token:domain format)
+async function validateJira(credentials: string) {
+  try {
+    // Parse credentials - expects "email:api_token:domain" format
+    const parts = credentials.split(':')
+
+    if (parts.length < 3) {
+      return {
+        valid: false,
+        message: 'Jira credentials must be in format: email:api_token:domain.atlassian.net',
+        details: {},
+      }
+    }
+
+    const email = parts[0]
+    const apiToken = parts[1]
+    const domain = parts.slice(2).join(':')
+
+    // Test Jira API with myself endpoint
+    const authString = btoa(`${email}:${apiToken}`)
+    const response = await fetch(`https://${domain}/rest/api/3/myself`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${authString}`,
+        'Accept': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        valid: true,
+        message: 'Jira credentials are valid',
+        details: {
+          account_id: data.accountId,
+          display_name: data.displayName,
+        },
+      }
+    } else if (response.status === 401) {
+      return {
+        valid: false,
+        message: 'Invalid Jira credentials',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.errorMessages?.[0] || 'Invalid Jira credentials',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Jira validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Asana API key (Personal Access Token)
+async function validateAsana(apiKey: string) {
+  try {
+    // Test Asana API with user info endpoint
+    const response = await fetch('https://app.asana.com/api/1.0/users/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        valid: true,
+        message: 'Asana API key is valid',
+        details: {
+          user_name: data.data?.name,
+          user_email: data.data?.email,
+        },
+      }
+    } else if (response.status === 401) {
+      return {
+        valid: false,
+        message: 'Invalid Asana API key',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.errors?.[0]?.message || 'Invalid Asana API key',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Asana validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Monday.com API key
+async function validateMonday(apiKey: string) {
+  try {
+    // Test Monday.com API with GraphQL query
+    const response = await fetch('https://api.monday.com/v2', {
+      method: 'POST',
+      headers: {
+        'Authorization': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: '{ me { name email } }',
+      }),
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+
+      if (data.errors) {
+        return {
+          valid: false,
+          message: data.errors[0]?.message || 'Invalid Monday.com API key',
+          details: { status: response.status },
+        }
+      }
+
+      return {
+        valid: true,
+        message: 'Monday.com API key is valid',
+        details: {
+          user_name: data.data?.me?.name,
+          user_email: data.data?.me?.email,
+        },
+      }
+    } else if (response.status === 401) {
+      return {
+        valid: false,
+        message: 'Invalid Monday.com API key',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.error_message || 'Invalid Monday.com API key',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Monday.com validation error: ${message}`,
       details: {},
     }
   }
