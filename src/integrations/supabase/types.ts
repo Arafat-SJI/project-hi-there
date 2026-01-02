@@ -502,6 +502,289 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          enabled: boolean | null
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          enabled?: boolean | null
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          enabled?: boolean | null
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      integration_fields: {
+        Row: {
+          created_at: string
+          default_value: string | null
+          display_order: number | null
+          field_key: string
+          field_type: string
+          help_text: string | null
+          id: string
+          is_required: boolean | null
+          is_sensitive: boolean | null
+          label: string
+          placeholder: string | null
+          provider_id: string
+          select_options: Json | null
+          validation_regex: string | null
+        }
+        Insert: {
+          created_at?: string
+          default_value?: string | null
+          display_order?: number | null
+          field_key: string
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          is_sensitive?: boolean | null
+          label: string
+          placeholder?: string | null
+          provider_id: string
+          select_options?: Json | null
+          validation_regex?: string | null
+        }
+        Update: {
+          created_at?: string
+          default_value?: string | null
+          display_order?: number | null
+          field_key?: string
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          is_sensitive?: boolean | null
+          label?: string
+          placeholder?: string | null
+          provider_id?: string
+          select_options?: Json | null
+          validation_regex?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_fields_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "integration_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_providers: {
+        Row: {
+          auth_type: string
+          category_id: string
+          created_at: string
+          description: string | null
+          display_order: number | null
+          docs_url: string | null
+          id: string
+          is_available: boolean | null
+          is_beta: boolean | null
+          is_coming_soon: boolean | null
+          logo_url: string | null
+          name: string
+          oauth_config: Json | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          auth_type?: string
+          category_id: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          docs_url?: string | null
+          id?: string
+          is_available?: boolean | null
+          is_beta?: boolean | null
+          is_coming_soon?: boolean | null
+          logo_url?: string | null
+          name: string
+          oauth_config?: Json | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          auth_type?: string
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          docs_url?: string | null
+          id?: string
+          is_available?: boolean | null
+          is_beta?: boolean | null
+          is_coming_soon?: boolean | null
+          logo_url?: string | null
+          name?: string
+          oauth_config?: Json | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_providers_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "integration_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_services: {
+        Row: {
+          cost_model: Json | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          enabled: boolean | null
+          features: Json | null
+          has_cost: boolean | null
+          id: string
+          is_beta: boolean | null
+          is_default: boolean | null
+          name: string
+          provider_id: string
+          requires_config: boolean | null
+          service_key: string
+          updated_at: string
+        }
+        Insert: {
+          cost_model?: Json | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          enabled?: boolean | null
+          features?: Json | null
+          has_cost?: boolean | null
+          id?: string
+          is_beta?: boolean | null
+          is_default?: boolean | null
+          name: string
+          provider_id: string
+          requires_config?: boolean | null
+          service_key: string
+          updated_at?: string
+        }
+        Update: {
+          cost_model?: Json | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          enabled?: boolean | null
+          features?: Json | null
+          has_cost?: boolean | null
+          id?: string
+          is_beta?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          provider_id?: string
+          requires_config?: boolean | null
+          service_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_services_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "integration_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_usage_logs: {
+        Row: {
+          action: string
+          created_at: string
+          error_message: string | null
+          estimated_cost: number | null
+          id: string
+          provider_id: string | null
+          request_metadata: Json | null
+          response_metadata: Json | null
+          service_id: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          error_message?: string | null
+          estimated_cost?: number | null
+          id?: string
+          provider_id?: string | null
+          request_metadata?: Json | null
+          response_metadata?: Json | null
+          service_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          error_message?: string | null
+          estimated_cost?: number | null
+          id?: string
+          provider_id?: string | null
+          request_metadata?: Json | null
+          response_metadata?: Json | null
+          service_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_usage_logs_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "integration_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_usage_logs_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "integration_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_usage_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_categories: {
         Row: {
           color: string | null
@@ -744,6 +1027,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      organization_integrations: {
+        Row: {
+          config: Json | null
+          connection_message: string | null
+          connection_status: string | null
+          created_at: string
+          enabled: boolean | null
+          id: string
+          last_sync_at: string | null
+          last_tested_at: string | null
+          oauth_tokens: Json | null
+          provider_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json | null
+          connection_message?: string | null
+          connection_status?: string | null
+          created_at?: string
+          enabled?: boolean | null
+          id?: string
+          last_sync_at?: string | null
+          last_tested_at?: string | null
+          oauth_tokens?: Json | null
+          provider_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config?: Json | null
+          connection_message?: string | null
+          connection_status?: string | null
+          created_at?: string
+          enabled?: boolean | null
+          id?: string
+          last_sync_at?: string | null
+          last_tested_at?: string | null
+          oauth_tokens?: Json | null
+          provider_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_integrations_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "integration_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_integrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
