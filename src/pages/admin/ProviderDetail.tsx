@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 import {
   useProviderWithDetails,
   useUpdateIntegration,
@@ -22,6 +23,7 @@ import { ProviderDetailHeader } from '@/components/integrations/ProviderDetailHe
 import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
 import { UsageStats } from '@/components/integrations/UsageStats';
+import { AIModelsSection } from '@/components/integrations/AIModelsSection';
 import {
   areRequiredFieldsFilled,
   getSensitiveFieldKeys,
@@ -42,6 +44,29 @@ export default function ProviderDetail() {
     provider?.id || '',
     30
   );
+
+  // Check if this is an AI provider
+  const [isAIProvider, setIsAIProvider] = useState(false);
+  const [categorySlug, setCategorySlug] = useState<string>('');
+
+  useEffect(() => {
+    const fetchCategory = async () => {
+      if (!provider?.category_id) return;
+
+      const { data: category } = await supabase
+        .from('integration_categories')
+        .select('slug')
+        .eq('id', provider.category_id)
+        .single();
+
+      if (category) {
+        setCategorySlug(category.slug);
+        setIsAIProvider(category.slug === 'ai');
+      }
+    };
+
+    fetchCategory();
+  }, [provider?.category_id]);
 
   // Mutations
   const updateIntegration = useUpdateIntegration();
@@ -388,6 +413,16 @@ export default function ProviderDetail() {
       {/* Usage Statistics */}
       {orgIntegration && (
         <UsageStats stats={usageStats} isLoading={statsLoading} days={30} />
+      )}
+
+      {/* AI Models Section - Only for AI providers */}
+      {isAIProvider && provider && slug && (
+        <AIModelsSection
+          providerId={provider.id}
+          providerSlug={slug}
+          providerName={provider.name}
+          isConnected={orgIntegration?.connection_status === 'connected'}
+        />
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -26,6 +27,8 @@ import {
   Rocket,
   Star,
   Calculator,
+  Settings,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -44,6 +47,10 @@ interface AIProvider {
   slug: string;
   enabled: boolean;
   created_at: string;
+  integration_provider_id: string | null;
+  integration_provider_name: string | null;
+  connection_status: 'connected' | 'disconnected' | 'error' | null;
+  is_connected: boolean;
 }
 
 interface AIModel {
@@ -86,9 +93,9 @@ export default function AIModelManagement() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load providers
+      // Load providers with integration status
       const { data: providersData, error: providersError } = await supabase
-        .from("ai_providers")
+        .from("ai_providers_with_integration_status")
         .select("*")
         .order("name");
 
@@ -97,8 +104,12 @@ export default function AIModelManagement() {
         id: p.id,
         name: p.name,
         slug: p.slug,
-        enabled: p.enabled,
+        enabled: p.provider_enabled,
         created_at: p.created_at,
+        integration_provider_id: p.integration_provider_id,
+        integration_provider_name: p.integration_provider_name,
+        connection_status: p.connection_status,
+        is_connected: p.is_connected || false,
       })));
 
       // Load models
@@ -353,31 +364,58 @@ export default function AIModelManagement() {
       <Card>
         <CardHeader>
           <CardTitle>AI Providers</CardTitle>
-          <CardDescription>Enable or disable AI providers for your platform</CardDescription>
+          <CardDescription>
+            Enable or disable AI providers for your platform. Configure API keys in the Integrations section.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {providers.map((provider) => (
               <Card key={provider.id} className="border-2">
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-lg border p-2">
-                        {providerIcons[provider.slug]}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-lg border p-2">
+                          {providerIcons[provider.slug]}
+                        </div>
+                        <div>
+                          <p className="font-semibold">{provider.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {models.filter((m) => m.provider_id === provider.id && m.enabled).length}{" "}
+                            models
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold">{provider.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {models.filter((m) => m.provider_id === provider.id && m.enabled).length}{" "}
-                          models
-                        </p>
-                      </div>
+                      <Switch
+                        checked={provider.enabled}
+                        onCheckedChange={(enabled) => toggleProvider(provider.id, enabled)}
+                        disabled={updating}
+                      />
                     </div>
-                    <Switch
-                      checked={provider.enabled}
-                      onCheckedChange={(enabled) => toggleProvider(provider.id, enabled)}
-                      disabled={updating}
-                    />
+
+                    {/* API Key Status */}
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      {provider.is_connected ? (
+                        <Badge variant="default" className="gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          API Configured
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Not Configured
+                        </Badge>
+                      )}
+
+                      {provider.integration_provider_id && (
+                        <Link to={`/admin/integrations/${provider.slug}`}>
+                          <Button variant="ghost" size="sm">
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
