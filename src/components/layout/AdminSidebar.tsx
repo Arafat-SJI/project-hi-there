@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Brain,
   BarChart,
+  BookOpen,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -61,6 +62,11 @@ const adminItems: SidebarItem[] = [
     title: "AI Usage Analytics",
     href: "/admin/ai-usage",
     icon: BarChart,
+  },
+  {
+    title: "Knowledge Categories",
+    href: "/admin/knowledge/categories",
+    icon: BookOpen,
   },
   {
     title: "Deployment Status",
