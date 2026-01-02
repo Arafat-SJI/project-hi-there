@@ -45,6 +45,8 @@ export interface OAuthConfig {
   authorize_url: string;
   token_url: string;
   scopes: string[];
+  client_id?: string;
+  client_secret?: string;
   response_type?: string;
   grant_type?: string;
 }
