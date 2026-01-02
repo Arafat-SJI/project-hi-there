@@ -26,7 +26,7 @@ import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
 import { useSemanticSearch } from "@/hooks/useSemanticSearch";
 
 export function TopNav() {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Use React Query hooks for notifications
