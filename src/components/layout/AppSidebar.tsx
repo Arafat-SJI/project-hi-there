@@ -1,8 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useBranding } from "@/contexts/BrandingContext";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import {
   LayoutDashboard,
   Users,
@@ -13,9 +13,7 @@ import {
   Settings,
   ChevronRight,
   Shield,
-  Activity,
-  UserCog,
-  Database,
+  MessageSquare,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -24,7 +22,7 @@ interface SidebarItem {
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
   adminOnly?: boolean;
-  requiresFeature?: string;
+  featureFlag?: "enableClients" | "enableMeetings" | "enableTasks" | "enableKnowledgeBase" | "enableAIChat" | "enableAIAgents" | "enableFeedback";
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -37,31 +35,37 @@ const sidebarItems: SidebarItem[] = [
     title: "Clients",
     href: "/clients",
     icon: Users,
+    featureFlag: "enableClients",
   },
   {
     title: "Meetings",
     href: "/meetings",
     icon: Calendar,
-    requiresFeature: "enableMeetings",
+    featureFlag: "enableMeetings",
   },
   {
     title: "Tasks",
     href: "/tasks",
     icon: CheckSquare,
-    requiresFeature: "enableTasks",
+    featureFlag: "enableTasks",
   },
   {
     title: "Knowledge Base",
     href: "/knowledge",
     icon: BookOpen,
-    requiresFeature: "enableKnowledgeBase",
+    featureFlag: "enableKnowledgeBase",
   },
   {
     title: "AI Chat",
     href: "/ai",
     icon: Brain,
-    adminOnly: true,
-    requiresFeature: "enableAIChat",
+    featureFlag: "enableAIChat",
+  },
+  {
+    title: "Feedback",
+    href: "/feedback",
+    icon: MessageSquare,
+    featureFlag: "enableFeedback",
   },
   {
     title: "Admin Panel",
@@ -74,22 +78,18 @@ const sidebarItems: SidebarItem[] = [
 export function AppSidebar() {
   const location = useLocation();
   const { profile } = useAuth();
-  const { isFeatureEnabled } = useFeatureFlags();
-  const { companyName, logoUrl } = useBranding();
+  const { companyName } = useBranding();
+  const { isFeatureEnabled, isLoading } = useFeatureFlags();
 
   // Check if user has admin role
   const isAdmin = profile?.role === "admin" || profile?.role === "moderator";
 
   // Filter sidebar items based on user role and feature flags
   const visibleItems = sidebarItems.filter(item => {
-    // Check admin-only items
+    // Check admin-only
     if (item.adminOnly && !isAdmin) return false;
-
-    // Check feature flags
-    if (item.requiresFeature && !isFeatureEnabled(item.requiresFeature as any)) {
-      return false;
-    }
-
+    // Check feature flag
+    if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) return false;
     return true;
   });
 
@@ -99,13 +99,9 @@ export function AppSidebar() {
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
           <Link to="/dashboard" className="flex items-center gap-3">
-            {logoUrl ? (
-              <img src={logoUrl} alt={companyName} className="h-9 w-9 rounded-lg object-cover" />
-            ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-sm">
-                <Brain className="h-5 w-5 text-primary-foreground" />
-              </div>
-            )}
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-sm">
+              <Brain className="h-5 w-5 text-primary-foreground" />
+            </div>
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-sidebar-foreground">
                 Control Tower

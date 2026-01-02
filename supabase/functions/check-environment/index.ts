@@ -29,11 +29,11 @@ serve(async (req) => {
         message: error ? `Database error: ${error.message}` : "Database connected successfully",
         critical: true,
       });
-    } catch (e) {
+    } catch (e: unknown) {
       checks.push({
         name: "Database Connection",
         status: "fail",
-        message: `Database connection failed: ${e.message}`,
+        message: `Database connection failed: ${e instanceof Error ? e.message : "Unknown error"}`,
         critical: true,
       });
     }
@@ -91,11 +91,11 @@ serve(async (req) => {
             : `OpenAI API error: ${response.status}`,
           critical: false,
         });
-      } catch (e) {
+      } catch (e: unknown) {
         checks.push({
           name: "OpenAI API Test",
           status: "fail",
-          message: `OpenAI API test failed: ${e.message}`,
+          message: `OpenAI API test failed: ${e instanceof Error ? e.message : "Unknown error"}`,
           critical: false,
         });
       }
@@ -114,11 +114,11 @@ serve(async (req) => {
             : `Bucket '${bucketName}' exists`,
           critical: false,
         });
-      } catch (e) {
+      } catch (e: unknown) {
         checks.push({
           name: `Storage Bucket: ${bucketName}`,
           status: "fail",
-          message: `Failed to check bucket '${bucketName}': ${e.message}`,
+          message: `Failed to check bucket '${bucketName}': ${e instanceof Error ? e.message : "Unknown error"}`,
           critical: false,
         });
       }
@@ -166,9 +166,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
