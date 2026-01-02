@@ -329,6 +329,32 @@ For detailed API documentation of each function, see:
 
 ---
 
+## 🔐 Secrets Migration
+
+When copying this project to a new Supabase instance, secrets must be manually re-added.
+
+### Critical Secrets (Required)
+| Secret | Purpose |
+|--------|---------|
+| `OPENAI_API_KEY` | AI chat, embeddings, agents |
+
+### Optional Secrets
+| Secret | Purpose |
+|--------|---------|
+| `SENDGRID_API_KEY` | Email notifications |
+| `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_ACCOUNT_ID` | Zoom integration |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google Drive |
+
+### Auto-configured by Supabase
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+For detailed secrets documentation, see: [docs/SECRETS_MANAGEMENT.md](docs/SECRETS_MANAGEMENT.md)
+
+---
+
 **Created:** 2025-12-31
+**Updated:** 2026-01-02
 **Status:** Ready for deployment
-**Total Functions:** 24
+**Total Functions:** 31
