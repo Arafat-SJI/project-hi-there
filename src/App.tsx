@@ -37,6 +37,8 @@ import RoleManagement from "./pages/admin/RoleManagement";
 import ActivityLogs from "./pages/admin/ActivityLogs";
 import SystemSettings from "./pages/admin/SystemSettings";
 import Integrations from "./pages/admin/Integrations";
+import AIModelManagement from "./pages/admin/AIModelManagement";
+import AIUsageAnalytics from "./pages/admin/AIUsageAnalytics";
 import EnvironmentValidator from "./pages/admin/EnvironmentValidator";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -125,6 +127,8 @@ const App = () => (
                   <Route path="/admin/logs" element={<ActivityLogs />} />
                   <Route path="/admin/settings" element={<SystemSettings />} />
                   <Route path="/admin/integrations" element={<Integrations />} />
+                  <Route path="/admin/ai-models" element={<AIModelManagement />} />
+                  <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
                   <Route path="/admin/deployment" element={<DeploymentStatus />} />
                   <Route path="/admin/environment" element={<EnvironmentValidator />} />
                 </Route>

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { generateEmbedding, getModel, logUsage, calculateCost } from '../_shared/ai-provider-routing.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,11 +25,6 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured')
-    }
-
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -40,6 +36,7 @@ serve(async (req) => {
       content,
       metadata = {},
       user_id,
+      model_id,
       chunk_size = 800
     } = await req.json()
 
@@ -50,30 +47,21 @@ serve(async (req) => {
       )
     }
 
+    // Get the embedding model
+    const model = await getModel(supabaseClient, model_id, 'embedding')
+    if (!model) {
+      throw new Error('No valid embedding model found')
+    }
+
     // Chunk the content
     const chunks = chunkText(content, chunk_size)
     const embeddings = []
+    let totalTokens = 0
+    let totalCost = 0
 
     // Generate embeddings for each chunk
     for (const chunk of chunks) {
-      const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'text-embedding-3-small',
-          input: chunk,
-        }),
-      })
-
-      if (!embeddingResponse.ok) {
-        throw new Error('Failed to generate embedding')
-      }
-
-      const embeddingData = await embeddingResponse.json()
-      const embedding = embeddingData.data[0].embedding
+      const response = await generateEmbedding(supabaseClient, chunk, model_id)
 
       embeddings.push({
         entity_type,
@@ -81,13 +69,30 @@ serve(async (req) => {
         user_id: user_id || null,
         content: chunk,
         metadata,
-        embedding,
+        embedding: response.embedding,
         embedding_status: 'completed',
       })
+
+      totalTokens += response.tokens
 
       // Small delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 100))
     }
+
+    // Calculate total cost
+    totalCost = calculateCost(model, 0, 0, totalTokens)
+
+    // Log usage
+    await logUsage(
+      supabaseClient,
+      user_id,
+      model.id,
+      'generate-embeddings',
+      0,
+      0,
+      totalTokens,
+      totalCost
+    )
 
     // Insert embeddings into database
     const { data, error } = await supabaseClient
@@ -102,6 +107,9 @@ serve(async (req) => {
         success: true,
         embeddings_created: data.length,
         chunks_processed: chunks.length,
+        total_tokens: totalTokens,
+        estimated_cost: totalCost,
+        model_used: model.name,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )

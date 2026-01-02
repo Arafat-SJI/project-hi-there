@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, ExternalLink, Key, Mail, Video, Brain, Cloud } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, ExternalLink, Key, Mail, Video, Brain, Cloud, Sparkles, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
@@ -153,6 +153,60 @@ export default function Integrations() {
         },
       ],
     },
+    {
+      id: "anthropic",
+      name: "Anthropic Claude",
+      description: "Enable Claude AI models for advanced reasoning and vision",
+      icon: <Sparkles className="h-5 w-5" />,
+      enabled: false,
+      docsUrl: "https://docs.anthropic.com/",
+      fields: [
+        {
+          key: "anthropic_api_key",
+          label: "API Key",
+          type: "password",
+          placeholder: "sk-ant-...",
+          required: true,
+          value: "",
+        },
+      ],
+    },
+    {
+      id: "google_ai",
+      name: "Google AI (Gemini)",
+      description: "Enable Google Gemini models for multimodal AI capabilities",
+      icon: <Brain className="h-5 w-5" />,
+      enabled: false,
+      docsUrl: "https://ai.google.dev/",
+      fields: [
+        {
+          key: "google_ai_api_key",
+          label: "API Key",
+          type: "password",
+          placeholder: "AIza...",
+          required: true,
+          value: "",
+        },
+      ],
+    },
+    {
+      id: "perplexity",
+      name: "Perplexity",
+      description: "Enable Perplexity AI for real-time web search and reasoning",
+      icon: <Zap className="h-5 w-5" />,
+      enabled: false,
+      docsUrl: "https://docs.perplexity.ai/",
+      fields: [
+        {
+          key: "perplexity_api_key",
+          label: "API Key",
+          type: "password",
+          placeholder: "pplx-...",
+          required: true,
+          value: "",
+        },
+      ],
+    },
   ]);
 
   const handleToggleIntegration = (integrationId: string) => {
@@ -210,6 +264,15 @@ export default function Integrations() {
           const clientId = integration.fields.find((f) => f.key === "zoom_client_id")?.value || "";
           const clientSecret = integration.fields.find((f) => f.key === "zoom_client_secret")?.value || "";
           apiKey = `${accountId}:${clientId}:${clientSecret}`;
+          break;
+        case "anthropic":
+          apiKey = integration.fields.find((f) => f.key === "anthropic_api_key")?.value || "";
+          break;
+        case "google_ai":
+          apiKey = integration.fields.find((f) => f.key === "google_ai_api_key")?.value || "";
+          break;
+        case "perplexity":
+          apiKey = integration.fields.find((f) => f.key === "perplexity_api_key")?.value || "";
           break;
         case "google":
           toast.info("Google Drive requires OAuth2 flow, direct testing not available");
