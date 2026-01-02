@@ -38,7 +38,7 @@ export function useOnboarding() {
 
       // Also check if user profile is complete (has full_name)
       const { data: profile } = await supabase
-        .from("users")
+        .from("profiles")
         .select("full_name")
         .eq("id", currentUser.id)
         .single();

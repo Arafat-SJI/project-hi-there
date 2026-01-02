@@ -108,12 +108,14 @@ export default function OnboardingWizard({
 
       // Update user profile
       const { error: profileError } = await supabase
-        .from("users")
+        .from("profiles")
         .update({
           full_name: data.fullName,
-          company: data.company,
-          role: data.role,
-          bio: data.bio,
+          metadata: {
+            company: data.company,
+            role: data.role,
+            bio: data.bio,
+          },
         })
         .eq("id", user.id);
 
