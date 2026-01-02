@@ -1,28 +1,33 @@
 /**
  * Provider Detail Page
  * Dynamic provider configuration with form fields, services, and stats
- * NOTE: Placeholder - integration tables don't exist yet
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Loader2, Save, AlertCircle, ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import {
   useIntegrationProvider,
+  useIntegrationFields,
+  useOrganizationIntegration,
+  useIntegrationServices,
   useProviderUsageStats,
+  useUpdateIntegration,
+  useTestConnection,
+  useDisconnectIntegration,
+  useToggleService,
+  useSetDefaultService,
 } from '@/hooks/useIntegrations';
-import { ProviderDetailHeader } from '@/components/integrations/ProviderDetailHeader';
 import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
 import { UsageStats } from '@/components/integrations/UsageStats';
 import { AIModelsSection } from '@/components/integrations/AIModelsSection';
 import {
   areRequiredFieldsFilled,
-  getSensitiveFieldKeys,
   generateOAuthState,
   storeOAuthState,
   buildOAuthAuthorizationUrl,
@@ -34,6 +39,9 @@ export default function ProviderDetail() {
 
   // Fetch provider data
   const { data: provider, isLoading, error } = useIntegrationProvider(slug || '');
+  const { data: fields = [] } = useIntegrationFields(provider?.id || '');
+  const { data: orgIntegration } = useOrganizationIntegration(provider?.id || '');
+  const { data: services = [] } = useIntegrationServices(provider?.id || '');
   const { data: usageStats, isLoading: statsLoading } = useProviderUsageStats(
     provider?.id || '',
     30
@@ -77,7 +85,7 @@ export default function ProviderDetail() {
   // Initialize form values from org integration config
   useEffect(() => {
     if (orgIntegration?.config) {
-      setFormValues(orgIntegration.config);
+      setFormValues(orgIntegration.config as Record<string, string>);
     } else if (fields && fields.length > 0) {
       // Set default values
       const defaults: Record<string, string> = {};
@@ -102,11 +110,7 @@ export default function ProviderDetail() {
 
     // Validate required fields
     if (!areRequiredFieldsFilled(fields, formValues)) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields',
-        variant: 'destructive',
-      });
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -119,18 +123,10 @@ export default function ProviderDetail() {
         enabled: true,
       });
 
-      toast({
-        title: 'Configuration Saved',
-        description: `${provider.name} configuration has been saved successfully.`,
-      });
-
+      toast.success(`${provider.name} configuration has been saved successfully.`);
       setHasChanges(false);
     } catch (error) {
-      toast({
-        title: 'Save Failed',
-        description: error instanceof Error ? error.message : 'Failed to save configuration',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to save configuration');
     } finally {
       setIsSaving(false);
     }
@@ -152,34 +148,19 @@ export default function ProviderDetail() {
       });
 
       if (result.valid) {
-        toast({
-          title: 'Connection Successful',
-          description: result.message || 'Successfully connected to ' + provider.name,
-        });
+        toast.success(result.message || 'Successfully connected to ' + provider.name);
       } else {
-        toast({
-          title: 'Connection Failed',
-          description: result.message || 'Failed to connect to ' + provider.name,
-          variant: 'destructive',
-        });
+        toast.error(result.message || 'Failed to connect to ' + provider.name);
       }
     } catch (error) {
-      toast({
-        title: 'Test Failed',
-        description: error instanceof Error ? error.message : 'Failed to test connection',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to test connection');
     }
   };
 
   // Handle OAuth connect
   const handleOAuthConnect = () => {
     if (!provider || !provider.oauth_config) {
-      toast({
-        title: 'OAuth Configuration Missing',
-        description: 'This provider does not have OAuth configuration set up.',
-        variant: 'destructive',
-      });
+      toast.error('This provider does not have OAuth configuration set up.');
       return;
     }
 
@@ -197,11 +178,7 @@ export default function ProviderDetail() {
       // 4. Redirect to provider authorization page
       window.location.href = authUrl;
     } catch (error) {
-      toast({
-        title: 'OAuth Error',
-        description: error instanceof Error ? error.message : 'Failed to initiate OAuth flow',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to initiate OAuth flow');
     }
   };
 
@@ -214,20 +191,13 @@ export default function ProviderDetail() {
         providerId: provider.id,
       });
 
-      toast({
-        title: 'Disconnected',
-        description: `${provider.name} has been disconnected.`,
-      });
+      toast.success(`${provider.name} has been disconnected.`);
 
       // Clear form
       setFormValues({});
       setHasChanges(false);
     } catch (error) {
-      toast({
-        title: 'Disconnect Failed',
-        description: error instanceof Error ? error.message : 'Failed to disconnect',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to disconnect');
     }
   };
 
@@ -235,17 +205,9 @@ export default function ProviderDetail() {
   const handleToggleService = async (serviceId: string, enabled: boolean) => {
     try {
       await toggleService.mutateAsync({ serviceId, enabled });
-
-      toast({
-        title: enabled ? 'Service Enabled' : 'Service Disabled',
-        description: 'Service status updated successfully.',
-      });
+      toast.success('Service status updated successfully.');
     } catch (error) {
-      toast({
-        title: 'Update Failed',
-        description: error instanceof Error ? error.message : 'Failed to update service',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to update service');
     }
   };
 
@@ -258,17 +220,9 @@ export default function ProviderDetail() {
         providerId: provider.id,
         serviceId,
       });
-
-      toast({
-        title: 'Default Service Updated',
-        description: 'Default service has been set successfully.',
-      });
+      toast.success('Default service has been set successfully.');
     } catch (error) {
-      toast({
-        title: 'Update Failed',
-        description: error instanceof Error ? error.message : 'Failed to set default service',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to set default service');
     }
   };
 
@@ -350,34 +304,75 @@ export default function ProviderDetail() {
         </CardContent>
       </Card>
 
-      {/* Configuration Notice */}
-      <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
-            <AlertCircle className="h-5 w-5" />
-            Integration Tables Not Configured
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            The integration hub requires additional database tables to be created before
-            provider configuration can be completed. These tables include:
-          </p>
-          <ul className="mt-2 list-disc list-inside text-sm text-amber-800 dark:text-amber-200 space-y-1">
-            <li>integration_categories</li>
-            <li>integration_providers</li>
-            <li>integration_fields</li>
-            <li>organization_integrations</li>
-            <li>integration_services</li>
-            <li>integration_usage_logs</li>
-          </ul>
-          <p className="mt-4 text-sm text-amber-800 dark:text-amber-200">
-            Please run database migrations to create these tables before configuring integrations.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Configuration Form */}
+      {fields.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuration</CardTitle>
+            <CardDescription>
+              Enter your API credentials to connect {provider.name}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {fields.map((field) => (
+              <DynamicFormField
+                key={field.id}
+                field={field}
+                value={formValues[field.field_key] || ''}
+                onChange={(value) => handleFieldChange(field.field_key, value)}
+              />
+            ))}
+            <div className="flex gap-2 pt-4">
+              <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
+                {isSaving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Save Configuration
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={testConnection.isPending}
+              >
+                {testConnection.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Test Connection
+              </Button>
+              {orgIntegration && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDisconnect}
+                  disabled={disconnectIntegration.isPending}
+                >
+                  Disconnect
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Usage Statistics Placeholder */}
+      {/* OAuth Connect for OAuth providers */}
+      {provider.auth_type === 'oauth' && !orgIntegration && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Connect with OAuth</CardTitle>
+            <CardDescription>
+              Connect your {provider.name} account using OAuth
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleOAuthConnect}>
+              Connect {provider.name}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Usage Statistics */}
       {usageStats && (
         <Card>
           <CardHeader>
@@ -414,11 +409,6 @@ export default function ProviderDetail() {
           onSetDefault={handleSetDefaultService}
           isLoading={toggleService.isPending || setDefaultService.isPending}
         />
-      )}
-
-      {/* Usage Statistics */}
-      {orgIntegration && (
-        <UsageStats stats={usageStats} isLoading={statsLoading} days={30} />
       )}
 
       {/* AI Models Section - Only for AI providers */}

@@ -112,14 +112,14 @@ export function AIModelsSection({
           provider_id: m.provider_id,
           name: m.name,
           model_id: m.model_id,
-          category: m.category,
+          category: m.category as 'chat' | 'embedding',
           context_window: m.context_window,
           input_cost_per_1k: m.input_cost_per_1k,
           output_cost_per_1k: m.output_cost_per_1k,
           embedding_cost_per_1k: m.embedding_cost_per_1k,
           enabled: m.enabled,
           is_default: m.is_default,
-          features: m.features,
+          features: m.features as Record<string, boolean> | null,
         }))
       );
     } catch (error) {
