@@ -40,6 +40,8 @@ import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
 import AIAgents from "./pages/AIAgents";
+import Tasks from "./pages/Tasks";
+import PersonalKnowledge from "./pages/PersonalKnowledge";
 
 const queryClient = new QueryClient();
 
@@ -73,10 +75,13 @@ const App = () => (
                 <Route path="/meetings/:id" element={<MeetingDetail />} />
                 <Route path="/meetings/:id/edit" element={<MeetingForm />} />
 
+                {/* Tasks */}
+                <Route path="/tasks" element={<Tasks />} />
 
                 {/* Knowledge Base */}
                 <Route path="/knowledge" element={<Knowledge />} />
                 <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
+                <Route path="/knowledge/personal" element={<PersonalKnowledge />} />
                 <Route path="/knowledge/new" element={<KnowledgeForm />} />
                 <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
                 <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
