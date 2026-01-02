@@ -1,6 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useBranding } from "@/contexts/BrandingContext";
+import { useIntegrationStatus } from "@/hooks/useIntegrationStatus";
+import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
   Users,
@@ -77,6 +79,7 @@ const adminItems: SidebarItem[] = [
 export function AdminSidebar() {
   const location = useLocation();
   const { companyName, logoUrl } = useBranding();
+  const { status: integrationStatus } = useIntegrationStatus();
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar-background">
@@ -103,7 +106,8 @@ export function AdminSidebar() {
           <div className="space-y-1">
             {adminItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.href;
+              const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
+              const isIntegrations = item.href === '/admin/integrations';
 
               return (
                 <Link
@@ -121,6 +125,14 @@ export function AdminSidebar() {
                     isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-sidebar-accent-foreground"
                   )} />
                   <span className="flex-1">{item.title}</span>
+                  {isIntegrations && integrationStatus && integrationStatus.connected > 0 && (
+                    <Badge
+                      variant={isActive ? "secondary" : "default"}
+                      className="h-5 min-w-[20px] px-1.5 text-xs"
+                    >
+                      {integrationStatus.connected}
+                    </Badge>
+                  )}
                 </Link>
               );
             })}
