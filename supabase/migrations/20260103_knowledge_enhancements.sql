@@ -210,7 +210,19 @@ $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION increment_view_count IS 'Increments the view count for a knowledge entry';
 
 -- =====================================================
--- 12. Grant permissions
+-- 12. Add embedding model selection to ai_models
+-- =====================================================
+
+ALTER TABLE ai_models
+ADD COLUMN IF NOT EXISTS is_default_embedding BOOLEAN DEFAULT FALSE;
+
+COMMENT ON COLUMN ai_models.is_default_embedding IS 'Indicates if this is the default model for knowledge base embeddings';
+
+-- Create index for quick lookup
+CREATE INDEX IF NOT EXISTS idx_ai_models_default_embedding ON ai_models(is_default_embedding) WHERE is_default_embedding = true;
+
+-- =====================================================
+-- 13. Grant permissions
 -- =====================================================
 
 -- Grant access to the new table and functions

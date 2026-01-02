@@ -42,6 +42,7 @@ import AIModelManagement from "./pages/admin/AIModelManagement";
 import AIUsageAnalytics from "./pages/admin/AIUsageAnalytics";
 import EnvironmentValidator from "./pages/admin/EnvironmentValidator";
 import KnowledgeCategories from "./pages/admin/KnowledgeCategories";
+import KnowledgeAnalytics from "./pages/admin/KnowledgeAnalytics";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
@@ -133,6 +134,7 @@ const App = () => (
                   <Route path="/admin/ai-models" element={<AIModelManagement />} />
                   <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
                   <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
+                  <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />
                   <Route path="/admin/deployment" element={<DeploymentStatus />} />
                   <Route path="/admin/environment" element={<EnvironmentValidator />} />
                 </Route>

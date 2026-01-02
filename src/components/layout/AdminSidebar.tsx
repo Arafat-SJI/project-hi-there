@@ -69,6 +69,11 @@ const adminItems: SidebarItem[] = [
     icon: BookOpen,
   },
   {
+    title: "Knowledge Analytics",
+    href: "/admin/knowledge/analytics",
+    icon: BarChart,
+  },
+  {
     title: "Deployment Status",
     href: "/admin/deployment",
     icon: Database,
