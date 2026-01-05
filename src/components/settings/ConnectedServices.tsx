@@ -28,6 +28,8 @@ import {
   AlertTriangle,
   Clock,
   ExternalLink,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -39,7 +41,6 @@ import {
   UserOAuthToken,
   AvailableProvider,
 } from '@/hooks/useUserIntegrations';
-import { useOrganizationIntegration } from '@/hooks/useIntegrations';
 
 // Provider icons/logos
 const providerIcons: Record<string, string> = {
@@ -72,6 +73,7 @@ function ServiceCard({
   const isConnected = connection?.is_active;
   const isExpired = connection?.expires_at && new Date(connection.expires_at) <= new Date();
   const hasError = !!connection?.error_message;
+  const isAnyActionPending = isConnecting || isDisconnecting || isRefreshing;
 
   return (
     <div
@@ -152,7 +154,7 @@ function ServiceCard({
                 variant="outline"
                 size="sm"
                 onClick={onRefresh}
-                disabled={isRefreshing}
+                disabled={isAnyActionPending}
               >
                 {isRefreshing ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -166,7 +168,7 @@ function ServiceCard({
               variant="ghost"
               size="sm"
               onClick={onDisconnect}
-              disabled={isDisconnecting}
+              disabled={isAnyActionPending}
               className="text-destructive hover:text-destructive"
             >
               {isDisconnecting ? (
@@ -182,7 +184,7 @@ function ServiceCard({
             variant="default"
             size="sm"
             onClick={onConnect}
-            disabled={isConnecting}
+            disabled={isAnyActionPending}
           >
             {isConnecting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -197,35 +199,95 @@ function ServiceCard({
   );
 }
 
+// Track pending state per provider
+type PendingAction = 'connect' | 'disconnect' | 'refresh';
+type PendingState = Record<string, PendingAction | null>;
+
 export function ConnectedServices() {
-  const { data: connections = [], isLoading: connectionsLoading } = useUserOAuthTokens();
-  const { data: availableProviders = [], isLoading: providersLoading } = useAvailableUserProviders();
+  const {
+    data: connections = [],
+    isLoading: connectionsLoading,
+    error: connectionsError,
+    refetch: refetchConnections,
+  } = useUserOAuthTokens();
+  const {
+    data: availableProviders = [],
+    isLoading: providersLoading,
+    error: providersError,
+    refetch: refetchProviders,
+  } = useAvailableUserProviders();
 
   const connectOAuth = useConnectOAuth();
   const disconnectOAuth = useDisconnectOAuth();
   const refreshToken = useRefreshOAuthToken();
 
   const [disconnectProvider, setDisconnectProvider] = useState<string | null>(null);
+  // Track which provider has a pending action
+  const [pendingActions, setPendingActions] = useState<PendingState>({});
 
   const isLoading = connectionsLoading || providersLoading;
+  const hasError = connectionsError || providersError;
+
+  const handleRetry = () => {
+    if (connectionsError) refetchConnections();
+    if (providersError) refetchProviders();
+  };
 
   const handleConnect = (provider: string) => {
-    connectOAuth.mutate({ provider });
+    // Prevent duplicate clicks
+    if (pendingActions[provider]) return;
+
+    setPendingActions(prev => ({ ...prev, [provider]: 'connect' }));
+    connectOAuth.mutate(
+      { provider },
+      {
+        onSettled: () => {
+          setPendingActions(prev => ({ ...prev, [provider]: null }));
+        },
+      }
+    );
   };
 
   const handleDisconnect = (provider: string) => {
+    // Prevent duplicate clicks
+    if (pendingActions[provider]) return;
     setDisconnectProvider(provider);
   };
 
   const confirmDisconnect = () => {
     if (disconnectProvider) {
-      disconnectOAuth.mutate({ provider: disconnectProvider });
+      // Prevent duplicate clicks
+      if (pendingActions[disconnectProvider]) {
+        setDisconnectProvider(null);
+        return;
+      }
+
+      setPendingActions(prev => ({ ...prev, [disconnectProvider]: 'disconnect' }));
+      disconnectOAuth.mutate(
+        { provider: disconnectProvider },
+        {
+          onSettled: () => {
+            setPendingActions(prev => ({ ...prev, [disconnectProvider]: null }));
+          },
+        }
+      );
       setDisconnectProvider(null);
     }
   };
 
   const handleRefresh = (provider: string) => {
-    refreshToken.mutate({ provider });
+    // Prevent duplicate clicks
+    if (pendingActions[provider]) return;
+
+    setPendingActions(prev => ({ ...prev, [provider]: 'refresh' }));
+    refreshToken.mutate(
+      { provider },
+      {
+        onSettled: () => {
+          setPendingActions(prev => ({ ...prev, [provider]: null }));
+        },
+      }
+    );
   };
 
   const getConnectionForProvider = (slug: string): UserOAuthToken | undefined => {
@@ -233,11 +295,47 @@ export function ConnectedServices() {
     return connections.find((c: UserOAuthToken) => c.provider_slug === slug);
   };
 
+  // Helper to check pending state for a specific provider
+  const isPendingAction = (provider: string, action: PendingAction) => {
+    return pendingActions[provider] === action;
+  };
+
   if (isLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            Connected Services
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-destructive" />
+            <p className="text-destructive font-medium">Failed to load connected services</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              There was a problem loading your integration data. Please try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetry}
+              className="mt-4"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Retry
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -272,9 +370,9 @@ export function ConnectedServices() {
                   onConnect={() => handleConnect(provider.provider_slug)}
                   onDisconnect={() => handleDisconnect(provider.provider_slug)}
                   onRefresh={() => handleRefresh(provider.provider_slug)}
-                  isConnecting={connectOAuth.isPending}
-                  isDisconnecting={disconnectOAuth.isPending}
-                  isRefreshing={refreshToken.isPending}
+                  isConnecting={isPendingAction(provider.provider_slug, 'connect')}
+                  isDisconnecting={isPendingAction(provider.provider_slug, 'disconnect')}
+                  isRefreshing={isPendingAction(provider.provider_slug, 'refresh')}
                 />
               ))}
             </div>
