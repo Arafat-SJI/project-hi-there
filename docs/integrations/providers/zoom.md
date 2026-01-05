@@ -4,10 +4,72 @@
 
 The Zoom integration enables automatic synchronization of meetings, recordings, and transcripts with the Control Tower platform. This integration uses OAuth 2.0 for secure authentication and provides comprehensive webhook support for real-time updates.
 
-**Provider Type**: Meeting Provider
-**Auth Method**: OAuth 2.0 (Account Credentials Grant)
-**API Version**: v2
+**Provider Type**: Meeting Provider  
+**Auth Method**: OAuth 2.0 (Account Credentials Grant)  
+**API Version**: v2  
 **Status**: ✅ Available
+
+---
+
+## Quick Start Checklist
+
+Before implementing, ensure you have:
+
+- [ ] Zoom Developer account
+- [ ] Zoom Pro/Business account (for cloud recordings)
+- [ ] Control Tower Supabase project connected
+- [ ] The following environment variables ready:
+  - `ZOOM_CLIENT_ID`
+  - `ZOOM_CLIENT_SECRET`
+  - `ZOOM_ACCOUNT_ID`
+
+**Estimated Setup Time**: 20-30 minutes
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description | Where to Get |
+|----------|----------|-------------|--------------|
+| `ZOOM_CLIENT_ID` | Yes | OAuth App Client ID | Zoom App Marketplace > Your App |
+| `ZOOM_CLIENT_SECRET` | Yes | OAuth App Client Secret | Zoom App Marketplace > Your App |
+| `ZOOM_ACCOUNT_ID` | Yes | Account ID for Server-to-Server | Zoom App Marketplace > Your App |
+
+### Supabase Secrets Configuration
+
+Add these secrets via **Supabase Dashboard > Project Settings > Edge Functions > Secrets**:
+
+```bash
+ZOOM_CLIENT_ID=your-client-id
+ZOOM_CLIENT_SECRET=your-client-secret
+ZOOM_ACCOUNT_ID=your-account-id
+```
+
+### Related Edge Functions
+
+| Edge Function | Purpose | Status |
+|---------------|---------|--------|
+| `sync-zoom-files` | Sync recordings and transcripts | ✅ Available |
+| `zoom-transcript-processing` | Process VTT transcripts | ✅ Available |
+| `generate-meeting-summary` | AI summarization | ✅ Available |
+| `auto-embed-meetings` | Generate embeddings for search | ✅ Available |
+
+### Database Tables
+
+| Table | Purpose | Status |
+|-------|---------|--------|
+| `meetings` | Store meeting metadata | ✅ Available |
+| `zoom_files` | Store Zoom recordings/transcripts | ✅ Available |
+| `meeting_transcripts` | Store parsed transcript content | ✅ Available |
+| `embeddings` | Store vector embeddings | ✅ Available |
+
+### Frontend Hooks
+
+| Hook | Purpose | File |
+|------|---------|------|
+| `useSyncZoom` | Trigger Zoom file sync | `src/hooks/useSyncZoom.ts` |
+| `useZoomFiles` | Fetch/manage Zoom files | `src/hooks/useZoomFiles.ts` |
+| `useMeetings` | Fetch/manage meetings | `src/hooks/useMeetings.ts` |
 
 ---
 
