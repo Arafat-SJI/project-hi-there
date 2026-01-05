@@ -1,7 +1,6 @@
 /**
  * OAuth Callback Page
  * Handles OAuth 2.0 redirect and token exchange
- * NOTE: Placeholder - integration tables don't exist yet
  */
 
 import { useEffect, useState } from 'react';
@@ -60,11 +59,56 @@ export default function OAuthCallback() {
       // 5. Get provider ID from state
       const { providerId } = stateData;
 
-      // 6. Note: integration_providers table doesn't exist yet
-      // For now, show a placeholder message
-      setStatus('error');
-      setMessage('Integration tables not configured. OAuth flow cannot be completed. Please run database migrations first.');
-      
+      // 6. Fetch provider details to get the slug for redirect
+      const { data: provider, error: providerError } = await supabase
+        .from('integration_providers')
+        .select('id, name, slug')
+        .eq('id', providerId)
+        .single();
+
+      if (providerError || !provider) {
+        setStatus('error');
+        setMessage('Provider not found. Please try again.');
+        return;
+      }
+
+      setProviderSlug(provider.slug);
+      setMessage(`Connecting to ${provider.name}...`);
+
+      // 7. Build redirect URI (must match the one used in authorization)
+      const redirectUri = `${window.location.origin}/admin/integrations/oauth/callback`;
+
+      // 8. Call the oauth-exchange-token edge function
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke(
+        'oauth-exchange-token',
+        {
+          body: {
+            code,
+            providerId,
+            redirectUri,
+          },
+        }
+      );
+
+      if (tokenError || !tokenData?.success) {
+        setStatus('error');
+        setMessage(
+          tokenData?.message || tokenError?.message || 'Failed to exchange OAuth tokens'
+        );
+        return;
+      }
+
+      // 9. Success!
+      setStatus('success');
+      setMessage(tokenData.message || `Successfully connected to ${provider.name}`);
+
+      // 10. Redirect to provider detail page after a short delay
+      setTimeout(() => {
+        navigate(`/admin/integrations/${provider.slug}`, {
+          state: { oauthSuccess: true },
+        });
+      }, 2000);
+
     } catch (error) {
       setStatus('error');
       setMessage(

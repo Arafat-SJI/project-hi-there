@@ -20,6 +20,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithMicrosoft: () => Promise<void>;
+  signInWithSSO: (provider: 'google' | 'azure', scopes?: string[]) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
 }
@@ -207,6 +209,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Sign in with Microsoft (Azure AD)
+  const signInWithMicrosoft = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "azure",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: "email profile openid",
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      const authError = error as AuthError;
+      toast({
+        title: "Microsoft sign in failed",
+        description: authError.message,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Generic SSO sign in
+  const signInWithSSO = async (provider: 'google' | 'azure', scopes?: string[]) => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: scopes?.join(' '),
+        },
+      });
+      if (error) throw error;
+
+      // Log SSO login
+      logLogin(provider === 'azure' ? 'microsoft' : provider);
+    } catch (error) {
+      const authError = error as AuthError;
+      toast({
+        title: "SSO sign in failed",
+        description: authError.message,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   // Sign out
   const signOut = async () => {
     try {
@@ -265,6 +314,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signInWithGoogle,
+    signInWithMicrosoft,
+    signInWithSSO,
     signOut,
     updateProfile,
   };

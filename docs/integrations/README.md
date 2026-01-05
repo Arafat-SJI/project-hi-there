@@ -9,12 +9,19 @@ This directory contains detailed implementation guides for all supported third-p
 | Provider | Category | Status | Documentation |
 |----------|----------|--------|---------------|
 | Zoom | Meetings | ✅ Available | [zoom.md](./providers/zoom.md) |
-| Microsoft Teams | Meetings + Productivity | 🚧 Coming Soon | [microsoft-teams.md](./providers/microsoft-teams.md) |
-| Google Workspace | Productivity + AI | 🔶 Partial | [google-workspace.md](./providers/google-workspace.md) |
+| Microsoft Teams | Meetings + Productivity | 🚧 Coming Soon | [microsoft/](./providers/microsoft/) |
+| Google | AI + Auth + Productivity | 🔶 Partial | [google/](./providers/google/) |
 
 ---
 
 ## Integration Categories
+
+### Authentication Providers
+
+| Provider | Features | Status |
+|----------|----------|--------|
+| **Google Login** | Sign in with Google | ✅ Available |
+| **Microsoft Azure AD** | Enterprise SSO | 🚧 Planned |
 
 ### Meeting Providers
 
@@ -50,7 +57,9 @@ This directory contains detailed implementation guides for all supported third-p
 |----------|-----------|-------|
 | **Zoom** | `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_ACCOUNT_ID` | Server-to-Server OAuth |
 | **Microsoft** | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID` | Azure AD App Registration |
-| **Google** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_API_KEY` | Cloud Console credentials |
+| **Google Login** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth 2.0 for authentication |
+| **Google Gemini** | `GOOGLE_AI_API_KEY` | API key for AI features |
+| **Google Drive** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_API_KEY` | OAuth + API key |
 | **OpenAI** | `OPENAI_API_KEY` | Already configured ✅ |
 
 ### Edge Functions by Provider
@@ -64,13 +73,16 @@ This directory contains detailed implementation guides for all supported third-p
 
 ### Feature Flags
 
-Enable/disable integrations via **Admin > System Settings**:
+Enable/disable integrations via **Admin > System Settings** or **Admin > Integrations**:
 
 | Setting Path | Integration | Default |
 |--------------|-------------|---------|
 | `features.enableZoomSync` | Zoom recordings sync | `true` |
 | `features.enableGoogleDrive` | Google Drive sync | `false` |
+| `features.enableGoogleLogin` | Sign in with Google | `false` |
 | `features.enableAIChat` | AI Chat assistant | `true` |
+
+> **Note**: Most integrations are now configured via the Integration Hub at **Admin > Integrations**. The above feature flags are for backward compatibility.
 
 ---
 
@@ -126,6 +138,52 @@ When adding a new integration, follow this standardized structure:
 
 ---
 
+## Two-Tier Integration Architecture
+
+Control Tower uses a **two-tier integration model** to support enterprise deployments:
+
+### Tier 1: Admin/Organization Level
+- Admin enables integrations for the company
+- Stored in `organization_integrations` table
+- Questions answered: "Does our company use Google/Zoom/etc.?"
+
+### Tier 2: User/Individual Level
+- User connects their personal account
+- Stored in `user_oauth_tokens` table (Sprint 10)
+- Questions answered: "Can I access MY Google Drive/Calendar?"
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     TWO-TIER INTEGRATION MODEL                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  TIER 1: ADMIN/ORGANIZATION LEVEL                                   │
+│  ─────────────────────────────────                                  │
+│  Location: Admin > Integrations                                      │
+│  Storage: organization_integrations                                  │
+│  Purpose: "Is this integration available for our company?"           │
+│                                                                      │
+│                         ↓                                            │
+│                                                                      │
+│  TIER 2: USER/INDIVIDUAL LEVEL                                      │
+│  ─────────────────────────────                                       │
+│  Location: Settings > Connected Services                             │
+│  Storage: user_oauth_tokens                                          │
+│  Purpose: "Connect MY personal account"                              │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Which Tier is Needed?
+
+| Integration | Tier 1 Only | Tier 1 + Tier 2 |
+|-------------|-------------|-----------------|
+| AI Providers (OpenAI, Gemini) | Yes - uses company API key | |
+| Google Login | Yes - enables sign-in | |
+| Zoom | Yes - enables for company | Yes - user connects THEIR Zoom |
+| Google Drive | Yes - enables for company | Yes - user connects THEIR Drive |
+| Microsoft 365 | Yes - enables for company | Yes - user connects THEIR account |
+
 ## Architecture Overview
 
 ```
@@ -133,23 +191,29 @@ When adding a new integration, follow this standardized structure:
 │                        Control Tower                             │
 ├─────────────────────────────────────────────────────────────────┤
 │  Frontend (React)                                                │
-│  ├── Admin > Integrations Page                                   │
-│  ├── useIntegrations hook                                        │
-│  └── ProviderCard components                                     │
+│  ├── Admin > Integrations Page (Tier 1)                          │
+│  ├── Settings > Connected Services (Tier 2)                      │
+│  ├── useIntegrations hook (Tier 1)                               │
+│  ├── useUserIntegrations hook (Tier 2)                           │
+│  └── ProviderCard, IntegrationConnectionCard components          │
 ├─────────────────────────────────────────────────────────────────┤
 │  Edge Functions (Deno)                                           │
-│  ├── oauth-exchange-token    ← OAuth flow                        │
-│  ├── oauth-refresh-token     ← Token refresh                     │
+│  ├── oauth-exchange-token    ← Admin OAuth flow                  │
+│  ├── oauth-refresh-token     ← Admin token refresh               │
+│  ├── user-oauth-connect      ← User OAuth flow (Sprint 10)       │
+│  ├── user-oauth-callback     ← User OAuth callback (Sprint 10)   │
+│  ├── user-oauth-refresh      ← User token refresh (Sprint 10)    │
 │  ├── sync-zoom-files         ← Zoom sync                         │
 │  ├── google-drive-sync       ← Drive sync                        │
 │  └── ai-chat-assistant       ← AI providers                      │
 ├─────────────────────────────────────────────────────────────────┤
 │  Database (PostgreSQL)                                           │
-│  ├── integration_providers   ← Provider definitions              │
-│  ├── integration_categories  ← Category groupings                │
-│  ├── integration_fields      ← Config field schemas              │
-│  ├── organization_integrations ← User configurations             │
-│  └── integration_usage_logs  ← Usage tracking                    │
+│  ├── integration_providers       ← Provider definitions          │
+│  ├── integration_categories      ← Category groupings            │
+│  ├── integration_fields          ← Config field schemas          │
+│  ├── organization_integrations   ← Tier 1: Admin configs         │
+│  ├── user_oauth_tokens           ← Tier 2: User tokens           │
+│  └── integration_usage_logs      ← Usage tracking                │
 ├─────────────────────────────────────────────────────────────────┤
 │  External APIs                                                   │
 │  ├── Zoom API (api.zoom.us)                                     │

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Bell, Moon, Globe, Shield, Zap, Loader2 } from "lucide-react";
+import { ConnectedServices } from "@/components/settings/ConnectedServices";
 
 export default function Settings() {
   const { data: preferences, isLoading } = usePreferences();
@@ -371,6 +372,9 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Connected Services - User Integration Connections */}
+      <ConnectedServices />
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-2">
