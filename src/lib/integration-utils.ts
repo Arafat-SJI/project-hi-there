@@ -199,6 +199,7 @@ export function getProviderIcon(slug: string): LucideIcon {
     'microsoft-365': Cloud,
 
     // Authentication
+    'google-login': Shield,
     auth0: Shield,
     okta: Shield,
   };
