@@ -44,6 +44,10 @@ import IntegrationAnalytics from "./pages/admin/IntegrationAnalytics";
 import AIModelManagement from "./pages/admin/AIModelManagement";
 import AIUsageAnalytics from "./pages/admin/AIUsageAnalytics";
 import EnvironmentValidator from "./pages/admin/EnvironmentValidator";
+import OnboardingWizard from "./pages/admin/OnboardingWizard";
+import DeploymentChecklist from "./pages/admin/DeploymentChecklist";
+import SSOSettings from "./pages/admin/SSOSettings";
+import MeetingAnalytics from "./pages/admin/MeetingAnalytics";
 import FeedbackManagement from "./pages/admin/FeedbackManagement";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -146,6 +150,10 @@ const App = () => (
                   <Route path="/admin/feedback" element={<FeedbackManagement />} />
                   <Route path="/admin/deployment" element={<DeploymentStatus />} />
                   <Route path="/admin/environment" element={<EnvironmentValidator />} />
+                  <Route path="/admin/onboarding" element={<OnboardingWizard />} />
+                  <Route path="/admin/checklist" element={<DeploymentChecklist />} />
+                  <Route path="/admin/sso-settings" element={<SSOSettings />} />
+                  <Route path="/admin/meeting-analytics" element={<MeetingAnalytics />} />
                 </Route>
               </Route>
             </Route>
