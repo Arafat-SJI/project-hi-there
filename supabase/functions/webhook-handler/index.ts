@@ -99,7 +99,7 @@ serve(async (req) => {
 async function handleZoomWebhook(
   event: WebhookEvent,
   req: Request,
-  supabase: ReturnType<typeof createClient>
+  supabase: any
 ): Promise<Response> {
   const ZOOM_WEBHOOK_SECRET = Deno.env.get('ZOOM_WEBHOOK_SECRET')
 
@@ -167,7 +167,7 @@ async function handleZoomWebhook(
 
 async function handleGoogleWebhook(
   event: WebhookEvent,
-  supabase: ReturnType<typeof createClient>
+  supabase: any
 ): Promise<Response> {
   // Handle Google Drive push notifications
   if (event.event === 'sync') {

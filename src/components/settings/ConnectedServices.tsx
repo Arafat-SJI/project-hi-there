@@ -228,8 +228,9 @@ export function ConnectedServices() {
     refreshToken.mutate({ provider });
   };
 
-  const getConnectionForProvider = (slug: string) => {
-    return connections.find((c) => c.provider_slug === slug);
+  const getConnectionForProvider = (slug: string): UserOAuthToken | undefined => {
+    if (!Array.isArray(connections)) return undefined;
+    return connections.find((c: UserOAuthToken) => c.provider_slug === slug);
   };
 
   if (isLoading) {

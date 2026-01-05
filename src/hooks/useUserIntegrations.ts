@@ -41,22 +41,23 @@ export interface AvailableProvider {
 }
 
 // Fetch user's connected services
+// Note: user_oauth_tokens table created via migration, using any for now
 export function useUserOAuthTokens() {
   const { user } = useAuth();
 
   return useQuery<UserOAuthToken[]>({
     queryKey: ['user-oauth-tokens', user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<UserOAuthToken[]> => {
       if (!user) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_oauth_tokens')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as UserOAuthToken[];
     },
     enabled: !!user,
   });
@@ -68,10 +69,10 @@ export function useUserOAuthToken(providerSlug: string) {
 
   return useQuery<UserOAuthToken | null>({
     queryKey: ['user-oauth-token', user?.id, providerSlug],
-    queryFn: async () => {
+    queryFn: async (): Promise<UserOAuthToken | null> => {
       if (!user) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_oauth_tokens')
         .select('*')
         .eq('user_id', user.id)
@@ -79,7 +80,7 @@ export function useUserOAuthToken(providerSlug: string) {
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      return data as UserOAuthToken | null;
     },
     enabled: !!user && !!providerSlug,
   });
