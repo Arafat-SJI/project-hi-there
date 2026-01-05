@@ -39,7 +39,6 @@ import {
   UserOAuthToken,
   AvailableProvider,
 } from '@/hooks/useUserIntegrations';
-import { useOrganizationIntegration } from '@/hooks/useIntegrations';
 
 // Provider icons/logos
 const providerIcons: Record<string, string> = {
@@ -72,6 +71,7 @@ function ServiceCard({
   const isConnected = connection?.is_active;
   const isExpired = connection?.expires_at && new Date(connection.expires_at) <= new Date();
   const hasError = !!connection?.error_message;
+  const isAnyActionPending = isConnecting || isDisconnecting || isRefreshing;
 
   return (
     <div
@@ -152,7 +152,7 @@ function ServiceCard({
                 variant="outline"
                 size="sm"
                 onClick={onRefresh}
-                disabled={isRefreshing}
+                disabled={isAnyActionPending}
               >
                 {isRefreshing ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -166,7 +166,7 @@ function ServiceCard({
               variant="ghost"
               size="sm"
               onClick={onDisconnect}
-              disabled={isDisconnecting}
+              disabled={isAnyActionPending}
               className="text-destructive hover:text-destructive"
             >
               {isDisconnecting ? (
@@ -182,7 +182,7 @@ function ServiceCard({
             variant="default"
             size="sm"
             onClick={onConnect}
-            disabled={isConnecting}
+            disabled={isAnyActionPending}
           >
             {isConnecting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -197,6 +197,10 @@ function ServiceCard({
   );
 }
 
+// Track pending state per provider
+type PendingAction = 'connect' | 'disconnect' | 'refresh';
+type PendingState = Record<string, PendingAction | null>;
+
 export function ConnectedServices() {
   const { data: connections = [], isLoading: connectionsLoading } = useUserOAuthTokens();
   const { data: availableProviders = [], isLoading: providersLoading } = useAvailableUserProviders();
@@ -206,30 +210,75 @@ export function ConnectedServices() {
   const refreshToken = useRefreshOAuthToken();
 
   const [disconnectProvider, setDisconnectProvider] = useState<string | null>(null);
+  // Track which provider has a pending action
+  const [pendingActions, setPendingActions] = useState<PendingState>({});
 
   const isLoading = connectionsLoading || providersLoading;
 
   const handleConnect = (provider: string) => {
-    connectOAuth.mutate({ provider });
+    // Prevent duplicate clicks
+    if (pendingActions[provider]) return;
+
+    setPendingActions(prev => ({ ...prev, [provider]: 'connect' }));
+    connectOAuth.mutate(
+      { provider },
+      {
+        onSettled: () => {
+          setPendingActions(prev => ({ ...prev, [provider]: null }));
+        },
+      }
+    );
   };
 
   const handleDisconnect = (provider: string) => {
+    // Prevent duplicate clicks
+    if (pendingActions[provider]) return;
     setDisconnectProvider(provider);
   };
 
   const confirmDisconnect = () => {
     if (disconnectProvider) {
-      disconnectOAuth.mutate({ provider: disconnectProvider });
+      // Prevent duplicate clicks
+      if (pendingActions[disconnectProvider]) {
+        setDisconnectProvider(null);
+        return;
+      }
+
+      setPendingActions(prev => ({ ...prev, [disconnectProvider]: 'disconnect' }));
+      disconnectOAuth.mutate(
+        { provider: disconnectProvider },
+        {
+          onSettled: () => {
+            setPendingActions(prev => ({ ...prev, [disconnectProvider]: null }));
+          },
+        }
+      );
       setDisconnectProvider(null);
     }
   };
 
   const handleRefresh = (provider: string) => {
-    refreshToken.mutate({ provider });
+    // Prevent duplicate clicks
+    if (pendingActions[provider]) return;
+
+    setPendingActions(prev => ({ ...prev, [provider]: 'refresh' }));
+    refreshToken.mutate(
+      { provider },
+      {
+        onSettled: () => {
+          setPendingActions(prev => ({ ...prev, [provider]: null }));
+        },
+      }
+    );
   };
 
   const getConnectionForProvider = (slug: string) => {
     return connections.find((c) => c.provider_slug === slug);
+  };
+
+  // Helper to check pending state for a specific provider
+  const isPendingAction = (provider: string, action: PendingAction) => {
+    return pendingActions[provider] === action;
   };
 
   if (isLoading) {
@@ -271,9 +320,9 @@ export function ConnectedServices() {
                   onConnect={() => handleConnect(provider.provider_slug)}
                   onDisconnect={() => handleDisconnect(provider.provider_slug)}
                   onRefresh={() => handleRefresh(provider.provider_slug)}
-                  isConnecting={connectOAuth.isPending}
-                  isDisconnecting={disconnectOAuth.isPending}
-                  isRefreshing={refreshToken.isPending}
+                  isConnecting={isPendingAction(provider.provider_slug, 'connect')}
+                  isDisconnecting={isPendingAction(provider.provider_slug, 'disconnect')}
+                  isRefreshing={isPendingAction(provider.provider_slug, 'refresh')}
                 />
               ))}
             </div>

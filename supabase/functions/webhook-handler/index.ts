@@ -12,25 +12,46 @@ interface WebhookEvent {
   event_ts?: number;
 }
 
-// Verify Zoom webhook signature
-function verifyZoomWebhook(
+/**
+ * Verify Zoom webhook signature using HMAC-SHA256
+ * Reference: https://developers.zoom.us/docs/api/rest/webhook-reference/#verify-webhook-events
+ */
+async function verifyZoomWebhook(
   payload: string,
   signature: string | null,
   timestamp: string | null,
   secretToken: string
-): boolean {
-  if (!signature || !timestamp) return false
+): Promise<boolean> {
+  if (!signature || !timestamp || !secretToken) return false
 
   try {
+    // Construct the message: v0:{timestamp}:{payload}
     const message = `v0:${timestamp}:${payload}`
-    const encoder = new TextEncoder()
-    const key = encoder.encode(secretToken)
-    const data = encoder.encode(message)
 
-    // For production, use crypto.subtle for HMAC verification
-    // This is a simplified check - implement proper HMAC-SHA256 verification
-    return signature.startsWith('v0=')
-  } catch {
+    const encoder = new TextEncoder()
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secretToken),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+
+    const signatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(message))
+    const hashArray = Array.from(new Uint8Array(signatureBuffer))
+    const expectedSignature = 'v0=' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+
+    // Constant-time comparison to prevent timing attacks
+    if (signature.length !== expectedSignature.length) return false
+
+    let result = 0
+    for (let i = 0; i < signature.length; i++) {
+      result |= signature.charCodeAt(i) ^ expectedSignature.charCodeAt(i)
+    }
+
+    return result === 0
+  } catch (error) {
+    console.error('Zoom signature verification error:', error)
     return false
   }
 }
@@ -61,7 +82,28 @@ serve(async (req) => {
       )
     }
 
-    // Log webhook event
+    // SECURITY: Verify signature BEFORE any logging or processing
+    if (provider === 'zoom') {
+      const ZOOM_WEBHOOK_SECRET = Deno.env.get('ZOOM_WEBHOOK_SECRET')
+
+      // Allow URL validation without signature (Zoom's initial validation request)
+      if (event.event !== 'endpoint.url_validation') {
+        const signature = req.headers.get('x-zm-signature')
+        const timestamp = req.headers.get('x-zm-request-timestamp')
+
+        const isValid = await verifyZoomWebhook(body, signature, timestamp, ZOOM_WEBHOOK_SECRET || '')
+
+        if (!isValid) {
+          console.warn('Invalid Zoom webhook signature rejected')
+          return new Response(
+            JSON.stringify({ error: 'Invalid signature' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+          )
+        }
+      }
+    }
+
+    // Log webhook event AFTER signature verification
     await supabaseClient
       .from('webhook_logs')
       .insert({
@@ -107,7 +149,6 @@ async function handleZoomWebhook(
   if (event.event === 'endpoint.url_validation') {
     const plainToken = event.payload?.plainToken
     if (plainToken && ZOOM_WEBHOOK_SECRET) {
-      // For production: implement proper HMAC-SHA256
       const encoder = new TextEncoder()
       const data = encoder.encode(plainToken)
       const key = await crypto.subtle.importKey(
@@ -135,7 +176,6 @@ async function handleZoomWebhook(
   if (event.event === 'recording.completed') {
     const payload = event.payload?.object
     if (payload) {
-      // Trigger sync for this specific recording
       console.log('Recording completed:', payload.uuid)
 
       // Queue processing

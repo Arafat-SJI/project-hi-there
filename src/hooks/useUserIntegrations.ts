@@ -13,7 +13,7 @@ export interface UserOAuthToken {
   id: string;
   user_id: string;
   provider_slug: string;
-  access_token?: string; // Hidden from client
+  // Sensitive fields (access_token, refresh_token) excluded from client queries
   token_type: string;
   expires_at: string | null;
   scopes: string[];
@@ -31,6 +31,28 @@ export interface UserOAuthToken {
   updated_at: string;
 }
 
+// Non-sensitive columns to select (explicitly excludes access_token, refresh_token)
+const SAFE_TOKEN_COLUMNS = `
+  id,
+  user_id,
+  provider_slug,
+  token_type,
+  expires_at,
+  scopes,
+  account_email,
+  account_name,
+  account_id,
+  account_avatar_url,
+  is_active,
+  last_used_at,
+  last_refreshed_at,
+  error_message,
+  error_at,
+  metadata,
+  created_at,
+  updated_at
+`;
+
 export interface AvailableProvider {
   provider_slug: string;
   provider_name: string;
@@ -40,7 +62,7 @@ export interface AvailableProvider {
   oauth_enabled: boolean;
 }
 
-// Fetch user's connected services
+// Fetch user's connected services (excludes sensitive token fields)
 export function useUserOAuthTokens() {
   const { user } = useAuth();
 
@@ -51,7 +73,7 @@ export function useUserOAuthTokens() {
 
       const { data, error } = await supabase
         .from('user_oauth_tokens')
-        .select('*')
+        .select(SAFE_TOKEN_COLUMNS)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -62,7 +84,7 @@ export function useUserOAuthTokens() {
   });
 }
 
-// Fetch a specific provider connection
+// Fetch a specific provider connection (excludes sensitive token fields)
 export function useUserOAuthToken(providerSlug: string) {
   const { user } = useAuth();
 
@@ -73,7 +95,7 @@ export function useUserOAuthToken(providerSlug: string) {
 
       const { data, error } = await supabase
         .from('user_oauth_tokens')
-        .select('*')
+        .select(SAFE_TOKEN_COLUMNS)
         .eq('user_id', user.id)
         .eq('provider_slug', providerSlug)
         .single();

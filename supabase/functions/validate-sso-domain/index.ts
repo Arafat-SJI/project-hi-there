@@ -6,12 +6,62 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Simple in-memory rate limiter (per edge function instance)
+// In production, use a distributed cache like Redis
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute per IP
+
+function checkRateLimit(clientIp: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(clientIp);
+
+  // Clean up expired entries periodically
+  if (rateLimitMap.size > 1000) {
+    for (const [key, value] of rateLimitMap.entries()) {
+      if (value.resetAt < now) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }
+
+  if (!entry || entry.resetAt < now) {
+    rateLimitMap.set(clientIp, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+// Generic error message to prevent domain enumeration
+const GENERIC_VALIDATION_ERROR = 'Unable to validate email for SSO. Please try again or contact support.';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    // Get client IP for rate limiting and logging
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('cf-connecting-ip')
+      || 'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
+
+    // Check rate limit
+    if (!checkRateLimit(clientIp)) {
+      // Don't reveal rate limit details
+      return new Response(
+        JSON.stringify({ valid: false, message: GENERIC_VALIDATION_ERROR }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
+      )
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -19,10 +69,19 @@ serve(async (req) => {
 
     const { email, provider_type } = await req.json()
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'email is required' }),
+        JSON.stringify({ valid: false, message: GENERIC_VALIDATION_ERROR }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ valid: false, message: GENERIC_VALIDATION_ERROR }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 
@@ -31,7 +90,7 @@ serve(async (req) => {
 
     if (!domain) {
       return new Response(
-        JSON.stringify({ valid: false, error: 'Invalid email format' }),
+        JSON.stringify({ valid: false, message: GENERIC_VALIDATION_ERROR }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
@@ -46,8 +105,25 @@ serve(async (req) => {
         .single()
 
       if (configError || !config) {
+        // Log the attempt with security context
+        await supabaseClient
+          .from('sso_login_logs')
+          .insert({
+            provider_type: provider_type || 'unknown',
+            email: email.substring(0, 3) + '***@' + domain, // Partial email for privacy
+            success: false,
+            error_message: 'Provider not configured',
+            metadata: {
+              domain,
+              validation_type: 'domain_check',
+              client_ip: clientIp,
+              user_agent: userAgent.substring(0, 200), // Truncate long user agents
+            },
+          })
+
+        // Generic response - don't reveal provider configuration details
         return new Response(
-          JSON.stringify({ valid: false, error: 'SSO provider not configured or disabled' }),
+          JSON.stringify({ valid: false, message: GENERIC_VALIDATION_ERROR }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
       }
@@ -60,32 +136,30 @@ serve(async (req) => {
         .eq('is_active', true)
 
       // If no allowlist entries, all domains are allowed
-      if (!allowedDomains || allowedDomains.length === 0) {
-        return new Response(
-          JSON.stringify({ valid: true, domain, message: 'All domains allowed' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-        )
-      }
+      const isAllowed = !allowedDomains || allowedDomains.length === 0 ||
+        allowedDomains.some((d) => d.domain.toLowerCase() === domain)
 
-      // Check if domain is in allowlist
-      const isAllowed = allowedDomains.some((d) => d.domain.toLowerCase() === domain)
-
-      // Log the validation attempt
+      // Log the validation attempt with security context
       await supabaseClient
         .from('sso_login_logs')
         .insert({
           provider_type,
-          email,
+          email: email.substring(0, 3) + '***@' + domain, // Partial email for privacy
           success: isAllowed,
-          error_message: isAllowed ? null : 'Domain not in allowlist',
-          metadata: { domain, validation_type: 'domain_check' },
+          error_message: isAllowed ? null : 'Domain validation failed',
+          metadata: {
+            domain,
+            validation_type: 'domain_check',
+            client_ip: clientIp,
+            user_agent: userAgent.substring(0, 200),
+          },
         })
 
+      // Generic response - don't reveal specific allowlist details
       return new Response(
         JSON.stringify({
           valid: isAllowed,
-          domain,
-          message: isAllowed ? 'Domain is allowed' : `Domain @${domain} is not allowed for this SSO provider`,
+          message: isAllowed ? 'Validation successful' : GENERIC_VALIDATION_ERROR,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
@@ -99,7 +173,7 @@ serve(async (req) => {
 
     if (!configs || configs.length === 0) {
       return new Response(
-        JSON.stringify({ valid: true, domain, message: 'No SSO restrictions configured' }),
+        JSON.stringify({ valid: true, message: 'Validation successful' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
@@ -131,22 +205,39 @@ serve(async (req) => {
       }
     }
 
+    const isValid = allowedProviders.length > 0;
+
+    // Log the validation attempt
+    await supabaseClient
+      .from('sso_login_logs')
+      .insert({
+        provider_type: 'multi_provider_check',
+        email: email.substring(0, 3) + '***@' + domain,
+        success: isValid,
+        error_message: isValid ? null : 'Domain validation failed',
+        metadata: {
+          domain,
+          validation_type: 'domain_check',
+          client_ip: clientIp,
+          user_agent: userAgent.substring(0, 200),
+          providers_checked: configs.length,
+        },
+      })
+
+    // Return allowed providers without revealing domain status for disallowed ones
     return new Response(
       JSON.stringify({
-        valid: allowedProviders.length > 0,
-        domain,
-        allowed_providers: allowedProviders,
-        message: allowedProviders.length > 0
-          ? `Domain allowed for: ${allowedProviders.map((p) => p.display_name).join(', ')}`
-          : `Domain @${domain} is not allowed for any SSO provider`,
+        valid: isValid,
+        allowed_providers: isValid ? allowedProviders : [],
+        message: isValid ? 'Validation successful' : GENERIC_VALIDATION_ERROR,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error: unknown) {
     console.error('Validate SSO domain error:', error)
-    const message = error instanceof Error ? error.message : 'Unknown error'
+    // Generic error - don't expose internal details
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ valid: false, message: GENERIC_VALIDATION_ERROR }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
