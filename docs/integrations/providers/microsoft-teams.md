@@ -4,10 +4,63 @@
 
 The Microsoft Teams integration leverages the Microsoft Graph API to enable meeting management, calendar synchronization, and collaboration features. This integration provides comprehensive access to Teams meetings, chat, and file storage.
 
-**Provider Type**: Meeting Provider + Productivity Suite
-**Auth Method**: OAuth 2.0 (Microsoft Identity Platform)
-**API Version**: Microsoft Graph v1.0
+**Provider Type**: Meeting Provider + Productivity Suite  
+**Auth Method**: OAuth 2.0 (Microsoft Identity Platform)  
+**API Version**: Microsoft Graph v1.0  
 **Status**: 🚧 Coming Soon
+
+---
+
+## Quick Start Checklist
+
+Before implementing, ensure you have:
+
+- [ ] Azure Portal access with admin rights
+- [ ] Microsoft 365 subscription (Business Basic or higher)
+- [ ] Control Tower Supabase project connected
+- [ ] The following environment variables ready:
+  - `MICROSOFT_CLIENT_ID`
+  - `MICROSOFT_CLIENT_SECRET`
+  - `MICROSOFT_TENANT_ID`
+
+**Estimated Setup Time**: 30-45 minutes
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description | Where to Get |
+|----------|----------|-------------|--------------|
+| `MICROSOFT_CLIENT_ID` | Yes | Application (client) ID | Azure Portal > App registrations |
+| `MICROSOFT_CLIENT_SECRET` | Yes | Client secret value | Azure Portal > Certificates & secrets |
+| `MICROSOFT_TENANT_ID` | Yes | Directory (tenant) ID | Azure Portal > App registrations |
+
+### Supabase Secrets Configuration
+
+Add these secrets via **Supabase Dashboard > Project Settings > Edge Functions > Secrets**:
+
+```bash
+MICROSOFT_CLIENT_ID=your-client-id
+MICROSOFT_CLIENT_SECRET=your-client-secret
+MICROSOFT_TENANT_ID=your-tenant-id
+```
+
+### Related Edge Functions
+
+| Edge Function | Purpose | Status |
+|---------------|---------|--------|
+| `oauth-exchange-token` | Handles OAuth token exchange | ✅ Available |
+| `oauth-refresh-token` | Refreshes expired tokens | ✅ Available |
+| `microsoft-teams-sync` | Sync Teams meetings (to be created) | 🚧 Planned |
+| `microsoft-webhook` | Handle Microsoft Graph webhooks | 🚧 Planned |
+
+### Database Tables
+
+| Table | Purpose | Status |
+|-------|---------|--------|
+| `teams_meetings` | Store Teams meeting data | 🚧 Planned |
+| `teams_call_records` | Store call records | 🚧 Planned |
+| `organization_integrations` | Store OAuth tokens | ✅ Available |
 
 ---
 
