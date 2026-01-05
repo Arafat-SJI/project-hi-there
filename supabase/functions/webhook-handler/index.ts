@@ -178,10 +178,24 @@ async function handleZoomWebhook(
     if (payload) {
       console.log('Recording completed:', payload.uuid)
 
-      // Queue processing
-      await supabase.functions.invoke('sync-zoom-files', {
-        body: { action: 'sync_single', meeting_uuid: payload.uuid }
-      })
+      // Queue processing with error handling
+      try {
+        const { error } = await supabase.functions.invoke('sync-zoom-files', {
+          body: { action: 'sync_single', meeting_uuid: payload.uuid }
+        })
+        if (error) {
+          console.error('Failed to invoke sync-zoom-files:', error)
+          // Log failure for retry/monitoring
+          await supabase.from('webhook_logs').insert({
+            provider: 'zoom',
+            event_type: 'sync_zoom_files_error',
+            payload: { meeting_uuid: payload.uuid, error: error.message },
+            received_at: new Date().toISOString(),
+          })
+        }
+      } catch (invokeError) {
+        console.error('Exception invoking sync-zoom-files:', invokeError)
+      }
     }
   }
 
@@ -191,11 +205,15 @@ async function handleZoomWebhook(
     if (payload) {
       console.log('Meeting ended:', payload.uuid)
 
-      // Update meeting status
-      await supabase
+      // Update meeting status with error handling
+      const { error } = await supabase
         .from('meetings')
         .update({ status: 'completed' })
         .eq('zoom_id', payload.uuid)
+
+      if (error) {
+        console.error('Failed to update meeting status:', error)
+      }
     }
   }
 
@@ -212,10 +230,25 @@ async function handleGoogleWebhook(
   // Handle Google Drive push notifications
   if (event.event === 'sync') {
     console.log('Google Drive sync notification received')
-    // Trigger drive sync
-    await supabase.functions.invoke('google-drive-sync', {
-      body: { action: 'sync' }
-    })
+
+    // Trigger drive sync with error handling
+    try {
+      const { error } = await supabase.functions.invoke('google-drive-sync', {
+        body: { action: 'sync' }
+      })
+      if (error) {
+        console.error('Failed to invoke google-drive-sync:', error)
+        // Log failure for retry/monitoring
+        await supabase.from('webhook_logs').insert({
+          provider: 'google',
+          event_type: 'google_drive_sync_error',
+          payload: { error: error.message },
+          received_at: new Date().toISOString(),
+        })
+      }
+    } catch (invokeError) {
+      console.error('Exception invoking google-drive-sync:', invokeError)
+    }
   }
 
   return new Response(

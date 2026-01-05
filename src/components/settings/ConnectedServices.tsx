@@ -28,6 +28,8 @@ import {
   AlertTriangle,
   Clock,
   ExternalLink,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -202,8 +204,18 @@ type PendingAction = 'connect' | 'disconnect' | 'refresh';
 type PendingState = Record<string, PendingAction | null>;
 
 export function ConnectedServices() {
-  const { data: connections = [], isLoading: connectionsLoading } = useUserOAuthTokens();
-  const { data: availableProviders = [], isLoading: providersLoading } = useAvailableUserProviders();
+  const {
+    data: connections = [],
+    isLoading: connectionsLoading,
+    error: connectionsError,
+    refetch: refetchConnections,
+  } = useUserOAuthTokens();
+  const {
+    data: availableProviders = [],
+    isLoading: providersLoading,
+    error: providersError,
+    refetch: refetchProviders,
+  } = useAvailableUserProviders();
 
   const connectOAuth = useConnectOAuth();
   const disconnectOAuth = useDisconnectOAuth();
@@ -214,6 +226,12 @@ export function ConnectedServices() {
   const [pendingActions, setPendingActions] = useState<PendingState>({});
 
   const isLoading = connectionsLoading || providersLoading;
+  const hasError = connectionsError || providersError;
+
+  const handleRetry = () => {
+    if (connectionsError) refetchConnections();
+    if (providersError) refetchProviders();
+  };
 
   const handleConnect = (provider: string) => {
     // Prevent duplicate clicks
@@ -286,6 +304,37 @@ export function ConnectedServices() {
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            Connected Services
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-destructive" />
+            <p className="text-destructive font-medium">Failed to load connected services</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              There was a problem loading your integration data. Please try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetry}
+              className="mt-4"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Retry
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );

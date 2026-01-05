@@ -199,6 +199,8 @@ export function useDisconnectOAuth() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['user-oauth-tokens'] });
       queryClient.invalidateQueries({ queryKey: ['user-oauth-token', user?.id, variables.provider] });
+      // Invalidate available providers in case admin disabled this provider mid-session
+      queryClient.invalidateQueries({ queryKey: ['available-user-providers'] });
       toast.success('Service disconnected successfully');
     },
     onError: (error: Error) => {
@@ -224,6 +226,8 @@ export function useRefreshOAuthToken() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['user-oauth-tokens'] });
       queryClient.invalidateQueries({ queryKey: ['user-oauth-token', user?.id, variables.provider] });
+      // Invalidate available providers in case admin disabled this provider mid-session
+      queryClient.invalidateQueries({ queryKey: ['available-user-providers'] });
       toast.success('Token refreshed successfully');
     },
     onError: (error: Error) => {
