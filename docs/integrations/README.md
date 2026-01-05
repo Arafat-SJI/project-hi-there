@@ -138,6 +138,52 @@ When adding a new integration, follow this standardized structure:
 
 ---
 
+## Two-Tier Integration Architecture
+
+Control Tower uses a **two-tier integration model** to support enterprise deployments:
+
+### Tier 1: Admin/Organization Level
+- Admin enables integrations for the company
+- Stored in `organization_integrations` table
+- Questions answered: "Does our company use Google/Zoom/etc.?"
+
+### Tier 2: User/Individual Level
+- User connects their personal account
+- Stored in `user_oauth_tokens` table (Sprint 10)
+- Questions answered: "Can I access MY Google Drive/Calendar?"
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     TWO-TIER INTEGRATION MODEL                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  TIER 1: ADMIN/ORGANIZATION LEVEL                                   │
+│  ─────────────────────────────────                                  │
+│  Location: Admin > Integrations                                      │
+│  Storage: organization_integrations                                  │
+│  Purpose: "Is this integration available for our company?"           │
+│                                                                      │
+│                         ↓                                            │
+│                                                                      │
+│  TIER 2: USER/INDIVIDUAL LEVEL                                      │
+│  ─────────────────────────────                                       │
+│  Location: Settings > Connected Services                             │
+│  Storage: user_oauth_tokens                                          │
+│  Purpose: "Connect MY personal account"                              │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Which Tier is Needed?
+
+| Integration | Tier 1 Only | Tier 1 + Tier 2 |
+|-------------|-------------|-----------------|
+| AI Providers (OpenAI, Gemini) | Yes - uses company API key | |
+| Google Login | Yes - enables sign-in | |
+| Zoom | Yes - enables for company | Yes - user connects THEIR Zoom |
+| Google Drive | Yes - enables for company | Yes - user connects THEIR Drive |
+| Microsoft 365 | Yes - enables for company | Yes - user connects THEIR account |
+
 ## Architecture Overview
 
 ```
@@ -145,23 +191,29 @@ When adding a new integration, follow this standardized structure:
 │                        Control Tower                             │
 ├─────────────────────────────────────────────────────────────────┤
 │  Frontend (React)                                                │
-│  ├── Admin > Integrations Page                                   │
-│  ├── useIntegrations hook                                        │
-│  └── ProviderCard components                                     │
+│  ├── Admin > Integrations Page (Tier 1)                          │
+│  ├── Settings > Connected Services (Tier 2)                      │
+│  ├── useIntegrations hook (Tier 1)                               │
+│  ├── useUserIntegrations hook (Tier 2)                           │
+│  └── ProviderCard, IntegrationConnectionCard components          │
 ├─────────────────────────────────────────────────────────────────┤
 │  Edge Functions (Deno)                                           │
-│  ├── oauth-exchange-token    ← OAuth flow                        │
-│  ├── oauth-refresh-token     ← Token refresh                     │
+│  ├── oauth-exchange-token    ← Admin OAuth flow                  │
+│  ├── oauth-refresh-token     ← Admin token refresh               │
+│  ├── user-oauth-connect      ← User OAuth flow (Sprint 10)       │
+│  ├── user-oauth-callback     ← User OAuth callback (Sprint 10)   │
+│  ├── user-oauth-refresh      ← User token refresh (Sprint 10)    │
 │  ├── sync-zoom-files         ← Zoom sync                         │
 │  ├── google-drive-sync       ← Drive sync                        │
 │  └── ai-chat-assistant       ← AI providers                      │
 ├─────────────────────────────────────────────────────────────────┤
 │  Database (PostgreSQL)                                           │
-│  ├── integration_providers   ← Provider definitions              │
-│  ├── integration_categories  ← Category groupings                │
-│  ├── integration_fields      ← Config field schemas              │
-│  ├── organization_integrations ← User configurations             │
-│  └── integration_usage_logs  ← Usage tracking                    │
+│  ├── integration_providers       ← Provider definitions          │
+│  ├── integration_categories      ← Category groupings            │
+│  ├── integration_fields          ← Config field schemas          │
+│  ├── organization_integrations   ← Tier 1: Admin configs         │
+│  ├── user_oauth_tokens           ← Tier 2: User tokens           │
+│  └── integration_usage_logs      ← Usage tracking                │
 ├─────────────────────────────────────────────────────────────────┤
 │  External APIs                                                   │
 │  ├── Zoom API (api.zoom.us)                                     │

@@ -94,30 +94,96 @@ https://www.googleapis.com/auth/calendar.events
 https://www.googleapis.com/auth/meetings.space.created
 ```
 
+## Two-Tier Integration Model
+
+Google integrations follow a **two-tier model**:
+
+| Tier | Purpose | Storage | Configured By |
+|------|---------|---------|---------------|
+| **Tier 1: Admin** | Enable integrations for the company | `organization_integrations` | Admin |
+| **Tier 2: User** | Connect individual accounts | `user_oauth_tokens` | Each User |
+
+### When Each Tier is Needed
+
+| Provider | Tier 1 (Admin) | Tier 2 (User) | Notes |
+|----------|----------------|---------------|-------|
+| Google Login | Yes | Automatic | User signs in with Google |
+| Google Gemini | Yes | No | Uses company API key |
+| Google Workspace | Yes | Yes | User connects their Drive/Calendar |
+| Google Meet | Yes | Yes | User connects for meeting sync |
+
 ## Frontend Integration
 
-### Check Provider Status
+### Tier 1: Check Admin Configuration (Organization Level)
 
 ```tsx
 import { useOrganizationIntegration } from '@/hooks/useIntegrations';
 
-function MyComponent() {
-  // Check Google Login status
+function AdminConfigCheck() {
+  // Check if admin has configured Google integrations
   const { data: googleLogin } = useOrganizationIntegration('google-login');
-
-  // Check Google AI status
   const { data: googleAI } = useOrganizationIntegration('google-gemini');
-
-  // Check Google Workspace status
   const { data: googleWorkspace } = useOrganizationIntegration('google-workspace');
 
   const isGoogleLoginEnabled = googleLogin?.connection_status === 'connected';
   const isGeminiEnabled = googleAI?.connection_status === 'connected';
+  const isWorkspaceEnabled = googleWorkspace?.connection_status === 'connected';
   // ...
 }
 ```
 
-### Configure Provider
+### Tier 2: Check User Connection (Individual Level)
+
+```tsx
+import { useUserOAuthToken } from '@/hooks/useUserIntegrations';
+
+function UserConnectionCheck() {
+  // Check if user has connected their Google account
+  const { data: googleToken, isLoading } = useUserOAuthToken('google');
+
+  const isUserConnected = googleToken?.is_active && googleToken?.expires_at > new Date();
+  const connectedEmail = googleToken?.account_email;
+
+  return (
+    <div>
+      {isUserConnected ? (
+        <p>Connected as {connectedEmail}</p>
+      ) : (
+        <button onClick={connectGoogle}>Connect Google</button>
+      )}
+    </div>
+  );
+}
+```
+
+### Combined Check (Recommended Pattern)
+
+```tsx
+import { useOrganizationIntegration } from '@/hooks/useIntegrations';
+import { useUserOAuthToken } from '@/hooks/useUserIntegrations';
+
+function GoogleIntegrationStatus() {
+  // Tier 1: Is Google enabled by admin?
+  const { data: orgConfig } = useOrganizationIntegration('google-workspace');
+  const isAdminEnabled = orgConfig?.connection_status === 'connected';
+
+  // Tier 2: Has user connected their account?
+  const { data: userToken } = useUserOAuthToken('google');
+  const isUserConnected = userToken?.is_active;
+
+  if (!isAdminEnabled) {
+    return <p>Google is not available. Contact your administrator.</p>;
+  }
+
+  if (!isUserConnected) {
+    return <button>Connect your Google account</button>;
+  }
+
+  return <p>Connected as {userToken.account_email}</p>;
+}
+```
+
+### Configure Provider (Admin)
 
 ```tsx
 import { useNavigate } from 'react-router-dom';
@@ -132,6 +198,29 @@ function AdminPage() {
   const configureGemini = () => {
     navigate('/admin/integrations/google-gemini');
   };
+  // ...
+}
+```
+
+### Connect User Account (User)
+
+```tsx
+import { useConnectOAuth, useDisconnectOAuth } from '@/hooks/useUserIntegrations';
+
+function UserSettingsPage() {
+  const connectGoogle = useConnectOAuth();
+  const disconnectGoogle = useDisconnectOAuth();
+
+  const handleConnect = async () => {
+    await connectGoogle.mutateAsync({ provider: 'google' });
+    // Redirects to Google OAuth consent screen
+  };
+
+  const handleDisconnect = async () => {
+    await disconnectGoogle.mutateAsync({ provider: 'google' });
+    // Revokes tokens and removes connection
+  };
+
   // ...
 }
 ```

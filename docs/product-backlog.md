@@ -424,6 +424,214 @@ CREATE TRIGGER update_sso_configurations_updated_at
 
 ---
 
+### Sprint 8: Meetings Enhancement
+
+> **Epic:** Enhance meeting functionality with AI-powered features, multi-provider support, and improved user experience.
+
+#### User Stories
+
+| ID | Story | Priority | Effort | Status |
+|----|-------|----------|--------|--------|
+| PB-039 | Create meeting transcript viewer component | High | 3h | 🔲 Todo |
+| PB-040 | Implement AI meeting summarization | High | 4h | 🔲 Todo |
+| PB-041 | Add meeting action items extraction | High | 3h | 🔲 Todo |
+| PB-042 | Create meeting search functionality | Medium | 2h | 🔲 Todo |
+| PB-043 | Add meeting categories/tags | Medium | 2h | 🔲 Todo |
+| PB-044 | Implement meeting sharing | Medium | 2h | 🔲 Todo |
+| PB-045 | Add meeting analytics dashboard | Low | 3h | 🔲 Todo |
+| PB-046 | Support multiple meeting providers (Zoom, Google Meet, Teams) | Low | 4h | 🔲 Todo |
+| PB-047 | Add meeting recording playback | Low | 3h | 🔲 Todo |
+
+**Sprint Total: ~26 hours**
+
+---
+
+### Sprint 9: AI-Powered Features
+
+> **Epic:** Leverage AI capabilities across the platform for intelligent automation and insights.
+
+#### User Stories
+
+| ID | Story | Priority | Effort | Status |
+|----|-------|----------|--------|--------|
+| PB-048 | Implement RAG-powered knowledge search | High | 4h | 🔲 Todo |
+| PB-049 | Add AI task suggestions based on context | High | 3h | 🔲 Todo |
+| PB-050 | Create AI-powered client insights | Medium | 3h | 🔲 Todo |
+| PB-051 | Implement conversation memory across sessions | Medium | 3h | 🔲 Todo |
+| PB-052 | Add AI agent templates for common use cases | Medium | 2h | 🔲 Todo |
+| PB-053 | Create AI usage analytics dashboard | Low | 2h | 🔲 Todo |
+| PB-054 | Implement AI rate limiting per user/org | Low | 2h | 🔲 Todo |
+
+**Sprint Total: ~19 hours**
+
+---
+
+### Sprint 10: User Integration Connections
+
+> **Epic:** Enable individual users to connect their personal accounts (Google, Zoom, Microsoft) for personalized data sync and access.
+
+#### Business Value
+- **Self-Service**: Users connect their own accounts without admin intervention
+- **Personalization**: Access personal calendars, files, and meeting data
+- **Compliance**: Clear OAuth consent flow with user control
+- **Scalability**: Admins enable once, all users connect themselves
+
+#### User Journey
+```
+Admin enables Google → User sees "Connect Google" in Settings →
+User authorizes → User's Drive/Calendar syncs automatically
+```
+
+#### Database Migration
+
+```sql
+-- User OAuth Tokens table for individual connections
+CREATE TABLE public.user_oauth_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider_slug TEXT NOT NULL,  -- 'google', 'microsoft', 'zoom'
+
+  -- OAuth Credentials (encrypted)
+  access_token TEXT NOT NULL,
+  refresh_token TEXT,
+  token_type TEXT DEFAULT 'Bearer',
+  expires_at TIMESTAMPTZ,
+  scopes TEXT[],
+
+  -- Account Info
+  account_email TEXT,           -- Connected account email
+  account_name TEXT,            -- Display name from provider
+  account_id TEXT,              -- Provider's user ID
+
+  -- Status
+  is_active BOOLEAN DEFAULT true,
+  last_used_at TIMESTAMPTZ,
+  last_refreshed_at TIMESTAMPTZ,
+  error_message TEXT,           -- Last error if any
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+
+  UNIQUE(user_id, provider_slug)
+);
+
+-- Enable RLS
+ALTER TABLE public.user_oauth_tokens ENABLE ROW LEVEL SECURITY;
+
+-- Users can only access their own tokens
+CREATE POLICY "Users manage own OAuth tokens"
+  ON public.user_oauth_tokens
+  FOR ALL TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- Index for efficient lookups
+CREATE INDEX idx_user_oauth_tokens_user_provider
+  ON public.user_oauth_tokens(user_id, provider_slug);
+
+-- Trigger for updated_at
+CREATE TRIGGER update_user_oauth_tokens_updated_at
+  BEFORE UPDATE ON public.user_oauth_tokens
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+```
+
+#### User Stories
+
+| ID | Story | Priority | Effort | Status |
+|----|-------|----------|--------|--------|
+| PB-055 | Create `user_oauth_tokens` table with RLS | Critical | 1h | 🔲 Todo |
+| PB-056 | Create "Connected Services" section in Settings page | High | 2h | 🔲 Todo |
+| PB-057 | Create `IntegrationConnectionCard` component | High | 1.5h | 🔲 Todo |
+| PB-058 | Implement Google OAuth flow for individual users | High | 3h | 🔲 Todo |
+| PB-059 | Implement Zoom OAuth flow for individual users | High | 3h | 🔲 Todo |
+| PB-060 | Implement Microsoft OAuth flow for individual users | High | 3h | 🔲 Todo |
+| PB-061 | Create `user-oauth-connect` edge function | High | 2h | 🔲 Todo |
+| PB-062 | Create `user-oauth-callback` edge function | High | 2h | 🔲 Todo |
+| PB-063 | Create `user-oauth-refresh` edge function | Medium | 1.5h | 🔲 Todo |
+| PB-064 | Add token encryption/decryption utilities | Medium | 1h | 🔲 Todo |
+| PB-065 | Show connection status in Settings page | Medium | 1h | 🔲 Todo |
+| PB-066 | Add "Disconnect" functionality with token revocation | Medium | 1.5h | 🔲 Todo |
+| PB-067 | Filter available providers based on admin settings | Low | 0.5h | 🔲 Todo |
+
+**Sprint Total: ~23 hours**
+
+#### UI Design: My Integrations Section
+
+**Location:** Settings Page (`/settings`)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Connected Services                                       │
+│ Connect your personal accounts to enable syncing        │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ ┌─────────────────────┐ ┌─────────────────────┐        │
+│ │ 🔴 Google           │ │ 🔵 Zoom             │        │
+│ │ ✅ Connected        │ │ Not Connected       │        │
+│ │ john@gmail.com      │ │ Connect to sync     │        │
+│ │ Drive, Calendar     │ │ your meetings       │        │
+│ │ [Disconnect]        │ │ [Connect Account]   │        │
+│ └─────────────────────┘ └─────────────────────┘        │
+│                                                         │
+│ ┌─────────────────────┐ ┌─────────────────────┐        │
+│ │ 🔷 Microsoft 365    │ │ ⚫ Slack            │        │
+│ │ Not Connected       │ │ Not Available       │        │
+│ │ Connect calendar &  │ │ Contact admin to    │        │
+│ │ OneDrive            │ │ enable              │        │
+│ │ [Connect Account]   │ │                     │        │
+│ └─────────────────────┘ └─────────────────────┘        │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Connection States:**
+1. **Connected** - Green check, shows connected email, disconnect button
+2. **Not Connected** - Provider enabled by admin, user can connect
+3. **Not Available** - Provider not enabled by admin, greyed out
+
+#### Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `supabase/migrations/20260105_user_oauth_tokens.sql` | Create | Database migration |
+| `src/pages/Settings.tsx` | Modify | Add "Connected Services" section |
+| `src/components/settings/ConnectedServices.tsx` | Create | Container for connection cards |
+| `src/components/settings/IntegrationConnectionCard.tsx` | Create | Reusable connection card |
+| `src/hooks/useUserIntegrations.ts` | Create | Hooks for user OAuth tokens |
+| `src/pages/settings/OAuthCallback.tsx` | Create | User OAuth callback handler |
+| `supabase/functions/user-oauth-connect/index.ts` | Create | Initiate user OAuth |
+| `supabase/functions/user-oauth-callback/index.ts` | Create | Handle OAuth callback |
+| `supabase/functions/user-oauth-refresh/index.ts` | Create | Refresh tokens |
+| `supabase/functions/user-oauth-disconnect/index.ts` | Create | Revoke and delete tokens |
+
+#### Acceptance Criteria
+
+- [ ] User can see "Connected Services" section in Settings
+- [ ] User can connect Google account if admin has enabled Google
+- [ ] User can connect Zoom account if admin has enabled Zoom
+- [ ] User can connect Microsoft account if admin has enabled Microsoft
+- [ ] Connected status shows account email and last sync time
+- [ ] User can disconnect at any time
+- [ ] Tokens are encrypted at rest
+- [ ] Tokens auto-refresh before expiration
+- [ ] Providers not enabled by admin show "Not Available"
+
+#### Dependency Chain
+
+```
+Sprint 4 (Admin Integration Settings)
+         ↓
+Sprint 10 (User Integration Connections)
+         ↓
+Sprint 8 (Meetings Enhancement with multi-provider)
+```
+
+**Note**: Sprint 10 depends on Sprint 4 being complete, as users can only connect to providers that admins have enabled.
+
+---
+
 ## 4. Configuration Keys Reference
 
 ### Branding Configuration
@@ -570,8 +778,32 @@ Use this checklist when deploying CollabAi to a new client:
 | Sprint 5 | Edge Functions | 8h | 28.5h |
 | Sprint 6 | Onboarding | 8h | 36.5h |
 | Sprint 7 | Enterprise SSO & Authentication | 25.5h | 62h |
+| Sprint 8 | Meetings Enhancement | 26h | 88h |
+| Sprint 9 | AI-Powered Features | 19h | 107h |
+| Sprint 10 | User Integration Connections | 23h | 130h |
 
-**Total Estimated Development Time:** ~62 hours
+**Total Estimated Development Time:** ~130 hours
+
+### Sprint Dependency Diagram
+
+```
+Sprint 1 (Access Control) ✅
+         ↓
+Sprint 2-3 (Config + Users)
+         ↓
+Sprint 4 (Admin Integration Settings) ← Required for user connections
+         ↓
+    ┌────┴────┐
+    ↓         ↓
+Sprint 7   Sprint 10
+(SSO)      (User Connections)
+    ↓         ↓
+    └────┬────┘
+         ↓
+Sprint 8 (Meetings - uses user connections)
+         ↓
+Sprint 9 (AI Features)
+```
 
 ---
 
