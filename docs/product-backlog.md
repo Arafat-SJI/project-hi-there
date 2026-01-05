@@ -3,8 +3,8 @@
 ![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-ff69b4?style=flat-square)
 ![Backend: Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=flat-square)
 
-> **Version:** 1.0.0  
-> **Last Updated:** 2024-12-31  
+> **Version:** 1.1.0  
+> **Last Updated:** 2025-01-05  
 > **Status:** Active Development
 
 ---
@@ -224,6 +224,206 @@ CREATE POLICY "Admins can manage invites"
 
 ---
 
+### Sprint 7: Enterprise SSO & Authentication
+
+> **Epic:** Enable enterprise-grade authentication with configurable SSO providers (Google Workspace, Microsoft Azure AD, SAML 2.0) for seamless Active Directory integration.
+
+#### Business Value
+- **Enterprise Adoption:** Companies require SSO for compliance and user management
+- **Reduced Friction:** Users authenticate with existing corporate credentials
+- **Security:** Centralized access control via corporate identity providers
+- **Compliance:** Meet SOC2, HIPAA requirements for enterprise clients
+
+#### User Stories
+
+| ID | Story | Priority | Effort | Status |
+|----|-------|----------|--------|--------|
+| PB-025 | Create `sso_configurations` table for SSO provider settings | Critical | 1h | 🔲 Todo |
+| PB-026 | Create `sso_domain_allowlist` table for domain restrictions | Critical | 0.5h | 🔲 Todo |
+| PB-027 | Add auth configuration entries to `app_config` | Critical | 0.5h | 🔲 Todo |
+| PB-028 | Create Admin SSO Settings page (`/admin/sso-settings`) | High | 4h | 🔲 Todo |
+| PB-029 | Implement Google Workspace OAuth configuration UI | High | 2h | 🔲 Todo |
+| PB-030 | Implement Microsoft Azure AD OAuth configuration UI | High | 3h | 🔲 Todo |
+| PB-031 | Create `useAuthConfig()` hook for dynamic auth methods | High | 2h | 🔲 Todo |
+| PB-032 | Update Login page with dynamic SSO buttons | High | 2h | 🔲 Todo |
+| PB-033 | Add `signInWithMicrosoft()` to AuthContext | Medium | 1h | 🔲 Todo |
+| PB-034 | Create `validate-sso-domain` edge function | Medium | 2h | 🔲 Todo |
+| PB-035 | Implement domain allowlist validation on login | Medium | 1h | 🔲 Todo |
+| PB-036 | Auto-provision user profiles from SSO claims | Medium | 2h | 🔲 Todo |
+| PB-037 | SAML 2.0 provider support (requires Supabase Pro) | Low | 4h | 🔲 Todo |
+| PB-038 | SSO audit logging for compliance | Low | 1h | 🔲 Todo |
+
+#### Database Migration
+
+```sql
+-- SSO Configuration table for enterprise identity providers
+CREATE TABLE public.sso_configurations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider_type text NOT NULL CHECK (provider_type IN ('google_workspace', 'azure_ad', 'saml', 'oidc')),
+  display_name text NOT NULL,
+  is_enabled boolean DEFAULT false,
+  is_primary boolean DEFAULT false,
+  client_id text,
+  tenant_id text, -- For Azure AD
+  domain_restrictions text[] DEFAULT '{}',
+  auto_provision_role text DEFAULT 'user' CHECK (auto_provision_role IN ('admin', 'moderator', 'user')),
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(provider_type)
+);
+
+-- Enable RLS
+ALTER TABLE public.sso_configurations ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can manage SSO configurations
+CREATE POLICY "Admins can manage SSO configs"
+  ON public.sso_configurations
+  FOR ALL
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Public read for login page (non-sensitive fields only via edge function)
+CREATE POLICY "Public can view enabled SSO providers"
+  ON public.sso_configurations
+  FOR SELECT
+  TO anon
+  USING (is_enabled = true);
+
+-- SSO Domain Allowlist
+CREATE TABLE public.sso_domain_allowlist (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  domain text NOT NULL,
+  sso_config_id uuid REFERENCES public.sso_configurations(id) ON DELETE CASCADE,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(domain, sso_config_id)
+);
+
+-- Enable RLS
+ALTER TABLE public.sso_domain_allowlist ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can manage domain allowlist
+CREATE POLICY "Admins can manage domain allowlist"
+  ON public.sso_domain_allowlist
+  FOR ALL
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Trigger for updated_at
+CREATE TRIGGER update_sso_configurations_updated_at
+  BEFORE UPDATE ON public.sso_configurations
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+```
+
+#### App Config Entries
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `auth.allow_email_password` | boolean | true | Enable traditional email/password login |
+| `auth.allow_public_signup` | boolean | true | Allow self-registration |
+| `auth.require_sso` | boolean | false | Force SSO for all users (disable other methods) |
+| `auth.default_sso_provider` | string | null | UUID of primary SSO provider |
+| `auth.session_timeout_hours` | number | 24 | Session timeout duration |
+
+#### Authentication Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Login Page Flow                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  1. Fetch enabled auth methods from app_config + sso_configs    │
+│                          ↓                                       │
+│  2. Render available login options:                              │
+│     ┌─────────────────────────────────┐                         │
+│     │ 🏢 Sign in with Company SSO     │ ← Primary (if set)      │
+│     └─────────────────────────────────┘                         │
+│     ┌─────────────────────────────────┐                         │
+│     │ 🔵 Continue with Google         │ ← OAuth providers       │
+│     └─────────────────────────────────┘                         │
+│     ┌─────────────────────────────────┐                         │
+│     │ 🔷 Continue with Microsoft      │                         │
+│     └─────────────────────────────────┘                         │
+│     ┌─────────────────────────────────┐                         │
+│     │ Email/Password Form             │ ← If enabled            │
+│     └─────────────────────────────────┘                         │
+│                          ↓                                       │
+│  3. User selects provider                                        │
+│                          ↓                                       │
+│  4. Validate domain (if restrictions configured)                 │
+│                          ↓                                       │
+│  5. Redirect to IdP or submit credentials                        │
+│                          ↓                                       │
+│  6. On success: auto-provision profile with SSO claims           │
+│                          ↓                                       │
+│  7. Assign role from sso_configurations.auto_provision_role      │
+│                          ↓                                       │
+│  8. Redirect to dashboard                                        │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/pages/admin/SSOSettings.tsx` | Create | Admin SSO configuration page |
+| `src/hooks/useAuthConfig.ts` | Create | Hook for fetching enabled auth methods |
+| `src/components/auth/SSOProviderCard.tsx` | Create | Reusable SSO provider config card |
+| `src/components/auth/SSOLoginButton.tsx` | Create | Dynamic SSO login button |
+| `src/contexts/AuthContext.tsx` | Modify | Add Microsoft OAuth, SAML support |
+| `src/pages/Login.tsx` | Modify | Dynamic auth method rendering |
+| `supabase/functions/validate-sso-domain/index.ts` | Create | Domain validation edge function |
+| `supabase/functions/get-sso-providers/index.ts` | Create | Public endpoint for enabled providers |
+
+#### Supabase Dashboard Configuration (Manual Steps)
+
+1. **Enable Microsoft Azure AD Provider**
+   - Go to Authentication → Providers → Microsoft
+   - Add Azure AD App Registration credentials
+   - Configure tenant restriction (optional)
+
+2. **Configure Google OAuth for Workspace**
+   - Go to Authentication → Providers → Google
+   - Ensure "Restrict to hosted domain" is set (optional)
+
+3. **Add Redirect URLs**
+   - Add all deployment URLs to allowed redirects
+   - Include localhost for development
+
+#### Acceptance Criteria
+
+- [ ] Admin can enable/disable email/password authentication
+- [ ] Admin can configure Google Workspace SSO with domain restrictions
+- [ ] Admin can configure Microsoft Azure AD SSO with tenant restrictions
+- [ ] Login page dynamically shows only enabled authentication methods
+- [ ] Users from restricted domains cannot authenticate
+- [ ] New SSO users are auto-provisioned with correct role
+- [ ] All SSO login attempts are logged for audit
+- [ ] System gracefully handles IdP downtime
+
+#### Security Considerations
+
+| Risk | Mitigation |
+|------|------------|
+| OAuth credentials exposure | Store client secrets in Supabase vault, never in database |
+| Domain spoofing | Validate email domain server-side in edge function |
+| Session hijacking | Use Supabase session management with proper timeouts |
+| Privilege escalation | Validate role assignment against `auto_provision_role` |
+
+#### Phased Rollout
+
+| Phase | Scope | Timeline |
+|-------|-------|----------|
+| **Phase 1 (MVP)** | Azure AD + Google via Supabase native, admin toggles | 1 sprint |
+| **Phase 2** | Domain restrictions, auto-provisioning | 1 sprint |
+| **Phase 3** | SAML 2.0 support, advanced audit | Future |
+| **Phase 4** | SCIM user provisioning | Future |
+
+---
+
 ## 4. Configuration Keys Reference
 
 ### Branding Configuration
@@ -369,8 +569,9 @@ Use this checklist when deploying CollabAi to a new client:
 | Sprint 4 | Integration Management | 6h | 20.5h |
 | Sprint 5 | Edge Functions | 8h | 28.5h |
 | Sprint 6 | Onboarding | 8h | 36.5h |
+| Sprint 7 | Enterprise SSO & Authentication | 25.5h | 62h |
 
-**Total Estimated Development Time:** ~37 hours
+**Total Estimated Development Time:** ~62 hours
 
 ---
 
