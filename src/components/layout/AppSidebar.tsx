@@ -10,9 +10,7 @@ import {
   CheckSquare,
   BookOpen,
   Brain,
-  Settings,
   ChevronRight,
-  Shield,
   MessageSquare,
 } from "lucide-react";
 
@@ -66,12 +64,6 @@ const sidebarItems: SidebarItem[] = [
     href: "/feedback",
     icon: MessageSquare,
     featureFlag: "enableFeedback",
-  },
-  {
-    title: "Admin Panel",
-    href: "/admin",
-    icon: Shield,
-    adminOnly: true,
   },
 ];
 
