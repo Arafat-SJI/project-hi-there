@@ -76,14 +76,15 @@ export default function MeetingAnalytics() {
         byStatus[status] = (byStatus[status] || 0) + 1;
 
         // By category
-        const category = meeting.metadata?.category || 'Uncategorized';
+        const metadata = meeting.metadata as Record<string, any> | null;
+        const category = metadata?.category || 'Uncategorized';
         byCategory[category] = (byCategory[category] || 0) + 1;
 
         // With summaries
-        if (meeting.metadata?.summary) withSummaries++;
+        if (metadata?.summary) withSummaries++;
 
         // With action items
-        if (meeting.metadata?.action_items?.length > 0) withActionItems++;
+        if (metadata?.action_items?.length > 0) withActionItems++;
 
         // Duration
         if (meeting.duration_minutes) {

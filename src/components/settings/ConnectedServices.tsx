@@ -290,8 +290,9 @@ export function ConnectedServices() {
     );
   };
 
-  const getConnectionForProvider = (slug: string) => {
-    return connections.find((c) => c.provider_slug === slug);
+  const getConnectionForProvider = (slug: string): UserOAuthToken | undefined => {
+    if (!Array.isArray(connections)) return undefined;
+    return connections.find((c: UserOAuthToken) => c.provider_slug === slug);
   };
 
   // Helper to check pending state for a specific provider
