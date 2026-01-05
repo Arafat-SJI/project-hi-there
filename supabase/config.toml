@@ -93,3 +93,23 @@ verify_jwt = false
 
 [functions.zoom-transcript-processing]
 verify_jwt = false
+
+# User OAuth functions - authentication required for connect/refresh/disconnect
+[functions.user-oauth-connect]
+verify_jwt = true
+
+[functions.user-oauth-callback]
+verify_jwt = false
+
+[functions.user-oauth-refresh]
+verify_jwt = true
+
+[functions.user-oauth-disconnect]
+verify_jwt = true
+
+# SSO and webhook functions
+[functions.validate-sso-domain]
+verify_jwt = false
+
+[functions.webhook-handler]
+verify_jwt = false
