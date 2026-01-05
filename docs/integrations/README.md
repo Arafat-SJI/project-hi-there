@@ -9,12 +9,19 @@ This directory contains detailed implementation guides for all supported third-p
 | Provider | Category | Status | Documentation |
 |----------|----------|--------|---------------|
 | Zoom | Meetings | ✅ Available | [zoom.md](./providers/zoom.md) |
-| Microsoft Teams | Meetings + Productivity | 🚧 Coming Soon | [microsoft-teams.md](./providers/microsoft-teams.md) |
-| Google Workspace | Productivity + AI | 🔶 Partial | [google-workspace.md](./providers/google-workspace.md) |
+| Microsoft Teams | Meetings + Productivity | 🚧 Coming Soon | [microsoft/](./providers/microsoft/) |
+| Google | AI + Auth + Productivity | 🔶 Partial | [google/](./providers/google/) |
 
 ---
 
 ## Integration Categories
+
+### Authentication Providers
+
+| Provider | Features | Status |
+|----------|----------|--------|
+| **Google Login** | Sign in with Google | ✅ Available |
+| **Microsoft Azure AD** | Enterprise SSO | 🚧 Planned |
 
 ### Meeting Providers
 
@@ -50,7 +57,9 @@ This directory contains detailed implementation guides for all supported third-p
 |----------|-----------|-------|
 | **Zoom** | `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_ACCOUNT_ID` | Server-to-Server OAuth |
 | **Microsoft** | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID` | Azure AD App Registration |
-| **Google** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_API_KEY` | Cloud Console credentials |
+| **Google Login** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth 2.0 for authentication |
+| **Google Gemini** | `GOOGLE_AI_API_KEY` | API key for AI features |
+| **Google Drive** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_API_KEY` | OAuth + API key |
 | **OpenAI** | `OPENAI_API_KEY` | Already configured ✅ |
 
 ### Edge Functions by Provider
@@ -64,13 +73,16 @@ This directory contains detailed implementation guides for all supported third-p
 
 ### Feature Flags
 
-Enable/disable integrations via **Admin > System Settings**:
+Enable/disable integrations via **Admin > System Settings** or **Admin > Integrations**:
 
 | Setting Path | Integration | Default |
 |--------------|-------------|---------|
 | `features.enableZoomSync` | Zoom recordings sync | `true` |
 | `features.enableGoogleDrive` | Google Drive sync | `false` |
+| `features.enableGoogleLogin` | Sign in with Google | `false` |
 | `features.enableAIChat` | AI Chat assistant | `true` |
+
+> **Note**: Most integrations are now configured via the Integration Hub at **Admin > Integrations**. The above feature flags are for backward compatibility.
 
 ---
 
