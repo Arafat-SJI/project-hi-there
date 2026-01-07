@@ -6,15 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Brain, Building2 } from "lucide-react";
-import { completeAzureLogin } from "@/lib/azureAuth";
-import { validateMSALConfig } from "@/lib/msalConfig";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, signInWithMicrosoft } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,21 +46,8 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      // Validate MSAL config
-      const configValidation = validateMSALConfig();
-      if (!configValidation.valid) {
-        throw new Error(`MSAL configuration error: ${configValidation.errors.join(', ')}`);
-      }
-
-      // Complete Azure login flow
-      const result = await completeAzureLogin();
-      
-      // After Azure authentication, we need to create a Supabase session
-      // Since the user is already created in Supabase, we'll use OAuth to sign them in
-      // This ensures proper session management
       await signInWithMicrosoft();
-      
-      // Note: signInWithMicrosoft will redirect, so we don't need to navigate manually
+      // signInWithMicrosoft will redirect, so we don't need to navigate manually
     } catch (error: any) {
       console.error("Microsoft sign in error:", error);
       setError(error.message || "Failed to sign in with Microsoft");

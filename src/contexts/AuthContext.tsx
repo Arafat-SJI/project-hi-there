@@ -221,27 +221,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Use MSAL-based authentication
         const result = await azureAuth.completeAzureLogin();
         
-        // Create Supabase session with the token
-        if (result.token) {
-          // Set session manually if we have a token
-          // Note: This may need adjustment based on your Supabase setup
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: result.token,
-            refresh_token: '', // Will be handled by Supabase
-          });
-          
-          if (sessionError) {
-            // Fallback to OAuth if session creation fails
-            throw sessionError;
+        // The completeAzureLogin returns user/profile info after validating with backend
+        // The backend has created/updated the user in Supabase
+        if (result.user) {
+          // If we have a magic link, use it to create the session
+          if (result.magicLink) {
+            // Magic link will be handled by Supabase auth
+            toast({
+              title: "Check your email",
+              description: "Click the link in your email to complete sign in.",
+            });
+          } else {
+            // User authenticated via Azure - redirect to OAuth as fallback
+            // since we can't create a session directly without a token
+            throw new Error('Session creation requires OAuth flow');
           }
           
           // Log login activity
           logLogin("microsoft");
-          
-          toast({
-            title: "Welcome!",
-            description: "You've successfully signed in with Microsoft.",
-          });
           
           return;
         }
