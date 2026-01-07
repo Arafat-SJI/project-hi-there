@@ -19,8 +19,8 @@ import { logLogin } from './activity-logger';
  */
 export async function acquireTokenSilently(): Promise<AuthenticationResult | null> {
   try {
-    const msalInstance = getMSALInstance();
-    const account = getActiveAccount();
+    const msalInstance = await getMSALInstance();
+    const account = await getActiveAccount();
 
     if (!account) {
       return null;
@@ -47,7 +47,7 @@ export async function acquireTokenSilently(): Promise<AuthenticationResult | nul
  * Handle Azure login with MSAL
  */
 export async function handleAzureLogin(): Promise<AuthenticationResult> {
-  const msalInstance = getMSALInstance();
+  const msalInstance = await getMSALInstance();
 
   // Check for existing accounts
   const accounts = msalInstance.getAllAccounts();

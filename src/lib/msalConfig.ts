@@ -49,33 +49,46 @@ export const loginRequest = {
 
 // Create MSAL instance
 let msalInstance: PublicClientApplication | null = null;
+let initializationPromise: Promise<void> | null = null;
 
 /**
- * Initialize MSAL instance
+ * Initialize MSAL instance (async)
  */
-export function initializeMSAL(): PublicClientApplication {
+export async function initializeMSAL(): Promise<PublicClientApplication> {
   if (!msalInstance) {
     msalInstance = new PublicClientApplication(msalConfig);
-    msalInstance.initialize();
+    initializationPromise = msalInstance.initialize();
   }
+  
+  // Always await initialization before returning
+  if (initializationPromise) {
+    await initializationPromise;
+  }
+  
   return msalInstance;
 }
 
 /**
- * Get MSAL instance (initializes if needed)
+ * Get MSAL instance (initializes if needed) - async
  */
-export function getMSALInstance(): PublicClientApplication {
+export async function getMSALInstance(): Promise<PublicClientApplication> {
   if (!msalInstance) {
     return initializeMSAL();
   }
+  
+  // Ensure initialization is complete
+  if (initializationPromise) {
+    await initializationPromise;
+  }
+  
   return msalInstance;
 }
 
 /**
  * Get active account from MSAL cache
  */
-export function getActiveAccount(): AccountInfo | null {
-  const instance = getMSALInstance();
+export async function getActiveAccount(): Promise<AccountInfo | null> {
+  const instance = await getMSALInstance();
   const accounts = instance.getAllAccounts();
   return accounts.length > 0 ? accounts[0] : null;
 }
