@@ -15,6 +15,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 // Protected pages
@@ -40,6 +41,7 @@ import SystemSettings from "./pages/admin/SystemSettings";
 import Integrations from "./pages/admin/Integrations";
 import ProviderDetail from "./pages/admin/ProviderDetail";
 import OAuthCallback from "./pages/admin/OAuthCallback";
+import MicrosoftTeamsIntegration from "./pages/admin/integrations/MicrosoftTeamsIntegration";
 import IntegrationAnalytics from "./pages/admin/IntegrationAnalytics";
 import AIModelManagement from "./pages/admin/AIModelManagement";
 import AIUsageAnalytics from "./pages/admin/AIUsageAnalytics";
@@ -74,6 +76,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Protected routes with dashboard layout */}
             <Route element={<ProtectedRoute />}>
@@ -144,6 +147,7 @@ const App = () => (
                   <Route path="/admin/integrations" element={<Integrations />} />
                   <Route path="/admin/integrations/oauth/callback" element={<OAuthCallback />} />
                   <Route path="/admin/integrations/analytics" element={<IntegrationAnalytics />} />
+                  <Route path="/admin/integrations/microsoft-teams" element={<MicrosoftTeamsIntegration />} />
                   <Route path="/admin/integrations/:slug" element={<ProviderDetail />} />
                   <Route path="/admin/ai-models" element={<AIModelManagement />} />
                   <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />

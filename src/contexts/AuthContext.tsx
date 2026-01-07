@@ -209,17 +209,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign in with Microsoft (Azure AD)
+  // Sign in with Microsoft (Azure AD) - MSAL-based
   const signInWithMicrosoft = async () => {
     try {
+      // Try MSAL-based login first if configured
+      const msalConfig = await import('@/lib/msalConfig');
+      const azureAuth = await import('@/lib/azureAuth');
+      
+      const configValidation = msalConfig.validateMSALConfig();
+      if (configValidation.valid) {
+        // Use MSAL-based authentication
+        const result = await azureAuth.completeAzureLogin();
+        
+        // Create Supabase session with the token
+        if (result.token) {
+          // Set session manually if we have a token
+          // Note: This may need adjustment based on your Supabase setup
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: result.token,
+            refresh_token: '', // Will be handled by Supabase
+          });
+          
+          if (sessionError) {
+            // Fallback to OAuth if session creation fails
+            throw sessionError;
+          }
+          
+          // Log login activity
+          logLogin("microsoft");
+          
+          toast({
+            title: "Welcome!",
+            description: "You've successfully signed in with Microsoft.",
+          });
+          
+          return;
+        }
+      }
+      
+      // Fallback to Supabase OAuth if MSAL not configured
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "azure",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          scopes: "email profile openid",
+          scopes: "email profile openid User.Read",
         },
       });
       if (error) throw error;
+      
+      // Log login activity
+      logLogin("microsoft");
     } catch (error) {
       const authError = error as AuthError;
       toast({
@@ -262,8 +301,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Log logout activity before signing out
       logLogout();
       
+      // Check if user is Azure AD user
+      const isAzureADUser = localStorage.getItem('isAzureADUser') === 'true';
+      
+      // Call backend logout endpoint if Azure AD user
+      if (isAzureADUser) {
+        try {
+          const { data: logoutData } = await supabase.functions.invoke('azure-auth-logout', {
+            body: {
+              isAzureAD: true,
+            },
+          });
+          
+          // If logout URL is provided, redirect to Microsoft logout
+          if (logoutData?.logoutUrl) {
+            // Clear local storage first
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Redirect to Microsoft logout
+            window.location.href = logoutData.logoutUrl;
+            return;
+          }
+        } catch (error) {
+          console.error('Error calling logout endpoint:', error);
+          // Continue with regular logout
+        }
+      }
+      
+      // Clear MSAL cache if Azure AD user
+      if (isAzureADUser) {
+        try {
+          const msalConfig = await import('@/lib/msalConfig');
+          const msalInstance = msalConfig.getMSALInstance();
+          await msalInstance.logoutPopup();
+        } catch (error) {
+          console.error('Error logging out from MSAL:', error);
+          // Continue with regular logout
+        }
+      }
+      
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear all storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
