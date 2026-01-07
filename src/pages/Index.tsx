@@ -33,7 +33,7 @@ export default function Index() {
               <span className="text-sm font-medium text-muted-foreground">Control Tower</span>
             </div>
           </Link>
-          
+
           {/* Navigation */}
           <nav className="hidden items-center gap-6 md:flex">
             <Link to="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -45,9 +45,9 @@ export default function Index() {
             <Link to="/pricing" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
               Pricing
             </Link>
-            <a 
-              href="https://collabai.software" 
-              target="_blank" 
+            <a
+              href="https://collabai.software"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
