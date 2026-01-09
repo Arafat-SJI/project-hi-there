@@ -330,7 +330,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (isAzureADUser) {
         try {
           const msalConfig = await import('@/lib/msalConfig');
-          const msalInstance = msalConfig.getMSALInstance();
+          const msalInstance = await msalConfig.getMSALInstance();
           await msalInstance.logoutPopup();
         } catch (error) {
           console.error('Error logging out from MSAL:', error);
