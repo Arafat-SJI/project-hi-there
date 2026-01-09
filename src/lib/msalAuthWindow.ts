@@ -142,7 +142,8 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID || '';
     // Use env var for consistent redirect URI across environments
     const baseUri = import.meta.env.VITE_MICROSOFT_REDIRECT_URI || window.location.origin;
-    const redirectUri = baseUri + '/auth-callback.html';
+    // Use React route instead of static HTML for better deployment compatibility
+    const redirectUri = baseUri + '/auth-callback';
     const scopes = loginRequest.scopes.join(' ');
     const state = crypto.randomUUID();
     
