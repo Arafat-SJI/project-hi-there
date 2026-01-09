@@ -9,7 +9,8 @@ import { PublicClientApplication, Configuration, LogLevel, AccountInfo } from '@
 export const msalConfig: Configuration = {
   auth: {
     clientId: import.meta.env.VITE_MICROSOFT_CLIENT_ID || '',
-    authority: `https://login.microsoftonline.com/${import.meta.env.VITE_MICROSOFT_DIRECTORY_ID || 'common'}`,
+    // Use 'common' for multi-tenant + personal Microsoft accounts
+    authority: 'https://login.microsoftonline.com/common',
     redirectUri: import.meta.env.VITE_MICROSOFT_REDIRECT_URI || window.location.origin,
     postLogoutRedirectUri: import.meta.env.VITE_MICROSOFT_LOGOUT_URI || window.location.origin,
   },
