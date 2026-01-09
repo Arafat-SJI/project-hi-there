@@ -209,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign in with Microsoft (Azure AD) - MSAL-based
+  // Sign in with Microsoft (Azure AD) - MSAL-based with redirect flow
   const signInWithMicrosoft = async () => {
     try {
       // Try MSAL-based login first if configured
@@ -218,30 +218,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const configValidation = msalConfig.validateMSALConfig();
       if (configValidation.valid) {
-        // Use MSAL-based authentication
-        const result = await azureAuth.completeAzureLogin();
-        
-        // The completeAzureLogin returns user/profile info after validating with backend
-        // The backend has created/updated the user in Supabase
-        if (result.user) {
-          // If we have a magic link, use it to create the session
-          if (result.magicLink) {
-            // Magic link will be handled by Supabase auth
+        // Check if we have a stored response from redirect
+        const storedResponse = azureAuth.getStoredMSALResponse();
+        if (storedResponse && storedResponse.accessToken) {
+          // Complete login with stored response
+          const result = await azureAuth.completeAzureLoginFromRedirect();
+          if (result?.user) {
             toast({
-              title: "Check your email",
-              description: "Click the link in your email to complete sign in.",
+              title: "Welcome!",
+              description: "You've successfully signed in with Microsoft.",
             });
-          } else {
-            // User authenticated via Azure - redirect to OAuth as fallback
-            // since we can't create a session directly without a token
-            throw new Error('Session creation requires OAuth flow');
+            logLogin("microsoft");
+            return;
           }
-          
-          // Log login activity
-          logLogin("microsoft");
-          
-          return;
         }
+        
+        // Initiate redirect flow - this will navigate away
+        await azureAuth.initiateAzureLoginRedirect();
+        // Page will redirect, so we won't reach here
+        return;
       }
       
       // Fallback to Supabase OAuth if MSAL not configured
@@ -256,7 +251,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Log login activity
       logLogin("microsoft");
-    } catch (error) {
+    } catch (error: any) {
+      // Don't show error for redirect navigation
+      if (error.message?.includes('Redirect initiated')) {
+        return;
+      }
       const authError = error as AuthError;
       toast({
         title: "Microsoft sign in failed",

@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { completeAzureLogin } from "@/lib/azureAuth";
+import { 
+  initiateAzureLoginRedirect, 
+  getStoredMSALResponse, 
+  completeAzureLoginFromRedirect 
+} from "@/lib/azureAuth";
 import { validateMSALConfig } from "@/lib/msalConfig";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,9 +26,32 @@ export default function MicrosoftTeamsIntegration() {
   const [checkingStatus, setCheckingStatus] = useState(true);
 
   useEffect(() => {
-    // Check if user is connected via Azure AD
-    const checkConnection = async () => {
+    // Check if user is connected via Azure AD and handle redirect response
+    const checkConnectionAndHandleRedirect = async () => {
       try {
+        // First check if we have a stored MSAL response from redirect
+        const storedResponse = getStoredMSALResponse();
+        if (storedResponse && storedResponse.accessToken) {
+          setLoading(true);
+          try {
+            const result = await completeAzureLoginFromRedirect();
+            if (result?.user) {
+              setIsConnected(true);
+              localStorage.setItem('isAzureADUser', 'true');
+              toast({
+                title: "Connected successfully!",
+                description: "Your Microsoft account has been connected.",
+              });
+            }
+          } catch (err: any) {
+            console.error('Error completing redirect login:', err);
+            setError(err.message || 'Failed to complete authentication');
+          } finally {
+            setLoading(false);
+          }
+        }
+        
+        // Check connection status
         const isAzureADUser = localStorage.getItem('isAzureADUser') === 'true';
         setIsConnected(isAzureADUser);
       } catch (error) {
@@ -34,8 +61,8 @@ export default function MicrosoftTeamsIntegration() {
       }
     };
 
-    checkConnection();
-  }, [user]);
+    checkConnectionAndHandleRedirect();
+  }, [user, toast]);
 
   const handleConnect = async () => {
     setLoading(true);
@@ -48,19 +75,27 @@ export default function MicrosoftTeamsIntegration() {
         throw new Error(`MSAL configuration error: ${configValidation.errors.join(', ')}. Please configure environment variables.`);
       }
 
-      // Complete Azure login flow
-      const result = await completeAzureLogin();
+      // Initiate redirect-based Azure login
+      // This will navigate away from the page
+      await initiateAzureLoginRedirect();
       
-      if (result && result.user) {
-        setIsConnected(true);
-        toast({
-          title: "Connected successfully!",
-          description: "Your Microsoft account has been connected.",
-        });
-      } else {
-        throw new Error("Failed to complete authentication");
+      // If we reach here, silent auth succeeded (user already logged in)
+      const storedResponse = getStoredMSALResponse();
+      if (storedResponse) {
+        const result = await completeAzureLoginFromRedirect();
+        if (result?.user) {
+          setIsConnected(true);
+          toast({
+            title: "Connected successfully!",
+            description: "Your Microsoft account has been connected.",
+          });
+        }
       }
     } catch (err: any) {
+      // Don't show error if it's just the redirect happening
+      if (err.message?.includes('Redirect initiated')) {
+        return;
+      }
       console.error("Microsoft connection error:", err);
       setError(err.message || "Failed to connect to Microsoft");
       toast({
