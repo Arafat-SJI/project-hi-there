@@ -4,6 +4,7 @@ import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 /**
  * Microsoft Auth Callback Page
  * Handles the redirect from Microsoft OAuth and sends the auth code back to the opener window
+ * Uses both postMessage (same-origin) and localStorage (cross-origin) for communication
  */
 export default function MicrosoftAuthCallback() {
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -18,6 +19,7 @@ export default function MicrosoftAuthCallback() {
     // Parse query parameters for authorization code (PKCE flow)
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
+    const state = urlParams.get('state');
     const error = urlParams.get('error');
     const errorDescription = urlParams.get('error_description');
 
@@ -27,13 +29,12 @@ export default function MicrosoftAuthCallback() {
       setMessage('Authentication Failed');
       setErrorDetail(errorDescription || error);
 
-      if (window.opener) {
-        window.opener.postMessage({
-          type: 'MSAL_AUTH_ERROR',
-          error: errorDescription || error
-        }, window.location.origin);
-        setTimeout(() => window.close(), 3000);
-      }
+      sendAuthResult({
+        type: 'MSAL_AUTH_ERROR',
+        error: errorDescription || error
+      });
+      
+      setTimeout(() => window.close(), 3000);
       return;
     }
 
@@ -43,20 +44,13 @@ export default function MicrosoftAuthCallback() {
       setMessage('Authentication successful!');
       setErrorDetail('This window will close automatically.');
 
-      if (window.opener) {
-        window.opener.postMessage({
-          type: 'MSAL_AUTH_CODE',
-          code: code
-        }, window.location.origin);
-        setTimeout(() => window.close(), 500);
-      } else {
-        // No opener - store code and redirect to integration page
-        sessionStorage.setItem('msal_auth_code', code);
-        setErrorDetail('Redirecting to integration page...');
-        setTimeout(() => {
-          window.location.href = '/admin/integrations/microsoft-teams';
-        }, 1000);
-      }
+      sendAuthResult({
+        type: 'MSAL_AUTH_CODE',
+        code: code,
+        state: state
+      });
+      
+      setTimeout(() => window.close(), 500);
       return;
     }
 
@@ -68,21 +62,14 @@ export default function MicrosoftAuthCallback() {
       setMessage('Authentication successful!');
       setErrorDetail('This window will close automatically.');
 
-      if (window.opener) {
-        window.opener.postMessage({
-          type: 'MSAL_AUTH_SUCCESS',
-          accessToken: hashParams.access_token,
-          idToken: hashParams.id_token,
-          account: {}
-        }, window.location.origin);
-        setTimeout(() => window.close(), 500);
-      } else {
-        sessionStorage.setItem('msal_auth_response', JSON.stringify({
-          accessToken: hashParams.access_token,
-          idToken: hashParams.id_token
-        }));
-        window.location.href = '/admin/integrations/microsoft-teams';
-      }
+      sendAuthResult({
+        type: 'MSAL_AUTH_SUCCESS',
+        accessToken: hashParams.access_token,
+        idToken: hashParams.id_token,
+        account: {}
+      });
+      
+      setTimeout(() => window.close(), 500);
       return;
     }
 
@@ -93,14 +80,42 @@ export default function MicrosoftAuthCallback() {
         setMessage('No Response');
         setErrorDetail('No authentication response received. This window may close automatically.');
 
-        if (window.opener) {
-          window.opener.postMessage({
-            type: 'MSAL_AUTH_ERROR',
-            error: 'No authentication response received'
-          }, window.location.origin);
-        }
+        sendAuthResult({
+          type: 'MSAL_AUTH_ERROR',
+          error: 'No authentication response received'
+        });
       }
     }, 5000);
+  }
+
+  /**
+   * Send auth result using multiple methods for cross-origin compatibility
+   */
+  function sendAuthResult(data: Record<string, unknown>) {
+    // Store in localStorage for cross-origin pickup
+    try {
+      localStorage.setItem('msal_auth_result', JSON.stringify({
+        ...data,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.warn('Failed to store auth result in localStorage:', e);
+    }
+
+    // Also try postMessage to opener (works for same-origin)
+    if (window.opener) {
+      try {
+        // Try same-origin first
+        window.opener.postMessage(data, window.location.origin);
+      } catch (e) {
+        // If that fails, try with wildcard (less secure but works cross-origin)
+        try {
+          window.opener.postMessage(data, '*');
+        } catch (e2) {
+          console.warn('Failed to postMessage to opener:', e2);
+        }
+      }
+    }
   }
 
   function parseHashParams(): Record<string, string> {
