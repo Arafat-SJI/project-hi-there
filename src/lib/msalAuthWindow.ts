@@ -1,12 +1,13 @@
 /**
- * Microsoft Authentication via New Window
- * Opens a new window for MSAL authentication to avoid iframe restrictions
+ * Microsoft Authentication via New Window with PKCE
+ * Opens a new window for MSAL authentication using Authorization Code + PKCE flow
  */
 
 import { loginRequest } from './msalConfig';
 
 // Key for storing auth window state
 const AUTH_WINDOW_KEY = 'msal_auth_window_pending';
+const CODE_VERIFIER_KEY = 'msal_code_verifier';
 
 interface MSALAuthResult {
   accessToken: string;
@@ -19,18 +20,117 @@ interface MSALAuthResult {
 }
 
 interface MSALAuthMessage {
-  type: 'MSAL_AUTH_SUCCESS' | 'MSAL_AUTH_ERROR';
+  type: 'MSAL_AUTH_SUCCESS' | 'MSAL_AUTH_ERROR' | 'MSAL_AUTH_CODE';
   accessToken?: string;
   account?: MSALAuthResult['account'];
   idToken?: string;
+  code?: string;
   error?: string;
 }
 
 /**
- * Open Microsoft login in a new window
+ * Generate a cryptographically random code verifier for PKCE
+ */
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return base64UrlEncode(array);
+}
+
+/**
+ * Generate code challenge from verifier using SHA-256
+ */
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return base64UrlEncode(new Uint8Array(digest));
+}
+
+/**
+ * Base64 URL encode (no padding, URL-safe characters)
+ */
+function base64UrlEncode(buffer: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < buffer.length; i++) {
+    binary += String.fromCharCode(buffer[i]);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * Exchange authorization code for tokens
+ */
+async function exchangeCodeForTokens(
+  code: string,
+  codeVerifier: string,
+  redirectUri: string
+): Promise<MSALAuthResult> {
+  const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID || '';
+  const tokenEndpoint = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
+  
+  const params = new URLSearchParams({
+    client_id: clientId,
+    scope: loginRequest.scopes.join(' '),
+    code: code,
+    redirect_uri: redirectUri,
+    grant_type: 'authorization_code',
+    code_verifier: codeVerifier,
+  });
+
+  const response = await fetch(tokenEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error_description || errorData.error || 'Token exchange failed');
+  }
+
+  const tokenResponse = await response.json();
+  
+  // Parse the ID token to get account info
+  let account: MSALAuthResult['account'] = {};
+  if (tokenResponse.id_token) {
+    try {
+      const payload = tokenResponse.id_token.split('.')[1];
+      const decoded = JSON.parse(atob(payload));
+      account = {
+        username: decoded.preferred_username || decoded.email,
+        name: decoded.name,
+        localAccountId: decoded.oid || decoded.sub,
+      };
+    } catch (e) {
+      console.warn('Failed to parse ID token:', e);
+    }
+  }
+
+  return {
+    accessToken: tokenResponse.access_token,
+    idToken: tokenResponse.id_token,
+    account,
+  };
+}
+
+/**
+ * Open Microsoft login in a new window using PKCE flow
  * Returns a promise that resolves when authentication completes
  */
-export function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
+export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
+  // Generate PKCE values
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+  
+  // Store code verifier for token exchange
+  sessionStorage.setItem(CODE_VERIFIER_KEY, codeVerifier);
+
   return new Promise((resolve, reject) => {
     // Calculate window position (center of screen)
     const width = 500;
@@ -43,20 +143,19 @@ export function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     const redirectUri = window.location.origin + '/auth-callback.html';
     const scopes = loginRequest.scopes.join(' ');
     const state = crypto.randomUUID();
-    const nonce = crypto.randomUUID();
     
     // Store state for validation
     sessionStorage.setItem('msal_state', state);
-    sessionStorage.setItem('msal_nonce', nonce);
     
     const params = new URLSearchParams({
       client_id: clientId,
-      response_type: 'id_token token',
+      response_type: 'code',
       redirect_uri: redirectUri,
       scope: scopes,
       state: state,
-      nonce: nonce,
-      response_mode: 'fragment',
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+      response_mode: 'query',
     });
     
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
@@ -69,6 +168,7 @@ export function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     );
     
     if (!authWindow) {
+      sessionStorage.removeItem(CODE_VERIFIER_KEY);
       reject(new Error('Failed to open authentication window. Please allow popups for this site.'));
       return;
     }
@@ -77,15 +177,40 @@ export function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     sessionStorage.setItem(AUTH_WINDOW_KEY, 'true');
     
     // Handle message from auth window
-    const handleMessage = (event: MessageEvent<MSALAuthMessage>) => {
+    const handleMessage = async (event: MessageEvent<MSALAuthMessage>) => {
       // Only accept messages from same origin
       if (event.origin !== window.location.origin) {
         return;
       }
       
-      if (event.data.type === 'MSAL_AUTH_SUCCESS') {
+      if (event.data.type === 'MSAL_AUTH_CODE') {
+        // Received authorization code, exchange for tokens
         cleanup();
         sessionStorage.removeItem(AUTH_WINDOW_KEY);
+        
+        const storedVerifier = sessionStorage.getItem(CODE_VERIFIER_KEY);
+        sessionStorage.removeItem(CODE_VERIFIER_KEY);
+        
+        if (!storedVerifier) {
+          reject(new Error('Code verifier not found'));
+          return;
+        }
+        
+        try {
+          const result = await exchangeCodeForTokens(
+            event.data.code!,
+            storedVerifier,
+            redirectUri
+          );
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      } else if (event.data.type === 'MSAL_AUTH_SUCCESS') {
+        // Direct token response (shouldn't happen with PKCE, but handle it)
+        cleanup();
+        sessionStorage.removeItem(AUTH_WINDOW_KEY);
+        sessionStorage.removeItem(CODE_VERIFIER_KEY);
         resolve({
           accessToken: event.data.accessToken!,
           account: event.data.account || {},
@@ -94,6 +219,7 @@ export function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
       } else if (event.data.type === 'MSAL_AUTH_ERROR') {
         cleanup();
         sessionStorage.removeItem(AUTH_WINDOW_KEY);
+        sessionStorage.removeItem(CODE_VERIFIER_KEY);
         reject(new Error(event.data.error || 'Authentication failed'));
       }
     };
@@ -103,6 +229,7 @@ export function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
       if (authWindow.closed) {
         cleanup();
         sessionStorage.removeItem(AUTH_WINDOW_KEY);
+        sessionStorage.removeItem(CODE_VERIFIER_KEY);
         reject(new Error('Authentication window was closed'));
       }
     }, 500);
@@ -129,5 +256,5 @@ export function isAuthWindowPending(): boolean {
 export function clearAuthWindowState(): void {
   sessionStorage.removeItem(AUTH_WINDOW_KEY);
   sessionStorage.removeItem('msal_state');
-  sessionStorage.removeItem('msal_nonce');
+  sessionStorage.removeItem(CODE_VERIFIER_KEY);
 }
