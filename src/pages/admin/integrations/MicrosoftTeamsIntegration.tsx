@@ -75,13 +75,11 @@ export default function MicrosoftTeamsIntegration() {
         throw new Error(`MSAL configuration error: ${configValidation.errors.join(', ')}. Please configure environment variables.`);
       }
 
-      // Initiate redirect-based Azure login
-      // This will navigate away from the page
-      await initiateAzureLoginRedirect();
+      // Initiate window-based Azure login (works in iframes)
+      const authResult = await initiateAzureLoginRedirect();
       
-      // If we reach here, silent auth succeeded (user already logged in)
-      const storedResponse = getStoredMSALResponse();
-      if (storedResponse) {
+      if (authResult) {
+        // Got auth result, complete the login
         const result = await completeAzureLoginFromRedirect();
         if (result?.user) {
           setIsConnected(true);
@@ -92,10 +90,6 @@ export default function MicrosoftTeamsIntegration() {
         }
       }
     } catch (err: any) {
-      // Don't show error if it's just the redirect happening
-      if (err.message?.includes('Redirect initiated')) {
-        return;
-      }
       console.error("Microsoft connection error:", err);
       setError(err.message || "Failed to connect to Microsoft");
       toast({

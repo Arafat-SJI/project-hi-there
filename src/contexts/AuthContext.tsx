@@ -209,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign in with Microsoft (Azure AD) - MSAL-based with redirect flow
+  // Sign in with Microsoft (Azure AD) - MSAL-based with new window flow
   const signInWithMicrosoft = async () => {
     try {
       // Try MSAL-based login first if configured
@@ -218,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const configValidation = msalConfig.validateMSALConfig();
       if (configValidation.valid) {
-        // Check if we have a stored response from redirect
+        // Check if we have a stored response from previous auth
         const storedResponse = azureAuth.getStoredMSALResponse();
         if (storedResponse && storedResponse.accessToken) {
           // Complete login with stored response
@@ -233,9 +233,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // Initiate redirect flow - this will navigate away
-        await azureAuth.initiateAzureLoginRedirect();
-        // Page will redirect, so we won't reach here
+        // Initiate window-based auth flow (works in iframes)
+        const authResult = await azureAuth.initiateAzureLoginRedirect();
+        if (authResult) {
+          // Complete login with the result
+          const result = await azureAuth.completeAzureLoginFromRedirect();
+          if (result?.user) {
+            toast({
+              title: "Welcome!",
+              description: "You've successfully signed in with Microsoft.",
+            });
+            logLogin("microsoft");
+            return;
+          }
+        }
         return;
       }
       
@@ -252,10 +263,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Log login activity
       logLogin("microsoft");
     } catch (error: any) {
-      // Don't show error for redirect navigation
-      if (error.message?.includes('Redirect initiated')) {
-        return;
-      }
       const authError = error as AuthError;
       toast({
         title: "Microsoft sign in failed",

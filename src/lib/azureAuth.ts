@@ -1,6 +1,6 @@
 /**
  * Azure AD Authentication Helper Functions
- * Handles MSAL-based authentication flow with redirect (not popup)
+ * Handles MSAL-based authentication flow via new window (works in iframes)
  */
 
 import { 
@@ -10,6 +10,7 @@ import {
 import { getMSALInstance, loginRequest, getActiveAccount } from './msalConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { logLogin } from './activity-logger';
+import { openMicrosoftAuthWindow, clearAuthWindowState } from './msalAuthWindow';
 
 // Key for storing pending redirect state
 const MSAL_REDIRECT_KEY = 'msal_redirect_pending';
@@ -104,10 +105,14 @@ export async function acquireTokenSilently(): Promise<AuthenticationResult | nul
 }
 
 /**
- * Initiate Azure login with redirect (not popup)
- * This will navigate away from the current page
+ * Initiate Azure login via new window (works in iframes)
+ * Opens a new window for authentication
  */
-export async function initiateAzureLoginRedirect(): Promise<void> {
+export async function initiateAzureLoginRedirect(): Promise<{
+  accessToken: string;
+  account: any;
+  idToken?: string;
+} | null> {
   const msalInstance = await getMSALInstance();
 
   // Check for existing accounts
@@ -123,27 +128,31 @@ export async function initiateAzureLoginRedirect(): Promise<void> {
       
       // If silent acquisition succeeds, store the result and return
       if (silentResult) {
-        sessionStorage.setItem(MSAL_RESPONSE_KEY, JSON.stringify({
+        const result = {
           accessToken: silentResult.accessToken,
           account: silentResult.account,
           idToken: silentResult.idToken,
-        }));
-        return;
+        };
+        sessionStorage.setItem(MSAL_RESPONSE_KEY, JSON.stringify(result));
+        return result;
       }
     } catch (error) {
-      // If silent fails, fall back to redirect
+      // If silent fails, fall back to new window
       if (error instanceof InteractionRequiredAuthError) {
-        console.log('Silent token acquisition failed, using redirect');
+        console.log('Silent token acquisition failed, using new window');
       }
     }
   }
 
-  // Mark that we're about to redirect
-  sessionStorage.setItem(MSAL_REDIRECT_KEY, 'true');
-  
-  // Use redirect for interactive login
-  await msalInstance.loginRedirect(loginRequest);
-  // Note: This won't return - the page will redirect to Microsoft
+  // Open new window for authentication
+  try {
+    const result = await openMicrosoftAuthWindow();
+    sessionStorage.setItem(MSAL_RESPONSE_KEY, JSON.stringify(result));
+    return result;
+  } catch (error) {
+    clearAuthWindowState();
+    throw error;
+  }
 }
 
 /**
