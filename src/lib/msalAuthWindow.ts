@@ -179,10 +179,18 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     // Mark that we have an auth window open
     sessionStorage.setItem(AUTH_WINDOW_KEY, 'true');
     
+    // Clear any previous auth result from localStorage
+    localStorage.removeItem('msal_auth_result');
+    
     // Handle message from auth window
     const handleMessage = async (event: MessageEvent<MSALAuthMessage>) => {
-      // Only accept messages from same origin
-      if (event.origin !== window.location.origin) {
+      // Accept messages from same origin or from production domain
+      const allowedOrigins = [
+        window.location.origin,
+        import.meta.env.VITE_MICROSOFT_REDIRECT_URI || ''
+      ].filter(Boolean);
+      
+      if (!allowedOrigins.includes(event.origin)) {
         return;
       }
       
@@ -227,8 +235,72 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
       }
     };
     
+    // Poll localStorage for cross-origin auth result
+    const checkLocalStorage = async () => {
+      try {
+        const resultStr = localStorage.getItem('msal_auth_result');
+        if (resultStr) {
+          const result = JSON.parse(resultStr);
+          // Only process if recent (within last 30 seconds)
+          if (result.timestamp && Date.now() - result.timestamp < 30000) {
+            localStorage.removeItem('msal_auth_result');
+            
+            if (result.type === 'MSAL_AUTH_CODE') {
+              cleanup();
+              sessionStorage.removeItem(AUTH_WINDOW_KEY);
+              
+              const storedVerifier = sessionStorage.getItem(CODE_VERIFIER_KEY);
+              sessionStorage.removeItem(CODE_VERIFIER_KEY);
+              
+              if (!storedVerifier) {
+                reject(new Error('Code verifier not found'));
+                return true;
+              }
+              
+              try {
+                const tokenResult = await exchangeCodeForTokens(
+                  result.code,
+                  storedVerifier,
+                  redirectUri
+                );
+                resolve(tokenResult);
+              } catch (error) {
+                reject(error);
+              }
+              return true;
+            } else if (result.type === 'MSAL_AUTH_SUCCESS') {
+              cleanup();
+              sessionStorage.removeItem(AUTH_WINDOW_KEY);
+              sessionStorage.removeItem(CODE_VERIFIER_KEY);
+              resolve({
+                accessToken: result.accessToken,
+                account: result.account || {},
+                idToken: result.idToken,
+              });
+              return true;
+            } else if (result.type === 'MSAL_AUTH_ERROR') {
+              cleanup();
+              sessionStorage.removeItem(AUTH_WINDOW_KEY);
+              sessionStorage.removeItem(CODE_VERIFIER_KEY);
+              reject(new Error(result.error || 'Authentication failed'));
+              return true;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Error checking localStorage for auth result:', e);
+      }
+      return false;
+    };
+    
     // Check if window was closed without completing auth
-    const checkWindowClosed = setInterval(() => {
+    const checkWindowClosed = setInterval(async () => {
+      // First check localStorage for cross-origin result
+      const foundResult = await checkLocalStorage();
+      if (foundResult) {
+        return;
+      }
+      
       if (authWindow.closed) {
         cleanup();
         sessionStorage.removeItem(AUTH_WINDOW_KEY);
