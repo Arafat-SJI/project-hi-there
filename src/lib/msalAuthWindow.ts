@@ -140,7 +140,9 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     
     // Build the Microsoft authorization URL
     const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID || '';
-    const redirectUri = window.location.origin + '/auth-callback.html';
+    // Use env var for consistent redirect URI across environments
+    const baseUri = import.meta.env.VITE_MICROSOFT_REDIRECT_URI || window.location.origin;
+    const redirectUri = baseUri + '/auth-callback.html';
     const scopes = loginRequest.scopes.join(' ');
     const state = crypto.randomUUID();
     
