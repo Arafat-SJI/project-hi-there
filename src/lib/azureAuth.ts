@@ -1,18 +1,78 @@
 /**
  * Azure AD Authentication Helper Functions
- * Handles MSAL-based authentication flow
+ * Handles MSAL-based authentication flow with redirect (not popup)
  */
 
 import { 
-  PublicClientApplication, 
-  AccountInfo, 
   AuthenticationResult,
   InteractionRequiredAuthError,
-  InteractionStatus,
 } from '@azure/msal-browser';
 import { getMSALInstance, loginRequest, getActiveAccount } from './msalConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { logLogin } from './activity-logger';
+
+// Key for storing pending redirect state
+const MSAL_REDIRECT_KEY = 'msal_redirect_pending';
+const MSAL_RESPONSE_KEY = 'msal_auth_response';
+
+/**
+ * Handle the redirect response after returning from Microsoft login
+ * This should be called early in app initialization
+ */
+export async function handleMSALRedirect(): Promise<AuthenticationResult | null> {
+  try {
+    const msalInstance = await getMSALInstance();
+    const response = await msalInstance.handleRedirectPromise();
+    
+    if (response) {
+      console.log('MSAL redirect response received');
+      // Store the response for later processing
+      sessionStorage.setItem(MSAL_RESPONSE_KEY, JSON.stringify({
+        accessToken: response.accessToken,
+        account: response.account,
+        idToken: response.idToken,
+      }));
+      // Clear the pending flag
+      sessionStorage.removeItem(MSAL_REDIRECT_KEY);
+      return response;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error handling MSAL redirect:', error);
+    sessionStorage.removeItem(MSAL_REDIRECT_KEY);
+    return null;
+  }
+}
+
+/**
+ * Check if there's a stored MSAL response from a redirect
+ */
+export function getStoredMSALResponse(): { accessToken: string; account: any; idToken?: string } | null {
+  const stored = sessionStorage.getItem(MSAL_RESPONSE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Clear the stored MSAL response
+ */
+export function clearStoredMSALResponse(): void {
+  sessionStorage.removeItem(MSAL_RESPONSE_KEY);
+}
+
+/**
+ * Check if a redirect is pending (user initiated login but hasn't returned yet)
+ */
+export function isRedirectPending(): boolean {
+  return sessionStorage.getItem(MSAL_REDIRECT_KEY) === 'true';
+}
 
 /**
  * Acquire Azure token silently (if user already logged in)
@@ -44,9 +104,10 @@ export async function acquireTokenSilently(): Promise<AuthenticationResult | nul
 }
 
 /**
- * Handle Azure login with MSAL
+ * Initiate Azure login with redirect (not popup)
+ * This will navigate away from the current page
  */
-export async function handleAzureLogin(): Promise<AuthenticationResult> {
+export async function initiateAzureLoginRedirect(): Promise<void> {
   const msalInstance = await getMSALInstance();
 
   // Check for existing accounts
@@ -59,28 +120,30 @@ export async function handleAzureLogin(): Promise<AuthenticationResult> {
         ...loginRequest,
         account: accounts[0],
       });
-      return silentResult;
+      
+      // If silent acquisition succeeds, store the result and return
+      if (silentResult) {
+        sessionStorage.setItem(MSAL_RESPONSE_KEY, JSON.stringify({
+          accessToken: silentResult.accessToken,
+          account: silentResult.account,
+          idToken: silentResult.idToken,
+        }));
+        return;
+      }
     } catch (error) {
-      // If silent fails, fall back to popup
+      // If silent fails, fall back to redirect
       if (error instanceof InteractionRequiredAuthError) {
-        console.log('Silent token acquisition failed, using popup');
+        console.log('Silent token acquisition failed, using redirect');
       }
     }
   }
 
-  // Use popup for interactive login
-  try {
-    const response = await msalInstance.loginPopup(loginRequest);
-    return response;
-  } catch (error: any) {
-    // Handle interaction_in_progress error
-    if (error.errorCode === 'interaction_in_progress') {
-      // Wait a bit and retry
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return msalInstance.loginPopup(loginRequest);
-    }
-    throw error;
-  }
+  // Mark that we're about to redirect
+  sessionStorage.setItem(MSAL_REDIRECT_KEY, 'true');
+  
+  // Use redirect for interactive login
+  await msalInstance.loginRedirect(loginRequest);
+  // Note: This won't return - the page will redirect to Microsoft
 }
 
 /**
@@ -114,12 +177,6 @@ export async function handleLoginResponse(azureToken: string): Promise<{
   localStorage.setItem('userEmail', data.user?.email || '');
   localStorage.setItem('userName', data.user?.userName || '');
 
-  // For Azure AD users, we need to create a Supabase session
-  // Since we've validated the user with Microsoft Graph, we can use Supabase OAuth
-  // The user account is already created, so we'll trigger a sign-in
-  // Note: This is a workaround - ideally we'd create a session directly
-  // For now, we'll use the existing Supabase OAuth flow as fallback
-
   // Log login activity
   logLogin('microsoft');
 
@@ -131,22 +188,48 @@ export async function handleLoginResponse(azureToken: string): Promise<{
 }
 
 /**
- * Complete Azure login flow
+ * Complete Azure login flow after redirect
+ * Call this when you have a stored MSAL response
+ */
+export async function completeAzureLoginFromRedirect(): Promise<{
+  user: any;
+  profile: any;
+  magicLink?: string;
+} | null> {
+  const storedResponse = getStoredMSALResponse();
+  
+  if (!storedResponse || !storedResponse.accessToken) {
+    return null;
+  }
+  
+  // Clear the stored response
+  clearStoredMSALResponse();
+  
+  // Send to backend
+  return handleLoginResponse(storedResponse.accessToken);
+}
+
+/**
+ * Legacy function - now initiates redirect flow
+ * @deprecated Use initiateAzureLoginRedirect instead
  */
 export async function completeAzureLogin(): Promise<{
   user: any;
   profile: any;
   magicLink?: string;
 }> {
-  // Get Azure token
-  const azureResult = await handleAzureLogin();
-  
-  if (!azureResult || !azureResult.accessToken) {
-    throw new Error('Failed to obtain Azure access token');
+  // Check if we have a stored response from redirect
+  const storedResponse = getStoredMSALResponse();
+  if (storedResponse && storedResponse.accessToken) {
+    clearStoredMSALResponse();
+    return handleLoginResponse(storedResponse.accessToken);
   }
-
-  // Send to backend
-  return handleLoginResponse(azureResult.accessToken);
+  
+  // Otherwise initiate redirect - this will throw since page navigates away
+  await initiateAzureLoginRedirect();
+  
+  // This won't be reached due to redirect, but TypeScript needs it
+  throw new Error('Redirect initiated - page will navigate to Microsoft login');
 }
 
 /**
@@ -154,7 +237,7 @@ export async function completeAzureLogin(): Promise<{
  */
 export async function checkAzureSession(): Promise<boolean> {
   try {
-    const account = getActiveAccount();
+    const account = await getActiveAccount();
     if (!account) {
       return false;
     }
