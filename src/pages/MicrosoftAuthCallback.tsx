@@ -1,10 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
+const AUTH_RESULT_KEY = 'msal_auth_result';
+
+interface AuthResultData {
+  type: 'MSAL_AUTH_SUCCESS' | 'MSAL_AUTH_ERROR' | 'MSAL_AUTH_CODE';
+  accessToken?: string;
+  idToken?: string;
+  account?: Record<string, unknown>;
+  code?: string;
+  state?: string | null;
+  error?: string;
+  timestamp: number;
+}
+
 /**
  * Microsoft Auth Callback Page
  * Handles the redirect from Microsoft OAuth and sends the auth code back to the opener window
- * This page MUST be on the same origin as the main app for postMessage to work
+ * Uses BOTH postMessage AND sessionStorage for reliable cross-window communication
  */
 export default function MicrosoftAuthCallback() {
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -14,6 +27,43 @@ export default function MicrosoftAuthCallback() {
   useEffect(() => {
     handleCallback();
   }, []);
+
+  /**
+   * Store auth result in sessionStorage for the opener to pick up
+   * This is a fallback for when postMessage doesn't work
+   */
+  function storeAuthResult(data: Omit<AuthResultData, 'timestamp'>) {
+    try {
+      const result: AuthResultData = {
+        ...data,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem(AUTH_RESULT_KEY, JSON.stringify(result));
+      console.log('Stored auth result in sessionStorage:', data.type);
+    } catch (e) {
+      console.warn('Failed to store auth result:', e);
+    }
+  }
+
+  /**
+   * Send auth result to opener window via postMessage
+   */
+  function sendAuthResult(data: Omit<AuthResultData, 'timestamp'>) {
+    console.log('Sending auth result:', data.type, 'opener exists:', !!window.opener);
+    
+    // Always store in sessionStorage first (more reliable)
+    storeAuthResult(data);
+    
+    // Then try postMessage
+    if (window.opener) {
+      try {
+        window.opener.postMessage(data, window.location.origin);
+        console.log('postMessage sent to:', window.location.origin);
+      } catch (e) {
+        console.warn('postMessage failed, but sessionStorage fallback is in place:', e);
+      }
+    }
+  }
 
   function handleCallback() {
     // Parse query parameters for authorization code (PKCE flow)
@@ -58,7 +108,8 @@ export default function MicrosoftAuthCallback() {
         state: state
       });
       
-      setTimeout(() => window.close(), 500);
+      // Delay close to ensure storage is written
+      setTimeout(() => window.close(), 1000);
       return;
     }
 
@@ -77,7 +128,7 @@ export default function MicrosoftAuthCallback() {
         account: {}
       });
       
-      setTimeout(() => window.close(), 500);
+      setTimeout(() => window.close(), 1000);
       return;
     }
 
@@ -94,26 +145,6 @@ export default function MicrosoftAuthCallback() {
         });
       }
     }, 5000);
-  }
-
-  /**
-   * Send auth result to opener window via postMessage
-   * This only works if the opener is on the same origin
-   */
-  function sendAuthResult(data: Record<string, unknown>) {
-    console.log('Sending auth result:', data.type, 'to opener:', !!window.opener);
-    
-    if (window.opener) {
-      try {
-        // Send to same origin (this is secure and will work)
-        window.opener.postMessage(data, window.location.origin);
-        console.log('postMessage sent to:', window.location.origin);
-      } catch (e) {
-        console.error('Failed to postMessage to opener:', e);
-      }
-    } else {
-      console.warn('No opener window found - auth may have been initiated differently');
-    }
   }
 
   function parseHashParams(): Record<string, string> {
