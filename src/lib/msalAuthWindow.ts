@@ -8,6 +8,7 @@ import { loginRequest } from './msalConfig';
 // Key for storing auth window state
 const AUTH_WINDOW_KEY = 'msal_auth_window_pending';
 const CODE_VERIFIER_KEY = 'msal_code_verifier';
+const AUTH_RESULT_KEY = 'msal_auth_result';
 
 interface MSALAuthResult {
   accessToken: string;
@@ -25,6 +26,7 @@ interface MSALAuthMessage {
   account?: MSALAuthResult['account'];
   idToken?: string;
   code?: string;
+  state?: string;
   error?: string;
 }
 
@@ -120,6 +122,41 @@ async function exchangeCodeForTokens(
 }
 
 /**
+ * Check for pending auth result on page load (from callback redirect)
+ * Call this on app initialization to complete cross-origin auth flows
+ */
+export function checkPendingAuthResult(): MSALAuthMessage | null {
+  try {
+    const resultStr = sessionStorage.getItem(AUTH_RESULT_KEY);
+    if (resultStr) {
+      sessionStorage.removeItem(AUTH_RESULT_KEY);
+      const result = JSON.parse(resultStr);
+      // Only use if recent (within 60 seconds)
+      if (result.timestamp && Date.now() - result.timestamp < 60000) {
+        return result;
+      }
+    }
+  } catch (e) {
+    console.warn('Error checking pending auth result:', e);
+  }
+  return null;
+}
+
+/**
+ * Store auth result for pickup by the main app
+ */
+export function storeAuthResult(data: MSALAuthMessage): void {
+  try {
+    sessionStorage.setItem(AUTH_RESULT_KEY, JSON.stringify({
+      ...data,
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    console.warn('Failed to store auth result:', e);
+  }
+}
+
+/**
  * Open Microsoft login in a new window using PKCE flow
  * Returns a promise that resolves when authentication completes
  */
@@ -140,10 +177,8 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     
     // Build the Microsoft authorization URL
     const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID || '';
-    // Use env var for consistent redirect URI across environments
-    const baseUri = import.meta.env.VITE_MICROSOFT_REDIRECT_URI || window.location.origin;
-    // Use React route instead of static HTML for better deployment compatibility
-    const redirectUri = baseUri + '/auth-callback';
+    // Use current origin for redirect - this ensures same-origin communication
+    const redirectUri = window.location.origin + '/auth-callback';
     const scopes = loginRequest.scopes.join(' ');
     const state = crypto.randomUUID();
     
@@ -163,6 +198,8 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
     
+    console.log('Opening Microsoft auth with redirect URI:', redirectUri);
+    
     // Open new window directly to Microsoft login
     const authWindow = window.open(
       authUrl,
@@ -179,18 +216,11 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     // Mark that we have an auth window open
     sessionStorage.setItem(AUTH_WINDOW_KEY, 'true');
     
-    // Clear any previous auth result from localStorage
-    localStorage.removeItem('msal_auth_result');
-    
-    // Handle message from auth window
+    // Handle message from auth window (same-origin)
     const handleMessage = async (event: MessageEvent<MSALAuthMessage>) => {
-      // Accept messages from same origin or from production domain
-      const allowedOrigins = [
-        window.location.origin,
-        import.meta.env.VITE_MICROSOFT_REDIRECT_URI || ''
-      ].filter(Boolean);
-      
-      if (!allowedOrigins.includes(event.origin)) {
+      // Only accept messages from same origin
+      if (event.origin !== window.location.origin) {
+        console.log('Ignoring message from different origin:', event.origin);
         return;
       }
       
@@ -235,72 +265,8 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
       }
     };
     
-    // Poll localStorage for cross-origin auth result
-    const checkLocalStorage = async () => {
-      try {
-        const resultStr = localStorage.getItem('msal_auth_result');
-        if (resultStr) {
-          const result = JSON.parse(resultStr);
-          // Only process if recent (within last 30 seconds)
-          if (result.timestamp && Date.now() - result.timestamp < 30000) {
-            localStorage.removeItem('msal_auth_result');
-            
-            if (result.type === 'MSAL_AUTH_CODE') {
-              cleanup();
-              sessionStorage.removeItem(AUTH_WINDOW_KEY);
-              
-              const storedVerifier = sessionStorage.getItem(CODE_VERIFIER_KEY);
-              sessionStorage.removeItem(CODE_VERIFIER_KEY);
-              
-              if (!storedVerifier) {
-                reject(new Error('Code verifier not found'));
-                return true;
-              }
-              
-              try {
-                const tokenResult = await exchangeCodeForTokens(
-                  result.code,
-                  storedVerifier,
-                  redirectUri
-                );
-                resolve(tokenResult);
-              } catch (error) {
-                reject(error);
-              }
-              return true;
-            } else if (result.type === 'MSAL_AUTH_SUCCESS') {
-              cleanup();
-              sessionStorage.removeItem(AUTH_WINDOW_KEY);
-              sessionStorage.removeItem(CODE_VERIFIER_KEY);
-              resolve({
-                accessToken: result.accessToken,
-                account: result.account || {},
-                idToken: result.idToken,
-              });
-              return true;
-            } else if (result.type === 'MSAL_AUTH_ERROR') {
-              cleanup();
-              sessionStorage.removeItem(AUTH_WINDOW_KEY);
-              sessionStorage.removeItem(CODE_VERIFIER_KEY);
-              reject(new Error(result.error || 'Authentication failed'));
-              return true;
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('Error checking localStorage for auth result:', e);
-      }
-      return false;
-    };
-    
     // Check if window was closed without completing auth
-    const checkWindowClosed = setInterval(async () => {
-      // First check localStorage for cross-origin result
-      const foundResult = await checkLocalStorage();
-      if (foundResult) {
-        return;
-      }
-      
+    const checkWindowClosed = setInterval(() => {
       if (authWindow.closed) {
         cleanup();
         sessionStorage.removeItem(AUTH_WINDOW_KEY);
@@ -331,5 +297,19 @@ export function isAuthWindowPending(): boolean {
 export function clearAuthWindowState(): void {
   sessionStorage.removeItem(AUTH_WINDOW_KEY);
   sessionStorage.removeItem('msal_state');
+  sessionStorage.removeItem(CODE_VERIFIER_KEY);
+}
+
+/**
+ * Get stored code verifier for token exchange
+ */
+export function getStoredCodeVerifier(): string | null {
+  return sessionStorage.getItem(CODE_VERIFIER_KEY);
+}
+
+/**
+ * Clear stored code verifier
+ */
+export function clearStoredCodeVerifier(): void {
   sessionStorage.removeItem(CODE_VERIFIER_KEY);
 }

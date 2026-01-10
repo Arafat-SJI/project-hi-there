@@ -4,7 +4,7 @@ import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 /**
  * Microsoft Auth Callback Page
  * Handles the redirect from Microsoft OAuth and sends the auth code back to the opener window
- * Uses both postMessage (same-origin) and localStorage (cross-origin) for communication
+ * This page MUST be on the same origin as the main app for postMessage to work
  */
 export default function MicrosoftAuthCallback() {
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -22,6 +22,14 @@ export default function MicrosoftAuthCallback() {
     const state = urlParams.get('state');
     const error = urlParams.get('error');
     const errorDescription = urlParams.get('error_description');
+
+    console.log('Auth callback received:', { 
+      hasCode: !!code, 
+      state, 
+      error,
+      origin: window.location.origin,
+      openerExists: !!window.opener
+    });
 
     // Check for error
     if (error) {
@@ -89,32 +97,22 @@ export default function MicrosoftAuthCallback() {
   }
 
   /**
-   * Send auth result using multiple methods for cross-origin compatibility
+   * Send auth result to opener window via postMessage
+   * This only works if the opener is on the same origin
    */
   function sendAuthResult(data: Record<string, unknown>) {
-    // Store in localStorage for cross-origin pickup
-    try {
-      localStorage.setItem('msal_auth_result', JSON.stringify({
-        ...data,
-        timestamp: Date.now()
-      }));
-    } catch (e) {
-      console.warn('Failed to store auth result in localStorage:', e);
-    }
-
-    // Also try postMessage to opener (works for same-origin)
+    console.log('Sending auth result:', data.type, 'to opener:', !!window.opener);
+    
     if (window.opener) {
       try {
-        // Try same-origin first
+        // Send to same origin (this is secure and will work)
         window.opener.postMessage(data, window.location.origin);
+        console.log('postMessage sent to:', window.location.origin);
       } catch (e) {
-        // If that fails, try with wildcard (less secure but works cross-origin)
-        try {
-          window.opener.postMessage(data, '*');
-        } catch (e2) {
-          console.warn('Failed to postMessage to opener:', e2);
-        }
+        console.error('Failed to postMessage to opener:', e);
       }
+    } else {
+      console.warn('No opener window found - auth may have been initiated differently');
     }
   }
 
