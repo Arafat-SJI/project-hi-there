@@ -15,6 +15,8 @@ const ALLOWED_ORIGINS = [
   // sjinnovation.us production domains
   'https://dashboard.sjinnovation.us',
   'https://sjinnovation.us',
+  // collabai.software production domain
+  'https://controltower.collabai.software',
 ];
 
 /**
