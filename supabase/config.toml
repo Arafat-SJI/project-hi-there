@@ -113,3 +113,10 @@ verify_jwt = false
 
 [functions.webhook-handler]
 verify_jwt = false
+
+# Azure AD authentication functions
+[functions.azure-auth-login]
+verify_jwt = false
+
+[functions.azure-auth-logout]
+verify_jwt = false
