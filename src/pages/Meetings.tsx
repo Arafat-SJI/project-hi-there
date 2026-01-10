@@ -35,8 +35,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Edit, Eye, Video } from "lucide-react";
+import { Plus, Trash2, Edit, Eye, Video, Users } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+
+const getMeetingSourceBadge = (meetingType: string | null, metadata: Record<string, unknown> | null) => {
+  if (meetingType === 'teams' || metadata?.teams_meeting_id) {
+    return (
+      <Badge variant="outline" className="text-xs gap-1 border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-400">
+        <Users className="h-3 w-3" />
+        Teams
+      </Badge>
+    );
+  }
+  return null;
+};
 
 export default function Meetings() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -126,8 +138,9 @@ export default function Meetings() {
                   <TableHead>Client</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Duration</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Zoom</TableHead>
+                  <TableHead>Join</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -141,6 +154,9 @@ export default function Meetings() {
                     <TableCell>{meeting.scheduled_at ? formatDateTime(meeting.scheduled_at) : "-"}</TableCell>
                     <TableCell>
                       {meeting.duration_minutes ? `${meeting.duration_minutes} min` : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {getMeetingSourceBadge(meeting.meeting_type, meeting.metadata as Record<string, unknown> | null)}
                     </TableCell>
                     <TableCell>{getStatusBadge(meeting.status)}</TableCell>
                     <TableCell>
