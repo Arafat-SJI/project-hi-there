@@ -233,3 +233,146 @@ export async function fetchAndNormalizeMeetings(): Promise<NormalizedMeeting[]> 
   console.log(`[TeamsMeetings] Normalized ${normalizedMeetings.length} of ${rawMeetings.length} meetings`);
   return normalizedMeetings;
 }
+
+// ============================================================================
+// Meeting Creation Types
+// ============================================================================
+
+export interface CreateMeetingRequest {
+  subject: string;
+  startDateTime: string;
+  endDateTime: string;
+  attendees?: Array<{
+    upn?: string;
+    emailAddress?: string;
+  }>;
+}
+
+export interface CreateMeetingResponse {
+  id: string;
+  subject: string;
+  startDateTime: string;
+  endDateTime: string;
+  joinWebUrl: string;
+  audioConferencing?: {
+    dialinUrl?: string;
+    tollNumber?: string;
+  };
+}
+
+export interface CreatedTeamsMeeting {
+  teams_meeting_id: string;
+  title: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  join_url: string;
+  meeting_type: 'teams';
+  status: 'scheduled';
+}
+
+// ============================================================================
+// Meeting Creation
+// ============================================================================
+
+/**
+ * Create a new online meeting in Microsoft Teams
+ * @param input - Meeting details (subject, start/end times, attendees)
+ * @returns Created meeting details including join URL
+ * @throws ForbiddenError if missing OnlineMeetings.ReadWrite permission
+ */
+export async function createOnlineMeeting(
+  input: CreateMeetingRequest
+): Promise<CreatedTeamsMeeting> {
+  // Validate input dates
+  const startDate = new Date(input.startDateTime);
+  const endDate = new Date(input.endDateTime);
+  
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    throw new Error('Invalid date format');
+  }
+  
+  if (endDate <= startDate) {
+    throw new Error('End time must be after start time');
+  }
+  
+  if (startDate.getTime() < Date.now() - 60000) { // 1 minute buffer
+    throw new Error('Start time must be in the future');
+  }
+  
+  // Validate subject
+  const subject = input.subject?.trim();
+  if (!subject || subject.length === 0) {
+    throw new Error('Meeting title is required');
+  }
+  
+  if (subject.length > 200) {
+    throw new Error('Meeting title must be less than 200 characters');
+  }
+  
+  // Build Graph API request body
+  const requestBody: Record<string, unknown> = {
+    subject: subject,
+    startDateTime: startDate.toISOString(),
+    endDateTime: endDate.toISOString(),
+  };
+  
+  // Add attendees if provided (filter out invalid emails)
+  if (input.attendees && input.attendees.length > 0) {
+    const validAttendees = input.attendees
+      .filter(a => a.upn || a.emailAddress)
+      .map(a => ({
+        upn: a.upn || a.emailAddress,
+        role: 'attendee' as const,
+      }));
+    
+    if (validAttendees.length > 0) {
+      requestBody.participants = {
+        attendees: validAttendees,
+      };
+    }
+  }
+  
+  console.log('[TeamsMeetings] Creating online meeting:', subject);
+  
+  try {
+    const response = await withRateLimitRetry(
+      () => callGraphAPI<CreateMeetingResponse>(
+        '/me/onlineMeetings',
+        {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        }
+      ),
+      'Creating online meeting'
+    );
+    
+    if (!response.id || !response.joinWebUrl) {
+      throw new Error('Invalid response from Microsoft Graph API');
+    }
+    
+    const durationMinutes = calculateDurationMinutes(
+      response.startDateTime,
+      response.endDateTime
+    );
+    
+    console.log('[TeamsMeetings] Meeting created successfully:', response.id);
+    
+    return {
+      teams_meeting_id: response.id,
+      title: response.subject,
+      scheduled_at: response.startDateTime,
+      duration_minutes: durationMinutes || 60,
+      join_url: response.joinWebUrl,
+      meeting_type: 'teams',
+      status: 'scheduled',
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      throw new ForbiddenError(
+        'Missing OnlineMeetings.ReadWrite permission. Please disconnect and reconnect your Microsoft account.'
+      );
+    }
+    console.error('[TeamsMeetings] Failed to create meeting:', error);
+    throw error;
+  }
+}
