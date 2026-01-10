@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2 } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
@@ -26,6 +26,7 @@ import {
 } from "@/lib/microsoftGraphClient";
 import { useMicrosoftTeams } from "@/hooks/useMicrosoftTeams";
 import { useMicrosoftTeamsChannels } from "@/hooks/useMicrosoftTeamsChannels";
+import { useSyncTeamsMeetings } from "@/hooks/useSyncTeamsMeetings";
 import { cn } from "@/lib/utils";
 
 interface GraphTestResult {
@@ -67,6 +68,9 @@ export default function MicrosoftTeamsIntegration() {
     syncTeamError,
     getChannelsForTeam,
   } = useMicrosoftTeamsChannels();
+
+  // Teams Meetings Sync hook
+  const syncTeamsMeetings = useSyncTeamsMeetings();
 
   const [syncingTeamId, setSyncingTeamId] = useState<string | null>(null);
 
@@ -403,6 +407,70 @@ export default function MicrosoftTeamsIntegration() {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sync Teams Meetings Card */}
+        {isConnected && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Sync Teams Meetings
+              </CardTitle>
+              <CardDescription>
+                Import your Microsoft Teams online meetings to the app
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => syncTeamsMeetings.mutate()}
+                  disabled={syncTeamsMeetings.isPending}
+                  variant="secondary"
+                >
+                  {syncTeamsMeetings.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Syncing Meetings...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Sync Meetings
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {syncTeamsMeetings.data && (
+                <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 p-4">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-green-800 dark:text-green-200">
+                        {syncTeamsMeetings.data.synced} meeting{syncTeamsMeetings.data.synced !== 1 ? 's' : ''} synced
+                      </span>
+                    </div>
+                    {syncTeamsMeetings.data.skipped > 0 && (
+                      <p className="text-green-700 dark:text-green-300 ml-6">
+                        {syncTeamsMeetings.data.skipped} already existed
+                      </p>
+                    )}
+                    {syncTeamsMeetings.data.errors > 0 && (
+                      <p className="text-amber-600 dark:text-amber-400 ml-6">
+                        {syncTeamsMeetings.data.errors} error{syncTeamsMeetings.data.errors !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                <strong>Note:</strong> Requires the <code className="bg-muted px-1 rounded">OnlineMeetings.Read</code> permission.
+                If you see a permission error, disconnect and reconnect your Microsoft account.
+              </p>
             </CardContent>
           </Card>
         )}
