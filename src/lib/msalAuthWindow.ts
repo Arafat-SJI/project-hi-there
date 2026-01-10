@@ -272,8 +272,22 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
       await processAuthResult(event.data);
     };
     
-    // Poll localStorage for auth result (fallback for when postMessage fails)
-    const pollForResult = setInterval(async () => {
+    // Cleanup function
+    let pollTimeoutId: number | undefined;
+    
+    const cleanup = () => {
+      window.removeEventListener('message', handleMessage);
+      if (pollTimeoutId) {
+        clearTimeout(pollTimeoutId);
+        pollTimeoutId = undefined;
+      }
+    };
+    
+    // Poll sessionStorage for auth result using recursive setTimeout (safer than setInterval with async)
+    const pollForResult = async () => {
+      // If already resolved, stop polling
+      if (resolved) return;
+      
       // Check timeout
       if (Date.now() - startTime > POLLING_TIMEOUT) {
         if (!resolved) {
@@ -288,14 +302,15 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
       
       // Check for stored result (set by callback page)
       const storedResult = sessionStorage.getItem(AUTH_RESULT_KEY);
-      if (storedResult) {
+      if (storedResult && !resolved) {
         sessionStorage.removeItem(AUTH_RESULT_KEY);
         try {
           const data = JSON.parse(storedResult) as MSALAuthMessage & { timestamp?: number };
-          // Only process if recent
+          // Only process if recent (within 60 seconds)
           if (data.timestamp && Date.now() - data.timestamp < 60000) {
             console.log('Found stored auth result:', data.type);
             await processAuthResult(data);
+            return; // Stop polling after processing
           }
         } catch (e) {
           console.warn('Failed to parse stored auth result:', e);
@@ -305,9 +320,11 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
       // Check if window was closed without result
       if (authWindow.closed && !resolved) {
         // Give a grace period for the result to be stored
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 2000));
         
         // Check one more time for stored result
+        if (resolved) return; // May have been resolved during grace period
+        
         const finalResult = sessionStorage.getItem(AUTH_RESULT_KEY);
         if (finalResult) {
           sessionStorage.removeItem(AUTH_RESULT_KEY);
@@ -328,13 +345,17 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
           sessionStorage.removeItem(CODE_VERIFIER_KEY);
           reject(new Error('Authentication window was closed'));
         }
+        return;
       }
-    }, POLLING_INTERVAL);
-    
-    const cleanup = () => {
-      window.removeEventListener('message', handleMessage);
-      clearInterval(pollForResult);
+      
+      // Schedule next poll
+      if (!resolved) {
+        pollTimeoutId = window.setTimeout(pollForResult, POLLING_INTERVAL);
+      }
     };
+    
+    // Start polling
+    pollTimeoutId = window.setTimeout(pollForResult, POLLING_INTERVAL);
     
     window.addEventListener('message', handleMessage);
   });
