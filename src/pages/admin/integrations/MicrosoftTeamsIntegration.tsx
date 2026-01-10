@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
@@ -28,6 +28,7 @@ import { useMicrosoftTeams } from "@/hooks/useMicrosoftTeams";
 import { useMicrosoftTeamsChannels } from "@/hooks/useMicrosoftTeamsChannels";
 import { useSyncTeamsMeetings } from "@/hooks/useSyncTeamsMeetings";
 import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeetingDialog";
+import { SendTeamsMessageDialog } from "@/components/integrations/SendTeamsMessageDialog";
 import { cn } from "@/lib/utils";
 
 interface GraphTestResult {
@@ -500,6 +501,36 @@ export default function MicrosoftTeamsIntegration() {
               
               <p className="text-xs text-muted-foreground">
                 Create meetings with title, time, and optional attendees. The meeting will be saved locally and attendees will receive email invites.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Send Channel Message Card */}
+        {isConnected && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Send Channel Message
+              </CardTitle>
+              <CardDescription>
+                Post a message to a Microsoft Teams channel
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <SendTeamsMessageDialog 
+                trigger={
+                  <Button>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Send Message
+                  </Button>
+                }
+              />
+              
+              <p className="text-xs text-muted-foreground">
+                Send notifications to your Teams channels. Requires <code className="bg-muted px-1 rounded">ChannelMessage.Send</code> permission.
+                If you see a permission error, disconnect and reconnect your Microsoft account.
               </p>
             </CardContent>
           </Card>
