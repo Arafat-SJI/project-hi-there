@@ -7,7 +7,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
   initiateAzureLoginRedirect, 
@@ -22,6 +23,7 @@ import {
   TokenMetadata,
   GraphError 
 } from "@/lib/microsoftGraphClient";
+import { useMicrosoftTeams } from "@/hooks/useMicrosoftTeams";
 
 interface GraphTestResult {
   success: boolean;
@@ -42,6 +44,16 @@ export default function MicrosoftTeamsIntegration() {
   // Graph API test state
   const [testingGraph, setTestingGraph] = useState(false);
   const [graphResult, setGraphResult] = useState<GraphTestResult | null>(null);
+
+  // Microsoft Teams hook
+  const { 
+    teams, 
+    isLoading: teamsLoading, 
+    syncTeams, 
+    isSyncing,
+    syncError,
+    lastSynced 
+  } = useMicrosoftTeams();
 
   useEffect(() => {
     const checkConnectionAndHandleRedirect = async () => {
@@ -342,6 +354,96 @@ export default function MicrosoftTeamsIntegration() {
                     </div>
                   )}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Your Teams Card */}
+        {isConnected && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Your Teams
+              </CardTitle>
+              <CardDescription>
+                Teams you're a member of in Microsoft Teams
+                {lastSynced && (
+                  <span className="ml-2 text-xs">
+                    · Last synced: {new Date(lastSynced).toLocaleString()}
+                  </span>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                onClick={() => syncTeams().catch(console.error)}
+                disabled={isSyncing}
+                variant="secondary"
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sync Teams
+                  </>
+                )}
+              </Button>
+
+              {syncError && (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                  <p className="text-sm text-destructive">
+                    {syncError instanceof Error ? syncError.message : 'Sync failed'}
+                  </p>
+                  {syncError instanceof Error && syncError.message?.includes('permission') && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      You may need to disconnect and reconnect to grant Teams access.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {teamsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : teams.length > 0 ? (
+                <div className="space-y-2">
+                  {teams.map((team) => (
+                    <div 
+                      key={team.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    >
+                      <div>
+                        <p className="font-medium">{team.display_name}</p>
+                        {team.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {team.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {team.visibility && (
+                          <Badge variant="outline">
+                            {team.visibility}
+                          </Badge>
+                        )}
+                        {team.is_archived && (
+                          <Badge variant="secondary">Archived</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  No teams synced yet. Click "Sync Teams" to fetch your teams.
+                </p>
               )}
             </CardContent>
           </Card>

@@ -1260,6 +1260,48 @@ export type Database = {
           },
         ]
       }
+      user_microsoft_teams: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_archived: boolean | null
+          synced_at: string | null
+          team_id: string
+          updated_at: string | null
+          user_id: string
+          visibility: string | null
+          web_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_archived?: boolean | null
+          synced_at?: string | null
+          team_id: string
+          updated_at?: string | null
+          user_id: string
+          visibility?: string | null
+          web_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_archived?: boolean | null
+          synced_at?: string | null
+          team_id?: string
+          updated_at?: string | null
+          user_id?: string
+          visibility?: string | null
+          web_url?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

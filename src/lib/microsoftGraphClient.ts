@@ -282,6 +282,25 @@ export async function callGraphAPI<T>(
 }
 
 // ============================================================================
+// Microsoft Teams Types
+// ============================================================================
+
+export interface MicrosoftTeam {
+  id: string;
+  displayName: string;
+  description?: string;
+  visibility?: 'private' | 'public';
+  webUrl?: string;
+  isArchived?: boolean;
+}
+
+export interface TeamsListResponse {
+  '@odata.context': string;
+  '@odata.count'?: number;
+  value: MicrosoftTeam[];
+}
+
+// ============================================================================
 // Convenience Methods
 // ============================================================================
 
@@ -290,6 +309,24 @@ export async function callGraphAPI<T>(
  */
 export async function getMyProfile(): Promise<GraphUser> {
   return callGraphAPI<GraphUser>('/me');
+}
+
+/**
+ * Get the teams the current user has joined (GET /me/joinedTeams)
+ * Requires Team.ReadBasic.All scope
+ */
+export async function getMyJoinedTeams(): Promise<MicrosoftTeam[]> {
+  try {
+    const response = await callGraphAPI<TeamsListResponse>('/me/joinedTeams');
+    return response.value || [];
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      throw new ForbiddenError(
+        'Missing Team.ReadBasic.All permission. Please reconnect your Microsoft account.'
+      );
+    }
+    throw error;
+  }
 }
 
 /**
