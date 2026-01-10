@@ -1302,6 +1302,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_microsoft_teams_channels: {
+        Row: {
+          channel_id: string
+          created_at: string | null
+          created_date_time: string | null
+          description: string | null
+          display_name: string
+          email: string | null
+          id: string
+          is_favorite: boolean | null
+          membership_type: string | null
+          synced_at: string | null
+          team_id: string
+          updated_at: string | null
+          user_id: string
+          web_url: string | null
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string | null
+          created_date_time?: string | null
+          description?: string | null
+          display_name: string
+          email?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          membership_type?: string | null
+          synced_at?: string | null
+          team_id: string
+          updated_at?: string | null
+          user_id: string
+          web_url?: string | null
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string | null
+          created_date_time?: string | null
+          description?: string | null
+          display_name?: string
+          email?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          membership_type?: string | null
+          synced_at?: string | null
+          team_id?: string
+          updated_at?: string | null
+          user_id?: string
+          web_url?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
