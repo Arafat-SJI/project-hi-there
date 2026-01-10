@@ -199,6 +199,7 @@ export async function handleLoginResponse(azureToken: string): Promise<{
 /**
  * Complete Azure login flow after redirect
  * Call this when you have a stored MSAL response
+ * NOTE: This does NOT clear the stored token - it's needed for Graph API calls
  */
 export async function completeAzureLoginFromRedirect(): Promise<{
   user: any;
@@ -211,8 +212,8 @@ export async function completeAzureLoginFromRedirect(): Promise<{
     return null;
   }
   
-  // Clear the stored response
-  clearStoredMSALResponse();
+  // DO NOT clear the stored response - it's needed for Graph API calls
+  // The token will naturally expire or be cleared on logout
   
   // Send to backend
   return handleLoginResponse(storedResponse.accessToken);
@@ -230,7 +231,7 @@ export async function completeAzureLogin(): Promise<{
   // Check if we have a stored response from redirect
   const storedResponse = getStoredMSALResponse();
   if (storedResponse && storedResponse.accessToken) {
-    clearStoredMSALResponse();
+    // DO NOT clear - needed for Graph API calls
     return handleLoginResponse(storedResponse.accessToken);
   }
   
