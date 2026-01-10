@@ -9,6 +9,8 @@ import { loginRequest } from './msalConfig';
 const AUTH_WINDOW_KEY = 'msal_auth_window_pending';
 const CODE_VERIFIER_KEY = 'msal_code_verifier';
 const AUTH_RESULT_KEY = 'msal_auth_result';
+const POLLING_INTERVAL = 300; // ms to check for auth result
+const POLLING_TIMEOUT = 120000; // 2 minutes timeout
 
 interface MSALAuthResult {
   accessToken: string;
@@ -167,6 +169,9 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
   
   // Store code verifier for token exchange
   sessionStorage.setItem(CODE_VERIFIER_KEY, codeVerifier);
+  
+  // Clear any previous auth result
+  sessionStorage.removeItem(AUTH_RESULT_KEY);
 
   return new Promise((resolve, reject) => {
     // Calculate window position (center of screen)
@@ -216,19 +221,17 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
     // Mark that we have an auth window open
     sessionStorage.setItem(AUTH_WINDOW_KEY, 'true');
     
-    // Handle message from auth window (same-origin)
-    const handleMessage = async (event: MessageEvent<MSALAuthMessage>) => {
-      // Only accept messages from same origin
-      if (event.origin !== window.location.origin) {
-        console.log('Ignoring message from different origin:', event.origin);
-        return;
-      }
+    const startTime = Date.now();
+    let resolved = false;
+    
+    // Process auth result (from either postMessage or localStorage polling)
+    const processAuthResult = async (data: MSALAuthMessage) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      sessionStorage.removeItem(AUTH_WINDOW_KEY);
       
-      if (event.data.type === 'MSAL_AUTH_CODE') {
-        // Received authorization code, exchange for tokens
-        cleanup();
-        sessionStorage.removeItem(AUTH_WINDOW_KEY);
-        
+      if (data.type === 'MSAL_AUTH_CODE') {
         const storedVerifier = sessionStorage.getItem(CODE_VERIFIER_KEY);
         sessionStorage.removeItem(CODE_VERIFIER_KEY);
         
@@ -239,7 +242,7 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
         
         try {
           const result = await exchangeCodeForTokens(
-            event.data.code!,
+            data.code!,
             storedVerifier,
             redirectUri
           );
@@ -247,37 +250,90 @@ export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
         } catch (error) {
           reject(error);
         }
-      } else if (event.data.type === 'MSAL_AUTH_SUCCESS') {
-        // Direct token response (shouldn't happen with PKCE, but handle it)
-        cleanup();
-        sessionStorage.removeItem(AUTH_WINDOW_KEY);
+      } else if (data.type === 'MSAL_AUTH_SUCCESS') {
         sessionStorage.removeItem(CODE_VERIFIER_KEY);
         resolve({
-          accessToken: event.data.accessToken!,
-          account: event.data.account || {},
-          idToken: event.data.idToken,
+          accessToken: data.accessToken!,
+          account: data.account || {},
+          idToken: data.idToken,
         });
-      } else if (event.data.type === 'MSAL_AUTH_ERROR') {
-        cleanup();
-        sessionStorage.removeItem(AUTH_WINDOW_KEY);
+      } else if (data.type === 'MSAL_AUTH_ERROR') {
         sessionStorage.removeItem(CODE_VERIFIER_KEY);
-        reject(new Error(event.data.error || 'Authentication failed'));
+        reject(new Error(data.error || 'Authentication failed'));
       }
     };
     
-    // Check if window was closed without completing auth
-    const checkWindowClosed = setInterval(() => {
-      if (authWindow.closed) {
-        cleanup();
-        sessionStorage.removeItem(AUTH_WINDOW_KEY);
-        sessionStorage.removeItem(CODE_VERIFIER_KEY);
-        reject(new Error('Authentication window was closed'));
+    // Handle message from auth window (same-origin postMessage)
+    const handleMessage = async (event: MessageEvent<MSALAuthMessage>) => {
+      if (event.origin !== window.location.origin) return;
+      if (!event.data?.type?.startsWith('MSAL_AUTH')) return;
+      
+      console.log('Received postMessage:', event.data.type);
+      await processAuthResult(event.data);
+    };
+    
+    // Poll localStorage for auth result (fallback for when postMessage fails)
+    const pollForResult = setInterval(async () => {
+      // Check timeout
+      if (Date.now() - startTime > POLLING_TIMEOUT) {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          sessionStorage.removeItem(AUTH_WINDOW_KEY);
+          sessionStorage.removeItem(CODE_VERIFIER_KEY);
+          reject(new Error('Authentication timed out'));
+        }
+        return;
       }
-    }, 500);
+      
+      // Check for stored result (set by callback page)
+      const storedResult = sessionStorage.getItem(AUTH_RESULT_KEY);
+      if (storedResult) {
+        sessionStorage.removeItem(AUTH_RESULT_KEY);
+        try {
+          const data = JSON.parse(storedResult) as MSALAuthMessage & { timestamp?: number };
+          // Only process if recent
+          if (data.timestamp && Date.now() - data.timestamp < 60000) {
+            console.log('Found stored auth result:', data.type);
+            await processAuthResult(data);
+          }
+        } catch (e) {
+          console.warn('Failed to parse stored auth result:', e);
+        }
+      }
+      
+      // Check if window was closed without result
+      if (authWindow.closed && !resolved) {
+        // Give a grace period for the result to be stored
+        await new Promise(r => setTimeout(r, 1000));
+        
+        // Check one more time for stored result
+        const finalResult = sessionStorage.getItem(AUTH_RESULT_KEY);
+        if (finalResult) {
+          sessionStorage.removeItem(AUTH_RESULT_KEY);
+          try {
+            const data = JSON.parse(finalResult) as MSALAuthMessage;
+            console.log('Found stored auth result after window close:', data.type);
+            await processAuthResult(data);
+            return;
+          } catch (e) {
+            // Fall through to error
+          }
+        }
+        
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          sessionStorage.removeItem(AUTH_WINDOW_KEY);
+          sessionStorage.removeItem(CODE_VERIFIER_KEY);
+          reject(new Error('Authentication window was closed'));
+        }
+      }
+    }, POLLING_INTERVAL);
     
     const cleanup = () => {
       window.removeEventListener('message', handleMessage);
-      clearInterval(checkWindowClosed);
+      clearInterval(pollForResult);
     };
     
     window.addEventListener('message', handleMessage);
