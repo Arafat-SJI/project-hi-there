@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
   initiateAzureLoginRedirect, 
@@ -16,6 +16,20 @@ import {
 } from "@/lib/azureAuth";
 import { validateMSALConfig } from "@/lib/msalConfig";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  testGraphConnection, 
+  GraphUser, 
+  TokenMetadata,
+  GraphError 
+} from "@/lib/microsoftGraphClient";
+
+interface GraphTestResult {
+  success: boolean;
+  user?: GraphUser;
+  tokenMetadata?: TokenMetadata;
+  error?: string;
+  errorType?: string;
+}
 
 export default function MicrosoftTeamsIntegration() {
   const { user, profile } = useAuth();
@@ -24,12 +38,14 @@ export default function MicrosoftTeamsIntegration() {
   const [error, setError] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  
+  // Graph API test state
+  const [testingGraph, setTestingGraph] = useState(false);
+  const [graphResult, setGraphResult] = useState<GraphTestResult | null>(null);
 
   useEffect(() => {
-    // Check if user is connected via Azure AD and handle redirect response
     const checkConnectionAndHandleRedirect = async () => {
       try {
-        // First check if we have a stored MSAL response from redirect
         const storedResponse = getStoredMSALResponse();
         if (storedResponse && storedResponse.accessToken) {
           setLoading(true);
@@ -51,7 +67,6 @@ export default function MicrosoftTeamsIntegration() {
           }
         }
         
-        // Check connection status
         const isAzureADUser = localStorage.getItem('isAzureADUser') === 'true';
         setIsConnected(isAzureADUser);
       } catch (error) {
@@ -69,17 +84,14 @@ export default function MicrosoftTeamsIntegration() {
     setError("");
     
     try {
-      // Validate MSAL configuration
       const configValidation = validateMSALConfig();
       if (!configValidation.valid) {
         throw new Error(`MSAL configuration error: ${configValidation.errors.join(', ')}. Please configure environment variables.`);
       }
 
-      // Initiate window-based Azure login (works in iframes)
       const authResult = await initiateAzureLoginRedirect();
       
       if (authResult) {
-        // Got auth result, complete the login
         const result = await completeAzureLoginFromRedirect();
         if (result?.user) {
           setIsConnected(true);
@@ -105,20 +117,15 @@ export default function MicrosoftTeamsIntegration() {
   const handleDisconnect = async () => {
     setLoading(true);
     try {
-      // Clear Azure AD connection
       localStorage.removeItem('isAzureADUser');
       sessionStorage.clear();
-      
-      // Sign out from Supabase
       await supabase.auth.signOut();
-      
       setIsConnected(false);
+      setGraphResult(null);
       toast({
         title: "Disconnected",
         description: "Your Microsoft account has been disconnected.",
       });
-      
-      // Redirect to login
       window.location.href = '/login';
     } catch (err: any) {
       console.error("Disconnect error:", err);
@@ -129,6 +136,40 @@ export default function MicrosoftTeamsIntegration() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTestGraphAPI = async () => {
+    setTestingGraph(true);
+    setGraphResult(null);
+    
+    try {
+      const result = await testGraphConnection();
+      setGraphResult(result);
+      
+      if (result.success) {
+        console.log('[Graph Test] Success:', result);
+        toast({
+          title: "Graph API Test Successful",
+          description: `Connected as ${result.user?.displayName}`,
+        });
+      } else {
+        console.error('[Graph Test] Failed:', result);
+        toast({
+          title: "Graph API Test Failed",
+          description: result.error || "Unknown error",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      console.error('[Graph Test] Exception:', err);
+      setGraphResult({
+        success: false,
+        error: err.message || "Test failed",
+        errorType: err instanceof GraphError ? err.name : 'UnknownError',
+      });
+    } finally {
+      setTestingGraph(false);
     }
   };
 
@@ -208,6 +249,103 @@ export default function MicrosoftTeamsIntegration() {
             )}
           </CardContent>
         </Card>
+
+        {/* Graph API Test Card */}
+        {isConnected && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Play className="h-5 w-5" />
+                Test Graph API
+              </CardTitle>
+              <CardDescription>
+                Validate your Microsoft Graph API connection by calling GET /me
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                onClick={handleTestGraphAPI}
+                disabled={testingGraph}
+                variant="secondary"
+              >
+                {testingGraph ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Test GET /me
+                  </>
+                )}
+              </Button>
+
+              {graphResult && (
+                <div className={`rounded-lg border p-4 ${
+                  graphResult.success 
+                    ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950' 
+                    : 'border-destructive/20 bg-destructive/5'
+                }`}>
+                  {graphResult.success ? (
+                    <div className="space-y-4">
+                      {/* User Info */}
+                      <div className="flex items-start gap-3">
+                        <User className="h-5 w-5 text-green-600 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-green-800 dark:text-green-200">
+                            {graphResult.user?.displayName}
+                          </p>
+                          <p className="text-sm text-green-700 dark:text-green-300">
+                            {graphResult.user?.mail || graphResult.user?.userPrincipalName}
+                          </p>
+                          <p className="text-xs text-green-600 dark:text-green-400 font-mono mt-1">
+                            ID: {graphResult.user?.id}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Token Info */}
+                      {graphResult.tokenMetadata && (
+                        <div className="border-t border-green-200 dark:border-green-800 pt-3 space-y-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Clock className="h-4 w-4 text-green-600" />
+                            <span className="text-green-700 dark:text-green-300">
+                              Token expires in {graphResult.tokenMetadata.expiresInMinutes} minutes
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2 text-sm">
+                            <Key className="h-4 w-4 text-green-600 mt-0.5" />
+                            <div>
+                              <span className="text-green-700 dark:text-green-300">Scopes: </span>
+                              <span className="font-mono text-xs text-green-600 dark:text-green-400">
+                                {graphResult.tokenMetadata.scopes.join(', ')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="font-medium text-destructive">
+                        {graphResult.errorType || 'Error'}
+                      </p>
+                      <p className="text-sm text-destructive/80">
+                        {graphResult.error}
+                      </p>
+                      {graphResult.errorType === 'UnauthorizedError' && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Try disconnecting and reconnecting your Microsoft account.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Features Card */}
         <Card>
