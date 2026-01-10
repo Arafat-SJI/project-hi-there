@@ -120,3 +120,7 @@ verify_jwt = false
 
 [functions.azure-auth-logout]
 verify_jwt = false
+
+# Microsoft Graph subscription management - requires authentication
+[functions.microsoft-graph-subscribe]
+verify_jwt = false

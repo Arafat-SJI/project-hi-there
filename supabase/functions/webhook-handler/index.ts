@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +10,26 @@ interface WebhookEvent {
   event: string;
   payload: Record<string, any>;
   event_ts?: number;
+}
+
+// Microsoft Graph notification types
+interface GraphNotificationItem {
+  subscriptionId: string;
+  subscriptionExpirationDateTime: string;
+  changeType: 'created' | 'updated' | 'deleted';
+  resource: string;
+  resourceData: {
+    '@odata.type': string;
+    '@odata.id': string;
+    id: string;
+    [key: string]: unknown;
+  };
+  clientState: string;
+  tenantId: string;
+}
+
+interface GraphNotification {
+  value: GraphNotificationItem[];
 }
 
 /**
@@ -70,9 +90,40 @@ serve(async (req) => {
     const url = new URL(req.url)
     const provider = url.searchParams.get('provider') || 'unknown'
 
-    const body = await req.text()
-    let event: WebhookEvent
+    // CRITICAL: Handle Microsoft Graph validation BEFORE reading body
+    // Validation requests have no body and must respond within 10 seconds
+    if (provider === 'microsoft') {
+      const validationToken = url.searchParams.get('validationToken')
+      if (validationToken) {
+        console.log('[Webhook] Microsoft Graph validation request received')
+        // Return plain text, URL-decoded validation token
+        return new Response(decodeURIComponent(validationToken), {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain',
+            ...corsHeaders,
+          },
+        })
+      }
+    }
 
+    const body = await req.text()
+    
+    // Handle Microsoft Graph notifications (different format)
+    if (provider === 'microsoft') {
+      let graphNotification: GraphNotification
+      try {
+        graphNotification = JSON.parse(body)
+      } catch {
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON payload' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+      return await handleMicrosoftGraphWebhook(graphNotification, supabaseClient)
+    }
+
+    let event: WebhookEvent
     try {
       event = JSON.parse(body)
     } catch {
@@ -225,7 +276,7 @@ async function handleZoomWebhook(
 
 async function handleGoogleWebhook(
   event: WebhookEvent,
-  supabase: any
+  supabase: SupabaseClient
 ): Promise<Response> {
   // Handle Google Drive push notifications
   if (event.event === 'sync') {
@@ -254,5 +305,212 @@ async function handleGoogleWebhook(
   return new Response(
     JSON.stringify({ success: true }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+  )
+}
+
+/**
+ * Decrypt clientState for verification
+ */
+function decryptClientState(encrypted: string, key: string): string {
+  try {
+    const decoded = atob(encrypted)
+    const keyData = new TextEncoder().encode(key)
+    const decrypted = new Uint8Array(decoded.length)
+    
+    for (let i = 0; i < decoded.length; i++) {
+      decrypted[i] = decoded.charCodeAt(i) ^ keyData[i % keyData.length]
+    }
+    
+    return new TextDecoder().decode(decrypted)
+  } catch (error) {
+    console.error('Failed to decrypt clientState:', error)
+    return ''
+  }
+}
+
+/**
+ * Constant-time string comparison to prevent timing attacks
+ */
+function constantTimeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return result === 0
+}
+
+/**
+ * Verify Microsoft Graph notification clientState
+ */
+async function verifyGraphClientState(
+  providedClientState: string,
+  subscriptionId: string,
+  supabase: SupabaseClient
+): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // Fetch stored clientState
+    const { data: subscription, error } = await supabase
+      .from('graph_webhook_subscriptions')
+      .select('client_state')
+      .eq('subscription_id', subscriptionId)
+      .single()
+
+    if (error || !subscription) {
+      return { valid: false, error: 'Subscription not found' }
+    }
+
+    // Decrypt and compare
+    const encryptionKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? 'default-key'
+    const storedClientState = decryptClientState(subscription.client_state, encryptionKey)
+
+    if (!constantTimeCompare(providedClientState, storedClientState)) {
+      return { valid: false, error: 'clientState mismatch' }
+    }
+
+    return { valid: true }
+  } catch (error) {
+    console.error('[Microsoft] Verification error:', error)
+    return { valid: false, error: 'Verification failed' }
+  }
+}
+
+/**
+ * Process meeting-related notifications
+ */
+async function processMeetingNotification(
+  notification: GraphNotificationItem,
+  supabase: SupabaseClient
+): Promise<void> {
+  const meetingId = notification.resourceData.id
+  const changeType = notification.changeType
+
+  console.log(`[Microsoft] Processing ${changeType} for meeting:`, meetingId)
+
+  switch (changeType) {
+    case 'created':
+      // Log new meeting creation - would need to fetch full details via Graph API
+      console.log('[Microsoft] New meeting created:', meetingId)
+      break
+
+    case 'updated':
+      // Log meeting update
+      console.log('[Microsoft] Meeting updated:', meetingId)
+      break
+
+    case 'deleted':
+      // Update meeting status if we have it
+      const { error } = await supabase
+        .from('meetings')
+        .update({ status: 'cancelled' })
+        .filter('metadata->>teams_meeting_id', 'eq', meetingId)
+      
+      if (error) {
+        console.error('[Microsoft] Failed to update meeting status:', error)
+      }
+      break
+  }
+}
+
+/**
+ * Handle Microsoft Graph webhook notifications
+ */
+async function handleMicrosoftGraphWebhook(
+  notification: GraphNotification,
+  supabase: SupabaseClient
+): Promise<Response> {
+  const results: Array<{ subscriptionId: string; success: boolean; error?: string }> = []
+  const encryptionKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? 'default-key'
+
+  // Process each notification in the batch
+  for (const item of notification.value) {
+    const receivedAt = new Date().toISOString()
+    
+    try {
+      // 1. Verify clientState
+      const verification = await verifyGraphClientState(
+        item.clientState,
+        item.subscriptionId,
+        supabase
+      )
+
+      // 2. Log the notification
+      await supabase.from('graph_webhook_logs').insert({
+        subscription_id: item.subscriptionId,
+        event_type: item.changeType,
+        resource_data: item.resourceData,
+        client_state_valid: verification.valid,
+        processing_status: verification.valid ? 'processing' : 'failed',
+        error_message: verification.error,
+        received_at: receivedAt,
+      })
+
+      if (!verification.valid) {
+        console.warn('[Microsoft] Invalid clientState for subscription:', item.subscriptionId)
+        
+        // Increment error count
+        await supabase
+          .from('graph_webhook_subscriptions')
+          .update({ error_count: supabase.rpc('increment_error_count', { sub_id: item.subscriptionId }) })
+          .eq('subscription_id', item.subscriptionId)
+        
+        results.push({
+          subscriptionId: item.subscriptionId,
+          success: false,
+          error: verification.error,
+        })
+        continue
+      }
+
+      // 3. Update subscription last notification time
+      await supabase
+        .from('graph_webhook_subscriptions')
+        .update({ 
+          last_notification_at: receivedAt,
+          error_count: 0, // Reset on successful verification
+        })
+        .eq('subscription_id', item.subscriptionId)
+
+      // 4. Process based on resource type
+      if (item.resource.includes('onlineMeetings')) {
+        await processMeetingNotification(item, supabase)
+      }
+
+      // 5. Update log status to completed
+      await supabase
+        .from('graph_webhook_logs')
+        .update({
+          processing_status: 'completed',
+          processed_at: new Date().toISOString(),
+        })
+        .eq('subscription_id', item.subscriptionId)
+        .eq('received_at', receivedAt)
+
+      results.push({ subscriptionId: item.subscriptionId, success: true })
+    } catch (error) {
+      console.error('[Microsoft] Error processing notification:', error)
+      
+      // Update log with error
+      await supabase
+        .from('graph_webhook_logs')
+        .update({
+          processing_status: 'failed',
+          error_message: error instanceof Error ? error.message : 'Unknown error',
+        })
+        .eq('subscription_id', item.subscriptionId)
+        .eq('received_at', receivedAt)
+
+      results.push({
+        subscriptionId: item.subscriptionId,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  }
+
+  // Return 202 Accepted - we've received the notification
+  return new Response(
+    JSON.stringify({ processed: results }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 202 }
   )
 }
