@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
@@ -27,6 +27,7 @@ import {
 import { useMicrosoftTeams } from "@/hooks/useMicrosoftTeams";
 import { useMicrosoftTeamsChannels } from "@/hooks/useMicrosoftTeamsChannels";
 import { useSyncTeamsMeetings } from "@/hooks/useSyncTeamsMeetings";
+import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeetingDialog";
 import { cn } from "@/lib/utils";
 
 interface GraphTestResult {
@@ -468,8 +469,37 @@ export default function MicrosoftTeamsIntegration() {
               )}
 
               <p className="text-xs text-muted-foreground">
-                <strong>Note:</strong> Requires the <code className="bg-muted px-1 rounded">OnlineMeetings.Read</code> permission.
+                <strong>Note:</strong> Requires the <code className="bg-muted px-1 rounded">OnlineMeetings.ReadWrite</code> permission.
                 If you see a permission error, disconnect and reconnect your Microsoft account.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Create Teams Meeting Card */}
+        {isConnected && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="h-5 w-5" />
+                Create Teams Meeting
+              </CardTitle>
+              <CardDescription>
+                Schedule a new Microsoft Teams meeting directly from the app
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <CreateTeamsMeetingDialog 
+                trigger={
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Teams Meeting
+                  </Button>
+                }
+              />
+              
+              <p className="text-xs text-muted-foreground">
+                Create meetings with title, time, and optional attendees. The meeting will be saved locally and attendees will receive email invites.
               </p>
             </CardContent>
           </Card>
