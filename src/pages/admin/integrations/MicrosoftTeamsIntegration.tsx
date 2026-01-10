@@ -8,8 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   initiateAzureLoginRedirect, 
   getStoredMSALResponse, 
@@ -24,6 +25,8 @@ import {
   GraphError 
 } from "@/lib/microsoftGraphClient";
 import { useMicrosoftTeams } from "@/hooks/useMicrosoftTeams";
+import { useMicrosoftTeamsChannels } from "@/hooks/useMicrosoftTeamsChannels";
+import { cn } from "@/lib/utils";
 
 interface GraphTestResult {
   success: boolean;
@@ -40,6 +43,7 @@ export default function MicrosoftTeamsIntegration() {
   const [error, setError] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   
   // Graph API test state
   const [testingGraph, setTestingGraph] = useState(false);
@@ -54,6 +58,50 @@ export default function MicrosoftTeamsIntegration() {
     syncError,
     lastSynced 
   } = useMicrosoftTeams();
+
+  // Microsoft Teams Channels hook
+  const {
+    channels,
+    syncTeamChannels,
+    isSyncingTeam,
+    syncTeamError,
+    getChannelsForTeam,
+  } = useMicrosoftTeamsChannels();
+
+  const [syncingTeamId, setSyncingTeamId] = useState<string | null>(null);
+
+  const toggleTeamExpanded = (teamId: string) => {
+    setExpandedTeams(prev => {
+      const next = new Set(prev);
+      if (next.has(teamId)) {
+        next.delete(teamId);
+      } else {
+        next.add(teamId);
+      }
+      return next;
+    });
+  };
+
+  const handleSyncChannels = async (teamId: string) => {
+    setSyncingTeamId(teamId);
+    try {
+      await syncTeamChannels(teamId);
+      setExpandedTeams(prev => new Set(prev).add(teamId));
+      toast({
+        title: "Channels synced",
+        description: "Team channels have been synced successfully.",
+      });
+    } catch (err) {
+      console.error('Failed to sync channels:', err);
+      toast({
+        title: "Sync failed",
+        description: err instanceof Error ? err.message : "Failed to sync channels",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncingTeamId(null);
+    }
+  };
 
   useEffect(() => {
     const checkConnectionAndHandleRedirect = async () => {
@@ -414,31 +462,91 @@ export default function MicrosoftTeamsIntegration() {
                 </div>
               ) : teams.length > 0 ? (
                 <div className="space-y-2">
-                  {teams.map((team) => (
-                    <div 
-                      key={team.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                    >
-                      <div>
-                        <p className="font-medium">{team.display_name}</p>
-                        {team.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {team.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {team.visibility && (
-                          <Badge variant="outline">
-                            {team.visibility}
-                          </Badge>
-                        )}
-                        {team.is_archived && (
-                          <Badge variant="secondary">Archived</Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                  {teams.map((team) => {
+                    const teamChannels = getChannelsForTeam(team.team_id);
+                    const isExpanded = expandedTeams.has(team.team_id);
+                    const isSyncingThisTeam = syncingTeamId === team.team_id;
+                    
+                    return (
+                      <Collapsible key={team.id} open={isExpanded}>
+                        <div className="rounded-lg border bg-card">
+                          <div className="flex items-center justify-between p-3">
+                            <CollapsibleTrigger 
+                              onClick={() => toggleTeamExpanded(team.team_id)}
+                              className="flex items-center gap-2 flex-1 text-left hover:bg-muted/50 -m-2 p-2 rounded"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <div>
+                                <p className="font-medium">{team.display_name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {teamChannels.length} channels synced
+                                  {team.description && ` · ${team.description.slice(0, 50)}${team.description.length > 50 ? '...' : ''}`}
+                                </p>
+                              </div>
+                            </CollapsibleTrigger>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSyncChannels(team.team_id);
+                                }}
+                                disabled={isSyncingThisTeam}
+                                title="Sync channels"
+                              >
+                                <RefreshCw className={cn(
+                                  "h-3 w-3",
+                                  isSyncingThisTeam && "animate-spin"
+                                )} />
+                              </Button>
+                              {team.visibility && (
+                                <Badge variant="outline" className="text-xs">
+                                  {team.visibility}
+                                </Badge>
+                              )}
+                              {team.is_archived && (
+                                <Badge variant="secondary" className="text-xs">Archived</Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <CollapsibleContent>
+                            <div className="border-t px-3 py-2 space-y-1 bg-muted/30">
+                              {teamChannels.length > 0 ? (
+                                teamChannels.map(channel => (
+                                  <div 
+                                    key={channel.id}
+                                    className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50"
+                                  >
+                                    {channel.membership_type === 'private' ? (
+                                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                                    ) : channel.membership_type === 'shared' ? (
+                                      <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                    ) : (
+                                      <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                                    )}
+                                    <span className="text-sm">{channel.display_name}</span>
+                                    {channel.is_favorite && (
+                                      <Badge variant="secondary" className="text-xs ml-auto">Favorite</Badge>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground py-2 text-center">
+                                  Click the sync button to fetch channels
+                                </p>
+                              )}
+                            </div>
+                          </CollapsibleContent>
+                        </div>
+                      </Collapsible>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground py-8">
