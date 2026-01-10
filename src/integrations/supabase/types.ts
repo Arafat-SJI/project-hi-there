@@ -502,6 +502,96 @@ export type Database = {
         }
         Relationships: []
       }
+      graph_webhook_logs: {
+        Row: {
+          client_state_valid: boolean
+          error_message: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          processed_at: string | null
+          processing_status: string
+          received_at: string
+          resource_data: Json | null
+          subscription_id: string
+        }
+        Insert: {
+          client_state_valid?: boolean
+          error_message?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+          resource_data?: Json | null
+          subscription_id: string
+        }
+        Update: {
+          client_state_valid?: boolean
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+          resource_data?: Json | null
+          subscription_id?: string
+        }
+        Relationships: []
+      }
+      graph_webhook_subscriptions: {
+        Row: {
+          change_types: string[]
+          client_state: string
+          created_at: string
+          error_count: number
+          expiration_datetime: string
+          id: string
+          is_active: boolean
+          last_notification_at: string | null
+          metadata: Json | null
+          notification_url: string
+          resource: string
+          subscription_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          change_types?: string[]
+          client_state: string
+          created_at?: string
+          error_count?: number
+          expiration_datetime: string
+          id?: string
+          is_active?: boolean
+          last_notification_at?: string | null
+          metadata?: Json | null
+          notification_url: string
+          resource: string
+          subscription_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          change_types?: string[]
+          client_state?: string
+          created_at?: string
+          error_count?: number
+          expiration_datetime?: string
+          id?: string
+          is_active?: boolean
+          last_notification_at?: string | null
+          metadata?: Json | null
+          notification_url?: string
+          resource?: string
+          subscription_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       integration_categories: {
         Row: {
           created_at: string
