@@ -66,6 +66,7 @@ export function useCreateTeamsMeeting() {
           organizer_id: user.id,
           metadata: {
             teams_meeting_id: teamsMeeting.teams_meeting_id,
+            calendar_event_id: teamsMeeting.teams_meeting_id, // Store calendar event ID
             created_from: 'app',
             created_at: new Date().toISOString(),
             attendees: validated.attendees || [],
@@ -118,8 +119,8 @@ export function useCreateTeamsMeeting() {
       if (error instanceof z.ZodError) {
         description = error.errors.map(e => e.message).join(', ');
         title = "Validation Error";
-      } else if (error instanceof ForbiddenError || error.message?.includes('OnlineMeetings.ReadWrite')) {
-        description = "Missing permission. Please disconnect and reconnect your Microsoft account.";
+      } else if (error instanceof ForbiddenError || error.message?.includes('Calendars.ReadWrite') || error.message?.includes('OnlineMeetings.ReadWrite')) {
+        description = "Missing permission. Please disconnect and reconnect your Microsoft account to grant Calendars.ReadWrite permission.";
         title = "Permission Required";
       } else if (error.message?.includes('network') || error.message?.includes('Network')) {
         description = "Network error. Please check your connection and try again.";
