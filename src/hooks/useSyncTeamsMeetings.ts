@@ -231,8 +231,14 @@ export function useSyncTeamsMeetings() {
       let title = "Sync Failed";
       let description = error.message || "Failed to sync Teams meetings.";
       
+      // Handle specific error cases
+      if (error.message?.includes('MailboxNotEnabledForRESTAPI') || 
+          error.message?.includes('inactive, soft-deleted, or is hosted on-premise')) {
+        title = "Calendar Not Available";
+        description = "Your Microsoft account doesn't have an Exchange Online mailbox. You can still create Teams meetings directly using the 'New Teams Meeting' button below.";
+      }
       // Handle token expiration specifically
-      if (error.message?.includes('Session expired') || 
+      else if (error.message?.includes('Session expired') || 
           error.message?.includes('No access token') ||
           error.name === 'TokenExpiredError') {
         title = "Session Expired";
@@ -242,6 +248,7 @@ export function useSyncTeamsMeetings() {
       else if (error.message?.includes('OnlineMeetings.Read') || error.message?.includes('Calendars.Read')) {
         description = "Missing permission. Please disconnect and reconnect your Microsoft account.";
       } else if (error.message?.includes('Exchange') || error.message?.includes('Mailbox')) {
+        title = "Calendar Not Available";
         description = "Calendar sync requires an Exchange Online mailbox. You can still create meetings directly.";
       } else if (error.message?.includes('Filter expression expected')) {
         description = "Teams API limitation. Meetings you create in this app are automatically saved.";
