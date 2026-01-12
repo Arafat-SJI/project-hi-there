@@ -344,6 +344,83 @@ export interface CreatedTeamsMeeting {
   join_url: string;
   meeting_type: 'teams';
   status: 'scheduled';
+  calendar_event_id?: string;
+  calendar_synced: boolean;
+}
+
+// ============================================================================
+// Calendar Event Creation
+// ============================================================================
+
+interface CreateCalendarEventRequest {
+  subject: string;
+  startDateTime: string;
+  endDateTime: string;
+  joinUrl: string;
+  attendees?: string[];
+}
+
+interface CalendarEventResponse {
+  id: string;
+  webLink: string;
+}
+
+/**
+ * Create a calendar event with Teams meeting link
+ * Requires Calendars.ReadWrite permission and Exchange mailbox
+ * 
+ * @param input - Event details with Teams join URL
+ * @returns Event ID and web link, or null if creation failed
+ */
+async function createCalendarEventWithMeeting(
+  input: CreateCalendarEventRequest
+): Promise<{ eventId: string; webLink: string } | null> {
+  const requestBody = {
+    subject: input.subject,
+    start: {
+      dateTime: input.startDateTime,
+      timeZone: 'UTC',
+    },
+    end: {
+      dateTime: input.endDateTime,
+      timeZone: 'UTC',
+    },
+    body: {
+      contentType: 'HTML',
+      content: `<p>Join the Teams meeting: <a href="${input.joinUrl}">${input.joinUrl}</a></p>`,
+    },
+    isOnlineMeeting: true,
+    onlineMeetingProvider: 'teamsForBusiness',
+    attendees: input.attendees?.map(email => ({
+      emailAddress: { address: email },
+      type: 'required',
+    })) || [],
+  };
+
+  console.log('[TeamsMeetings] Creating calendar event for meeting:', input.subject);
+
+  try {
+    const response = await callGraphAPI<CalendarEventResponse>(
+      '/me/calendar/events',
+      { method: 'POST', body: JSON.stringify(requestBody) }
+    );
+    
+    console.log('[TeamsMeetings] Calendar event created:', response.id);
+    return { eventId: response.id, webLink: response.webLink };
+  } catch (error) {
+    // Return null if calendar creation fails (user may not have Exchange)
+    if (error instanceof Error) {
+      if (error.message?.includes('MailboxNotEnabledForRESTAPI') || 
+          error.message?.includes('MailboxNotSupportedForRESTAPI')) {
+        console.warn('[TeamsMeetings] Calendar event creation skipped - no Exchange mailbox');
+      } else if (error.message?.includes('Calendars.ReadWrite')) {
+        console.warn('[TeamsMeetings] Calendar event creation skipped - missing Calendars.ReadWrite permission');
+      } else {
+        console.warn('[TeamsMeetings] Calendar event creation failed:', error.message);
+      }
+    }
+    return null;
+  }
 }
 
 // ============================================================================
@@ -439,6 +516,19 @@ export async function createOnlineMeeting(
     
     console.log('[TeamsMeetings] Online meeting created successfully:', response.id);
     
+    // Step 2: Try to create calendar event (optional, may fail without Exchange mailbox)
+    const attendeeEmails = input.attendees
+      ?.map(a => a.emailAddress || a.upn || '')
+      .filter(email => email.length > 0) || [];
+    
+    const calendarEvent = await createCalendarEventWithMeeting({
+      subject: response.subject,
+      startDateTime: response.startDateTime,
+      endDateTime: response.endDateTime,
+      joinUrl: response.joinWebUrl,
+      attendees: attendeeEmails,
+    });
+    
     return {
       teams_meeting_id: response.id,
       title: response.subject,
@@ -447,6 +537,8 @@ export async function createOnlineMeeting(
       join_url: response.joinWebUrl,
       meeting_type: 'teams',
       status: 'scheduled',
+      calendar_event_id: calendarEvent?.eventId,
+      calendar_synced: !!calendarEvent,
     };
   } catch (error) {
     if (error instanceof ForbiddenError) {

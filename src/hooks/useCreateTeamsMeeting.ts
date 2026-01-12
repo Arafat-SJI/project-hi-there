@@ -66,7 +66,8 @@ export function useCreateTeamsMeeting() {
           organizer_id: user.id,
           metadata: {
             teams_meeting_id: teamsMeeting.teams_meeting_id,
-            calendar_event_id: teamsMeeting.teams_meeting_id, // Store calendar event ID
+            calendar_event_id: teamsMeeting.calendar_event_id,
+            calendar_synced: teamsMeeting.calendar_synced,
             created_from: 'app',
             created_at: new Date().toISOString(),
             attendees: validated.attendees || [],
@@ -93,10 +94,17 @@ export function useCreateTeamsMeeting() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
       
-      toast({
-        title: "Teams Meeting Created",
-        description: `"${result.meeting.title}" has been scheduled.`,
-      });
+      if (result.meeting.calendar_synced) {
+        toast({
+          title: "Teams Meeting Created",
+          description: `"${result.meeting.title}" has been scheduled and added to your calendar.`,
+        });
+      } else {
+        toast({
+          title: "Teams Meeting Created",
+          description: `"${result.meeting.title}" has been scheduled. Note: Could not add to calendar.`,
+        });
+      }
       
       // Copy join URL to clipboard
       if (navigator.clipboard) {

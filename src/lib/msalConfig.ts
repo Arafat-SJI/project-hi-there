@@ -52,6 +52,7 @@ export const loginRequest = {
     'ChannelMessage.Send',
     'OnlineMeetings.ReadWrite',
     'Calendars.Read', // For reading calendar events with Teams meetings
+    'Calendars.ReadWrite', // For creating calendar events with Teams meetings
     'openid',
     'profile',
     'email',
