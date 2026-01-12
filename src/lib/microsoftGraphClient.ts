@@ -81,6 +81,13 @@ export class NetworkError extends GraphError {
   }
 }
 
+export class TokenExpiredError extends GraphError {
+  constructor(message: string = 'Session expired. Please reconnect your Microsoft account.') {
+    super(message, 401, 'TOKEN_EXPIRED');
+    this.name = 'TokenExpiredError';
+  }
+}
+
 // ============================================================================
 // Token Utilities
 // ============================================================================
@@ -164,7 +171,7 @@ export async function getAccessToken(forceRefresh = false): Promise<string> {
     return storedResponse.accessToken;
   }
 
-  throw new UnauthorizedError('No access token available. Please sign in again.');
+  throw new TokenExpiredError('Your Microsoft session has expired. Please reconnect your account to continue.');
 }
 
 // ============================================================================

@@ -22,7 +22,8 @@ import {
   testGraphConnection, 
   GraphUser, 
   TokenMetadata,
-  GraphError 
+  GraphError,
+  getAccessToken 
 } from "@/lib/microsoftGraphClient";
 import { useMicrosoftTeams } from "@/hooks/useMicrosoftTeams";
 import { useMicrosoftTeamsChannels } from "@/hooks/useMicrosoftTeamsChannels";
@@ -75,6 +76,8 @@ export default function MicrosoftTeamsIntegration() {
   const syncTeamsMeetings = useSyncTeamsMeetings();
 
   const [syncingTeamId, setSyncingTeamId] = useState<string | null>(null);
+  const [hasValidToken, setHasValidToken] = useState<boolean | null>(null);
+  const [refreshingToken, setRefreshingToken] = useState(false);
 
   const toggleTeamExpanded = (teamId: string) => {
     setExpandedTeams(prev => {
@@ -109,6 +112,21 @@ export default function MicrosoftTeamsIntegration() {
     }
   };
 
+  // Check token validity when connected
+  useEffect(() => {
+    const validateToken = async () => {
+      if (isConnected) {
+        try {
+          await getAccessToken();
+          setHasValidToken(true);
+        } catch {
+          setHasValidToken(false);
+        }
+      }
+    };
+    validateToken();
+  }, [isConnected]);
+
   useEffect(() => {
     const checkConnectionAndHandleRedirect = async () => {
       try {
@@ -119,6 +137,7 @@ export default function MicrosoftTeamsIntegration() {
             const result = await completeAzureLoginFromRedirect();
             if (result?.user) {
               setIsConnected(true);
+              setHasValidToken(true);
               localStorage.setItem('isAzureADUser', 'true');
               toast({
                 title: "Connected successfully!",
@@ -144,6 +163,48 @@ export default function MicrosoftTeamsIntegration() {
 
     checkConnectionAndHandleRedirect();
   }, [user, toast]);
+
+  const handleRefreshConnection = async () => {
+    setRefreshingToken(true);
+    try {
+      const authResult = await initiateAzureLoginRedirect();
+      if (authResult) {
+        const result = await completeAzureLoginFromRedirect();
+        if (result?.user) {
+          setHasValidToken(true);
+          toast({
+            title: "Connection Refreshed",
+            description: "Your Microsoft session has been renewed.",
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error("Refresh connection error:", err);
+      toast({
+        title: "Refresh Failed",
+        description: "Please try disconnecting and reconnecting your account.",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingToken(false);
+    }
+  };
+
+  const handleSyncFromCalendar = async () => {
+    // Check for valid token first
+    const storedResponse = getStoredMSALResponse();
+    if (!storedResponse?.accessToken) {
+      toast({
+        title: "Session Expired",
+        description: "Please refresh your Microsoft connection to sync meetings.",
+        variant: "destructive",
+      });
+      setHasValidToken(false);
+      return;
+    }
+    
+    syncTeamsMeetings.mutate({ source: 'calendar' });
+  };
 
   const handleConnect = async () => {
     setLoading(true);
@@ -470,10 +531,45 @@ export default function MicrosoftTeamsIntegration() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Token expired warning */}
+              {hasValidToken === false && (
+                <div className="flex items-center justify-between p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/50">
+                      <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-amber-900 dark:text-amber-100">Session Expired</p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300">
+                        Refresh your connection to sync meetings
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleRefreshConnection}
+                    disabled={refreshingToken}
+                    className="border-amber-200 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/30"
+                  >
+                    {refreshingToken ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Refreshing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh Connection
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-3">
                 <Button
                   onClick={() => syncTeamsMeetings.mutate({ source: 'both' })}
-                  disabled={syncTeamsMeetings.isPending}
+                  disabled={syncTeamsMeetings.isPending || hasValidToken === false}
                   variant="secondary"
                   size="lg"
                 >
@@ -490,8 +586,8 @@ export default function MicrosoftTeamsIntegration() {
                   )}
                 </Button>
                 <Button
-                  onClick={() => syncTeamsMeetings.mutate({ source: 'calendar' })}
-                  disabled={syncTeamsMeetings.isPending}
+                  onClick={handleSyncFromCalendar}
+                  disabled={syncTeamsMeetings.isPending || hasValidToken === false}
                   variant="outline"
                   size="lg"
                 >

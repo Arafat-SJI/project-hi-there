@@ -228,10 +228,18 @@ export function useSyncTeamsMeetings() {
     onError: (error: Error) => {
       console.error('[SyncTeamsMeetings] Sync failed:', error);
       
+      let title = "Sync Failed";
       let description = error.message || "Failed to sync Teams meetings.";
       
+      // Handle token expiration specifically
+      if (error.message?.includes('Session expired') || 
+          error.message?.includes('No access token') ||
+          error.name === 'TokenExpiredError') {
+        title = "Session Expired";
+        description = "Your Microsoft session has expired. Please reconnect your account using the button above.";
+      }
       // Provide more helpful error messages
-      if (error.message?.includes('OnlineMeetings.Read') || error.message?.includes('Calendars.Read')) {
+      else if (error.message?.includes('OnlineMeetings.Read') || error.message?.includes('Calendars.Read')) {
         description = "Missing permission. Please disconnect and reconnect your Microsoft account.";
       } else if (error.message?.includes('Exchange') || error.message?.includes('Mailbox')) {
         description = "Calendar sync requires an Exchange Online mailbox. You can still create meetings directly.";
@@ -240,7 +248,7 @@ export function useSyncTeamsMeetings() {
       }
       
       toast({
-        title: "Sync Failed",
+        title,
         description,
         variant: "destructive",
       });
