@@ -253,22 +253,15 @@ export interface CreateMeetingRequest {
   }>;
 }
 
-export interface CreateMeetingResponse {
+/**
+ * Response from POST /me/onlineMeetings endpoint
+ */
+export interface OnlineMeetingResponse {
   id: string;
   subject: string;
-  start: {
-    dateTime: string;
-    timeZone: string;
-  };
-  end: {
-    dateTime: string;
-    timeZone: string;
-  };
-  joinWebUrl?: string;
-  onlineMeeting?: {
-    joinUrl: string;
-  };
-  webLink?: string; // Calendar event link
+  startDateTime: string;
+  endDateTime: string;
+  joinWebUrl: string;
   audioConferencing?: {
     dialinUrl?: string;
     tollNumber?: string;
@@ -291,10 +284,12 @@ export interface CreatedTeamsMeeting {
 
 /**
  * Create a new online meeting in Microsoft Teams
- * Creates a calendar event with Teams meeting enabled so it appears in Microsoft Calendar
+ * Uses /me/onlineMeetings endpoint which works for all Teams users
+ * (doesn't require Exchange Online mailbox like the calendar approach)
+ * 
  * @param input - Meeting details (subject, start/end times, attendees)
  * @returns Created meeting details including join URL
- * @throws ForbiddenError if missing Calendars.ReadWrite permission
+ * @throws ForbiddenError if missing OnlineMeetings.ReadWrite permission
  */
 export async function createOnlineMeeting(
   input: CreateMeetingRequest
@@ -325,89 +320,73 @@ export async function createOnlineMeeting(
     throw new Error('Meeting title must be less than 200 characters');
   }
 
-  // Get user's timezone (default to UTC if not available)
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-
-  // Build calendar event request body
+  // Build onlineMeetings request body
   const requestBody: Record<string, unknown> = {
     subject: subject,
-    start: {
-      dateTime: startDate.toISOString(),
-      timeZone: timeZone,
-    },
-    end: {
-      dateTime: endDate.toISOString(),
-      timeZone: timeZone,
-    },
-    isOnlineMeeting: true,
-    onlineMeetingProvider: 'teamsForBusiness',
-    body: {
-      contentType: 'HTML',
-      content: `<p>Teams meeting created from Control Tower.</p>`,
+    startDateTime: startDate.toISOString(),
+    endDateTime: endDate.toISOString(),
+    lobbyBypassSettings: {
+      scope: 'organization', // Only org members bypass lobby
     },
   };
 
-  // Add attendees if provided
+  // Add participants if attendees provided
   if (input.attendees && input.attendees.length > 0) {
     const validAttendees = input.attendees
       .filter(a => a.upn || a.emailAddress)
       .map(a => ({
-        emailAddress: {
-          address: a.upn || a.emailAddress,
-        },
-        type: 'required' as const,
+        upn: a.upn || a.emailAddress,
       }));
     
     if (validAttendees.length > 0) {
-      requestBody.attendees = validAttendees;
+      requestBody.participants = {
+        attendees: validAttendees,
+      };
     }
   }
 
-  console.log('[TeamsMeetings] Creating calendar event with Teams meeting:', subject);
+  console.log('[TeamsMeetings] Creating online meeting:', subject);
 
   try {
-    // Create calendar event with Teams meeting
+    // Create online meeting directly (no calendar/Exchange dependency)
     const response = await withRateLimitRetry(
-      () => callGraphAPI<CreateMeetingResponse>(
-        '/me/calendar/events',
+      () => callGraphAPI<OnlineMeetingResponse>(
+        '/me/onlineMeetings',
         {
           method: 'POST',
           body: JSON.stringify(requestBody),
         }
       ),
-      'Creating calendar event with Teams meeting'
+      'Creating online meeting'
     );
     
-    // Extract join URL from onlineMeeting or joinWebUrl
-    const joinUrl = response.onlineMeeting?.joinUrl || response.joinWebUrl;
-    
-    if (!response.id || !joinUrl) {
+    if (!response.id || !response.joinWebUrl) {
       throw new Error('Invalid response from Microsoft Graph API - missing meeting ID or join URL');
     }
     
     const durationMinutes = calculateDurationMinutes(
-      response.start.dateTime,
-      response.end.dateTime
+      response.startDateTime,
+      response.endDateTime
     );
     
-    console.log('[TeamsMeetings] Calendar event with Teams meeting created successfully:', response.id);
+    console.log('[TeamsMeetings] Online meeting created successfully:', response.id);
     
     return {
-      teams_meeting_id: response.id, // Use calendar event ID
+      teams_meeting_id: response.id,
       title: response.subject,
-      scheduled_at: response.start.dateTime,
+      scheduled_at: response.startDateTime,
       duration_minutes: durationMinutes || 60,
-      join_url: joinUrl,
+      join_url: response.joinWebUrl,
       meeting_type: 'teams',
       status: 'scheduled',
     };
   } catch (error) {
     if (error instanceof ForbiddenError) {
       throw new ForbiddenError(
-        'Missing Calendars.ReadWrite permission. Please disconnect and reconnect your Microsoft account to grant this permission.'
+        'Missing OnlineMeetings.ReadWrite permission. Please disconnect and reconnect your Microsoft account to grant this permission.'
       );
     }
-    console.error('[TeamsMeetings] Failed to create calendar event:', error);
+    console.error('[TeamsMeetings] Failed to create online meeting:', error);
     throw error;
   }
 }

@@ -119,9 +119,12 @@ export function useCreateTeamsMeeting() {
       if (error instanceof z.ZodError) {
         description = error.errors.map(e => e.message).join(', ');
         title = "Validation Error";
-      } else if (error instanceof ForbiddenError || error.message?.includes('Calendars.ReadWrite') || error.message?.includes('OnlineMeetings.ReadWrite')) {
-        description = "Missing permission. Please disconnect and reconnect your Microsoft account to grant Calendars.ReadWrite permission.";
+      } else if (error instanceof ForbiddenError || error.message?.includes('OnlineMeetings.ReadWrite')) {
+        description = "Missing permission. Please disconnect and reconnect your Microsoft account to grant OnlineMeetings.ReadWrite permission.";
         title = "Permission Required";
+      } else if (error.message?.includes('MailboxNotEnabledForRESTAPI') || error.message?.includes('hosted on-premise')) {
+        description = "Your account mailbox is not accessible. Please contact your IT administrator.";
+        title = "Mailbox Not Available";
       } else if (error.message?.includes('network') || error.message?.includes('Network')) {
         description = "Network error. Please check your connection and try again.";
         title = "Connection Error";
