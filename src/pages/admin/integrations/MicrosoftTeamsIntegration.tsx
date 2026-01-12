@@ -499,14 +499,11 @@ export default function MicrosoftTeamsIntegration() {
                         <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                       </div>
                       <span className="text-green-900 dark:text-green-100 font-semibold">
-                        {syncTeamsMeetings.data.synced} meeting{syncTeamsMeetings.data.synced !== 1 ? 's' : ''} synced
+                        {syncTeamsMeetings.data.updated > 0 
+                          ? `${syncTeamsMeetings.data.updated} meeting${syncTeamsMeetings.data.updated !== 1 ? 's' : ''} refreshed`
+                          : 'Meetings up to date'}
                       </span>
                     </div>
-                    {syncTeamsMeetings.data.skipped > 0 && (
-                      <p className="text-green-700 dark:text-green-300 ml-8 text-sm">
-                        {syncTeamsMeetings.data.skipped} already existed
-                      </p>
-                    )}
                     {syncTeamsMeetings.data.errors > 0 && (
                       <p className="text-amber-700 dark:text-amber-400 ml-8 text-sm font-medium">
                         {syncTeamsMeetings.data.errors} error{syncTeamsMeetings.data.errors !== 1 ? 's' : ''}
