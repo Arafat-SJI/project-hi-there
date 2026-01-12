@@ -171,42 +171,22 @@ export function normalizeMeeting(meeting: TeamsMeeting): NormalizedMeeting | nul
 // ============================================================================
 
 /**
- * Fetch all online meetings for the current user
- * Handles pagination automatically
+ * Fetch a specific online meeting by ID
  * 
- * @param maxItems - Maximum items to fetch (default: 0 = unlimited)
- * @returns Array of raw Teams meetings
+ * @param meetingId - The Teams meeting ID
+ * @returns The Teams meeting details
  * @throws ForbiddenError if missing OnlineMeetings.Read permission
  */
-export async function getMyOnlineMeetings(maxItems: number = 0): Promise<TeamsMeeting[]> {
-  const allMeetings: TeamsMeeting[] = [];
-  let nextLink: string | undefined = '/me/onlineMeetings';
+export async function getOnlineMeetingById(meetingId: string): Promise<TeamsMeeting> {
+  console.log(`[TeamsMeetings] Fetching meeting ${meetingId}...`);
   
   try {
-    console.log('[TeamsMeetings] Fetching online meetings...');
+    const response = await withRateLimitRetry(
+      () => callGraphAPI<TeamsMeeting>(`/me/onlineMeetings/${meetingId}`),
+      'Fetching meeting by ID'
+    );
     
-    // If maxItems is 0 or negative, fetch all meetings (no limit)
-    const hasLimit = maxItems > 0;
-    
-    while (nextLink && (!hasLimit || allMeetings.length < maxItems)) {
-      const response = await withRateLimitRetry(
-        () => callGraphAPI<TeamsOnlineMeetingsResponse>(nextLink!),
-        'Fetching online meetings'
-      );
-      
-      if (response.value) {
-        allMeetings.push(...response.value);
-      }
-      
-      nextLink = response['@odata.nextLink'];
-      
-      if (nextLink) {
-        await sleep(RATE_LIMIT_DELAY_MS);
-      }
-    }
-    
-    console.log(`[TeamsMeetings] Found ${allMeetings.length} online meetings`);
-    return allMeetings;
+    return response;
   } catch (error) {
     if (error instanceof ForbiddenError) {
       throw new ForbiddenError(
@@ -218,25 +198,17 @@ export async function getMyOnlineMeetings(maxItems: number = 0): Promise<TeamsMe
 }
 
 /**
- * Fetch and normalize all online meetings
- * Filters out invalid meetings and returns normalized format
- * Fetches all meetings (no limit)
+ * NOTE: Microsoft Graph API does NOT support listing all online meetings.
+ * The /me/onlineMeetings endpoint requires a $filter parameter.
+ * 
+ * For listing meetings, use the local database (meetings table with meeting_type='teams').
+ * 
+ * This function is deprecated and returns an empty array.
+ * @deprecated Use database query instead
  */
 export async function fetchAndNormalizeMeetings(): Promise<NormalizedMeeting[]> {
-  // Pass 0 to fetch all meetings (no limit)
-  const rawMeetings = await getMyOnlineMeetings(0);
-  
-  const normalizedMeetings: NormalizedMeeting[] = [];
-  
-  for (const meeting of rawMeetings) {
-    const normalized = normalizeMeeting(meeting);
-    if (normalized) {
-      normalizedMeetings.push(normalized);
-    }
-  }
-  
-  console.log(`[TeamsMeetings] Normalized ${normalizedMeetings.length} of ${rawMeetings.length} meetings`);
-  return normalizedMeetings;
+  console.warn('[TeamsMeetings] Bulk listing from Graph API is not supported. Use database query instead.');
+  return [];
 }
 
 // ============================================================================
