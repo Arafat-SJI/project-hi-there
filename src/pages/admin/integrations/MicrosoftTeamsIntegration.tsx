@@ -470,9 +470,9 @@ export default function MicrosoftTeamsIntegration() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button
-                  onClick={() => syncTeamsMeetings.mutate()}
+                  onClick={() => syncTeamsMeetings.mutate({ source: 'both' })}
                   disabled={syncTeamsMeetings.isPending}
                   variant="secondary"
                   size="lg"
@@ -480,16 +480,28 @@ export default function MicrosoftTeamsIntegration() {
                   {syncTeamsMeetings.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Syncing Meetings...
+                      Syncing...
                     </>
                   ) : (
                     <>
                       <RefreshCw className="mr-2 h-4 w-4" />
-                      Sync Meetings
+                      Sync All Meetings
                     </>
                   )}
                 </Button>
+                <Button
+                  onClick={() => syncTeamsMeetings.mutate({ source: 'calendar' })}
+                  disabled={syncTeamsMeetings.isPending}
+                  variant="outline"
+                  size="lg"
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Import from Calendar
+                </Button>
               </div>
+              <p className="text-sm text-muted-foreground">
+                Import Teams meetings from your Outlook calendar or refresh existing meetings.
+              </p>
 
               {syncTeamsMeetings.data && (
                 <div className="rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30 p-5">

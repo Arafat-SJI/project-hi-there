@@ -45,7 +45,17 @@ export const msalConfig: Configuration = {
 
 // Add scopes here for ID token to be used at Microsoft identity platform endpoints.
 export const loginRequest = {
-  scopes: ['User.Read', 'Team.ReadBasic.All', 'Channel.ReadBasic.All', 'ChannelMessage.Send', 'OnlineMeetings.ReadWrite', 'openid', 'profile', 'email'],
+  scopes: [
+    'User.Read',
+    'Team.ReadBasic.All',
+    'Channel.ReadBasic.All',
+    'ChannelMessage.Send',
+    'OnlineMeetings.ReadWrite',
+    'Calendars.Read', // For reading calendar events with Teams meetings
+    'openid',
+    'profile',
+    'email',
+  ],
 };
 
 // Create MSAL instance

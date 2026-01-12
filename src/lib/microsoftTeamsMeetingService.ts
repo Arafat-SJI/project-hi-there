@@ -212,6 +212,102 @@ export async function fetchAndNormalizeMeetings(): Promise<NormalizedMeeting[]> 
 }
 
 // ============================================================================
+// Calendar Event Types
+// ============================================================================
+
+interface CalendarEvent {
+  id: string;
+  subject: string;
+  start: { dateTime: string; timeZone: string };
+  end: { dateTime: string; timeZone: string };
+  isOnlineMeeting: boolean;
+  onlineMeeting?: {
+    joinUrl: string;
+  };
+  onlineMeetingUrl?: string;
+  createdDateTime?: string;
+}
+
+interface CalendarEventsResponse {
+  '@odata.context'?: string;
+  '@odata.nextLink'?: string;
+  value: CalendarEvent[];
+}
+
+// ============================================================================
+// Calendar Sync
+// ============================================================================
+
+/**
+ * Fetch calendar events that have online meetings (Teams links)
+ * Requires Calendars.Read permission
+ * 
+ * NOTE: This requires an Exchange Online mailbox. Will fail gracefully
+ * for users with only Teams licensing.
+ * 
+ * @param daysAhead - Number of days in the future to fetch (default: 30)
+ * @param daysBehind - Number of days in the past to fetch (default: 7)
+ * @returns Normalized meetings from calendar
+ */
+export async function getOnlineMeetingsFromCalendar(
+  daysAhead: number = 30,
+  daysBehind: number = 7
+): Promise<NormalizedMeeting[]> {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - daysBehind);
+  
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + daysAhead);
+
+  const filter = `start/dateTime ge '${startDate.toISOString()}' and start/dateTime le '${endDate.toISOString()}' and isOnlineMeeting eq true`;
+  const url = `/me/calendar/events?$filter=${encodeURIComponent(filter)}&$select=id,subject,start,end,isOnlineMeeting,onlineMeeting,onlineMeetingUrl,createdDateTime&$orderby=start/dateTime&$top=100`;
+
+  console.log('[TeamsMeetings] Fetching calendar events with Teams meetings...');
+
+  try {
+    const response = await withRateLimitRetry(
+      () => callGraphAPI<CalendarEventsResponse>(url),
+      'Fetching calendar events'
+    );
+
+    const meetings = response.value
+      .filter(event => event.onlineMeeting?.joinUrl || event.onlineMeetingUrl)
+      .map(event => {
+        const joinUrl = event.onlineMeeting?.joinUrl || event.onlineMeetingUrl || '';
+        const duration = calculateDurationMinutes(event.start.dateTime, event.end.dateTime);
+        const endDateTime = new Date(event.end.dateTime);
+        const status: 'scheduled' | 'completed' = endDateTime < new Date() ? 'completed' : 'scheduled';
+
+        return {
+          title: event.subject || 'Untitled Meeting',
+          scheduled_at: event.start.dateTime,
+          duration_minutes: duration,
+          join_url: joinUrl,
+          teams_meeting_id: event.id, // Using calendar event ID as reference
+          meeting_type: 'teams' as const,
+          status,
+        };
+      });
+
+    console.log(`[TeamsMeetings] Found ${meetings.length} calendar events with Teams meetings`);
+    return meetings;
+  } catch (error: unknown) {
+    // Handle users without Exchange mailbox gracefully
+    if (error instanceof Error) {
+      if (error.message?.includes('MailboxNotEnabledForRESTAPI') || 
+          error.message?.includes('MailboxNotSupportedForRESTAPI')) {
+        console.warn('[TeamsMeetings] Calendar sync not available - no Exchange mailbox');
+        throw new Error('Calendar sync requires an Exchange Online mailbox. Your account may only have Teams licensing.');
+      }
+      if (error.message?.includes('Calendars.Read')) {
+        throw new Error('Missing Calendars.Read permission. Please disconnect and reconnect your Microsoft account.');
+      }
+    }
+    throw error;
+  }
+}
+
+// ============================================================================
 // Meeting Creation Types
 // ============================================================================
 
