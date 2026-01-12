@@ -248,20 +248,29 @@ export default function MicrosoftTeamsIntegration() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Microsoft Teams Integration</h1>
-        <p className="text-muted-foreground mt-2">
-          Connect your Microsoft account to enable Teams integration and Single Sign-On (SSO)
-        </p>
+    <div className="container mx-auto p-6 max-w-5xl">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+            <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Microsoft Teams Integration</h1>
+            <p className="text-muted-foreground mt-1.5">
+              Connect your Microsoft account to enable Teams integration and Single Sign-On (SSO)
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6">
         {/* Connection Status Card */}
-        <Card>
+        <Card className="border-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
               Connection Status
             </CardTitle>
             <CardDescription>
@@ -270,47 +279,70 @@ export default function MicrosoftTeamsIntegration() {
           </CardHeader>
           <CardContent>
             {isConnected ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-green-600">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>Connected as {user?.email || 'Microsoft user'}</span>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/50">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-green-900 dark:text-green-100">Connected</p>
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        {user?.email || 'Microsoft user'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleDisconnect}
+                    disabled={loading}
+                    className="border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30"
+                  >
+                    Disconnect
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={handleDisconnect}
-                  disabled={loading}
-                >
-                  Disconnect
-                </Button>
               </div>
             ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <AlertCircle className="h-5 w-5" />
-                  <span>Not connected</span>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-muted">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-muted">
+                      <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Not connected</p>
+                      <p className="text-sm text-muted-foreground">
+                        Connect to enable Teams features
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleConnect}
+                    disabled={loading}
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <Building2 className="mr-2 h-4 w-4" />
+                        Connect with Microsoft
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  onClick={handleConnect}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <Building2 className="mr-2 h-4 w-4" />
-                      Connect with Microsoft
-                    </>
-                  )}
-                </Button>
               </div>
             )}
             
             {error && (
-              <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
-                {error}
+              <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                  <p className="text-destructive">{error}</p>
+                </div>
               </div>
             )}
           </CardContent>
@@ -319,9 +351,11 @@ export default function MicrosoftTeamsIntegration() {
         {/* Graph API Test Card */}
         {isConnected && (
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
-                <Play className="h-5 w-5" />
+                <div className="p-1.5 rounded-md bg-cyan-100 dark:bg-cyan-900/30">
+                  <Play className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                </div>
                 Test Graph API
               </CardTitle>
               <CardDescription>
@@ -333,6 +367,7 @@ export default function MicrosoftTeamsIntegration() {
                 onClick={handleTestGraphAPI}
                 disabled={testingGraph}
                 variant="secondary"
+                size="lg"
               >
                 {testingGraph ? (
                   <>
@@ -348,24 +383,26 @@ export default function MicrosoftTeamsIntegration() {
               </Button>
 
               {graphResult && (
-                <div className={`rounded-lg border p-4 ${
+                <div className={`rounded-xl border-2 p-5 ${
                   graphResult.success 
-                    ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950' 
-                    : 'border-destructive/20 bg-destructive/5'
+                    ? 'border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30' 
+                    : 'border-destructive/30 bg-destructive/5'
                 }`}>
                   {graphResult.success ? (
                     <div className="space-y-4">
                       {/* User Info */}
                       <div className="flex items-start gap-3">
-                        <User className="h-5 w-5 text-green-600 mt-0.5" />
-                        <div>
-                          <p className="font-medium text-green-800 dark:text-green-200">
+                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50">
+                          <User className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-green-900 dark:text-green-100 text-base">
                             {graphResult.user?.displayName}
                           </p>
-                          <p className="text-sm text-green-700 dark:text-green-300">
+                          <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
                             {graphResult.user?.mail || graphResult.user?.userPrincipalName}
                           </p>
-                          <p className="text-xs text-green-600 dark:text-green-400 font-mono mt-1">
+                          <p className="text-xs text-green-600 dark:text-green-400 font-mono mt-2 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded">
                             ID: {graphResult.user?.id}
                           </p>
                         </div>
@@ -373,18 +410,18 @@ export default function MicrosoftTeamsIntegration() {
 
                       {/* Token Info */}
                       {graphResult.tokenMetadata && (
-                        <div className="border-t border-green-200 dark:border-green-800 pt-3 space-y-2">
+                        <div className="border-t border-green-200 dark:border-green-800 pt-4 space-y-3">
                           <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-green-600" />
-                            <span className="text-green-700 dark:text-green-300">
+                            <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <span className="text-green-800 dark:text-green-200 font-medium">
                               Token expires in {graphResult.tokenMetadata.expiresInMinutes} minutes
                             </span>
                           </div>
                           <div className="flex items-start gap-2 text-sm">
-                            <Key className="h-4 w-4 text-green-600 mt-0.5" />
-                            <div>
-                              <span className="text-green-700 dark:text-green-300">Scopes: </span>
-                              <span className="font-mono text-xs text-green-600 dark:text-green-400">
+                            <Key className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <span className="text-green-800 dark:text-green-200 font-medium">Scopes: </span>
+                              <span className="font-mono text-xs text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded block mt-1">
                                 {graphResult.tokenMetadata.scopes.join(', ')}
                               </span>
                             </div>
@@ -393,17 +430,22 @@ export default function MicrosoftTeamsIntegration() {
                       )}
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <p className="font-medium text-destructive">
-                        {graphResult.errorType || 'Error'}
-                      </p>
-                      <p className="text-sm text-destructive/80">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-destructive" />
+                        <p className="font-semibold text-destructive">
+                          {graphResult.errorType || 'Error'}
+                        </p>
+                      </div>
+                      <p className="text-sm text-destructive/90 pl-7">
                         {graphResult.error}
                       </p>
                       {graphResult.errorType === 'UnauthorizedError' && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Try disconnecting and reconnecting your Microsoft account.
-                        </p>
+                        <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-muted">
+                          <p className="text-xs text-muted-foreground">
+                            💡 Try disconnecting and reconnecting your Microsoft account to refresh permissions.
+                          </p>
+                        </div>
                       )}
                     </div>
                   )}
@@ -416,9 +458,11 @@ export default function MicrosoftTeamsIntegration() {
         {/* Sync Teams Meetings Card */}
         {isConnected && (
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
+                <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/30">
+                  <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
                 Sync Teams Meetings
               </CardTitle>
               <CardDescription>
@@ -431,6 +475,7 @@ export default function MicrosoftTeamsIntegration() {
                   onClick={() => syncTeamsMeetings.mutate()}
                   disabled={syncTeamsMeetings.isPending}
                   variant="secondary"
+                  size="lg"
                 >
                   {syncTeamsMeetings.isPending ? (
                     <>
@@ -447,21 +492,23 @@ export default function MicrosoftTeamsIntegration() {
               </div>
 
               {syncTeamsMeetings.data && (
-                <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 p-4">
-                  <div className="space-y-2 text-sm">
+                <div className="rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30 p-5">
+                  <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="text-green-800 dark:text-green-200">
+                      <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-green-900 dark:text-green-100 font-semibold">
                         {syncTeamsMeetings.data.synced} meeting{syncTeamsMeetings.data.synced !== 1 ? 's' : ''} synced
                       </span>
                     </div>
                     {syncTeamsMeetings.data.skipped > 0 && (
-                      <p className="text-green-700 dark:text-green-300 ml-6">
+                      <p className="text-green-700 dark:text-green-300 ml-8 text-sm">
                         {syncTeamsMeetings.data.skipped} already existed
                       </p>
                     )}
                     {syncTeamsMeetings.data.errors > 0 && (
-                      <p className="text-amber-600 dark:text-amber-400 ml-6">
+                      <p className="text-amber-700 dark:text-amber-400 ml-8 text-sm font-medium">
                         {syncTeamsMeetings.data.errors} error{syncTeamsMeetings.data.errors !== 1 ? 's' : ''}
                       </p>
                     )}
@@ -479,10 +526,12 @@ export default function MicrosoftTeamsIntegration() {
 
         {/* Create Teams Meeting Card */}
         {isConnected && (
-          <Card>
-            <CardHeader>
+          <Card className="border-2 hover:border-primary/50 transition-colors">
+            <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
-                <Video className="h-5 w-5" />
+                <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30">
+                  <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
                 Create Teams Meeting
               </CardTitle>
               <CardDescription>
@@ -492,16 +541,21 @@ export default function MicrosoftTeamsIntegration() {
             <CardContent className="space-y-4">
               <CreateTeamsMeetingDialog 
                 trigger={
-                  <Button>
+                  <Button size="lg" className="w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" />
                     New Teams Meeting
                   </Button>
                 }
               />
               
-              <p className="text-xs text-muted-foreground">
-                Create meetings with title, time, and optional attendees. The meeting will be saved locally and attendees will receive email invites.
-              </p>
+              <div className="rounded-lg bg-muted/50 p-3 border border-muted">
+                <p className="text-sm text-muted-foreground flex items-start gap-2">
+                  <Video className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Create meetings with title, time, and optional attendees. The meeting will be saved locally and attendees will receive email invites.
+                  </span>
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -509,9 +563,11 @@ export default function MicrosoftTeamsIntegration() {
         {/* Send Channel Message Card */}
         {isConnected && (
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
+                <div className="p-1.5 rounded-md bg-orange-100 dark:bg-orange-900/30">
+                  <MessageSquare className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
                 Send Channel Message
               </CardTitle>
               <CardDescription>
@@ -521,17 +577,19 @@ export default function MicrosoftTeamsIntegration() {
             <CardContent className="space-y-4">
               <SendTeamsMessageDialog 
                 trigger={
-                  <Button>
+                  <Button size="lg" className="w-full sm:w-auto">
                     <MessageSquare className="mr-2 h-4 w-4" />
                     Send Message
                   </Button>
                 }
               />
               
-              <p className="text-xs text-muted-foreground">
-                Send notifications to your Teams channels. Requires <code className="bg-muted px-1 rounded">ChannelMessage.Send</code> permission.
-                If you see a permission error, disconnect and reconnect your Microsoft account.
-              </p>
+              <div className="rounded-lg bg-muted/50 p-3 border border-muted">
+                <p className="text-sm text-muted-foreground">
+                  Send notifications to your Teams channels. Requires <code className="bg-background px-1.5 py-0.5 rounded text-xs font-mono">ChannelMessage.Send</code> permission.
+                  If you see a permission error, disconnect and reconnect your Microsoft account.
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -539,38 +597,45 @@ export default function MicrosoftTeamsIntegration() {
         {/* Your Teams Card */}
         {isConnected && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Your Teams
-              </CardTitle>
-              <CardDescription>
-                Teams you're a member of in Microsoft Teams
-                {lastSynced && (
-                  <span className="ml-2 text-xs">
-                    · Last synced: {new Date(lastSynced).toLocaleString()}
-                  </span>
-                )}
-              </CardDescription>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-900/30">
+                      <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    Your Teams
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Teams you're a member of in Microsoft Teams
+                    {lastSynced && (
+                      <span className="ml-2 text-xs">
+                        · Last synced: {new Date(lastSynced).toLocaleString()}
+                      </span>
+                    )}
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={() => syncTeams().catch(console.error)}
+                  disabled={isSyncing}
+                  variant="secondary"
+                  size="sm"
+                >
+                  {isSyncing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Sync Teams
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button
-                onClick={() => syncTeams().catch(console.error)}
-                disabled={isSyncing}
-                variant="secondary"
-              >
-                {isSyncing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Sync Teams
-                  </>
-                )}
-              </Button>
 
               {syncError && (
                 <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
@@ -598,21 +663,21 @@ export default function MicrosoftTeamsIntegration() {
                     
                     return (
                       <Collapsible key={team.id} open={isExpanded}>
-                        <div className="rounded-lg border bg-card">
-                          <div className="flex items-center justify-between p-3">
+                        <div className="rounded-lg border bg-card hover:border-primary/50 transition-colors">
+                          <div className="flex items-center justify-between p-4">
                             <CollapsibleTrigger 
                               onClick={() => toggleTeamExpanded(team.team_id)}
-                              className="flex items-center gap-2 flex-1 text-left hover:bg-muted/50 -m-2 p-2 rounded"
+                              className="flex items-center gap-3 flex-1 text-left hover:bg-muted/50 -m-2 p-2 rounded transition-colors"
                             >
                               {isExpanded ? (
                                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
                               ) : (
                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               )}
-                              <div>
-                                <p className="font-medium">{team.display_name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {teamChannels.length} channels synced
+                              <div className="flex-1">
+                                <p className="font-semibold text-base">{team.display_name}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {teamChannels.length} channel{teamChannels.length !== 1 ? 's' : ''} synced
                                   {team.description && ` · ${team.description.slice(0, 50)}${team.description.length > 50 ? '...' : ''}`}
                                 </p>
                               </div>
@@ -627,9 +692,10 @@ export default function MicrosoftTeamsIntegration() {
                                 }}
                                 disabled={isSyncingThisTeam}
                                 title="Sync channels"
+                                className="h-8 w-8 p-0"
                               >
                                 <RefreshCw className={cn(
-                                  "h-3 w-3",
+                                  "h-4 w-4",
                                   isSyncingThisTeam && "animate-spin"
                                 )} />
                               </Button>
@@ -645,28 +711,28 @@ export default function MicrosoftTeamsIntegration() {
                           </div>
                           
                           <CollapsibleContent>
-                            <div className="border-t px-3 py-2 space-y-1 bg-muted/30">
+                            <div className="border-t px-4 py-3 space-y-1.5 bg-muted/20">
                               {teamChannels.length > 0 ? (
                                 teamChannels.map(channel => (
                                   <div 
                                     key={channel.id}
-                                    className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50"
+                                    className="flex items-center gap-2.5 py-2 px-3 rounded-md hover:bg-muted/70 transition-colors"
                                   >
                                     {channel.membership_type === 'private' ? (
-                                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <Lock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                     ) : channel.membership_type === 'shared' ? (
-                                      <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <Share2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                     ) : (
-                                      <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <Hash className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                     )}
-                                    <span className="text-sm">{channel.display_name}</span>
+                                    <span className="text-sm font-medium flex-1">{channel.display_name}</span>
                                     {channel.is_favorite && (
-                                      <Badge variant="secondary" className="text-xs ml-auto">Favorite</Badge>
+                                      <Badge variant="secondary" className="text-xs">Favorite</Badge>
                                     )}
                                   </div>
                                 ))
                               ) : (
-                                <p className="text-sm text-muted-foreground py-2 text-center">
+                                <p className="text-sm text-muted-foreground py-3 text-center">
                                   Click the sync button to fetch channels
                                 </p>
                               )}

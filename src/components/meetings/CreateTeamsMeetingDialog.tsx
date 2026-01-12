@@ -54,6 +54,7 @@ export function CreateTeamsMeetingDialog({ trigger, onSuccess }: CreateTeamsMeet
   const [attendeeError, setAttendeeError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdMeetingUrl, setCreatedMeetingUrl] = useState("");
+  const [copied, setCopied] = useState(false);
   
   const createMeeting = useCreateTeamsMeeting();
 
@@ -99,6 +100,7 @@ export function CreateTeamsMeetingDialog({ trigger, onSuccess }: CreateTeamsMeet
       setCreatedMeetingUrl("");
       setAttendeeInput("");
       setAttendeeError("");
+      setCopied(false);
     }
   }, [open, form]);
 
@@ -174,6 +176,8 @@ export function CreateTeamsMeetingDialog({ trigger, onSuccess }: CreateTeamsMeet
     if (!createdMeetingUrl) return;
     try {
       await navigator.clipboard.writeText(createdMeetingUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
     }
@@ -189,7 +193,7 @@ export function CreateTeamsMeetingDialog({ trigger, onSuccess }: CreateTeamsMeet
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Video className="h-5 w-5 text-primary" />
@@ -201,47 +205,96 @@ export function CreateTeamsMeetingDialog({ trigger, onSuccess }: CreateTeamsMeet
         </DialogHeader>
 
         {showSuccess ? (
-          <div className="space-y-4 py-4">
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <CheckCircle2 className="h-12 w-12 text-green-600 mb-3" />
-              <h3 className="text-lg font-semibold">Meeting Created!</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Your Teams meeting has been scheduled successfully.
+          <div className="space-y-6 py-4">
+            {/* Success Header */}
+            <div className="flex flex-col items-center justify-center py-4 text-center">
+              <div className="relative mb-4">
+                <div className="absolute inset-0 bg-green-100 dark:bg-green-900/30 rounded-full blur-xl opacity-50"></div>
+                <CheckCircle2 className="h-16 w-16 text-green-600 dark:text-green-500 relative z-10" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Meeting Created Successfully!</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                Your Teams meeting has been scheduled. Share the link below with attendees.
               </p>
             </div>
             
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <Label className="text-xs text-muted-foreground">Join URL</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <code className="flex-1 text-xs bg-background rounded px-2 py-1 truncate">
-                  {createdMeetingUrl}
-                </code>
-                <Button size="sm" variant="outline" onClick={copyJoinUrl}>
-                  <Copy className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(createdMeetingUrl, '_blank')}
-                >
-                  <ExternalLink className="h-3 w-3" />
-                </Button>
+            {/* Meeting Link Card */}
+            <div className="rounded-xl border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/30 p-5 space-y-3 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Video className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <Label className="text-sm font-semibold text-green-900 dark:text-green-100">
+                  Meeting Join Link
+                </Label>
               </div>
+              
+              <div className="bg-background/80 dark:bg-background/90 rounded-lg border border-green-200 dark:border-green-800 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-sm font-mono bg-transparent text-foreground break-all px-2 py-1.5">
+                    {createdMeetingUrl}
+                  </code>
+                </div>
+                
+                <div className="flex items-center gap-2 pt-2 border-t border-green-200 dark:border-green-800">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={copyJoinUrl}
+                    className={cn(
+                      "flex-1 border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-950 transition-all",
+                      copied && "bg-green-100 dark:bg-green-900 border-green-400 dark:border-green-600"
+                    )}
+                  >
+                    {copied ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Link
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => window.open(createdMeetingUrl, '_blank')}
+                    className="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Join Meeting
+                  </Button>
+                </div>
+              </div>
+              
+              <p className="text-xs text-green-700 dark:text-green-300 flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                Link copied to clipboard automatically
+              </p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setOpen(false)}
+                className="min-w-[100px]"
+              >
                 Close
               </Button>
-              <Button onClick={() => {
-                setShowSuccess(false);
-                form.reset({
-                  title: "",
-                  startDateTime: getDefaultStartTime(),
-                  endDateTime: getDefaultEndTime(),
-                  attendees: [],
-                });
-              }}>
+              <Button 
+                onClick={() => {
+                  setShowSuccess(false);
+                  form.reset({
+                    title: "",
+                    startDateTime: getDefaultStartTime(),
+                    endDateTime: getDefaultEndTime(),
+                    attendees: [],
+                  });
+                }}
+                className="min-w-[140px]"
+              >
+                <Plus className="h-4 w-4 mr-2" />
                 Create Another
               </Button>
             </div>
