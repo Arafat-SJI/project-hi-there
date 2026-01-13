@@ -215,24 +215,6 @@ export async function fetchAndNormalizeMeetings(): Promise<NormalizedMeeting[]> 
 // Calendar Event Types
 // ============================================================================
 
-export interface OutlookCalendarEvent {
-  id: string;
-  subject: string;
-  bodyPreview?: string;
-  start: { dateTime: string; timeZone: string };
-  end: { dateTime: string; timeZone: string };
-  location?: { displayName?: string };
-  isOnlineMeeting: boolean;
-  onlineMeeting?: {
-    joinUrl: string;
-  };
-  onlineMeetingUrl?: string;
-  createdDateTime?: string;
-  organizer?: { emailAddress: { name: string; address: string } };
-  isAllDay?: boolean;
-  showAs?: 'free' | 'tentative' | 'busy' | 'oof' | 'workingElsewhere';
-}
-
 interface CalendarEvent {
   id: string;
   subject: string;
@@ -249,7 +231,7 @@ interface CalendarEvent {
 interface CalendarEventsResponse {
   '@odata.context'?: string;
   '@odata.nextLink'?: string;
-  value: OutlookCalendarEvent[];
+  value: CalendarEvent[];
 }
 
 // ============================================================================
