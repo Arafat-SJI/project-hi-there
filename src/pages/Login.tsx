@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Brain, Building2 } from "lucide-react";
+import { Loader2, Brain } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { signIn, signInWithGoogle, signInWithMicrosoft } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,19 +38,6 @@ export default function Login() {
     } catch (error: any) {
       console.error("Google sign in error:", error);
       setError(error.message || "Failed to sign in with Google");
-      setLoading(false);
-    }
-  };
-
-  const handleMicrosoftSignIn = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await signInWithMicrosoft();
-      // signInWithMicrosoft will redirect, so we don't need to navigate manually
-    } catch (error: any) {
-      console.error("Microsoft sign in error:", error);
-      setError(error.message || "Failed to sign in with Microsoft");
       setLoading(false);
     }
   };
@@ -191,16 +178,6 @@ export default function Login() {
                   />
                 </svg>
                 Sign in with Google
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 w-full font-medium"
-                onClick={handleMicrosoftSignIn}
-                disabled={loading}
-              >
-                <Building2 className="mr-2 h-4 w-4" />
-                Sign in with Microsoft
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}

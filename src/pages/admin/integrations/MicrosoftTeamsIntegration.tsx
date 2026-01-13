@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,7 @@ import {
   getStoredMSALResponse, 
   completeAzureLoginFromRedirect 
 } from "@/lib/azureAuth";
-import { validateMSALConfig } from "@/lib/msalConfig";
+import { validateMSALConfig, getMSALInstance } from "@/lib/msalConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   testGraphConnection, 
@@ -43,6 +44,7 @@ interface GraphTestResult {
 export default function MicrosoftTeamsIntegration() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isConnected, setIsConnected] = useState(false);
@@ -244,16 +246,77 @@ export default function MicrosoftTeamsIntegration() {
   const handleDisconnect = async () => {
     setLoading(true);
     try {
-      localStorage.removeItem('isAzureADUser');
-      sessionStorage.clear();
-      await supabase.auth.signOut();
+      // 1. Clear MSAL cache and accounts (only MSAL-related, not main app session)
+      try {
+        const msalInstance = await getMSALInstance();
+        const accounts = msalInstance.getAllAccounts();
+        
+        // Remove all MSAL accounts
+        for (const account of accounts) {
+          await msalInstance.removeAccount(account);
+        }
+      } catch (error) {
+        console.error('Error clearing MSAL accounts:', error);
+        // Continue even if MSAL cleanup fails
+      }
+
+      // 2. Clear only MSAL-related sessionStorage items (not all sessionStorage)
+      sessionStorage.removeItem('msal_auth_response');
+      sessionStorage.removeItem('msal_redirect_pending');
+      sessionStorage.removeItem('msal_auth_window_pending');
+      sessionStorage.removeItem('msal_code_verifier');
+      sessionStorage.removeItem('msal_state');
+      sessionStorage.removeItem('msal_auth_result');
+      
+      // Clear MSAL cache from sessionStorage (MSAL stores cache with specific keys)
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('msal.') || key.startsWith('msal-')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+
+      // 3. Delete Microsoft Teams data from database
+      if (user?.id) {
+        // Delete Teams channels first (foreign key constraint)
+        await supabase
+          .from('user_microsoft_teams_channels')
+          .delete()
+          .eq('user_id', user.id);
+        
+        // Delete Teams
+        await supabase
+          .from('user_microsoft_teams')
+          .delete()
+          .eq('user_id', user.id);
+      }
+
+      // 4. Disconnect OAuth token if it exists in user_oauth_tokens
+      try {
+        await supabase.functions.invoke('user-oauth-disconnect', {
+          body: { provider: 'microsoft' },
+        });
+      } catch (error) {
+        // Log but don't fail - token might not exist
+        console.log('No OAuth token to disconnect or error:', error);
+      }
+
+      // 5. Invalidate React Query cache to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['microsoft-teams'] });
+      queryClient.invalidateQueries({ queryKey: ['microsoft-teams-channels'] });
+      queryClient.invalidateQueries({ queryKey: ['user-oauth-tokens'] });
+      queryClient.invalidateQueries({ queryKey: ['user-oauth-token', user?.id, 'microsoft'] });
+
+      // 6. Update UI state
       setIsConnected(false);
       setGraphResult(null);
+      
       toast({
         title: "Disconnected",
-        description: "Your Microsoft account has been disconnected.",
+        description: "Your Microsoft Teams account has been disconnected. You remain logged in.",
       });
-      window.location.href = '/login';
+      
+      // 7. DO NOT redirect to login - user should stay on the page
+      
     } catch (err: any) {
       console.error("Disconnect error:", err);
       toast({
