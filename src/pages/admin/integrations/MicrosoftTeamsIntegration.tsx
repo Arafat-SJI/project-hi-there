@@ -4,12 +4,13 @@
  */
 
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus, MessageSquare } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus, MessageSquare, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
@@ -193,21 +194,6 @@ export default function MicrosoftTeamsIntegration() {
     }
   };
 
-  const handleSyncFromCalendar = async () => {
-    // Check for valid token first
-    const storedResponse = getStoredMSALResponse();
-    if (!storedResponse?.accessToken) {
-      toast({
-        title: "Session Expired",
-        description: "Please refresh your Microsoft connection to sync meetings.",
-        variant: "destructive",
-      });
-      setHasValidToken(false);
-      return;
-    }
-    
-    syncTeamsMeetings.mutate({ source: 'calendar' });
-  };
 
   const handleConnect = async () => {
     setLoading(true);
@@ -631,37 +617,27 @@ export default function MicrosoftTeamsIntegration() {
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  onClick={() => syncTeamsMeetings.mutate({ source: 'both' })}
-                  disabled={syncTeamsMeetings.isPending || hasValidToken === false}
-                  variant="secondary"
-                  size="lg"
-                >
-                  {syncTeamsMeetings.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Sync All Meetings
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={handleSyncFromCalendar}
-                  disabled={syncTeamsMeetings.isPending || hasValidToken === false}
-                  variant="outline"
-                  size="lg"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Import from Calendar
-                </Button>
-              </div>
+              <Button
+                onClick={() => syncTeamsMeetings.mutate({ source: 'both' })}
+                disabled={syncTeamsMeetings.isPending || hasValidToken === false}
+                variant="secondary"
+                size="lg"
+              >
+                {syncTeamsMeetings.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sync All Meetings
+                  </>
+                )}
+              </Button>
+              
               <p className="text-sm text-muted-foreground">
-                Import Teams meetings from your Outlook calendar or refresh existing meetings.
+                Sync and refresh your Teams meetings from Microsoft Graph.
               </p>
 
               {syncTeamsMeetings.data && (
@@ -685,6 +661,13 @@ export default function MicrosoftTeamsIntegration() {
                   </div>
                 </div>
               )}
+
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/admin/integrations/microsoft-teams/meetings">
+                  <Eye className="mr-2 h-4 w-4" />
+                  View All Synced Meetings
+                </Link>
+              </Button>
 
               <p className="text-xs text-muted-foreground">
                 <strong>Note:</strong> Requires the <code className="bg-muted px-1 rounded">OnlineMeetings.ReadWrite</code> permission.

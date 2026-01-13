@@ -43,6 +43,10 @@ export function useMeetings(filters?: Record<string, any>) {
         query = query.eq("client_id", filters.clientId);
       }
 
+      if (filters?.meetingType) {
+        query = query.eq("meeting_type", filters.meetingType);
+      }
+
       const { data, error } = await query;
       if (error) throw error;
       return data as (Meeting & { clients?: { name: string } | null })[];
