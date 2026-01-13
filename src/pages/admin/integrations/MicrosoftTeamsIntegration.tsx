@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus, MessageSquare, Eye, CalendarDays } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus, MessageSquare, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
@@ -34,7 +34,6 @@ import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeeti
 import { SendTeamsMessageDialog } from "@/components/integrations/SendTeamsMessageDialog";
 import { ChannelMessagesSection } from "@/components/integrations/ChannelMessagesSection";
 import { cn } from "@/lib/utils";
-import { MicrosoftCalendarView } from "@/components/integrations/MicrosoftCalendarView";
 
 interface GraphTestResult {
   success: boolean;
@@ -83,7 +82,6 @@ export default function MicrosoftTeamsIntegration() {
   const [syncingTeamId, setSyncingTeamId] = useState<string | null>(null);
   const [hasValidToken, setHasValidToken] = useState<boolean | null>(null);
   const [refreshingToken, setRefreshingToken] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
 
   const toggleTeamExpanded = (teamId: string) => {
     setExpandedTeams(prev => {
@@ -563,43 +561,6 @@ export default function MicrosoftTeamsIntegration() {
                       )}
                     </div>
                   )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Microsoft Calendar Card */}
-        {isConnected && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-900/30">
-                  <CalendarDays className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                Microsoft Calendar
-              </CardTitle>
-              <CardDescription>
-                View your Outlook calendar events in a weekly view
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button
-                onClick={() => setShowCalendar(!showCalendar)}
-                variant="secondary"
-                size="lg"
-              >
-                <CalendarDays className="mr-2 h-4 w-4" />
-                {showCalendar ? 'Hide Calendar' : 'View Calendar'}
-              </Button>
-              
-              <p className="text-xs text-muted-foreground">
-                Requires the <code className="bg-muted px-1 py-0.5 rounded">Calendars.Read</code> permission.
-              </p>
-
-              {showCalendar && (
-                <div className="relative mt-4">
-                  <MicrosoftCalendarView onClose={() => setShowCalendar(false)} />
                 </div>
               )}
             </CardContent>
