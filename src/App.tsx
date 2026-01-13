@@ -43,6 +43,7 @@ import Integrations from "./pages/admin/Integrations";
 import ProviderDetail from "./pages/admin/ProviderDetail";
 import OAuthCallback from "./pages/admin/OAuthCallback";
 import MicrosoftTeamsIntegration from "./pages/admin/integrations/MicrosoftTeamsIntegration";
+import TeamsMeetings from "./pages/admin/integrations/TeamsMeetings";
 import IntegrationAnalytics from "./pages/admin/IntegrationAnalytics";
 import AIModelManagement from "./pages/admin/AIModelManagement";
 import AIUsageAnalytics from "./pages/admin/AIUsageAnalytics";
@@ -150,6 +151,7 @@ const App = () => (
                   <Route path="/admin/integrations/oauth/callback" element={<OAuthCallback />} />
                   <Route path="/admin/integrations/analytics" element={<IntegrationAnalytics />} />
                   <Route path="/admin/integrations/microsoft-teams" element={<MicrosoftTeamsIntegration />} />
+                  <Route path="/admin/integrations/microsoft-teams/meetings" element={<TeamsMeetings />} />
                   <Route path="/admin/integrations/:slug" element={<ProviderDetail />} />
                   <Route path="/admin/ai-models" element={<AIModelManagement />} />
                   <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
