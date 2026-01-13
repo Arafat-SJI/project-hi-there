@@ -105,7 +105,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.user-oauth-disconnect]
-verify_jwt = true
+verify_jwt = false
 
 # SSO and webhook functions
 [functions.validate-sso-domain]
