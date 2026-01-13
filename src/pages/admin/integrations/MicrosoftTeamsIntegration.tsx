@@ -31,6 +31,7 @@ import { useMicrosoftTeamsChannels } from "@/hooks/useMicrosoftTeamsChannels";
 import { useSyncTeamsMeetings } from "@/hooks/useSyncTeamsMeetings";
 import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeetingDialog";
 import { SendTeamsMessageDialog } from "@/components/integrations/SendTeamsMessageDialog";
+import { ChannelMessagesSection } from "@/components/integrations/ChannelMessagesSection";
 import { cn } from "@/lib/utils";
 
 interface GraphTestResult {
@@ -729,38 +730,12 @@ export default function MicrosoftTeamsIntegration() {
           </Card>
         )}
 
-        {/* Send Channel Message Card */}
+        {/* Channel Messages Card */}
         {isConnected && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-1.5 rounded-md bg-orange-100 dark:bg-orange-900/30">
-                  <MessageSquare className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                Send Channel Message
-              </CardTitle>
-              <CardDescription>
-                Post a message to a Microsoft Teams channel
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <SendTeamsMessageDialog 
-                trigger={
-                  <Button size="lg" className="w-full sm:w-auto">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Send Message
-                  </Button>
-                }
-              />
-              
-              <div className="rounded-lg bg-muted/50 p-3 border border-muted">
-                <p className="text-sm text-muted-foreground">
-                  Send notifications to your Teams channels. Requires <code className="bg-background px-1.5 py-0.5 rounded text-xs font-mono">ChannelMessage.Send</code> permission.
-                  If you see a permission error, disconnect and reconnect your Microsoft account.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <ChannelMessagesSection 
+            teams={teams}
+            getChannelsForTeam={getChannelsForTeam}
+          />
         )}
 
         {/* Your Teams Card */}

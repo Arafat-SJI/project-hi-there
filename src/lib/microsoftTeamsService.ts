@@ -33,6 +33,30 @@ export interface PaginatedResult<T> {
   hasMore: boolean;
 }
 
+export interface TeamsChannelMessage {
+  id: string;
+  createdDateTime: string;
+  lastModifiedDateTime?: string;
+  subject?: string;
+  body: {
+    content: string;
+    contentType: 'text' | 'html';
+  };
+  from?: {
+    user?: {
+      id: string;
+      displayName: string;
+      email?: string;
+    };
+    application?: {
+      id: string;
+      displayName: string;
+    };
+  };
+  webUrl?: string;
+  messageType: 'message' | 'systemEventMessage' | 'unknownFutureValue';
+}
+
 // ============================================================================
 // Rate Limiting Utilities
 // ============================================================================
@@ -186,4 +210,51 @@ export async function getChannelsForMultipleTeams(
   }
   
   return results;
+}
+
+// ============================================================================
+// Channel Message Operations
+// ============================================================================
+
+/**
+ * Get messages from a specific Teams channel
+ * Requires ChannelMessage.Read.All permission
+ * 
+ * @param teamId - The Microsoft Team ID
+ * @param channelId - The Channel ID within the team
+ * @param options - Fetch options (top: max messages to retrieve)
+ * @returns Array of channel messages (newest first from API, caller should sort if needed)
+ */
+export async function getChannelMessages(
+  teamId: string,
+  channelId: string,
+  options?: { top?: number }
+): Promise<TeamsChannelMessage[]> {
+  if (!teamId || !channelId) {
+    throw new Error('Team ID and Channel ID are required');
+  }
+
+  const top = options?.top || 50;
+
+  try {
+    console.log(`[TeamsService] Fetching messages for channel ${channelId} in team ${teamId}`);
+
+    // The Graph API returns messages in descending order (newest first)
+    const messages = await fetchAllPages<TeamsChannelMessage>(
+      `/teams/${teamId}/channels/${channelId}/messages?$top=${top}`
+    );
+
+    // Filter out system messages, return only user messages
+    const userMessages = messages.filter(m => m.messageType === 'message');
+
+    console.log(`[TeamsService] Found ${userMessages.length} user messages in channel ${channelId}`);
+    return userMessages;
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      throw new ForbiddenError(
+        'Missing ChannelMessage.Read.All permission. Please disconnect and reconnect your Microsoft account to grant access.'
+      );
+    }
+    throw error;
+  }
 }
