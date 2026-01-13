@@ -39,6 +39,7 @@ export function useMicrosoftTeamsChannels(options: UseChannelsOptions = {}) {
   const channelsQuery = useQuery({
     queryKey: ['microsoft-teams-channels', user?.id, teamId],
     queryFn: async () => {
+      console.log('[useMicrosoftTeamsChannels] Fetching channels from database...');
       let query = supabase
         .from('user_microsoft_teams_channels')
         .select('*')
@@ -49,10 +50,17 @@ export function useMicrosoftTeamsChannels(options: UseChannelsOptions = {}) {
       }
       
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('[useMicrosoftTeamsChannels] Error fetching channels:', error);
+        throw error;
+      }
+      console.log('[useMicrosoftTeamsChannels] Fetched channels:', data?.length ?? 0);
       return data as StoredChannel[];
     },
     enabled: !!user?.id && autoRefresh,
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
   // Sync channels for a single team
