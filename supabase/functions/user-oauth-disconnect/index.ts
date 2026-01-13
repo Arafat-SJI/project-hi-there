@@ -65,12 +65,13 @@ serve(async (req) => {
       .select("*")
       .eq("user_id", user.id)
       .eq("provider_slug", provider)
-      .single();
+      .maybeSingle();
 
+    // If no token found, return success (nothing to disconnect)
     if (tokenError || !userToken) {
       return new Response(
-        JSON.stringify({ error: "No connection found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: true, message: "No connection to disconnect" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
