@@ -33,6 +33,7 @@ import { useSyncTeamsMeetings } from "@/hooks/useSyncTeamsMeetings";
 import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeetingDialog";
 import { SendTeamsMessageDialog } from "@/components/integrations/SendTeamsMessageDialog";
 import { ChannelMessagesSection } from "@/components/integrations/ChannelMessagesSection";
+import { MicrosoftCalendarView } from "@/components/integrations/MicrosoftCalendarView";
 import { cn } from "@/lib/utils";
 
 interface GraphTestResult {
@@ -709,6 +710,26 @@ export default function MicrosoftTeamsIntegration() {
                   </span>
                 </p>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Microsoft Calendar Card */}
+        {isConnected && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-1.5 rounded-md bg-orange-100 dark:bg-orange-900/30">
+                  <Calendar className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                Microsoft Calendar
+              </CardTitle>
+              <CardDescription>
+                View your Outlook calendar events
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MicrosoftCalendarView isConnected={isConnected} />
             </CardContent>
           </Card>
         )}
