@@ -30,15 +30,23 @@ export function useMicrosoftTeams() {
   const teamsQuery = useQuery({
     queryKey: ['microsoft-teams', user?.id],
     queryFn: async () => {
+      console.log('[useMicrosoftTeams] Fetching teams from database...');
       const { data, error } = await supabase
         .from('user_microsoft_teams')
         .select('*')
         .order('display_name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('[useMicrosoftTeams] Error fetching teams:', error);
+        throw error;
+      }
+      console.log('[useMicrosoftTeams] Fetched teams:', data?.length ?? 0);
       return data as StoredTeam[];
     },
     enabled: !!user?.id,
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
   // Sync teams from Microsoft Graph
