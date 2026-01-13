@@ -4,8 +4,25 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { getCorsHeaders, handleCorsPreflight } from '../../cors.ts';
+
+// Inline CORS handling (edge functions can't import from parent directories)
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const isLovablePreview = origin?.endsWith('.lovableproject.com') || origin?.endsWith('.lovable.app');
+  const isSJInnovationCom = origin?.endsWith('.sjinnovation.com') || origin === 'https://sjinnovation.com';
+  const isSJInnovationUs = origin?.endsWith('.sjinnovation.us') || origin === 'https://sjinnovation.us';
+  const isLocalhost = origin?.startsWith('http://localhost:') || origin?.startsWith('http://127.0.0.1:');
+  const isCollabAI = origin?.endsWith('.collabai.software') || origin === 'https://collabai.software';
+  
+  const isAllowed = origin && (isLovablePreview || isSJInnovationCom || isSJInnovationUs || isLocalhost || isCollabAI);
+  const allowedOrigin = isAllowed ? origin : 'http://localhost:3000';
+
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Max-Age': '3600',
+  };
+}
 
 const AZURE_AD_TENANT_ID = Deno.env.get('AZURE_AD_TENANT_ID') || 'common';
 
@@ -19,7 +36,7 @@ serve(async (req) => {
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return handleCorsPreflight(origin);
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
