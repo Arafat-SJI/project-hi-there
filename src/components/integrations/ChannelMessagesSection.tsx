@@ -3,9 +3,8 @@
  * Displays team/channel selectors and chat messages
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -14,8 +13,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MessageSquare } from 'lucide-react';
-import { TeamsChannelMessages } from './TeamsChannelMessages';
-import { SendTeamsMessageDialog } from './SendTeamsMessageDialog';
+import { TeamsChannelMessages, TeamsChannelMessagesRef } from './TeamsChannelMessages';
+import { ChannelMessageInput } from './ChannelMessageInput';
+import { useRef } from 'react';
 
 interface StoredTeam {
   id: string;
@@ -40,6 +40,7 @@ export function ChannelMessagesSection({ teams, getChannelsForTeam }: ChannelMes
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const [selectedChannelId, setSelectedChannelId] = useState<string>('');
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const messagesRef = useRef<TeamsChannelMessagesRef>(null);
 
   const availableChannels = selectedTeamId ? getChannelsForTeam(selectedTeamId) : [];
 
@@ -47,6 +48,11 @@ export function ChannelMessagesSection({ teams, getChannelsForTeam }: ChannelMes
     setSelectedTeamId(teamId);
     setSelectedChannelId(''); // Reset channel when team changes
   };
+
+  const handleMessageSent = useCallback(() => {
+    // Refresh messages after sending
+    messagesRef.current?.refresh();
+  }, []);
 
   return (
     <Card>
@@ -122,21 +128,19 @@ export function ChannelMessagesSection({ teams, getChannelsForTeam }: ChannelMes
         {/* Messages Display */}
         <div className="border rounded-lg p-4 bg-muted/20">
           <TeamsChannelMessages
+            ref={messagesRef}
             teamId={selectedTeamId}
             channelId={selectedChannelId}
             autoRefresh={autoRefresh}
           />
         </div>
 
-        {/* Send Message Action */}
+        {/* Inline Message Input */}
         <div className="pt-2 border-t">
-          <SendTeamsMessageDialog
-            trigger={
-              <Button size="lg" className="w-full sm:w-auto">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Send Message
-              </Button>
-            }
+          <ChannelMessageInput
+            teamId={selectedTeamId}
+            channelId={selectedChannelId}
+            onMessageSent={handleMessageSent}
           />
         </div>
 

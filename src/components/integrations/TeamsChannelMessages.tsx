@@ -3,7 +3,7 @@
  * Displays a chat-style list of messages from a Microsoft Teams channel
  */
 
-import { useMemo } from 'react';
+import { useMemo, forwardRef, useImperativeHandle } from 'react';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import DOMPurify from 'dompurify';
 import { Loader2, RefreshCw, User, AlertCircle } from 'lucide-react';
@@ -17,6 +17,10 @@ interface TeamsChannelMessagesProps {
   channelId: string;
   className?: string;
   autoRefresh?: boolean;
+}
+
+export interface TeamsChannelMessagesRef {
+  refresh: () => void;
 }
 
 function formatMessageTime(dateString: string): string {
@@ -39,32 +43,38 @@ function sanitizeHtml(html: string): string {
   });
 }
 
-export function TeamsChannelMessages({
-  teamId,
-  channelId,
-  className,
-  autoRefresh = false,
-}: TeamsChannelMessagesProps) {
-  const {
-    messages,
-    isLoading,
-    isError,
-    error,
-    refreshMessages,
-    isRefreshing,
-  } = useMicrosoftTeamsMessages({
+export const TeamsChannelMessages = forwardRef<TeamsChannelMessagesRef, TeamsChannelMessagesProps>(
+  function TeamsChannelMessages({
     teamId,
     channelId,
-    enabled: !!teamId && !!channelId,
-    refetchInterval: autoRefresh ? 30000 : false, // 30 seconds if auto-refresh enabled
-  });
+    className,
+    autoRefresh = false,
+  }, ref) {
+    const {
+      messages,
+      isLoading,
+      isError,
+      error,
+      refreshMessages,
+      isRefreshing,
+    } = useMicrosoftTeamsMessages({
+      teamId,
+      channelId,
+      enabled: !!teamId && !!channelId,
+      refetchInterval: autoRefresh ? 30000 : false, // 30 seconds if auto-refresh enabled
+    });
 
-  // Sort messages by date (oldest first for chat display)
-  const sortedMessages = useMemo(() => {
-    return [...messages].sort(
-      (a, b) => new Date(a.createdDateTime).getTime() - new Date(b.createdDateTime).getTime()
-    );
-  }, [messages]);
+    // Expose refresh method via ref
+    useImperativeHandle(ref, () => ({
+      refresh: refreshMessages,
+    }), [refreshMessages]);
+
+    // Sort messages by date (oldest first for chat display)
+    const sortedMessages = useMemo(() => {
+      return [...messages].sort(
+        (a, b) => new Date(a.createdDateTime).getTime() - new Date(b.createdDateTime).getTime()
+      );
+    }, [messages]);
 
   if (!teamId || !channelId) {
     return (
@@ -177,4 +187,4 @@ export function TeamsChannelMessages({
       </ScrollArea>
     </div>
   );
-}
+});
