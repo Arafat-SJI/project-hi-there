@@ -49,6 +49,7 @@ export const loginRequest = {
     'User.Read',
     'Team.ReadBasic.All',
     'Channel.ReadBasic.All',
+    'ChannelMessage.Read.All', // For reading channel messages
     'ChannelMessage.Send',
     'OnlineMeetings.ReadWrite',
     'Calendars.Read', // For reading calendar events with Teams meetings
