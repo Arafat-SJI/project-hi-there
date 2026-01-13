@@ -251,9 +251,10 @@ export default function MicrosoftTeamsIntegration() {
         const msalInstance = await getMSALInstance();
         const accounts = msalInstance.getAllAccounts();
         
-        // Remove all MSAL accounts
-        for (const account of accounts) {
-          await msalInstance.removeAccount(account);
+        // Clear MSAL cache (removeAccount doesn't exist, use clearCache or logout)
+        if (accounts.length > 0) {
+          // Clear the MSAL cache to remove stored tokens
+          await msalInstance.clearCache();
         }
       } catch (error) {
         console.error('Error clearing MSAL accounts:', error);
