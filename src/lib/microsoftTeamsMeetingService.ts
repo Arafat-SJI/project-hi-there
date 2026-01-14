@@ -550,3 +550,68 @@ export async function createOnlineMeeting(
     throw error;
   }
 }
+
+// ============================================================================
+// Outlook Calendar Events (All Events, not just Teams)
+// ============================================================================
+
+export interface OutlookCalendarEvent {
+  id: string;
+  subject: string;
+  bodyPreview?: string;
+  start: { dateTime: string; timeZone: string };
+  end: { dateTime: string; timeZone: string };
+  location?: { displayName?: string };
+  isOnlineMeeting: boolean;
+  onlineMeeting?: { joinUrl?: string };
+  showAs?: 'free' | 'tentative' | 'busy' | 'oof' | 'workingElsewhere';
+  organizer?: { emailAddress: { name: string; address: string } };
+  isAllDay?: boolean;
+}
+
+interface OutlookCalendarEventsResponse {
+  '@odata.context'?: string;
+  '@odata.nextLink'?: string;
+  value: OutlookCalendarEvent[];
+}
+
+/**
+ * Fetch ALL calendar events (not just Teams meetings)
+ * Requires Calendars.Read permission
+ * 
+ * @param startDate - Start of date range
+ * @param endDate - End of date range
+ * @returns Array of calendar events
+ */
+export async function getCalendarEvents(
+  startDate: Date,
+  endDate: Date
+): Promise<OutlookCalendarEvent[]> {
+  const filter = `start/dateTime ge '${startDate.toISOString()}' and end/dateTime le '${endDate.toISOString()}'`;
+  const url = `/me/calendar/events?$filter=${encodeURIComponent(filter)}&$select=id,subject,bodyPreview,start,end,location,isOnlineMeeting,onlineMeeting,showAs,organizer,isAllDay&$orderby=start/dateTime&$top=100`;
+
+  console.log('[Calendar] Fetching calendar events...');
+
+  try {
+    const response = await withRateLimitRetry(
+      () => callGraphAPI<OutlookCalendarEventsResponse>(url),
+      'Fetching calendar events'
+    );
+
+    console.log(`[Calendar] Found ${response.value.length} calendar events`);
+    return response.value;
+  } catch (error: unknown) {
+    // Handle users without Exchange mailbox gracefully
+    if (error instanceof Error) {
+      if (error.message?.includes('MailboxNotEnabledForRESTAPI') || 
+          error.message?.includes('MailboxNotSupportedForRESTAPI')) {
+        console.warn('[Calendar] Calendar not available - no Exchange mailbox');
+        throw new Error('Calendar requires an Exchange Online mailbox. Your account may only have Teams licensing.');
+      }
+      if (error.message?.includes('Calendars.Read')) {
+        throw new Error('Missing Calendars.Read permission. Please disconnect and reconnect your Microsoft account.');
+      }
+    }
+    throw error;
+  }
+}

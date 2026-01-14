@@ -10,8 +10,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus, MessageSquare, Eye } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus, MessageSquare, Eye, CalendarDays } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { MicrosoftCalendarView } from "@/components/integrations/MicrosoftCalendarView";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   initiateAzureLoginRedirect, 
@@ -81,6 +82,7 @@ export default function MicrosoftTeamsIntegration() {
 
   const [syncingTeamId, setSyncingTeamId] = useState<string | null>(null);
   const [hasValidToken, setHasValidToken] = useState<boolean | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [refreshingToken, setRefreshingToken] = useState(false);
 
   const toggleTeamExpanded = (teamId: string) => {
@@ -563,6 +565,44 @@ export default function MicrosoftTeamsIntegration() {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Microsoft Calendar View Card */}
+        {isConnected && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-900/30">
+                  <CalendarDays className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                Microsoft Calendar
+              </CardTitle>
+              <CardDescription>
+                View your Outlook calendar events in a weekly view
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                onClick={() => setShowCalendar(!showCalendar)}
+                variant={showCalendar ? "secondary" : "default"}
+                size="lg"
+              >
+                <CalendarDays className="mr-2 h-4 w-4" />
+                {showCalendar ? 'Hide Calendar' : 'View Calendar'}
+              </Button>
+              
+              {showCalendar && (
+                <div className="mt-4">
+                  <MicrosoftCalendarView onClose={() => setShowCalendar(false)} />
+                </div>
+              )}
+              
+              <p className="text-xs text-muted-foreground">
+                <strong>Note:</strong> Requires the <code className="bg-muted px-1 rounded">Calendars.Read</code> permission.
+                Teams meetings you create will automatically appear here.
+              </p>
             </CardContent>
           </Card>
         )}
