@@ -657,83 +657,45 @@ export default function MicrosoftTeamsIntegration() {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() => syncTeamsMeetings.mutate({ source: 'local' })}
-                  disabled={syncTeamsMeetings.isPending || hasValidToken === false}
-                  variant="secondary"
-                  size="lg"
-                >
-                  {syncTeamsMeetings.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Refresh Local Meetings
-                    </>
-                  )}
-                </Button>
-                
-                <Button
-                  onClick={() => syncTeamsMeetings.mutate({ source: 'calendar' })}
-                  disabled={syncTeamsMeetings.isPending || hasValidToken === false}
-                  variant="outline"
-                  size="lg"
-                >
-                  {syncTeamsMeetings.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Importing...
-                    </>
-                  ) : (
-                    <>
-                      <CalendarDays className="mr-2 h-4 w-4" />
-                      Import from Calendar
-                    </>
-                  )}
-                </Button>
-              </div>
+              <Button
+                onClick={() => syncTeamsMeetings.mutate({ source: 'both' })}
+                disabled={syncTeamsMeetings.isPending || hasValidToken === false}
+                variant="secondary"
+                size="lg"
+              >
+                {syncTeamsMeetings.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sync All Meetings
+                  </>
+                )}
+              </Button>
               
               <p className="text-sm text-muted-foreground">
-                <strong>Refresh:</strong> Update existing local meetings. <strong>Import:</strong> Fetch new meetings from Outlook Calendar.
+                Sync and refresh your Teams meetings from Microsoft Graph.
               </p>
 
               {syncTeamsMeetings.data && (
                 <div className="rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30 p-5">
-                  <div className="space-y-2">
-                    {(syncTeamsMeetings.data.synced > 0 || syncTeamsMeetings.data.updated > 0) && (
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
-                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <span className="text-green-900 dark:text-green-100 font-semibold">
-                          {syncTeamsMeetings.data.synced > 0 && `${syncTeamsMeetings.data.synced} imported`}
-                          {syncTeamsMeetings.data.synced > 0 && syncTeamsMeetings.data.updated > 0 && ', '}
-                          {syncTeamsMeetings.data.updated > 0 && `${syncTeamsMeetings.data.updated} refreshed`}
-                        </span>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                       </div>
-                    )}
-                    {syncTeamsMeetings.data.synced === 0 && syncTeamsMeetings.data.updated === 0 && syncTeamsMeetings.data.errors === 0 && (
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
-                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <span className="text-green-900 dark:text-green-100 font-semibold">
-                          Meetings up to date
-                        </span>
-                      </div>
-                    )}
-                    {syncTeamsMeetings.data.skipped > 0 && (
-                      <p className="text-muted-foreground ml-8 text-sm">
-                        ⏭️ {syncTeamsMeetings.data.skipped} meeting{syncTeamsMeetings.data.skipped !== 1 ? 's' : ''} skipped (created by other accounts)
-                      </p>
-                    )}
+                      <span className="text-green-900 dark:text-green-100 font-semibold">
+                        {syncTeamsMeetings.data.updated > 0 
+                          ? `${syncTeamsMeetings.data.updated} meeting${syncTeamsMeetings.data.updated !== 1 ? 's' : ''} refreshed`
+                          : 'Meetings up to date'}
+                      </span>
+                    </div>
                     {syncTeamsMeetings.data.errors > 0 && (
                       <p className="text-amber-700 dark:text-amber-400 ml-8 text-sm font-medium">
-                        ⚠️ {syncTeamsMeetings.data.errors} error{syncTeamsMeetings.data.errors !== 1 ? 's' : ''}
+                        {syncTeamsMeetings.data.errors} error{syncTeamsMeetings.data.errors !== 1 ? 's' : ''}
                       </p>
                     )}
                   </div>
@@ -748,8 +710,8 @@ export default function MicrosoftTeamsIntegration() {
               </Button>
 
               <p className="text-xs text-muted-foreground">
-                <strong>Note:</strong> Requires <code className="bg-muted px-1 rounded">OnlineMeetings.ReadWrite</code> and <code className="bg-muted px-1 rounded">Calendars.Read</code> permissions.
-                If you see permission errors, disconnect and reconnect your Microsoft account.
+                <strong>Note:</strong> Requires the <code className="bg-muted px-1 rounded">OnlineMeetings.ReadWrite</code> permission.
+                If you see a permission error, disconnect and reconnect your Microsoft account.
               </p>
             </CardContent>
           </Card>

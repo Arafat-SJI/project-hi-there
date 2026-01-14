@@ -23,7 +23,6 @@ export interface SyncResult {
   synced: number;
   updated: number;
   errors: number;
-  skipped: number;  // Meetings that couldn't be accessed (not owned by current user)
   total: number;
   calendarAvailable?: boolean;
 }
@@ -49,7 +48,6 @@ export function useSyncTeamsMeetings() {
         synced: 0,
         updated: 0,
         errors: 0,
-        skipped: 0,
         total: 0,
         calendarAvailable: true,
       };
@@ -175,24 +173,10 @@ export function useSyncTeamsMeetings() {
               } else {
                 result.updated++;
               }
-            } catch (error: any) {
-              // Check if this is a "can't access this meeting" error (403 Forbidden)
-              const errorMessage = error?.message || '';
-              const isForbidden = error?.status === 403 || 
-                errorMessage.includes('403') || 
-                errorMessage.includes('Forbidden') ||
-                errorMessage.includes('does not have access') ||
-                errorMessage.includes('Access denied');
-              
-              if (isForbidden) {
-                // Meeting belongs to another account - skip it, don't count as error
-                console.log('[SyncTeamsMeetings] Skipping meeting (not owned by user):', meeting.id);
-                result.skipped++;
-              } else {
-                // Real error
-                console.error('[SyncTeamsMeetings] Error refreshing meeting:', error);
-                result.errors++;
-              }
+            } catch (error) {
+              // Meeting may have been deleted in Teams, or other error
+              console.error('[SyncTeamsMeetings] Error refreshing meeting:', error);
+              result.errors++;
             }
           }
         }
@@ -210,22 +194,13 @@ export function useSyncTeamsMeetings() {
         messages.push(`Imported ${result.synced} meeting${result.synced !== 1 ? 's' : ''} from calendar`);
       }
       if (result.updated > 0) {
-        messages.push(`Refreshed ${result.updated} meeting${result.updated !== 1 ? 's' : ''}`);
-      }
-      if (result.skipped > 0) {
-        messages.push(`Skipped ${result.skipped} (not owned by you)`);
+        messages.push(`Updated ${result.updated} meeting${result.updated !== 1 ? 's' : ''}`);
       }
       
-      if (result.synced > 0 || result.updated > 0) {
+      if (messages.length > 0) {
         toast({
           title: "Sync Complete",
           description: messages.join('. ') + '.',
-        });
-      } else if (result.skipped > 0 && result.errors === 0) {
-        // Only skipped meetings, no errors - this is fine
-        toast({
-          title: "Meetings Up to Date",
-          description: `${result.skipped} meeting${result.skipped !== 1 ? 's' : ''} skipped (created by other accounts).`,
         });
       } else if (result.total === 0) {
         toast({
