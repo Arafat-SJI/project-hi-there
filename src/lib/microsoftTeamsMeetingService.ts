@@ -259,7 +259,8 @@ export async function getOnlineMeetingsFromCalendar(
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + daysAhead);
 
-  const filter = `start/dateTime ge '${startDate.toISOString()}' and start/dateTime le '${endDate.toISOString()}' and isOnlineMeeting eq true`;
+  // NOTE: isOnlineMeeting is NOT a filterable property in Graph API - filter client-side instead
+  const filter = `start/dateTime ge '${startDate.toISOString()}' and start/dateTime le '${endDate.toISOString()}'`;
   const url = `/me/calendar/events?$filter=${encodeURIComponent(filter)}&$select=id,subject,start,end,isOnlineMeeting,onlineMeeting,onlineMeetingUrl,createdDateTime&$orderby=start/dateTime&$top=100`;
 
   console.log('[TeamsMeetings] Fetching calendar events with Teams meetings...');
