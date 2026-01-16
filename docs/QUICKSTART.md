@@ -53,6 +53,133 @@ Before you begin:
 
 ---
 
+## 🔄 Remixing / Forking This Project
+
+If you're remixing or forking this project to create your own instance:
+
+### Step 1: Fork the Repository
+
+**Option A: Via Lovable (Recommended)**
+1. Open the project in Lovable
+2. Click **"Remix"** to create your own copy
+3. All code, schema, and configurations are copied
+
+**Option B: Via GitHub**
+1. Fork the repository on GitHub
+2. Clone to your local machine
+3. Follow local development setup
+
+### Step 2: Configure Environment Variables
+
+1. **Copy the example file:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Create a new Supabase project:**
+   - Go to [supabase.com/dashboard](https://supabase.com/dashboard)
+   - Click "New Project"
+   - Note your project ID, URL, and keys
+
+3. **Update `.env` file** with your Supabase credentials:
+   ```env
+   # Replace these with YOUR values
+   VITE_SUPABASE_PROJECT_ID="your-project-id-here"
+   VITE_SUPABASE_URL="https://your-project-id.supabase.co"
+   VITE_SUPABASE_PUBLISHABLE_KEY="your-anon-key-here"
+   ```
+
+4. **Get your credentials** from Supabase:
+   - Go to: `https://supabase.com/dashboard/project/YOUR_PROJECT_ID/settings/api`
+   - Copy **Project URL** → paste as `VITE_SUPABASE_URL`
+   - Copy **Anon (public) key** → paste as `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - Copy project ID from URL → paste as `VITE_SUPABASE_PROJECT_ID`
+
+### Step 3: Run Database Migrations
+
+Migrations run automatically when you connect to Supabase in Lovable.
+
+If using local development, run:
+```bash
+supabase db push
+```
+
+### Step 4: Configure Secrets (Optional)
+
+Only add secrets for features you want to enable:
+
+| Feature | Required Secret | Get From |
+|---------|----------------|----------|
+| AI Chat, Search, Agents | `OPENAI_API_KEY` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| Email Notifications | `SENDGRID_API_KEY` | [app.sendgrid.com/settings/api_keys](https://app.sendgrid.com/settings/api_keys) |
+| Zoom Integration | `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_ACCOUNT_ID` | [marketplace.zoom.us](https://marketplace.zoom.us) |
+| Google Drive | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_API_KEY` | [console.cloud.google.com](https://console.cloud.google.com) |
+
+**Add secrets in Supabase:**
+1. Go to: `https://supabase.com/dashboard/project/YOUR_PROJECT_ID/settings/functions`
+2. Click **"Secrets"**
+3. Add each secret as `KEY=value`
+
+### Step 5: Deploy Edge Functions
+
+```bash
+# Deploy all functions
+supabase functions deploy
+
+# Or deploy individually
+supabase functions deploy ai-chat-assistant
+```
+
+### Step 6: Enable/Disable Features
+
+Features can be toggled via the `app_config` table:
+
+```sql
+-- Disable features you don't need
+UPDATE app_config SET value = 'false' WHERE key = 'features.enableZoomSync';
+UPDATE app_config SET value = 'false' WHERE key = 'features.enableGoogleDrive';
+
+-- View all feature flags
+SELECT * FROM app_config WHERE key LIKE 'features.%';
+```
+
+See [FEATURE_FLAGS.md](FEATURE_FLAGS.md) for complete feature flag documentation.
+
+### Step 7: Test Your Instance
+
+1. Start the development server (Lovable does this automatically)
+2. Create an admin account at `/signup`
+3. Assign admin role via SQL (see Step 4 below)
+4. Test core features:
+   - Login/logout
+   - Dashboard loads
+   - Create clients, meetings, tasks
+   - AI chat (if configured)
+
+### What Gets Copied When You Remix?
+
+| Item | Included | Notes |
+|------|----------|-------|
+| Frontend code | ✅ Yes | All React components and pages |
+| Database schema | ✅ Yes | All tables, RLS policies, functions |
+| Edge functions | ✅ Yes | All 41 serverless functions |
+| Environment variables | ❌ No | You must set your own |
+| API keys/secrets | ❌ No | You must add your own |
+| Data | ❌ No | Fresh database |
+
+### Quick Start After Remix
+
+1. ✅ Update `.env` with your Supabase credentials
+2. ✅ Add `OPENAI_API_KEY` secret if using AI features
+3. ✅ Create admin account
+4. ✅ Disable features you don't need (optional)
+5. ✅ Deploy edge functions (if self-hosting)
+6. ✅ Start developing!
+
+**Estimated time to get running:** 10 minutes
+
+---
+
 ## 🚀 Deployment Steps
 
 ### Step 1: Create/Fork Project in Lovable
@@ -291,10 +418,12 @@ Go to **Supabase Dashboard** → Authentication → URL Configuration:
 
 After basic setup:
 
-1. **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Full deployment checklist
-2. **[ADMIN-GUIDE.md](./ADMIN-GUIDE.md)** - Admin configuration guide
-3. **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Technical architecture
-4. **[product-backlog.md](./product-backlog.md)** - Feature roadmap
+1. **[FEATURE_FLAGS.md](./FEATURE_FLAGS.md)** - Complete feature flags reference
+2. **[EDGE_FUNCTIONS_CATALOG.md](./EDGE_FUNCTIONS_CATALOG.md)** - All edge functions documented
+3. **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Full deployment checklist
+4. **[ADMIN-GUIDE.md](./ADMIN-GUIDE.md)** - Admin configuration guide
+5. **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Technical architecture
+6. **[product-backlog.md](./product-backlog.md)** - Feature roadmap
 
 ---
 
