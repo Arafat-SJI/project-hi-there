@@ -8,11 +8,11 @@
 // ============================================
 // Core & Configuration
 // ============================================
-export { useAppConfig } from './useAppConfig';
+export { useAppConfig, useUpdateAppConfig, useResetAppConfig } from './useAppConfig';
 export { useFeatureFlags } from './useFeatureFlags';
 export { useAuthConfig } from './useAuthConfig';
 export { usePreferences } from './usePreferences';
-export { useDashboard } from './useDashboard';
+export { useDashboardStats, useRecentActivity, getTimeAgo } from './useDashboard';
 export { useOnboarding } from './useOnboarding';
 export { useRoles } from './useRoles';
 
@@ -28,9 +28,38 @@ export { useIntegrationStatus } from './useIntegrationStatus';
 export { useClients } from './useClients';
 export { useTasks } from './useTasks';
 export { useMeetings } from './useMeetings';
-export { useKnowledge } from './useKnowledge';
-export { useKnowledgeAdmin } from './useKnowledgeAdmin';
-export { useUserKnowledge } from './useUserKnowledge';
+export {
+  useKnowledgeEntries,
+  useKnowledgeCategories,
+  useKnowledgeEntry,
+  useKnowledgeSearch,
+  useCreateKnowledgeEntry,
+  useUpdateKnowledgeEntry,
+  useDeleteKnowledgeEntry,
+  useTriggerEmbedding,
+  useIncrementViewCount,
+  useRelatedEntries,
+} from './useKnowledge';
+export {
+  useCategories,
+  useCategoryTree,
+  useCategory,
+  useCategoryBySlug,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+  useReorderCategories,
+  useCategoryStats,
+  useEmbeddingStats,
+} from './useKnowledgeAdmin';
+export {
+  useUserKnowledgeFiles,
+  useUserKnowledgeSources,
+  useUploadUserKnowledgeFile,
+  useDeleteUserKnowledgeFile,
+  useCreateUserKnowledgeSource,
+  useUserFileStats,
+} from './useUserKnowledge';
 export { useNotifications } from './useNotifications';
 
 // ============================================
@@ -39,7 +68,7 @@ export { useNotifications } from './useNotifications';
 export { useAIAgents } from './useAIAgents';
 export { useAIChatAssistant } from './useAIChatAssistant';
 export { useSemanticSearch } from './useSemanticSearch';
-export { useModelSync } from './useModelSync';
+export { useSyncModels, useSyncAllModels } from './useModelSync';
 
 // ============================================
 // Microsoft Integrations
@@ -51,18 +80,43 @@ export { useMicrosoftTeamsMessages } from './useMicrosoftTeamsMessages';
 export { useCreateTeamsMeeting } from './useCreateTeamsMeeting';
 export { useSendTeamsChannelMessage } from './useSendTeamsChannelMessage';
 export { useSyncTeamsMeetings } from './useSyncTeamsMeetings';
-export { useGraphWebhookSubscription } from './useGraphWebhookSubscription';
+export { useGraphWebhookSubscriptions } from './useGraphWebhookSubscription';
 
 // ============================================
 // External Integrations
 // ============================================
-export { useIntegrations } from './useIntegrations';
-export { useUserIntegrations } from './useUserIntegrations';
+export {
+  useIntegrationCategories,
+  useIntegrationProviders,
+  useIntegrationProvider,
+  useIntegrationFields,
+  useOrganizationIntegrations,
+  useOrganizationIntegration,
+  useUpdateIntegration,
+  useTestConnection,
+  useDisconnectIntegration,
+  useIntegrationServices,
+  useToggleService,
+  useSetDefaultService,
+  useIntegrationUsageLogs,
+  useProviderUsageStats,
+  useProvidersGroupedByCategory,
+  integrationKeys,
+} from './useIntegrations';
+export {
+  useUserOAuthTokens,
+  useUserOAuthToken,
+  useAvailableUserProviders,
+  useConnectOAuth,
+  useDisconnectOAuth,
+  useRefreshOAuthToken,
+  useHasValidToken,
+} from './useUserIntegrations';
 export { useSyncZoom } from './useSyncZoom';
 export { useZoomFiles } from './useZoomFiles';
 
 // ============================================
 // UI Utilities
 // ============================================
-export { useMobile } from './use-mobile';
+export { useIsMobile } from './use-mobile';
 export { useToast } from './use-toast';
