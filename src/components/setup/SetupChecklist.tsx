@@ -60,7 +60,7 @@ export function SetupChecklist() {
     },
   ]);
 
-  const { features, loading: featuresLoading } = useFeatureFlags();
+  const { features, isLoading: featuresLoading } = useFeatureFlags();
 
   useEffect(() => {
     runChecks();
@@ -114,18 +114,18 @@ export function SetupChecklist() {
 
     // Check 3: Database Tables
     try {
-      const tables = [
+      const tables: Array<'profiles' | 'user_roles' | 'clients' | 'meetings' | 'knowledge_entries' | 'app_config'> = [
         'profiles',
         'user_roles',
         'clients',
         'meetings',
-        'knowledge_base',
+        'knowledge_entries',
         'app_config',
       ];
       let allTablesExist = true;
 
       for (const table of tables) {
-        const { error } = await supabase.from(table).select('count').limit(1);
+        const { error } = await supabase.from(table).select('id').limit(1);
         if (error) {
           allTablesExist = false;
           break;
