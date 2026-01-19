@@ -430,6 +430,8 @@ export type Database = {
           gemini_document_id: string | null
           id: string
           metadata: Json | null
+          provider_corpus_id: string | null
+          provider_document_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -443,6 +445,8 @@ export type Database = {
           gemini_document_id?: string | null
           id?: string
           metadata?: Json | null
+          provider_corpus_id?: string | null
+          provider_document_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -456,6 +460,8 @@ export type Database = {
           gemini_document_id?: string | null
           id?: string
           metadata?: Json | null
+          provider_corpus_id?: string | null
+          provider_document_id?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -984,6 +990,77 @@ export type Database = {
           },
         ]
       }
+      meeting_files: {
+        Row: {
+          created_at: string
+          download_url: string | null
+          external_meeting_id: string | null
+          file_name: string
+          file_path: string | null
+          file_size: number | null
+          file_type: string
+          has_embeddings: boolean | null
+          id: string
+          is_processed: boolean | null
+          meeting_id: string | null
+          metadata: Json | null
+          processing_status: string | null
+          provider: string
+          storage_path: string | null
+          transcript_content: Json | null
+          transcript_text: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          download_url?: string | null
+          external_meeting_id?: string | null
+          file_name: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type: string
+          has_embeddings?: boolean | null
+          id?: string
+          is_processed?: boolean | null
+          meeting_id?: string | null
+          metadata?: Json | null
+          processing_status?: string | null
+          provider?: string
+          storage_path?: string | null
+          transcript_content?: Json | null
+          transcript_text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          download_url?: string | null
+          external_meeting_id?: string | null
+          file_name?: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string
+          has_embeddings?: boolean | null
+          id?: string
+          is_processed?: boolean | null
+          meeting_id?: string | null
+          metadata?: Json | null
+          processing_status?: string | null
+          provider?: string
+          storage_path?: string | null
+          transcript_content?: Json | null
+          transcript_text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_files_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_transcripts: {
         Row: {
           content: string
@@ -1014,11 +1091,17 @@ export type Database = {
           created_at: string
           description: string | null
           duration_minutes: number | null
+          external_id: string | null
+          external_meeting_id: string | null
+          external_uuid: string | null
+          host_url: string | null
           id: string
+          join_url: string | null
           location: string | null
           meeting_type: string | null
           metadata: Json | null
           organizer_id: string
+          provider: string | null
           scheduled_at: string | null
           status: string | null
           title: string
@@ -1034,11 +1117,17 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
+          external_id?: string | null
+          external_meeting_id?: string | null
+          external_uuid?: string | null
+          host_url?: string | null
           id?: string
+          join_url?: string | null
           location?: string | null
           meeting_type?: string | null
           metadata?: Json | null
           organizer_id: string
+          provider?: string | null
           scheduled_at?: string | null
           status?: string | null
           title: string
@@ -1054,11 +1143,17 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
+          external_id?: string | null
+          external_meeting_id?: string | null
+          external_uuid?: string | null
+          host_url?: string | null
           id?: string
+          join_url?: string | null
           location?: string | null
           meeting_type?: string | null
           metadata?: Json | null
           organizer_id?: string
+          provider?: string | null
           scheduled_at?: string | null
           status?: string | null
           title?: string
