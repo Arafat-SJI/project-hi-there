@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { MeetingProvider } from "../_shared/meeting-providers.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +26,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const { action = 'sync', date_from, date_to } = await req.json()
+    const { action = 'sync', date_from, date_to, provider = 'zoom' } = await req.json()
+    const meetingProvider = provider as MeetingProvider
+
+    if (meetingProvider !== 'zoom') {
+      throw new Error(`Unsupported provider: ${meetingProvider}`)
+    }
 
     // Get Zoom OAuth token
     const tokenResponse = await fetch(
@@ -71,27 +77,44 @@ serve(async (req) => {
       const { data: existingMeeting } = await supabaseClient
         .from('meetings')
         .select('id')
-        .eq('zoom_id', meeting.uuid)
+        .or(`zoom_id.eq.${meeting.uuid},external_id.eq.${meeting.uuid}`)
         .single()
 
       let meetingId = existingMeeting?.id
 
+      const meetingData = {
+        title: meeting.topic,
+        zoom_id: meeting.uuid,
+        zoom_meeting_id: String(meeting.id),
+        zoom_join_url: meeting.join_url,
+        zoom_start_url: meeting.start_url,
+        scheduled_at: meeting.start_time,
+        duration_minutes: meeting.duration,
+        status: 'completed',
+        provider: meetingProvider,
+        external_id: meeting.uuid,
+        external_uuid: meeting.uuid,
+        external_meeting_id: String(meeting.id),
+        join_url: meeting.join_url,
+        host_url: meeting.start_url,
+      }
+
       if (!meetingId) {
-        // Create meeting record
         const { data: newMeeting } = await supabaseClient
           .from('meetings')
-          .insert([{
-            title: meeting.topic,
-            zoom_id: meeting.uuid,
-            zoom_meeting_id: String(meeting.id),
-            scheduled_at: meeting.start_time,
-            duration_minutes: meeting.duration,
-            status: 'completed',
-          }])
+          .insert([meetingData])
           .select()
           .single()
 
+        console.log('[sync-zoom-files] Created meeting with dual-write fields:', meeting.uuid)
         meetingId = newMeeting.id
+      } else {
+        await supabaseClient
+          .from('meetings')
+          .update(meetingData)
+          .eq('id', meetingId)
+
+        console.log('[sync-zoom-files] Updated meeting with dual-write fields:', meeting.uuid)
       }
 
       // Sync recording files
@@ -113,7 +136,30 @@ serve(async (req) => {
             onConflict: 'zoom_meeting_id,file_type',
           })
 
-        if (!error) syncedCount++
+        const { error: meetingFilesError } = await supabaseClient
+          .from('meeting_files')
+          .upsert([{
+            meeting_id: meetingId,
+            external_meeting_id: String(meeting.id),
+            provider: meetingProvider,
+            file_type: file.file_type,
+            file_name: file.file_name || `${meeting.topic}_${file.file_type}`,
+            file_size: file.file_size,
+            download_url: file.download_url,
+            metadata: {
+              play_url: file.play_url,
+              meeting_topic: meeting.topic,
+              meeting_start_time: meeting.start_time,
+              meeting_duration: meeting.duration,
+            },
+          }], {
+            onConflict: 'external_meeting_id,file_type',
+          })
+
+        if (!error && !meetingFilesError) {
+          syncedCount++
+          console.log('[sync-zoom-files] Dual-wrote meeting file:', meeting.id, file.file_type)
+        }
       }
     }
 

@@ -70,7 +70,7 @@ export function useSyncTeamsMeetings() {
             const { data: existing } = await supabase
               .from('meetings')
               .select('id')
-              .eq('zoom_join_url', meeting.join_url)
+              .or(`join_url.eq.${meeting.join_url},zoom_join_url.eq.${meeting.join_url}`)
               .maybeSingle();
 
             if (!existing) {
@@ -82,6 +82,9 @@ export function useSyncTeamsMeetings() {
                   scheduled_at: meeting.scheduled_at,
                   duration_minutes: meeting.duration_minutes,
                   zoom_join_url: meeting.join_url,
+                  join_url: meeting.join_url,
+                  provider: 'microsoft_teams',
+                  external_meeting_id: meeting.teams_meeting_id,
                   meeting_type: 'teams',
                   status: meeting.status,
                   organizer_id: user.id,
@@ -159,6 +162,9 @@ export function useSyncTeamsMeetings() {
                   scheduled_at: normalized.scheduled_at,
                   duration_minutes: normalized.duration_minutes,
                   zoom_join_url: normalized.join_url,
+                  join_url: normalized.join_url,
+                  provider: 'microsoft_teams',
+                  external_meeting_id: normalized.teams_meeting_id,
                   status: normalized.status,
                   metadata: {
                     ...metadata,

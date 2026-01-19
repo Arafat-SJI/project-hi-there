@@ -11,6 +11,12 @@ export interface Meeting {
   description: string | null;
   scheduled_at: string | null;
   duration_minutes: number | null;
+  external_id: string | null;
+  external_meeting_id: string | null;
+  external_uuid: string | null;
+  host_url: string | null;
+  join_url: string | null;
+  provider: string | null;
   zoom_meeting_id: string | null;
   zoom_join_url: string | null;
   zoom_start_url: string | null;
@@ -84,6 +90,10 @@ export function useCreateMeeting() {
         scheduled_at: data.meeting_date || null,
         duration_minutes: data.duration_minutes || null,
         client_id: data.client_id || null,
+        provider: data.provider || null,
+        external_meeting_id: data.external_meeting_id || null,
+        join_url: data.join_url || null,
+        host_url: data.host_url || null,
         zoom_meeting_id: data.zoom_meeting_id || null,
         zoom_join_url: data.zoom_join_url || null,
         status: "scheduled",
@@ -128,6 +138,10 @@ export function useUpdateMeeting() {
       if (data.meeting_date !== undefined) updateData.scheduled_at = data.meeting_date || null;
       if (data.duration_minutes !== undefined) updateData.duration_minutes = data.duration_minutes || null;
       if (data.client_id !== undefined) updateData.client_id = data.client_id || null;
+      if (data.provider !== undefined) updateData.provider = data.provider || null;
+      if (data.external_meeting_id !== undefined) updateData.external_meeting_id = data.external_meeting_id || null;
+      if (data.join_url !== undefined) updateData.join_url = data.join_url || null;
+      if (data.host_url !== undefined) updateData.host_url = data.host_url || null;
       if (data.zoom_meeting_id !== undefined) updateData.zoom_meeting_id = data.zoom_meeting_id || null;
       if (data.zoom_join_url !== undefined) updateData.zoom_join_url = data.zoom_join_url || null;
 

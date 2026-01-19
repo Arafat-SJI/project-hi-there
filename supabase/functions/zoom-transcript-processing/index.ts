@@ -36,7 +36,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const { file_id } = await req.json()
+    const { file_id, use_generic_table = false, provider = 'zoom' } = await req.json()
 
     if (!file_id) {
       return new Response(
@@ -45,9 +45,10 @@ serve(async (req) => {
       )
     }
 
-    // Get zoom file
+    const tableName = use_generic_table ? 'meeting_files' : 'zoom_files'
+
     const { data: file, error: fetchError } = await supabaseClient
-      .from('zoom_files')
+      .from(tableName)
       .select('*')
       .eq('id', file_id)
       .single()
@@ -67,18 +68,56 @@ serve(async (req) => {
     const vttContent = await vttResponse.text()
     const transcriptText = parseVTT(vttContent)
 
-    // Update zoom_files with processed transcript
+    const updatePayload = {
+      transcript_text: transcriptText,
+      transcript_content: { vtt: vttContent },
+      is_processed: true,
+      processed_at: new Date().toISOString(),
+    }
+
     const { error: updateError } = await supabaseClient
-      .from('zoom_files')
+      .from(tableName)
       .update({
-        transcript_text: transcriptText,
-        transcript_content: { vtt: vttContent },
-        is_processed: true,
-        processed_at: new Date().toISOString(),
+        ...updatePayload,
       })
       .eq('id', file_id)
 
     if (updateError) throw updateError
+
+    if (provider === 'zoom') {
+      if (use_generic_table && file.meeting_id) {
+        const { error: zoomUpdateError } = await supabaseClient
+          .from('zoom_files')
+          .update({
+            ...updatePayload,
+          })
+          .eq('meeting_id', file.meeting_id)
+          .eq('file_type', file.file_type)
+
+        if (zoomUpdateError) {
+          console.warn('Zoom transcript dual-write update failed:', zoomUpdateError)
+        } else {
+          console.log('Zoom transcript dual-write updated zoom_files for meeting:', file.meeting_id)
+        }
+      }
+
+      if (!use_generic_table && file.meeting_id) {
+        const { error: meetingFileUpdateError } = await supabaseClient
+          .from('meeting_files')
+          .update({
+            ...updatePayload,
+          })
+          .eq('meeting_id', file.meeting_id)
+          .eq('file_type', file.file_type)
+          .eq('provider', 'zoom')
+
+        if (meetingFileUpdateError) {
+          console.warn('Zoom transcript dual-write update failed:', meetingFileUpdateError)
+        } else {
+          console.log('Zoom transcript dual-write updated meeting_files for meeting:', file.meeting_id)
+        }
+      }
+    }
 
     return new Response(
       JSON.stringify({
