@@ -1,9 +1,11 @@
 # Release Process: Internal → Customer Project
 
-This document describes how to sync changes from the internal development project to the customer-facing project.
+This document provides an overview of the release process. For step-by-step instructions, see:
+
+- **[release-workflow.md](./release-workflow.md)** - Full workflow with cleanup prompt
+- **[release-checklist.md](./release-checklist.md)** - Quick reference checklist
 
 ## Overview
-
 We maintain two separate Lovable projects:
 
 | Project | Purpose | Access |

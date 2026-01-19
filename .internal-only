@@ -20,3 +20,28 @@ docs/original/
 
 # This reference file itself
 .internal-only
+
+# ===========================================
+# INTERNAL-ONLY MODULES
+# ===========================================
+
+# Feedback Module (internal only - not for customer release)
+src/pages/Feedback.tsx
+src/pages/admin/FeedbackManagement.tsx
+supabase/functions/send-feedback-notification/
+
+# ===========================================
+# ROUTES TO REMOVE IN CUSTOMER PROJECT
+# ===========================================
+# In App.tsx:
+# - /feedback route
+# - /admin/feedback route
+
+# ===========================================
+# SIDEBAR ENTRIES TO REMOVE
+# ===========================================
+# In src/components/layout/AppSidebar.tsx:
+# - "Feedback" item from sidebarItems array
+
+# In src/components/layout/AdminSidebar.tsx:
+# - "CONTENT & FEEDBACK" group from sidebarGroups array
