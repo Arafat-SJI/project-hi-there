@@ -24,6 +24,7 @@ export interface AppConfig {
     enableFeedback: boolean;
     enableGoogleDrive: boolean;
     enableZoomSync: boolean;
+    useGenericMeetings: boolean;
   };
   // Email
   email: {
@@ -178,6 +179,7 @@ export function useResetAppConfig() {
           enableFeedback: true,
           enableGoogleDrive: false,
           enableZoomSync: false,
+          useGenericMeetings: false,
         },
         email: {
           enableEmailNotifications: true,
