@@ -61,6 +61,9 @@ export function useCreateTeamsMeeting() {
           scheduled_at: teamsMeeting.scheduled_at,
           duration_minutes: teamsMeeting.duration_minutes,
           zoom_join_url: teamsMeeting.join_url, // Reuse field for virtual meeting URL
+          join_url: teamsMeeting.join_url,
+          provider: "microsoft_teams",
+          external_meeting_id: teamsMeeting.teams_meeting_id,
           meeting_type: 'teams',
           status: 'scheduled',
           organizer_id: user.id,

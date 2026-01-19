@@ -41,6 +41,10 @@ import { formatDateTime } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { ZoomFileList } from "@/components/meetings/ZoomFileList";
+import { MeetingFileList } from "@/components/meetings/MeetingFileList";
+import { useSyncMeetingProvider, MeetingProvider } from "@/hooks/useSyncMeetingProvider";
 
 export default function MeetingDetail() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +58,16 @@ export default function MeetingDetail() {
 
   const { data: meeting, isLoading } = useMeeting(id || "");
   const deleteMeeting = useDeleteMeeting();
+  const { isFeatureEnabled } = useFeatureFlags();
+  const syncMeetingProvider = useSyncMeetingProvider();
+  const useGenericMeetings = isFeatureEnabled("useGenericMeetings");
+
+  const provider = (meeting?.provider ||
+    (meeting?.meeting_type === "teams" ? "microsoft_teams" : "zoom")) as MeetingProvider;
+  const joinUrl = meeting?.join_url || meeting?.zoom_join_url;
+  const meetingIdLabel = useGenericMeetings ? "Meeting ID" : "Zoom Meeting ID";
+  const meetingIdValue = meeting?.external_meeting_id || meeting?.zoom_meeting_id;
+  const canSyncFiles = provider === "zoom";
 
   const handleDelete = async () => {
     if (id) {
@@ -196,6 +210,18 @@ export default function MeetingDetail() {
     return <Badge variant={variants[status] || "default"}>{status}</Badge>;
   };
 
+  const getJoinButtonLabel = (meetingProvider: MeetingProvider) => {
+    const labels: Record<MeetingProvider, string> = {
+      zoom: "Join Zoom",
+      google_meet: "Join Google Meet",
+      microsoft_teams: "Join Teams Meeting",
+      webex: "Join Webex",
+      other: "Join Meeting",
+    };
+
+    return labels[meetingProvider] || "Join Meeting";
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -230,11 +256,11 @@ export default function MeetingDetail() {
           </div>
         </div>
         <div className="flex gap-2">
-          {meeting.zoom_join_url && (
+          {joinUrl && (
             <Button variant="default" asChild>
-              <a href={meeting.zoom_join_url} target="_blank" rel="noopener noreferrer">
+              <a href={joinUrl} target="_blank" rel="noopener noreferrer">
                 <Video className="mr-2 h-4 w-4" />
-                Join Zoom
+                {getJoinButtonLabel(provider)}
               </a>
             </Button>
           )}
@@ -371,12 +397,12 @@ export default function MeetingDetail() {
               </div>
             )}
 
-            {meeting.zoom_meeting_id && (
+            {meetingIdValue && (
               <div className="flex items-start gap-3">
                 <Video className="mt-0.5 h-5 w-5 text-muted-foreground" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium">Zoom Meeting ID</p>
-                  <p className="text-sm text-muted-foreground">{meeting.zoom_meeting_id}</p>
+                  <p className="text-sm font-medium">{meetingIdLabel}</p>
+                  <p className="text-sm text-muted-foreground">{meetingIdValue}</p>
                 </div>
               </div>
             )}
@@ -508,19 +534,28 @@ export default function MeetingDetail() {
       )}
 
       {/* Related Files */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Related Files</CardTitle>
-          <CardDescription>Meeting recordings and documents</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-            <FileText className="h-12 w-12 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No files uploaded yet</p>
-            <Button variant="outline" size="sm">Upload File</Button>
-          </div>
-        </CardContent>
-      </Card>
+      {useGenericMeetings ? (
+        <MeetingFileList
+          meetingId={meeting.id}
+          provider={provider}
+          onSync={
+            canSyncFiles
+              ? () => syncMeetingProvider.mutateAsync({ provider })
+              : undefined
+          }
+          isSyncing={syncMeetingProvider.isPending}
+        />
+      ) : (
+        <ZoomFileList
+          meetingId={meeting.id}
+          onSync={
+            canSyncFiles
+              ? () => syncMeetingProvider.mutateAsync({ provider: "zoom" })
+              : undefined
+          }
+          isSyncing={syncMeetingProvider.isPending}
+        />
+      )}
     </div>
   );
 }

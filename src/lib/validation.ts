@@ -61,6 +61,10 @@ export const meetingSchema = z.object({
   duration_minutes: z.number().min(1, "Duration must be at least 1 minute").optional(),
   description: z.string().optional(),
   client_id: z.string().optional().or(z.literal("")),
+  provider: z.enum(["zoom", "google_meet", "microsoft_teams", "webex", "other"]).optional(),
+  external_meeting_id: z.string().optional(),
+  join_url: z.string().url("Invalid URL").optional().or(z.literal("")),
+  host_url: z.string().url("Invalid URL").optional().or(z.literal("")),
   zoom_meeting_id: z.string().optional(),
   zoom_join_url: z.string().optional(),
 });
