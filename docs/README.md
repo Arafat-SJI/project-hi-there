@@ -30,7 +30,6 @@
 | [06 - AI Features](./06-ai-features/) | AI chat, agents, embeddings |
 | [07 - Admin](./07-admin/) | User management, settings |
 | [08 - Edge Functions](./08-edge-functions/) | Serverless function reference |
-| [Backlog](./backlog/) | Product roadmap |
 
 ---
 
@@ -66,7 +65,7 @@
 - [Environment Variables](./00-getting-started/environment-variables.md)
 - [Feature Flags](./07-admin/feature-flags.md)
 - [Edge Functions Catalog](./08-edge-functions/catalog.md)
-- [Product Backlog](./backlog/product-backlog.md)
+- [Production Checklist](./04-deployment/production-checklist.md)
 
 ---
 
