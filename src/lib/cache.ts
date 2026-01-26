@@ -49,6 +49,11 @@ export const queryKeys = {
     runs: (agentId: string) => ["ai", "runs", agentId] as const,
     chat: (sessionId: string) => ["ai", "chat", sessionId] as const,
     embeddings: (sourceId: string) => ["ai", "embeddings", sourceId] as const,
+    // Conversation threading
+    conversations: (agentId: string) => ["ai", "conversations", agentId] as const,
+    conversation: (conversationId: string) => ["ai", "conversation", conversationId] as const,
+    messages: (conversationId: string) => ["ai", "messages", conversationId] as const,
+    allConversations: ["ai", "allConversations"] as const,
   },
 
   // Admin
@@ -105,6 +110,15 @@ export const invalidateKeys = {
   },
   ai: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agents });
+  },
+  conversations: (queryClient: any, agentId?: string) => {
+    if (agentId) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(agentId) });
+    }
+    queryClient.invalidateQueries({ queryKey: queryKeys.ai.allConversations });
+  },
+  messages: (queryClient: any, conversationId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.ai.messages(conversationId) });
   },
   notifications: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });

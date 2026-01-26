@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useSearchParams } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -12,53 +9,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Send, Bot, User, Loader2, Brain, AlertCircle } from "lucide-react";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { Brain, MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import { getInitials } from "@/lib/utils";
+import { AgentConversationList } from "@/components/ai/AgentConversationList";
+import { AgentConversationView } from "@/components/ai/AgentConversationView";
+import { useCreateConversation } from "@/hooks/useAgentConversations";
 
 interface AIAgent {
   id: string;
   name: string;
   slug: string;
   description: string | null;
+  avatar: string | null;
+  welcome_message: string | null;
+  conversation_starters: string[] | null;
   is_enabled: boolean;
 }
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-}
-
 export default function AIChat() {
-  const { user, profile } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content: "Hello! I'm your AI assistant. How can I help you today?",
-      timestamp: new Date(),
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [sessionId] = useState(() => `session-${Date.now()}`);
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [agents, setAgents] = useState<AIAgent[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState<string>("default");
   const [loadingAgents, setLoadingAgents] = useState(true);
+
+  // URL-driven state for agent and conversation selection
+  const selectedAgentId = searchParams.get("agent") || "";
+  const selectedConversationId = searchParams.get("conversation") || null;
+
+  const createConversation = useCreateConversation();
 
   useEffect(() => {
     fetchAgents();
   }, []);
 
+  // Auto-select first agent if none selected
+  useEffect(() => {
+    if (!selectedAgentId && agents.length > 0) {
+      setSearchParams({ agent: agents[0].id });
+    }
+  }, [agents, selectedAgentId, setSearchParams]);
+
   const fetchAgents = async () => {
     try {
       const { data, error } = await supabase
         .from("ai_agents")
-        .select("id, name, slug, description, is_enabled")
+        .select("id, name, slug, description, avatar, welcome_message, conversation_starters, is_enabled")
         .eq("is_enabled", true)
         .order("name");
 
@@ -71,107 +73,76 @@ export default function AIChat() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading || !user) return;
+  const handleAgentChange = (agentId: string) => {
+    // When changing agent, clear conversation selection
+    setSearchParams({ agent: agentId });
+  };
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-
-    try {
-      // Call ai-chat-assistant edge function
-      const { data, error } = await supabase.functions.invoke("ai-chat-assistant", {
-        body: {
-          message: userMessage.content,
-          session_id: sessionId,
-          user_id: user.id,
-          include_history: true,
-        },
-      });
-
-      if (error) throw error;
-
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.response || "Sorry, I couldn't generate a response.",
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (error: any) {
-      console.error("AI Chat error:", error);
-
-      // Show error message to user
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: `Error: ${error.message || "Failed to connect to AI assistant. Please ensure the edge function is deployed and OPENAI_API_KEY is configured."}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-
-      toast.error("Failed to get AI response. Check deployment status.");
-    } finally {
-      setIsLoading(false);
+  const handleConversationSelect = (conversationId: string | null) => {
+    if (conversationId) {
+      setSearchParams({ agent: selectedAgentId, conversation: conversationId });
+    } else {
+      setSearchParams({ agent: selectedAgentId });
     }
   };
 
+  const handleNewConversation = async () => {
+    if (!selectedAgentId) return;
+
+    try {
+      const conversation = await createConversation.mutateAsync({
+        agent_id: selectedAgentId,
+      });
+      handleConversationSelect(conversation.id);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+
   return (
-    <div className="space-y-6">
+    <div className="h-[calc(100vh-120px)] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">AI Chat Assistant</h1>
+          <h1 className="text-3xl font-bold tracking-tight">AI Chat</h1>
           <p className="text-muted-foreground">
-            Chat with AI to get insights and assistance
+            Chat with AI agents to get insights and assistance
           </p>
         </div>
         {agents.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Brain className="h-3 w-3" />
-              {agents.length} agents available
-            </Badge>
-          </div>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Brain className="h-3 w-3" />
+            {agents.length} agents available
+          </Badge>
         )}
       </div>
 
-      {/* Agent Selection */}
+      {/* Agent Selector */}
       {agents.length > 0 && (
-        <Card>
+        <Card className="mb-4">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">Select AI Agent</CardTitle>
           </CardHeader>
           <CardContent>
-            <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+            <Select value={selectedAgentId} onValueChange={handleAgentChange}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select an agent" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="default">
-                  <div className="flex items-center gap-2">
-                    <Brain className="h-4 w-4" />
-                    Default Assistant
-                  </div>
-                </SelectItem>
                 {agents.map((agent) => (
                   <SelectItem key={agent.id} value={agent.id}>
-                    <div className="flex flex-col">
-                      <span>{agent.name}</span>
-                      {agent.description && (
-                        <span className="text-xs text-muted-foreground">
-                          {agent.description}
-                        </span>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{agent.avatar || "🤖"}</span>
+                      <div className="flex flex-col">
+                        <span>{agent.name}</span>
+                        {agent.description && (
+                          <span className="text-xs text-muted-foreground">
+                            {agent.description}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </SelectItem>
                 ))}
@@ -181,85 +152,66 @@ export default function AIChat() {
         </Card>
       )}
 
-      {/* Chat Card */}
-      <Card className="h-[calc(100vh-350px)]">
-        <CardHeader>
-          <CardTitle>Chat</CardTitle>
-          <CardDescription className="flex items-center gap-2">
-            Ask questions, get summaries, or search your knowledge base
-            <Badge variant="secondary" className="text-xs">
-              Session: {sessionId.slice(-8)}
-            </Badge>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex h-[calc(100%-100px)] flex-col gap-4">
-          {/* Messages */}
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  {message.role === "assistant" && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        <Bot className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                  >
-                    <p className="text-sm">{message.content}</p>
-                    <p className="mt-1 text-xs opacity-70">
-                      {message.timestamp.toLocaleTimeString()}
+      {/* Main Chat Area */}
+      {selectedAgentId ? (
+        <Card className="flex-1 overflow-hidden">
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Conversation List Panel */}
+            <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+              <AgentConversationList
+                agentId={selectedAgentId}
+                agentName={selectedAgent?.name}
+                selectedConversationId={selectedConversationId}
+                onSelectConversation={handleConversationSelect}
+                onNewConversation={handleNewConversation}
+              />
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            {/* Chat Panel */}
+            <ResizablePanel defaultSize={75}>
+              {selectedConversationId ? (
+                <AgentConversationView
+                  conversationId={selectedConversationId}
+                  agentId={selectedAgentId}
+                />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center text-center p-8">
+                  <div className="bg-muted/30 rounded-full p-6 mb-4">
+                    <MessageSquare className="h-12 w-12 text-muted-foreground/50" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    {selectedAgent?.name || "AI Assistant"}
+                  </h3>
+                  {selectedAgent?.description && (
+                    <p className="text-muted-foreground max-w-md mb-4">
+                      {selectedAgent.description}
                     </p>
-                  </div>
-                  {message.role === "user" && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {getInitials(profile?.full_name || "U")}
-                      </AvatarFallback>
-                    </Avatar>
                   )}
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      <Bot className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="rounded-lg bg-muted p-3">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Select a conversation from the list or start a new one
+                  </p>
                 </div>
               )}
-            </div>
-          </ScrollArea>
-
-          {/* Input */}
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              disabled={isLoading}
-            />
-            <Button type="submit" disabled={isLoading || !input.trim()}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </Card>
+      ) : (
+        <Card className="flex-1 flex items-center justify-center">
+          <div className="text-center p-8">
+            <Brain className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Select an AI Agent</h3>
+            <p className="text-muted-foreground">
+              {loadingAgents
+                ? "Loading agents..."
+                : agents.length === 0
+                ? "No agents available. Create one in the AI Agents page."
+                : "Choose an agent from the dropdown above to start chatting"}
+            </p>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

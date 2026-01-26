@@ -19,6 +19,20 @@ export interface AIAgent {
   metadata: unknown;
   created_at: string;
   updated_at: string;
+  // Conversation-related fields (Phase 1)
+  avatar: string | null;
+  welcome_message: string | null;
+  conversation_starters: string[] | null;
+  is_default: boolean;
+  usage_count: number;
+  // Tool configuration fields (Phase 2)
+  tool_code_interpreter: boolean;
+  tool_file_search: boolean;
+  tool_web_search: boolean;
+  tool_image_generation: boolean;
+  tool_mcp: boolean;
+  mcp_server_ids: string[];
+  tools_config: unknown[];
 }
 
 export interface AgentRun {
@@ -47,6 +61,18 @@ export interface AgentFormData {
   system_prompt: string;
   is_enabled: boolean;
   memory_enabled: boolean;
+  // Conversation fields
+  avatar?: string;
+  welcome_message?: string;
+  conversation_starters?: string[];
+  // Tool configuration
+  tool_code_interpreter?: boolean;
+  tool_file_search?: boolean;
+  tool_web_search?: boolean;
+  tool_image_generation?: boolean;
+  tool_mcp?: boolean;
+  mcp_server_ids?: string[];
+  tools_config?: unknown[];
 }
 
 // Fetch all agents
@@ -131,6 +157,18 @@ export function useCreateAgent() {
           system_prompt: data.system_prompt,
           is_enabled: data.is_enabled,
           memory_enabled: data.memory_enabled,
+          // Conversation fields
+          avatar: data.avatar || null,
+          welcome_message: data.welcome_message || null,
+          conversation_starters: data.conversation_starters || [],
+          // Tool configuration
+          tool_code_interpreter: data.tool_code_interpreter ?? false,
+          tool_file_search: data.tool_file_search ?? true,
+          tool_web_search: data.tool_web_search ?? false,
+          tool_image_generation: data.tool_image_generation ?? false,
+          tool_mcp: data.tool_mcp ?? false,
+          mcp_server_ids: data.mcp_server_ids || [],
+          tools_config: data.tools_config || [],
         })
         .select()
         .single();
@@ -154,21 +192,37 @@ export function useUpdateAgent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: AgentFormData }) => {
-      const slug = data.slug || data.name.toLowerCase().replace(/\s+/g, "-");
+    mutationFn: async ({ id, data }: { id: string; data: Partial<AgentFormData> }) => {
+      const updateData: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      // Only include fields that are provided
+      if (data.name !== undefined) {
+        updateData.name = data.name;
+        updateData.slug = data.slug || data.name.toLowerCase().replace(/\s+/g, "-");
+      }
+      if (data.description !== undefined) updateData.description = data.description || null;
+      if (data.category !== undefined) updateData.category = data.category;
+      if (data.system_prompt !== undefined) updateData.system_prompt = data.system_prompt;
+      if (data.is_enabled !== undefined) updateData.is_enabled = data.is_enabled;
+      if (data.memory_enabled !== undefined) updateData.memory_enabled = data.memory_enabled;
+      // Conversation fields
+      if (data.avatar !== undefined) updateData.avatar = data.avatar || null;
+      if (data.welcome_message !== undefined) updateData.welcome_message = data.welcome_message || null;
+      if (data.conversation_starters !== undefined) updateData.conversation_starters = data.conversation_starters || [];
+      // Tool configuration
+      if (data.tool_code_interpreter !== undefined) updateData.tool_code_interpreter = data.tool_code_interpreter;
+      if (data.tool_file_search !== undefined) updateData.tool_file_search = data.tool_file_search;
+      if (data.tool_web_search !== undefined) updateData.tool_web_search = data.tool_web_search;
+      if (data.tool_image_generation !== undefined) updateData.tool_image_generation = data.tool_image_generation;
+      if (data.tool_mcp !== undefined) updateData.tool_mcp = data.tool_mcp;
+      if (data.mcp_server_ids !== undefined) updateData.mcp_server_ids = data.mcp_server_ids || [];
+      if (data.tools_config !== undefined) updateData.tools_config = data.tools_config || [];
 
       const { data: agent, error } = await supabase
         .from("ai_agents")
-        .update({
-          name: data.name,
-          slug,
-          description: data.description || null,
-          category: data.category,
-          system_prompt: data.system_prompt,
-          is_enabled: data.is_enabled,
-          memory_enabled: data.memory_enabled,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();

@@ -58,6 +58,7 @@ import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
 import AIAgents from "./pages/AIAgents";
+import MCPServers from "./pages/MCPServers";
 import Tasks from "./pages/Tasks";
 import TaskForm from "./pages/TaskForm";
 import TaskDetail from "./pages/TaskDetail";
@@ -133,6 +134,7 @@ const App = () => (
                     <Route path="/ai" element={<AIChat />} />
                     <Route path="/ai/chat" element={<AIChat />} />
                     <Route path="/ai/agents" element={<AIAgents />} />
+                    <Route path="/ai/mcp-servers" element={<MCPServers />} />
                   </Route>
                 </Route>
               </Route>
