@@ -19,6 +19,12 @@ export interface AIAgent {
   metadata: unknown;
   created_at: string;
   updated_at: string;
+  // New conversation-related fields
+  avatar: string | null;
+  welcome_message: string | null;
+  conversation_starters: string[] | null;
+  is_default: boolean;
+  usage_count: number;
 }
 
 export interface AgentRun {
