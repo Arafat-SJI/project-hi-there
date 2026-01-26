@@ -12,6 +12,7 @@ import {
   Brain,
   ChevronRight,
   MessageSquare,
+  Plug,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -58,6 +59,13 @@ const sidebarItems: SidebarItem[] = [
     href: "/ai",
     icon: Brain,
     featureFlag: "enableAIChat",
+  },
+  {
+    title: "MCP Servers",
+    href: "/ai/mcp-servers",
+    icon: Plug,
+    featureFlag: "enableAIChat",
+    adminOnly: true,
   },
   {
     title: "Feedback",
