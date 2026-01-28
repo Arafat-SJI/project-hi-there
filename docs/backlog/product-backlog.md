@@ -4,7 +4,7 @@
 ![Backend: Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?style=flat-square)
 
 > **Version:** 1.1.0  
-> **Last Updated:** 2025-01-05  
+> **Last Updated:** 2026-01-28  
 > **Status:** Active Development
 
 ---
@@ -45,10 +45,12 @@ Transform CollabAi into a **rapidly deployable, configurable multi-tenant SaaS p
 | **Dashboard** | ✅ Complete | Real-time analytics with live stats, recent activity feed, and task overview charts |
 | **Clients** | ✅ Complete | CRUD operations for client management |
 | **Meetings** | ✅ Complete | Meeting scheduling with Zoom integration fields |
+| **Microsoft Teams Integration** | ✅ Complete | Teams meetings, calendar sync, and OneDrive access |
 | **Tasks** | ✅ Complete | Task management with assignments, priorities, and status tracking |
 | **Knowledge Base** | ✅ Complete | Searchable knowledge entries with categories |
 | **AI Chat** | ✅ Complete | AI assistant interface (placeholder) |
 | **AI Agents** | ✅ Complete | Full CRUD + agent execution with history tracking and status monitoring |
+| **MCP Integration** | ✅ Complete | Managed connectivity for AI tool chains and providers |
 | **Notifications** | ✅ Complete | Real-time notifications with Supabase subscriptions, unread count, mark as read/delete |
 | **Admin Panel** | ✅ Complete | User management, role management, activity logs, system settings, deployment status |
 | **System Settings** | ✅ Complete | Platform branding, feature flags, email settings, system configuration |
@@ -57,7 +59,7 @@ Transform CollabAi into a **rapidly deployable, configurable multi-tenant SaaS p
 | **Profile Page** | ✅ Complete | Full profile editing with password change and role display |
 | **UI/UX** | ✅ Complete | Premium SaaS design with CollabAi branding |
 
-### 📊 Database Schema (15 Tables in Supabase)
+### 📊 Database Schema (47+ Tables in Supabase)
 
 | Table | Purpose | RLS |
 |-------|---------|-----|
@@ -78,6 +80,10 @@ Transform CollabAi into a **rapidly deployable, configurable multi-tenant SaaS p
 | `zoom_files` | Zoom recording files | ✅ |
 
 Manage database in **Supabase Dashboard** → Table Editor.
+
+### ⚡ Edge Functions (39+ Functions in Supabase)
+
+Edge functions handle integrations, AI workflows, and background processing across the platform.
 
 ### 🔧 Demo Accounts
 

@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Internal-only documentation (not for customer project)
+docs/archive/
+docs/backlog/
+docs/original/
+docs/development/
+.internal-only
+CLAUDE.MD

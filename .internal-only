@@ -12,6 +12,10 @@ docs/backlog/
 # Historical Development Notes (session summaries, implementation plans)
 docs/archive/
 
+# Additional internal-only paths
+docs/development/
+docs/AI_AGENTS_GAP_ANALYSIS_AND_IMPLEMENTATION_PLAN.md
+
 # Original SJ Innovation Framework Specifications
 docs/original/
 

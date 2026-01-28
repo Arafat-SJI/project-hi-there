@@ -43,6 +43,91 @@ Connect CollabAi to external services for enhanced functionality.
 
 ---
 
+## Quick Reference
+
+### Required Environment Variables by Provider
+
+| Provider | Variables | Notes |
+|----------|-----------|-------|
+| **Zoom** | `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`, `ZOOM_ACCOUNT_ID` | Server-to-Server OAuth |
+| **Microsoft** | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID` | Azure AD App Registration |
+| **Google Login** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth 2.0 for authentication |
+| **Google AI** | `GOOGLE_AI_API_KEY` | API key for Gemini models |
+| **Google Drive** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_API_KEY` | OAuth + API key |
+| **OpenAI** | `OPENAI_API_KEY` | Required for AI features |
+
+### Edge Functions by Provider
+
+| Provider | Edge Functions |
+|----------|----------------|
+| **Zoom** | `sync-zoom-files`, `zoom-transcript-processing`, `generate-meeting-summary` |
+| **Microsoft** | `oauth-exchange-token`, `oauth-refresh-token` (shared) |
+| **Google** | `google-drive-sync`, `google-drive-upload`, `user-knowledge-drive-sync` |
+| **AI** | `ai-chat-assistant`, `generate-embeddings`, `run-ai-agent` |
+
+### Feature Flags
+
+Enable or disable integrations via **Admin → System Settings** or **Admin → Integrations**:
+
+| Setting Path | Integration | Default |
+|--------------|-------------|---------|
+| `features.enableZoomSync` | Zoom recordings sync | `true` |
+| `features.enableGoogleDrive` | Google Drive sync | `false` |
+| `features.enableGoogleLogin` | Sign in with Google | `false` |
+| `features.enableAIChat` | AI chat assistant | `true` |
+
+> **Note**: Most integrations are now configured via the Integration Hub at **Admin → Integrations**. The above feature flags are for backward compatibility.
+
+---
+
+## Two-Tier Integration Architecture
+
+CollabAi uses a **two-tier integration model** to support enterprise deployments:
+
+### Tier 1: Admin/Organization Level
+- Admin enables integrations for the company
+- Stored in `organization_integrations` table
+- Answers: “Does our company use Google/Zoom/etc.?”
+
+### Tier 2: User/Individual Level
+- User connects their personal account
+- Stored in `user_oauth_tokens` table
+- Answers: “Can I access MY Google Drive/Calendar?”
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     TWO-TIER INTEGRATION MODEL                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  TIER 1: ADMIN/ORGANIZATION LEVEL                                   │
+│  ─────────────────────────────────                                  │
+│  Location: Admin > Integrations                                      │
+│  Storage: organization_integrations                                  │
+│  Purpose: "Is this integration available for our company?"           │
+│                                                                      │
+│                         ↓                                            │
+│                                                                      │
+│  TIER 2: USER/INDIVIDUAL LEVEL                                      │
+│  ─────────────────────────────                                       │
+│  Location: Settings > Connected Services                             │
+│  Storage: user_oauth_tokens                                          │
+│  Purpose: "Connect MY personal account"                              │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Which Tier Is Needed?
+
+| Integration | Tier 1 Only | Tier 1 + Tier 2 |
+|-------------|-------------|-----------------|
+| AI Providers (OpenAI, Gemini) | ✅ | |
+| Google Login | ✅ | |
+| Zoom | ✅ | ✅ |
+| Google Drive | ✅ | ✅ |
+| Microsoft 365 | ✅ | ✅ |
+
+---
+
 ## Integration Architecture
 
 ```
@@ -124,3 +209,8 @@ Check integration status in your app:
 - Check rate limits
 - Verify required scopes are granted
 - Check edge function logs
+
+---
+
+**Last Updated:** January 28, 2026  
+**Version:** 1.1.0

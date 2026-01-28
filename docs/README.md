@@ -69,5 +69,5 @@
 
 ---
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Built with ❤️ using [Lovable.dev](https://lovable.dev) + [Supabase](https://supabase.com)**
