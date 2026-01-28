@@ -42,7 +42,9 @@ export function AgentConversationList({
       const conversation = await createConversation.mutateAsync({
         agent_id: agentId,
       });
-      onSelectConversation(conversation.id);
+      if (conversation?.id) {
+        onSelectConversation(conversation.id);
+      }
       onNewConversation?.();
     } catch (error) {
       // Error handled by mutation
@@ -50,18 +52,18 @@ export function AgentConversationList({
   };
 
   // Filter conversations by search query
-  const filteredConversations = conversations?.filter((conv) => {
+  const filteredConversations = conversations?.filter((conv: AgentConversation) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
       conv.title?.toLowerCase().includes(query) ||
       conv.summary?.toLowerCase().includes(query)
     );
-  });
+  }) || [];
 
   // Separate pinned and unpinned conversations
-  const pinnedConversations = filteredConversations?.filter((c) => c.is_pinned) || [];
-  const unpinnedConversations = filteredConversations?.filter((c) => !c.is_pinned) || [];
+  const pinnedConversations = filteredConversations.filter((c: AgentConversation) => c.is_pinned);
+  const unpinnedConversations = filteredConversations.filter((c: AgentConversation) => !c.is_pinned);
 
   return (
     <div className="flex h-full flex-col">
@@ -108,7 +110,7 @@ export function AgentConversationList({
               </div>
             ))}
           </div>
-        ) : filteredConversations?.length === 0 ? (
+        ) : filteredConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">
@@ -136,7 +138,7 @@ export function AgentConversationList({
                 <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
                   Pinned
                 </div>
-                {pinnedConversations.map((conversation) => (
+                {pinnedConversations.map((conversation: AgentConversation) => (
                   <AgentConversationItem
                     key={conversation.id}
                     conversation={conversation}
@@ -155,7 +157,7 @@ export function AgentConversationList({
                     Recent
                   </div>
                 )}
-                {unpinnedConversations.map((conversation) => (
+                {unpinnedConversations.map((conversation: AgentConversation) => (
                   <AgentConversationItem
                     key={conversation.id}
                     conversation={conversation}

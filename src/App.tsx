@@ -32,7 +32,6 @@ import KnowledgeForm from "./pages/KnowledgeForm";
 import KnowledgeDetail from "./pages/KnowledgeDetail";
 import KnowledgeUpload from "./pages/KnowledgeUpload";
 import KnowledgeByCategory from "./pages/KnowledgeByCategory";
-import AIChat from "./pages/AIChat";
 import Admin from "./pages/Admin";
 import DeploymentStatus from "./pages/DeploymentStatus";
 import UserManagement from "./pages/admin/UserManagement";
@@ -57,7 +56,6 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
-import AIAgents from "./pages/AIAgents";
 import MCPServers from "./pages/MCPServers";
 import Tasks from "./pages/Tasks";
 import TaskForm from "./pages/TaskForm";
@@ -127,16 +125,6 @@ const App = () => (
                   <Route path="/notifications" element={<Notifications />} />
                 </Route>
                 <Route path="/feedback" element={<Feedback />} />
-
-                {/* AI routes (admin only but uses regular layout) */}
-                <Route element={<AdminRoute />}>
-                  <Route element={<ModuleRoute requiresFeatureFlag="enableAIChat" />}>
-                    <Route path="/ai" element={<AIChat />} />
-                    <Route path="/ai/chat" element={<AIChat />} />
-                    <Route path="/ai/agents" element={<AIAgents />} />
-                    <Route path="/ai/mcp-servers" element={<MCPServers />} />
-                  </Route>
-                </Route>
               </Route>
             </Route>
 
@@ -157,6 +145,7 @@ const App = () => (
                   <Route path="/admin/integrations/:slug" element={<ProviderDetail />} />
                   <Route path="/admin/ai-models" element={<AIModelManagement />} />
                   <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
+                  <Route path="/admin/mcp-servers" element={<MCPServers />} />
                   <Route path="/admin/feedback" element={<FeedbackManagement />} />
                   <Route path="/admin/deployment" element={<DeploymentStatus />} />
                   <Route path="/admin/environment" element={<EnvironmentValidator />} />

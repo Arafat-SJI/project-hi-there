@@ -12,7 +12,6 @@ import {
   Brain,
   ChevronRight,
   MessageSquare,
-  Plug,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -21,7 +20,7 @@ interface SidebarItem {
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
   adminOnly?: boolean;
-  featureFlag?: "enableClients" | "enableMeetings" | "enableTasks" | "enableKnowledgeBase" | "enableAIChat" | "enableAIAgents" | "enableFeedback";
+  featureFlag?: "enableClients" | "enableMeetings" | "enableTasks" | "enableKnowledgeBase" | "enableFeedback";
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -53,19 +52,6 @@ const sidebarItems: SidebarItem[] = [
     href: "/knowledge",
     icon: BookOpen,
     featureFlag: "enableKnowledgeBase",
-  },
-  {
-    title: "AI Chat",
-    href: "/ai",
-    icon: Brain,
-    featureFlag: "enableAIChat",
-  },
-  {
-    title: "MCP Servers",
-    href: "/ai/mcp-servers",
-    icon: Plug,
-    featureFlag: "enableAIChat",
-    adminOnly: true,
   },
   {
     title: "Feedback",
