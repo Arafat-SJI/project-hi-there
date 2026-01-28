@@ -2,7 +2,7 @@ project_id = "tjkqvbxtziheggurtvcz"
 
 # Admin functions - require authentication
 [functions.check-environment]
-verify_jwt = true
+verify_jwt = false
 
 [functions.seed-template-data]
 verify_jwt = true
