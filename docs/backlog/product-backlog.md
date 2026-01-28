@@ -401,14 +401,14 @@ CREATE TRIGGER update_sso_configurations_updated_at
 
 #### Acceptance Criteria
 
-- [ ] Admin can enable/disable email/password authentication
-- [ ] Admin can configure Google Workspace SSO with domain restrictions
-- [ ] Admin can configure Microsoft Azure AD SSO with tenant restrictions
-- [ ] Login page dynamically shows only enabled authentication methods
-- [ ] Users from restricted domains cannot authenticate
-- [ ] New SSO users are auto-provisioned with correct role
-- [ ] All SSO login attempts are logged for audit
-- [ ] System gracefully handles IdP downtime
+- [x] Admin can enable/disable email/password authentication
+- [x] Admin can configure Google Workspace SSO with domain restrictions
+- [x] Admin can configure Microsoft Azure AD SSO with tenant restrictions
+- [x] Login page dynamically shows only enabled authentication methods
+- [x] Users from restricted domains cannot authenticate
+- [x] New SSO users are auto-provisioned with correct role
+- [x] All SSO login attempts are logged for audit
+- [x] System gracefully handles IdP downtime
 
 #### Security Considerations
 
