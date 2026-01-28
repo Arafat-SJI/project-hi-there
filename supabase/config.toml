@@ -124,3 +124,11 @@ verify_jwt = false
 # Microsoft Graph subscription management - requires authentication
 [functions.microsoft-graph-subscribe]
 verify_jwt = false
+
+# MCP server verification - background function
+[functions.verify-mcp-server]
+verify_jwt = false
+
+# Admin management - requires manual authentication validation
+[functions.promote-to-admin]
+verify_jwt = false
