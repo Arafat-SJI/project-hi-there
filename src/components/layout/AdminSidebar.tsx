@@ -24,6 +24,7 @@ import {
   ChevronDown,
   MessageSquare,
   Plug,
+  Rocket,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -110,6 +111,11 @@ const sidebarGroups: SidebarGroup[] = [
         title: "Integrations",
         href: "/admin/integrations",
         icon: Zap,
+      },
+      {
+        title: "Product Roadmap",
+        href: "/admin/roadmap",
+        icon: Rocket,
       },
       {
         title: "Deployment Status",

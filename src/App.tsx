@@ -52,6 +52,7 @@ import DeploymentChecklist from "./pages/admin/DeploymentChecklist";
 import SSOSettings from "./pages/admin/SSOSettings";
 import MeetingAnalytics from "./pages/admin/MeetingAnalytics";
 import FeedbackManagement from "./pages/admin/FeedbackManagement";
+import ProductRoadmap from "./pages/admin/ProductRoadmap";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
@@ -153,6 +154,7 @@ const App = () => (
                   <Route path="/admin/checklist" element={<DeploymentChecklist />} />
                   <Route path="/admin/sso-settings" element={<SSOSettings />} />
                   <Route path="/admin/meeting-analytics" element={<MeetingAnalytics />} />
+                  <Route path="/admin/roadmap" element={<ProductRoadmap />} />
                 </Route>
               </Route>
             </Route>
