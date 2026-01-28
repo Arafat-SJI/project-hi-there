@@ -23,6 +23,7 @@ import {
   BarChart,
   ChevronDown,
   MessageSquare,
+  Plug,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -89,6 +90,11 @@ const sidebarGroups: SidebarGroup[] = [
         title: "AI Usage Analytics",
         href: "/admin/ai-usage",
         icon: BarChart,
+      },
+      {
+        title: "MCP Servers",
+        href: "/admin/mcp-servers",
+        icon: Plug,
       },
     ],
   },
