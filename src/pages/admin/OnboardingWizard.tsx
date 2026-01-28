@@ -24,8 +24,11 @@ import {
   Settings,
   Sparkles,
   Rocket,
+  ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 interface WizardStep {
   id: string;
@@ -58,6 +61,12 @@ const WIZARD_STEPS: WizardStep[] = [
     title: 'Seed Data',
     description: 'Set up initial templates and categories',
     icon: Sparkles,
+  },
+  {
+    id: 'admin-check',
+    title: 'Admin User Setup',
+    description: 'Verify admin users are configured',
+    icon: ShieldCheck,
   },
   {
     id: 'complete',
@@ -102,6 +111,118 @@ const defaultData: OnboardingData = {
   seedKnowledgeCategories: true,
   seedSampleData: false,
 };
+
+// Admin User Check Component
+function AdminUserCheck() {
+  const [adminCount, setAdminCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAdminUsers();
+  }, []);
+
+  const checkAdminUsers = async () => {
+    try {
+      setLoading(true);
+      const { count, error } = await supabase
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'admin');
+
+      if (error) throw error;
+      setAdminCount(count ?? 0);
+    } catch (error) {
+      console.error('Error checking admin users:', error);
+      setAdminCount(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="text-center mb-6">
+        <ShieldCheck className="h-16 w-16 text-primary mx-auto mb-3" />
+        <h3 className="text-lg font-semibold">Admin User Verification</h3>
+        <p className="text-muted-foreground mt-1">
+          Ensure at least one admin user exists for platform management
+        </p>
+      </div>
+
+      {adminCount === 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <p className="font-medium mb-2">No Admin Users Found</p>
+            <p className="text-sm">
+              You need at least one admin user to manage this platform. Please:
+            </p>
+            <ol className="list-decimal list-inside text-sm mt-2 space-y-1">
+              <li>Navigate to User Management after setup</li>
+              <li>Promote a user to admin role</li>
+              <li>Or follow the ADMIN-SETUP-GUIDE.md documentation</li>
+            </ol>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {adminCount && adminCount > 0 && (
+        <Alert>
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription>
+            <p className="font-medium text-green-600">Admin Users Configured ✓</p>
+            <p className="text-sm mt-1">
+              {adminCount} admin user(s) found. Your platform is ready for management.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="border rounded-lg p-4 bg-muted/50">
+        <h4 className="font-medium mb-2">Quick Actions</h4>
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="outline"
+            onClick={() => window.open('/admin/users', '_blank')}
+            className="justify-start"
+          >
+            Open User Management
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => window.open('/docs/ADMIN-SETUP-GUIDE.md', '_blank')}
+            className="justify-start text-sm"
+          >
+            View Admin Setup Guide
+          </Button>
+        </div>
+      </div>
+
+      <Alert>
+        <AlertDescription className="text-sm">
+          <p className="font-medium mb-1">What are admin users?</p>
+          <p>
+            Admin users have full access to the admin panel at <code>/admin</code> and can:
+          </p>
+          <ul className="list-disc list-inside mt-1 space-y-1">
+            <li>Manage other users and roles</li>
+            <li>Configure system settings</li>
+            <li>View analytics and reports</li>
+            <li>Manage integrations</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
+}
 
 export default function OnboardingWizard() {
   const navigate = useNavigate();
@@ -328,6 +449,9 @@ export default function OnboardingWizard() {
             ))}
           </div>
         );
+
+      case 'admin-check':
+        return <AdminUserCheck />;
 
       case 'complete':
         return (

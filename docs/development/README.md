@@ -35,6 +35,7 @@ This documentation represents a **comprehensive gap analysis and implementation 
 | **Phase 5** | [`PHASE-05-INTEGRATIONS.md`](./PHASE-05-INTEGRATIONS.md) | Microsoft, Zoom, OAuth | ✅ Complete | Very High |
 | **Phase 6** | [`PHASE-06-ADVANCED-FEATURES.md`](./PHASE-06-ADVANCED-FEATURES.md) | Admin, Analytics, DevOps | ✅ Complete | Medium |
 | **Supplement** | [`ADMIN-PANEL-DETAILED.md`](./ADMIN-PANEL-DETAILED.md) | Complete Admin Panel Reference | ✅ Complete | Reference |
+| **🔴 FIX** | [`ADMIN-PANEL-FIX-PLAN.md`](./ADMIN-PANEL-FIX-PLAN.md) | Fix Admin Panel Visibility Issue | 🔴 CRITICAL | Fix Guide |
 
 ---
 
@@ -60,7 +61,9 @@ This document reveals:
 👉 **Start with**: [`PHASE-06-ADVANCED-FEATURES.md`](./PHASE-06-ADVANCED-FEATURES.md) (Section 3: DevOps)
 
 ### For System Administrators
-👉 **Start with**: [`ADMIN-PANEL-DETAILED.md`](./ADMIN-PANEL-DETAILED.md) - Complete reference for all 22 admin pages
+👉 **Start with**:
+- 🔴 **CRITICAL**: [`ADMIN-PANEL-FIX-PLAN.md`](./ADMIN-PANEL-FIX-PLAN.md) - Fix admin panel visibility issue
+- [`ADMIN-PANEL-DETAILED.md`](./ADMIN-PANEL-DETAILED.md) - Complete reference for all 22 admin pages
 
 ---
 
@@ -173,6 +176,28 @@ The framework includes a **comprehensive admin panel** with 22 pages organized i
 
 **CONTENT & FEEDBACK**:
 - Feedback Management (bug reports, features, analytics)
+
+### 🔴 CRITICAL ISSUE: Admin Panel Not Visible
+
+**Issue**: Users cannot see the admin panel even when they should have admin access.
+
+**Root Cause**: Missing role assignment in `user_roles` table.
+
+**Quick Fix**:
+```sql
+-- Run this in Supabase SQL Editor, replacing YOUR_USER_ID with your actual user ID
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('YOUR_USER_ID', 'admin');
+```
+
+**Complete Solution**: See [**ADMIN-PANEL-FIX-PLAN.md**](./ADMIN-PANEL-FIX-PLAN.md) for:
+- 4 implementation phases (immediate fix, automated solution, self-service, production-ready)
+- Multiple fix options (SQL, edge functions, automated triggers)
+- Testing checklist for each phase
+- Security best practices
+- Emergency recovery procedures
+
+---
 
 **AI & AUTOMATION**:
 - AI Model Management (multi-provider, sync from APIs)

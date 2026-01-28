@@ -155,6 +155,31 @@ serve(async (req) => {
       });
     }
 
+    // 7. Check if at least one admin user exists
+    try {
+      const { count, error } = await supabase
+        .from("user_roles")
+        .select("*", { count: "exact", head: true })
+        .eq("role", "admin");
+
+      const adminCount = count ?? 0;
+      checks.push({
+        name: "Admin User Exists",
+        status: adminCount > 0 ? "pass" : "warning",
+        message: adminCount > 0
+          ? `${adminCount} admin user(s) configured`
+          : "No admin users found - promote a user to admin (see ADMIN-SETUP-GUIDE.md)",
+        critical: false,
+      });
+    } catch (e) {
+      checks.push({
+        name: "Admin User Exists",
+        status: "warning",
+        message: "Unable to check admin users",
+        critical: false,
+      });
+    }
+
     // Calculate overall status
     const criticalFailures = checks.filter((c) => c.critical && c.status === "fail");
     const overallStatus =
