@@ -83,14 +83,16 @@ serve(async (req) => {
     }
 
     // Verify target user exists
-    const { data: targetUser, error: targetUserError } = await supabase.auth.admin.getUserById(targetUserId);
+    const { data: targetUserData, error: targetUserError } = await supabase.auth.admin.getUserById(targetUserId);
 
-    if (targetUserError || !targetUser) {
+    if (targetUserError || !targetUserData?.user) {
       return new Response(
         JSON.stringify({ error: "Target user not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const targetUser = targetUserData.user;
 
     // Check if target user has existing role
     const { data: existingRole } = await supabase

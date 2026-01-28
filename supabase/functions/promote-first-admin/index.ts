@@ -26,14 +26,16 @@ serve(async (req) => {
     }
 
     // Verify user exists
-    const { data: user, error: userError } = await supabase.auth.admin.getUserById(userId);
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
 
-    if (userError || !user) {
+    if (userError || !userData?.user) {
       return new Response(
         JSON.stringify({ error: "User not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const user = userData.user;
 
     // Check if user already has a role
     const { data: existingRole } = await supabase
