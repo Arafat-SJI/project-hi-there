@@ -1,0 +1,177 @@
+/**
+ * Project Detail Page - Tabbed view
+ */
+
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Calendar, Users, Milestone, MessageSquare, AlertTriangle, Loader2, Plus, CheckCircle2 } from "lucide-react";
+import { useProject } from "../hooks/useProjects";
+import { useProjectMembers } from "../hooks/useProjectDetail";
+import { useProjectMilestones, useAddMilestone, useUpdateMilestone } from "../hooks/useProjectDetail";
+import { useProjectComments, useAddProjectComment } from "../hooks/useProjectDetail";
+import { useProjectRisks } from "../hooks/useProjectDetail";
+import type { ProjectTab } from "../types";
+
+export default function ProjectDetailPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
+
+  const { data: project, isLoading } = useProject(slug!);
+  const { data: members = [] } = useProjectMembers(project?.id || "");
+  const { data: milestones = [] } = useProjectMilestones(project?.id || "");
+  const { data: comments = [] } = useProjectComments(project?.id || "");
+  const { data: risks = [] } = useProjectRisks(project?.id || "");
+  const addComment = useAddProjectComment();
+  const addMilestone = useAddMilestone();
+  const updateMilestone = useUpdateMilestone();
+
+  const [newComment, setNewComment] = useState("");
+  const [newMilestone, setNewMilestone] = useState("");
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
+  if (!project) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+        <p className="text-lg font-medium">Project not found</p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/projects")}>Back to Projects</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/projects")}><ArrowLeft className="h-5 w-5" /></Button>
+        <div>
+          <h1 className="text-2xl font-bold">{project.name}</h1>
+          <div className="flex items-center gap-2 mt-1">
+            {project.status && (
+              <Badge style={{ backgroundColor: `${project.status.color}20`, color: project.status.color }} variant="outline">{project.status.name}</Badge>
+            )}
+            {project.owner && <span className="text-sm text-muted-foreground">Owner: {project.owner.full_name}</span>}
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProjectTab)}>
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="milestones">Milestones ({milestones.length})</TabsTrigger>
+          <TabsTrigger value="members">Members ({members.length})</TabsTrigger>
+          <TabsTrigger value="issues">Risks ({risks.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4 mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2">
+              <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {project.description && <p className="text-sm text-muted-foreground">{project.description}</p>}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {project.start_date && <div><p className="text-muted-foreground">Start</p><p>{new Date(project.start_date).toLocaleDateString()}</p></div>}
+                  {project.end_date && <div><p className="text-muted-foreground">End</p><p>{new Date(project.end_date).toLocaleDateString()}</p></div>}
+                  {project.budget && <div><p className="text-muted-foreground">Budget</p><p>{project.currency} {project.budget.toLocaleString()}</p></div>}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base">Activity</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {comments.slice(-5).map((c) => (
+                    <div key={c.id} className="text-sm border-l-2 pl-3 py-1">
+                      <p className="font-medium text-xs">{c.user?.full_name}</p>
+                      <p className="text-muted-foreground">{c.content}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <Input placeholder="Add a comment..." value={newComment} onChange={(e) => setNewComment(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && newComment.trim()) { addComment.mutate({ projectId: project.id, content: newComment.trim() }); setNewComment(""); }}} />
+                  <Button size="sm" disabled={!newComment.trim()} onClick={() => { addComment.mutate({ projectId: project.id, content: newComment.trim() }); setNewComment(""); }}>Post</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="milestones" className="mt-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Input placeholder="New milestone..." value={newMilestone} onChange={(e) => setNewMilestone(e.target.value)} className="max-w-sm" />
+            <Button size="sm" disabled={!newMilestone.trim()} onClick={() => { addMilestone.mutate({ projectId: project.id, title: newMilestone.trim() }); setNewMilestone(""); }}><Plus className="h-4 w-4 mr-1" />Add</Button>
+          </div>
+          {milestones.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">No milestones yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {milestones.map((m) => (
+                <Card key={m.id}>
+                  <CardContent className="flex items-center gap-3 py-3 px-4">
+                    <button onClick={() => updateMilestone.mutate({ id: m.id, projectId: project.id, data: { status: m.status === "completed" ? "pending" : "completed", completed_at: m.status === "completed" ? null : new Date().toISOString() } })}>
+                      <CheckCircle2 className={`h-5 w-5 ${m.status === "completed" ? "text-green-500" : "text-muted-foreground"}`} />
+                    </button>
+                    <div className="flex-1">
+                      <p className={`font-medium text-sm ${m.status === "completed" ? "line-through text-muted-foreground" : ""}`}>{m.title}</p>
+                      {m.due_date && <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(m.due_date).toLocaleDateString()}</p>}
+                    </div>
+                    <Badge variant="outline">{m.status}</Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="members" className="mt-4">
+          {members.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">No members yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {members.map((m) => (
+                <Card key={m.id}>
+                  <CardContent className="flex items-center gap-3 py-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Users className="h-5 w-5 text-primary" /></div>
+                    <div>
+                      <p className="font-medium text-sm">{m.user?.full_name || "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{m.role}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="issues" className="mt-4">
+          {risks.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">No risks identified.</p>
+          ) : (
+            <div className="space-y-2">
+              {risks.map((r) => (
+                <Card key={r.id}>
+                  <CardContent className="flex items-center gap-3 py-3 px-4">
+                    <AlertTriangle className={`h-5 w-5 ${r.severity === "critical" ? "text-red-500" : r.severity === "high" ? "text-orange-500" : "text-yellow-500"}`} />
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{r.title}</p>
+                      {r.description && <p className="text-xs text-muted-foreground">{r.description}</p>}
+                    </div>
+                    <Badge variant="outline">{r.severity}</Badge>
+                    <Badge variant="secondary">{r.status}</Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

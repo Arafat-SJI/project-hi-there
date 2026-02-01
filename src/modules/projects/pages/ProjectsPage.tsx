@@ -1,0 +1,120 @@
+/**
+ * Projects Listing Page
+ */
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Search, FolderKanban, Calendar, Loader2 } from "lucide-react";
+import { useProjects, useProjectStatuses } from "../hooks/useProjects";
+
+export default function ProjectsPage() {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const { data: statuses = [] } = useProjectStatuses();
+  const { data: projects = [], isLoading } = useProjects({
+    search: search || undefined,
+    status_id: statusFilter !== "all" ? statusFilter : undefined,
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Projects</h1>
+          <p className="text-muted-foreground">Manage your projects</p>
+        </div>
+        <Button onClick={() => navigate("/projects/new")}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Project
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {statuses.slice(0, 4).map((s) => (
+          <Card key={s.id}>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color }} />
+                <p className="text-sm text-muted-foreground">{s.name}</p>
+              </div>
+              <p className="text-2xl font-bold mt-1">
+                {projects.filter((p) => p.status_id === s.id).length}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            {statuses.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+      ) : projects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <FolderKanban className="h-12 w-12 mb-4 opacity-40" />
+          <p className="text-lg font-medium">No projects found</p>
+        </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project</TableHead>
+                <TableHead className="w-[120px]">Status</TableHead>
+                <TableHead className="w-[150px]">Owner</TableHead>
+                <TableHead className="w-[150px]">Dates</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {projects.map((project) => (
+                <TableRow key={project.id} className="cursor-pointer" onClick={() => navigate(`/projects/${project.slug}`)}>
+                  <TableCell>
+                    <p className="font-medium">{project.name}</p>
+                    {project.description && <p className="text-xs text-muted-foreground line-clamp-1">{project.description}</p>}
+                  </TableCell>
+                  <TableCell>
+                    {project.status ? (
+                      <Badge style={{ backgroundColor: `${project.status.color}20`, color: project.status.color, borderColor: project.status.color }} variant="outline">
+                        {project.status.name}
+                      </Badge>
+                    ) : <Badge variant="outline">No status</Badge>}
+                  </TableCell>
+                  <TableCell><span className="text-sm">{project.owner?.full_name || "-"}</span></TableCell>
+                  <TableCell>
+                    {project.start_date ? (
+                      <span className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(project.start_date).toLocaleDateString()}</span>
+                    ) : <span className="text-xs text-muted-foreground">-</span>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+    </div>
+  );
+}

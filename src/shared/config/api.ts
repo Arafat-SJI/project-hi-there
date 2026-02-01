@@ -1,0 +1,90 @@
+/**
+ * API Endpoint Registry
+ *
+ * Centralized definition of all Supabase Edge Function endpoints.
+ * Modules reference endpoints from here instead of hardcoding strings.
+ */
+
+export const API = {
+  // Auth
+  AUTH: {
+    AZURE_LOGIN: "azure-auth-login",
+    AZURE_LOGOUT: "azure-auth-logout",
+    PROMOTE_ADMIN: "promote-to-admin",
+    PROMOTE_FIRST_ADMIN: "promote-first-admin",
+    VALIDATE_SSO: "validate-sso-domain",
+  },
+
+  // AI
+  AI: {
+    CHAT: "ai-chat-assistant",
+    AGENT_RUN: "run-ai-agent",
+    AGENT_CHAT_STREAM: "agent-chat-stream",
+    AGENT_CONVERSATION: "agent-conversation-chat",
+    SYNC_MODELS: "sync-ai-models",
+    GENERATE_EMBEDDINGS: "generate-embeddings",
+    SEMANTIC_SEARCH: "semantic-search",
+    UNIFIED_SEARCH: "unified-knowledge-search",
+    EXTRACT_MEMORIES: "extract-agent-memories",
+  },
+
+  // Knowledge
+  KNOWLEDGE: {
+    AUTO_EMBED: "auto-embed-knowledge-entry",
+    AUTO_EMBED_FILES: "auto-embed-knowledge-files",
+    SEARCH: "unified-knowledge-search",
+    USER_UPLOAD: "user-knowledge-upload",
+    USER_PROCESS: "user-knowledge-process",
+    USER_DRIVE_SYNC: "user-knowledge-drive-sync",
+  },
+
+  // Meetings
+  MEETINGS: {
+    BASE: "api-v1-meetings",
+    SUMMARY: "generate-meeting-summary",
+    CATEGORIZE: "categorize-meeting",
+    AUTO_EMBED: "auto-embed-meetings",
+    TRANSCRIPT_PROCESS: "zoom-transcript-processing",
+  },
+
+  // Integrations
+  INTEGRATIONS: {
+    OAUTH_EXCHANGE: "oauth-exchange-token",
+    OAUTH_REFRESH: "oauth-refresh-token",
+    OAUTH_CONNECT: "user-oauth-connect",
+    OAUTH_CALLBACK: "user-oauth-callback",
+    OAUTH_DISCONNECT: "user-oauth-disconnect",
+    GOOGLE_DRIVE_SYNC: "google-drive-sync",
+    GOOGLE_DRIVE_UPLOAD: "google-drive-upload",
+    ZOOM_SYNC: "sync-zoom-files",
+    MS_GRAPH_SUBSCRIBE: "microsoft-graph-subscribe",
+    CHECK_ENV: "check-environment",
+    WEBHOOK: "webhook-handler",
+  },
+
+  // Notifications
+  NOTIFICATIONS: {
+    SEND: "send-notification",
+    SEND_EMAIL: "send-email",
+    SEND_FEEDBACK: "send-feedback-notification",
+  },
+
+  // MCP
+  MCP: {
+    EXECUTE_TOOL: "execute-mcp-tool",
+    VERIFY_SERVER: "verify-mcp-server",
+  },
+
+  // System
+  SYSTEM: {
+    SEED_TEMPLATES: "seed-template-data",
+    VALIDATE_API_KEY: "validate-api-key",
+    AUDIT_LOG: "audit-log-writer",
+    GENERATE_DOC: "generate-business-doc",
+  },
+
+  // Clients (current)
+  CLIENTS: {
+    BASE: "api-v1-clients",
+  },
+} as const;
