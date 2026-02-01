@@ -11,9 +11,33 @@
  *   "planned"    — Scoped and assigned, not started
  *   "blocked"    — Waiting on a dependency
  *   "not-started" — Not yet scoped
+ *
+ * Pipeline (4-phase delivery):
+ *   Development → QA (via Lovable QA module) → Data Seeding → Sign-off (Jairaj)
  */
 
 export type ItemStatus = "done" | "qa-ready" | "in-progress" | "planned" | "blocked" | "not-started";
+
+export type PipelineStatus = "not-started" | "in-progress" | "done" | "blocked";
+
+export interface PipelinePhase {
+  status: PipelineStatus;
+  owner?: string;
+  notes?: string;
+}
+
+export interface Pipeline {
+  development: PipelinePhase;
+  qa: PipelinePhase;
+  dataSeeding: PipelinePhase;
+  signOff: PipelinePhase;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  modules: string[];
+}
 
 export interface StatusItem {
   name: string;
@@ -31,9 +55,10 @@ export interface ModuleStatus {
   id: string;
   name: string;
   phase: number;
-  owner?: string;
+  owner: string;
   summary: string;
   docs: DocReference[];
+  pipeline: Pipeline;
   database: { tables: number; status: ItemStatus; notes?: string };
   types: { status: ItemStatus };
   routes: { status: ItemStatus };
@@ -47,6 +72,16 @@ export interface ModuleStatus {
   blockers?: string[];
 }
 
+// ─── Team ──────────────────────────────────────────────────────────────────────
+
+export const TEAM: TeamMember[] = [
+  { id: "shahed", name: "Shahed", modules: ["platform", "knowledge", "admin", "ai-agents"] },
+  { id: "abesh", name: "Abesh", modules: ["actions", "eos", "meetings"] },
+  { id: "zia", name: "Zia", modules: ["projects", "business-dev", "productivity"] },
+];
+
+export const SIGN_OFF_OWNER = "Jairaj";
+
 // ─── Last updated: 2026-02-01 ─────────────────────────────────────────────────
 
 export const implementationStatus: ModuleStatus[] = [
@@ -55,7 +90,14 @@ export const implementationStatus: ModuleStatus[] = [
     id: "platform",
     name: "Platform Core",
     phase: 0,
+    owner: "Shahed",
     summary: "Auth, layout, routing, module access system, config, shared UI. Fully complete.",
+    pipeline: {
+      development: { status: "done", owner: "Shahed" },
+      qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: roles, default settings, sample users" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
     docs: [
       { title: "Platform Core Blueprint", path: "docs/02-modules/01-platform-core.md", description: "Pages, components, hooks, routes, DB tables for platform core" },
       { title: "Architecture Overview", path: "docs/01-architecture/00-architecture-overview.md", description: "V2 architecture: 4-layer framework, component hierarchy, AI, integrations" },
@@ -94,7 +136,14 @@ export const implementationStatus: ModuleStatus[] = [
     id: "actions",
     name: "Actions (Tasks & Streams)",
     phase: 1,
+    owner: "Abesh",
     summary: "Task CRUD, streams, comments, subtasks. Core flows complete.",
+    pipeline: {
+      development: { status: "done", owner: "Abesh" },
+      qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Abesh", notes: "Seed: 10 tasks, 3 streams, sample comments" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
     docs: [
       { title: "Actions Blueprint", path: "docs/02-modules/05-actions.md", description: "8 pages, 22 components, 16 hooks, 7 tables, 12 edge functions" },
     ],
@@ -142,7 +191,14 @@ export const implementationStatus: ModuleStatus[] = [
     id: "eos",
     name: "EOS (V/TO, OKRs, Issues, Scorecard, Accountability)",
     phase: 2,
+    owner: "Abesh",
     summary: "Full EOS framework. Largest module: 9 pages, 12 components, 6 hooks.",
+    pipeline: {
+      development: { status: "done", owner: "Abesh" },
+      qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Abesh", notes: "Seed: VTO entries, 5 OKRs, 10 issues, scorecard metrics, org chart" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
     docs: [
       { title: "EOS Blueprint", path: "docs/02-modules/02-eos.md", description: "24 pages, 40+ components, 15 hooks, 12 tables, 12 edge functions" },
     ],
@@ -202,7 +258,14 @@ export const implementationStatus: ModuleStatus[] = [
     id: "meetings",
     name: "Meetings V2",
     phase: 3,
+    owner: "Abesh",
     summary: "Extended meetings with agenda, takeaways, participants, recurring series.",
+    pipeline: {
+      development: { status: "done", owner: "Abesh" },
+      qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Abesh", notes: "Seed: 5 meetings, agenda items, recurring series, sample participants" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
     docs: [
       { title: "Meetings Blueprint", path: "docs/02-modules/03-meetings.md", description: "7 pages, 46 components, 30 hooks, 9 tables, 33 edge functions" },
     ],
@@ -251,7 +314,14 @@ export const implementationStatus: ModuleStatus[] = [
     id: "knowledge",
     name: "Knowledge Base",
     phase: 4,
+    owner: "Shahed",
     summary: "Database and types ready. UI leverages existing legacy pages. Vector search tables prepared.",
+    pipeline: {
+      development: { status: "in-progress", owner: "Shahed", notes: "Legacy UI done, semantic search UI pending" },
+      qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: 10 articles, categories, sample embeddings, common knowledge" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
     docs: [
       { title: "Knowledge Base Blueprint", path: "docs/02-modules/07-knowledge-base.md", description: "20 pages, 17+ components, 20 hooks, 9 tables, 22 edge functions" },
     ],
@@ -296,7 +366,14 @@ export const implementationStatus: ModuleStatus[] = [
     id: "projects",
     name: "Projects",
     phase: 5,
+    owner: "Zia",
     summary: "Full CRUD with milestones, members, risks, billing tables. Form pages for create/edit.",
+    pipeline: {
+      development: { status: "done", owner: "Zia" },
+      qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Zia", notes: "Seed: 5 projects, milestones, members, risks, sample invoices" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
     docs: [
       { title: "Projects Blueprint", path: "docs/02-modules/04-projects.md", description: "11 pages, 100+ components, 48 hooks, 14 tables, 45+ edge functions" },
     ],
@@ -339,7 +416,14 @@ export const implementationStatus: ModuleStatus[] = [
     id: "business-dev",
     name: "Business Development (Deals, Contacts, Clients)",
     phase: 6,
+    owner: "Zia",
     summary: "Deals pipeline, contacts with lead follow-ups, legacy client management. Full CRUD for deals.",
+    pipeline: {
+      development: { status: "done", owner: "Zia" },
+      qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Zia", notes: "Seed: 10 deals across stages, 15 contacts, lead follow-ups, sample clients" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
     docs: [
       { title: "Business Dev Blueprint", path: "docs/02-modules/06-business-development.md", description: "42 pages, 134 components, 68 hooks, 15 tables, 75+ edge functions" },
     ],
@@ -390,7 +474,14 @@ export const implementationStatus: ModuleStatus[] = [
     id: "productivity",
     name: "Productivity (Metrics, Employees, Process Docs)",
     phase: 7,
+    owner: "Zia",
     summary: "Department-level productivity dashboard, employee detail, process documentation library.",
+    pipeline: {
+      development: { status: "done", owner: "Zia" },
+      qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Zia", notes: "Seed: departments, employee profiles, weekly records, process categories + docs" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
     docs: [
       { title: "Productivity Blueprint", path: "docs/02-modules/08-productivity.md", description: "13 pages, 40 components, 19 hooks, 10 tables, 12 edge functions" },
     ],
@@ -435,7 +526,14 @@ export const implementationStatus: ModuleStatus[] = [
     id: "admin",
     name: "Admin Panel Extensions",
     phase: 8,
+    owner: "Shahed",
     summary: "21 existing admin pages. Added team management and knowledge admin sections.",
+    pipeline: {
+      development: { status: "in-progress", owner: "Shahed", notes: "Core admin done, EOS/data sync admin pages pending" },
+      qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: system settings, feature flags, sample activity logs" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
     docs: [
       { title: "Admin Blueprint", path: "docs/02-modules/09-admin.md", description: "95+ pages, 60+ components, 40+ hooks, 11 tables" },
       { title: "Admin Guide", path: "docs/07-admin/admin-guide.md", description: "Admin guide for system administration" },
@@ -468,6 +566,67 @@ export const implementationStatus: ModuleStatus[] = [
       "Data sync dashboard (HR, HubSpot, ActiveCollab)",
       "Reports module (project reports, financial, resource utilization)",
       "Notification management",
+    ],
+  },
+  // ── Phase 9: AI Agents Framework ───────────────────────────────────────────
+  {
+    id: "ai-agents",
+    name: "AI Agents Framework",
+    phase: 9,
+    owner: "Shahed",
+    summary: "AI agent management, chat interface, model configuration, usage analytics, MCP server integration.",
+    pipeline: {
+      development: { status: "in-progress", owner: "Shahed", notes: "Admin pages done, user-facing agent/chat routes not wired" },
+      qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
+      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: AI providers, models, sample agents, demo conversations" },
+      signOff: { status: "not-started", owner: "Jairaj" },
+    },
+    docs: [
+      { title: "AI Features Overview", path: "docs/06-ai-features/README.md", description: "AI capabilities, models, RAG pipeline, agent architecture" },
+      { title: "AI Agents Implementation", path: "docs/original/new/AI_AGENTS_IMPLEMENTATION_GUIDE.md", description: "Detailed agent implementation patterns and tools" },
+      { title: "RAG Framework Guide", path: "docs/original/new/AI_AGENTS_RAG_FRAMEWORK_GUIDE.md", description: "Retrieval-augmented generation framework design" },
+    ],
+    database: { tables: 5, status: "done", notes: "ai_agents, ai_agent_runs, ai_models, ai_providers, ai_usage_logs" },
+    types: { status: "done" },
+    routes: { status: "in-progress", notes: "Admin routes wired, user-facing /ai-agents and /ai-chat not yet routed" },
+    navigation: { status: "done", notes: "Admin AI & Automation section in sidebar" },
+    pages: [
+      { name: "AIModelManagement — admin provider/model config", status: "done" },
+      { name: "AIUsageAnalytics — admin usage dashboard + cost tracking", status: "done" },
+      { name: "MCPServers — MCP server management", status: "done" },
+      { name: "AIAgents — agent CRUD + execution (page exists, route not wired)", status: "in-progress" },
+      { name: "AIChat — conversational AI interface (page exists, route not wired)", status: "in-progress" },
+    ],
+    hooks: [
+      { name: "useAIAgents — CRUD, toggle, run agent, execution history", status: "done" },
+      { name: "useAIChatAssistant — chat functionality", status: "in-progress" },
+      { name: "useModelSync — sync models from providers", status: "done" },
+    ],
+    components: [
+      { name: "AIChatInterface — reusable chat UI", status: "done" },
+      { name: "SemanticSearch — vector search component", status: "done" },
+      { name: "AgentPersonalizationModal — agent customization", status: "done" },
+    ],
+    edgeFunctions: [
+      { name: "run-ai-agent — agent execution runtime", status: "done" },
+      { name: "auto-embed — embedding pipeline", status: "not-started" },
+      { name: "semantic-search — vector similarity search", status: "not-started" },
+      { name: "gemini-rag — RAG with Gemini", status: "not-started" },
+    ],
+    qaChecklist: [
+      { description: "Navigate /admin/ai-models and see provider list", tested: false },
+      { description: "Enable/disable an AI model", tested: false },
+      { description: "Navigate /admin/ai-usage and see analytics dashboard", tested: false },
+      { description: "Navigate /admin/mcp-servers and manage servers", tested: false },
+      { description: "Create an AI agent with system prompt", tested: false },
+      { description: "Run an agent and verify execution history", tested: false },
+      { description: "Open AI chat and send a message", tested: false },
+    ],
+    nextSteps: [
+      "Wire /ai-agents and /ai-chat user-facing routes",
+      "Deploy auto-embed edge function for embedding pipeline",
+      "Build semantic search UI in Knowledge Base",
+      "Agent memory/conversation persistence tables",
     ],
   },
 ];
@@ -508,4 +667,34 @@ export function getQAProgress(module: ModuleStatus): { tested: number; total: nu
     tested: module.qaChecklist.filter((q) => q.tested).length,
     total: module.qaChecklist.length,
   };
+}
+
+export function getPipelineColor(status: PipelineStatus): string {
+  switch (status) {
+    case "done": return "#22c55e";
+    case "in-progress": return "#f59e0b";
+    case "blocked": return "#ef4444";
+    case "not-started": return "#6b7280";
+  }
+}
+
+export function getPipelineLabel(status: PipelineStatus): string {
+  switch (status) {
+    case "done": return "Done";
+    case "in-progress": return "In Progress";
+    case "blocked": return "Blocked";
+    case "not-started": return "Not Started";
+  }
+}
+
+export function getPipelineProgress(module: ModuleStatus): number {
+  const phases = [module.pipeline.development, module.pipeline.qa, module.pipeline.dataSeeding, module.pipeline.signOff];
+  const doneCount = phases.filter((p) => p.status === "done").length;
+  return Math.round((doneCount / 4) * 100);
+}
+
+export function getTeamModules(memberId: string): ModuleStatus[] {
+  const member = TEAM.find((t) => t.id === memberId);
+  if (!member) return [];
+  return implementationStatus.filter((m) => member.modules.includes(m.id));
 }

@@ -248,7 +248,7 @@ export const adminNavigation: NavGroup[] = [
         icon: "Zap",
       },
       {
-        title: "Product Roadmap",
+        title: "Vision & Roadmap",
         href: "/admin/roadmap",
         icon: "Rocket",
       },
