@@ -30,6 +30,9 @@ import {
   Navigation,
   Layers,
   Server,
+  BookOpen,
+  FolderOpen,
+  ExternalLink,
 } from "lucide-react";
 import {
   implementationStatus,
@@ -441,6 +444,136 @@ function DatabaseSummary() {
   );
 }
 
+// ─── Global documentation (cross-cutting, not module-specific) ─────────────
+const GLOBAL_DOCS = [
+  { section: "Getting Started", items: [
+    { title: "Getting Started Guide", path: "docs/00-getting-started/README.md", description: "Setup instructions, prerequisites, and initial configuration" },
+    { title: "Environment Variables", path: "docs/00-getting-started/environment-variables.md", description: "All required and optional environment variables" },
+    { title: "Self-Host Quickstart", path: "docs/00-getting-started/self-host-quickstart.md", description: "Quick setup for self-hosted deployments" },
+  ]},
+  { section: "Architecture", items: [
+    { title: "Architecture Overview", path: "docs/01-architecture/00-architecture-overview.md", description: "V2 architecture: 4-layer framework, component hierarchy, AI strategy" },
+    { title: "System Architecture", path: "docs/01-architecture/system-architecture.md", description: "Infrastructure, data flow, and system design" },
+    { title: "Implementation Plan", path: "docs/IMPLEMENTATION_PLAN.md", description: "Chief Architect review: gap analysis, 8 phases, status per phase" },
+  ]},
+  { section: "Development", items: [
+    { title: "Development Guide", path: "docs/03-development/README.md", description: "Development workflow and conventions" },
+    { title: "Testing Guide", path: "docs/03-development/testing.md", description: "Testing strategy and test runner setup" },
+    { title: "Release Process", path: "docs/03-development/release-process.md", description: "Release workflow, versioning, and checklist" },
+  ]},
+  { section: "Deployment", items: [
+    { title: "Deployment Guide", path: "docs/04-deployment/README.md", description: "Deployment overview and strategies" },
+    { title: "Production Checklist", path: "docs/04-deployment/production-checklist.md", description: "Pre-production verification checklist" },
+    { title: "Production Guide", path: "docs/04-deployment/production-guide.md", description: "Production environment configuration" },
+  ]},
+  { section: "Integrations", items: [
+    { title: "Integrations Overview", path: "docs/05-integrations/README.md", description: "Third-party integration architecture" },
+    { title: "API Reference", path: "docs/05-integrations/api-reference.md", description: "REST API endpoints and authentication" },
+    { title: "Data Flows", path: "docs/05-integrations/data-flows.md", description: "Data sync patterns and flow diagrams" },
+  ]},
+  { section: "AI Features", items: [
+    { title: "AI Features Overview", path: "docs/06-ai-features/README.md", description: "AI capabilities, models, and RAG pipeline" },
+  ]},
+  { section: "Edge Functions", items: [
+    { title: "Edge Functions Catalog", path: "docs/08-edge-functions/catalog.md", description: "All planned edge functions by module" },
+    { title: "Edge Functions Deployment", path: "docs/08-edge-functions/deployment.md", description: "Deployment workflow for Supabase edge functions" },
+    { title: "Secrets Management", path: "docs/08-edge-functions/secrets.md", description: "Managing secrets for edge function runtime" },
+  ]},
+  { section: "Backlog", items: [
+    { title: "Product Backlog", path: "docs/backlog/product-backlog.md", description: "Full product backlog with prioritized items" },
+  ]},
+];
+
+function DocsTab() {
+  return (
+    <div className="space-y-6">
+      {/* Global docs */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">Project Documentation</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Cross-cutting documentation — architecture, deployment, integrations, and development guides.
+            All files live in <code className="bg-muted px-1 rounded text-xs">docs/</code>.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {GLOBAL_DOCS.map((group) => (
+            <div key={group.section}>
+              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                {group.section}
+              </h4>
+              <div className="space-y-1.5 ml-6">
+                {group.items.map((doc) => (
+                  <div key={doc.path} className="flex items-start gap-2 text-sm group">
+                    <FileCode className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">{doc.title}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{doc.description}</p>
+                      <code className="text-xs text-muted-foreground/70">{doc.path}</code>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Per-module blueprint docs */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Layers className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">Module Blueprints</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Each module has a detailed blueprint specifying pages, components, hooks, DB tables, and edge functions.
+            These are the specifications developers follow for implementation.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {implementationStatus.map((module) => {
+            if (module.docs.length === 0) return null;
+            const progress = getModuleProgress(module);
+            return (
+              <div key={module.id} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">Phase {module.phase}</Badge>
+                    <span className="font-medium text-sm">{module.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Progress value={progress} className="h-1.5 w-16" />
+                    <span className="text-xs text-muted-foreground">{progress}%</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5 ml-1">
+                  {module.docs.map((doc) => (
+                    <div key={doc.path} className="flex items-start gap-2 text-sm">
+                      <ExternalLink className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium text-sm">{doc.title}</span>
+                        <p className="text-xs text-muted-foreground">{doc.description}</p>
+                        <code className="text-xs text-muted-foreground/70">{doc.path}</code>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function ImplementationStatus() {
   return (
     <div className="space-y-6">
@@ -462,6 +595,7 @@ export default function ImplementationStatus() {
           <TabsTrigger value="modules">Modules</TabsTrigger>
           <TabsTrigger value="qa">QA Dashboard</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
+          <TabsTrigger value="docs">Docs & Architecture</TabsTrigger>
         </TabsList>
 
         <TabsContent value="modules" className="mt-4 space-y-4">
@@ -476,6 +610,10 @@ export default function ImplementationStatus() {
 
         <TabsContent value="database" className="mt-4">
           <DatabaseSummary />
+        </TabsContent>
+
+        <TabsContent value="docs" className="mt-4">
+          <DocsTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -21,12 +21,19 @@ export interface StatusItem {
   notes?: string;
 }
 
+export interface DocReference {
+  title: string;
+  path: string;
+  description: string;
+}
+
 export interface ModuleStatus {
   id: string;
   name: string;
   phase: number;
   owner?: string;
   summary: string;
+  docs: DocReference[];
   database: { tables: number; status: ItemStatus; notes?: string };
   types: { status: ItemStatus };
   routes: { status: ItemStatus };
@@ -49,6 +56,11 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Platform Core",
     phase: 0,
     summary: "Auth, layout, routing, module access system, config, shared UI. Fully complete.",
+    docs: [
+      { title: "Platform Core Blueprint", path: "docs/02-modules/01-platform-core.md", description: "Pages, components, hooks, routes, DB tables for platform core" },
+      { title: "Architecture Overview", path: "docs/01-architecture/00-architecture-overview.md", description: "V2 architecture: 4-layer framework, component hierarchy, AI, integrations" },
+      { title: "Implementation Plan", path: "docs/IMPLEMENTATION_PLAN.md", description: "Chief Architect review: gap analysis, 8 phases, architectural decisions" },
+    ],
     database: { tables: 8, status: "done", notes: "profiles, app_modules, user_module_permissions, system_settings, user_roles, announcements, feedback, sessions" },
     types: { status: "done" },
     routes: { status: "done" },
@@ -83,6 +95,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Actions (Tasks & Streams)",
     phase: 1,
     summary: "Task CRUD, streams, comments, subtasks. Core flows complete.",
+    docs: [
+      { title: "Actions Blueprint", path: "docs/02-modules/05-actions.md", description: "8 pages, 22 components, 16 hooks, 7 tables, 12 edge functions" },
+    ],
     database: { tables: 6, status: "done", notes: "task_streams, task_stream_members, task_categories, task_comments, task_attachments, task_contributors" },
     types: { status: "done" },
     routes: { status: "done" },
@@ -128,6 +143,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "EOS (V/TO, OKRs, Issues, Scorecard, Accountability)",
     phase: 2,
     summary: "Full EOS framework. Largest module: 9 pages, 12 components, 6 hooks.",
+    docs: [
+      { title: "EOS Blueprint", path: "docs/02-modules/02-eos.md", description: "24 pages, 40+ components, 15 hooks, 12 tables, 12 edge functions" },
+    ],
     database: { tables: 12, status: "done", notes: "eos_pods, eos_vto, okrs, okr_key_results, okr_check_ins, eos_issues, eos_issue_suggestions, eos_scorecards, eos_scorecard_metrics, accountability_charts, accountability_responsibilities, gwc_assessments" },
     types: { status: "done" },
     routes: { status: "done" },
@@ -185,6 +203,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Meetings V2",
     phase: 3,
     summary: "Extended meetings with agenda, takeaways, participants, recurring series.",
+    docs: [
+      { title: "Meetings Blueprint", path: "docs/02-modules/03-meetings.md", description: "7 pages, 46 components, 30 hooks, 9 tables, 33 edge functions" },
+    ],
     database: { tables: 7, status: "done", notes: "meeting_series, meeting_agenda_items, meeting_takeaways, meeting_participants, meeting_transcripts, meeting_categorizations, meeting_assignments" },
     types: { status: "done" },
     routes: { status: "done" },
@@ -231,6 +252,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Knowledge Base",
     phase: 4,
     summary: "Database and types ready. UI leverages existing legacy pages. Vector search tables prepared.",
+    docs: [
+      { title: "Knowledge Base Blueprint", path: "docs/02-modules/07-knowledge-base.md", description: "20 pages, 17+ components, 20 hooks, 9 tables, 22 edge functions" },
+    ],
     database: { tables: 7, status: "done", notes: "knowledge_sources, knowledge_files, knowledge_embeddings, user_knowledge_files, embedding_queue, common_knowledge, vector_search_logs" },
     types: { status: "done" },
     routes: { status: "done" },
@@ -273,6 +297,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Projects",
     phase: 5,
     summary: "Full CRUD with milestones, members, risks, billing tables. Form pages for create/edit.",
+    docs: [
+      { title: "Projects Blueprint", path: "docs/02-modules/04-projects.md", description: "11 pages, 100+ components, 48 hooks, 14 tables, 45+ edge functions" },
+    ],
     database: { tables: 10, status: "done", notes: "project_statuses, projects, project_members, project_milestones, project_comments, project_files, project_risks, project_favorites, project_billing, project_invoices" },
     types: { status: "done" },
     routes: { status: "done" },
@@ -313,6 +340,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Business Development (Deals, Contacts, Clients)",
     phase: 6,
     summary: "Deals pipeline, contacts with lead follow-ups, legacy client management. Full CRUD for deals.",
+    docs: [
+      { title: "Business Dev Blueprint", path: "docs/02-modules/06-business-development.md", description: "42 pages, 134 components, 68 hooks, 15 tables, 75+ edge functions" },
+    ],
     database: { tables: 7, status: "done", notes: "deals, deal_activities, deal_comments, contacts, lead_followup_contacts, contact_communications, scheduled_emails" },
     types: { status: "done" },
     routes: { status: "done" },
@@ -361,6 +391,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Productivity (Metrics, Employees, Process Docs)",
     phase: 7,
     summary: "Department-level productivity dashboard, employee detail, process documentation library.",
+    docs: [
+      { title: "Productivity Blueprint", path: "docs/02-modules/08-productivity.md", description: "13 pages, 40 components, 19 hooks, 10 tables, 12 edge functions" },
+    ],
     database: { tables: 10, status: "done", notes: "departments, pods, pod_members, employee_profiles, productivity_records, leave_events, process_categories, process_documents, productivity_alerts, ai_productivity_insights" },
     types: { status: "done" },
     routes: { status: "done" },
@@ -403,6 +436,11 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Admin Panel Extensions",
     phase: 8,
     summary: "21 existing admin pages. Added team management and knowledge admin sections.",
+    docs: [
+      { title: "Admin Blueprint", path: "docs/02-modules/09-admin.md", description: "95+ pages, 60+ components, 40+ hooks, 11 tables" },
+      { title: "Admin Guide", path: "docs/07-admin/admin-guide.md", description: "Admin guide for system administration" },
+      { title: "Feature Flags", path: "docs/07-admin/feature-flags.md", description: "Feature flags configuration and module toggles" },
+    ],
     database: { tables: 0, status: "done", notes: "Uses tables from other modules" },
     types: { status: "done" },
     routes: { status: "done" },
