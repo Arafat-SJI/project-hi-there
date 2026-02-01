@@ -21,6 +21,8 @@ import {
   Eye,
   AlertCircle,
   Repeat,
+  Handshake,
+  Contact,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,6 +43,8 @@ const iconMap: Record<string, LucideIcon> = {
   Eye,
   AlertCircle,
   Repeat,
+  Handshake,
+  Contact,
 };
 
 function resolveIcon(iconName: string): LucideIcon {

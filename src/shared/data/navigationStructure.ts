@@ -44,6 +44,20 @@ export const mainNavigation: NavItem[] = [
     featureFlag: "enableClients",
   },
   {
+    title: "Deals",
+    href: "/deals",
+    icon: "Handshake",
+    module: "business-dev",
+    featureFlag: "enableClients",
+  },
+  {
+    title: "Contacts",
+    href: "/contacts",
+    icon: "Contact",
+    module: "business-dev",
+    featureFlag: "enableClients",
+  },
+  {
     title: "Meetings",
     href: "/meetings",
     icon: "Calendar",

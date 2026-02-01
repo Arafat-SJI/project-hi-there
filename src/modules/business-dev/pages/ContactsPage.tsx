@@ -1,0 +1,178 @@
+/**
+ * Contacts Page - List and manage contacts with lead follow-up status
+ */
+
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Plus, Search, Users, Loader2, Mail, Phone, Building2 } from "lucide-react";
+import { useContacts, useCreateContact } from "../hooks/useContacts";
+import type { Contact } from "../types";
+
+const FOLLOWUP_COLORS: Record<string, string> = {
+  new: "#6b7280",
+  contacted: "#3b82f6",
+  interested: "#22c55e",
+  not_interested: "#ef4444",
+  converted: "#8b5cf6",
+  dormant: "#f59e0b",
+};
+
+export default function ContactsPage() {
+  const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { data: contacts = [], isLoading } = useContacts(search || undefined);
+  const createContact = useCreateContact();
+
+  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "", company: "", title: "" });
+
+  const handleCreate = () => {
+    if (!form.first_name.trim()) return;
+    createContact.mutate(form, {
+      onSuccess: () => {
+        setForm({ first_name: "", last_name: "", email: "", phone: "", company: "", title: "" });
+        setDialogOpen(false);
+      },
+    });
+  };
+
+  const contactStats = {
+    total: contacts.length,
+    withFollowup: contacts.filter((c) => c.followup).length,
+    withEmail: contacts.filter((c) => c.email).length,
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Contacts</h1>
+          <p className="text-muted-foreground">Manage your sales contacts and leads</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="h-4 w-4 mr-2" />New Contact</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Add Contact</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>First Name *</Label>
+                  <Input value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Last Name</Label>
+                  <Input value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Company</Label>
+                  <Input value={form.company} onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Title</Label>
+                  <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+                </div>
+              </div>
+              <Button className="w-full" onClick={handleCreate} disabled={!form.first_name.trim() || createContact.isPending}>
+                {createContact.isPending ? "Creating..." : "Create Contact"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /><p className="text-sm text-muted-foreground">Total Contacts</p></div>
+            <p className="text-2xl font-bold mt-1">{contactStats.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" /><p className="text-sm text-muted-foreground">With Email</p></div>
+            <p className="text-2xl font-bold mt-1">{contactStats.withEmail}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" /><p className="text-sm text-muted-foreground">Active Follow-ups</p></div>
+            <p className="text-2xl font-bold mt-1">{contactStats.withFollowup}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input className="pl-9" placeholder="Search contacts..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+      ) : contacts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <Users className="h-12 w-12 mb-4 opacity-40" />
+          <p className="text-lg font-medium">No contacts found</p>
+        </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Lead Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {contacts.map((contact) => (
+                <TableRow key={contact.id}>
+                  <TableCell>
+                    <p className="font-medium">{contact.first_name} {contact.last_name || ""}</p>
+                    {contact.title && <p className="text-xs text-muted-foreground">{contact.title}</p>}
+                  </TableCell>
+                  <TableCell>
+                    {contact.company ? (
+                      <span className="flex items-center gap-1 text-sm"><Building2 className="h-3 w-3" />{contact.company}</span>
+                    ) : <span className="text-sm text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    {contact.email ? <span className="text-sm">{contact.email}</span> : <span className="text-sm text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    {contact.phone ? <span className="text-sm">{contact.phone}</span> : <span className="text-sm text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    {contact.followup ? (
+                      <Badge variant="outline" style={{ borderColor: FOLLOWUP_COLORS[contact.followup.status], color: FOLLOWUP_COLORS[contact.followup.status] }}>
+                        {contact.followup.status.replace("_", " ")}
+                      </Badge>
+                    ) : <span className="text-xs text-muted-foreground">No follow-up</span>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+    </div>
+  );
+}

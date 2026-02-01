@@ -1,7 +1,7 @@
 /**
  * Business Development Module Routes
  *
- * Client management (current). Deal pipeline, contacts, leads will be added later.
+ * Client management, deals pipeline, and contacts.
  * Gated by the "business-dev" module / "enableClients" feature flag.
  */
 import { Route } from "react-router-dom";
@@ -10,6 +10,9 @@ import { ModuleRoute } from "@/components/routing/ModuleRoute";
 import Clients from "@/pages/Clients";
 import ClientForm from "@/pages/ClientForm";
 import ClientDetail from "@/pages/ClientDetail";
+import DealsPage from "./pages/DealsPage";
+import DealDetailPage from "./pages/DealDetailPage";
+import ContactsPage from "./pages/ContactsPage";
 
 export const businessDevRoutes = (
   <Route element={<ModuleRoute module="business-dev" requiresFeatureFlag="enableClients" />}>
@@ -17,5 +20,8 @@ export const businessDevRoutes = (
     <Route path="/clients/new" element={<ClientForm />} />
     <Route path="/clients/:id" element={<ClientDetail />} />
     <Route path="/clients/:id/edit" element={<ClientForm />} />
+    <Route path="/deals" element={<DealsPage />} />
+    <Route path="/deals/:slug" element={<DealDetailPage />} />
+    <Route path="/contacts" element={<ContactsPage />} />
   </Route>
 );
