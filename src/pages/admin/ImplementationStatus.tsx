@@ -713,6 +713,129 @@ const GLOBAL_DOCS = [
   ]},
 ];
 
+function NextStepsTab() {
+  const byOwner = TEAM.map((member) => {
+    const modules = getTeamModules(member.id);
+    const items = modules.flatMap((m) =>
+      m.nextSteps.map((step) => ({ module: m.name, moduleId: m.id, phase: m.phase, step }))
+    );
+    return { member, items };
+  }).filter((g) => g.items.length > 0);
+
+  const totalSteps = byOwner.reduce((s, g) => s + g.items.length, 0);
+  const devInProgress = implementationStatus.filter(
+    (m) => m.pipeline.development.status === "in-progress"
+  );
+  const modulesReadyForQA = implementationStatus.filter(
+    (m) => m.pipeline.development.status === "done" && m.pipeline.qa.status === "not-started"
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">Remaining Dev Steps</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">{totalSteps}</p>
+            <p className="text-xs text-muted-foreground">across {byOwner.length} developers</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span className="text-sm">Dev In Progress</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">{devInProgress.length}</p>
+            <p className="text-xs text-muted-foreground">
+              {devInProgress.map((m) => m.name.split("(")[0].trim()).join(", ") || "None"}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <FlaskConical className="h-4 w-4" />
+              <span className="text-sm">Ready for QA</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">{modulesReadyForQA.length}</p>
+            <p className="text-xs text-muted-foreground">
+              {modulesReadyForQA.map((m) => m.name.split("(")[0].trim()).join(", ") || "None"}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Per-developer next steps */}
+      {byOwner.map(({ member, items }) => (
+        <Card key={member.id}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <UserCircle className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">{member.name}</CardTitle>
+              <Badge variant="secondary" className="text-xs">{items.length} items</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {items.map((item, i) => (
+                <div key={i} className="flex items-start gap-3 text-sm">
+                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p>{item.step}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Badge variant="outline" className="text-[10px]">P{item.phase}</Badge>
+                      <span className="text-xs text-muted-foreground">{item.module}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+      {/* Modules ready for QA */}
+      {modulesReadyForQA.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FlaskConical className="h-5 w-5 text-blue-500" />
+              <CardTitle className="text-base">Modules Ready for QA</CardTitle>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Development complete — these modules can proceed to QA testing via Lovable QA.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {modulesReadyForQA.map((m) => {
+                const qa = getQAProgress(m);
+                return (
+                  <div key={m.id} className="border rounded-lg p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">P{m.phase}</Badge>
+                      <span className="font-medium text-sm">{m.name.split("(")[0].trim()}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{qa.total} checks</span>
+                      <Badge variant="secondary" className="text-xs">{m.owner}</Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 function DocsTab() {
   return (
     <div className="space-y-6">
@@ -823,6 +946,7 @@ export default function ImplementationStatus() {
         <TabsList>
           <TabsTrigger value="team">Team Board</TabsTrigger>
           <TabsTrigger value="modules">Modules</TabsTrigger>
+          <TabsTrigger value="next">Next Steps</TabsTrigger>
           <TabsTrigger value="qa">QA Dashboard</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="docs">Docs & Architecture</TabsTrigger>
@@ -836,6 +960,10 @@ export default function ImplementationStatus() {
           {implementationStatus.map((module) => (
             <ModuleCard key={module.id} module={module} />
           ))}
+        </TabsContent>
+
+        <TabsContent value="next" className="mt-4">
+          <NextStepsTab />
         </TabsContent>
 
         <TabsContent value="qa" className="mt-4">

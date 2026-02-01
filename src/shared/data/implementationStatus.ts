@@ -363,8 +363,9 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Browse by category", tested: false },
     ],
     nextSteps: [
-      "Build semantic search UI (needs edge function deployed)",
-      "Admin knowledge analytics page",
+      "Build semantic search UI (needs auto-embed edge function deployed first)",
+      "Embeddings explorer admin page",
+      "Flesh out useUserKnowledge (personal file management with Drive sync)",
     ],
   },
 
