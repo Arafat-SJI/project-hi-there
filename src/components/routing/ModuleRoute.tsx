@@ -1,14 +1,18 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { isModuleBundled, type ModuleId } from "@/shared/config/modules";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useEffect, useRef } from "react";
 
 interface ModuleRouteProps {
-  module?: string;
+  /** Module ID from the registry. Checks build-time bundling. */
+  module?: ModuleId;
+  /** Required user role */
   requiredRole?: "admin" | "moderator" | "user";
+  /** Legacy feature flag check (runtime, from app_config) */
   requiresFeatureFlag?: "enableMeetings" | "enableTasks" | "enableKnowledgeBase" | "enableAIChat" | "enableNotifications" | "enableClients" | "enableAIAgents" | "enableFeedback";
   children?: React.ReactNode;
 }
@@ -22,6 +26,11 @@ export function ModuleRoute({
   const { user, profile, loading } = useAuth();
   const { isFeatureEnabled, isLoading: flagsLoading } = useFeatureFlags();
   const toastShownRef = useRef(false);
+
+  // Build-time module check (synchronous, no loading needed)
+  if (module && !isModuleBundled(module)) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   // Show toast when feature is disabled (only once)
   useEffect(() => {
@@ -67,11 +76,6 @@ export function ModuleRoute({
         </div>
       );
     }
-  }
-
-  // Check module-specific permissions if needed
-  if (module) {
-    console.log(`Module access check: ${module}`);
   }
 
   return children ? <>{children}</> : <Outlet />;

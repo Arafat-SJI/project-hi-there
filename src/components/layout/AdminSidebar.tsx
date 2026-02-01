@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useIntegrationStatus } from "@/hooks/useIntegrationStatus";
+import { adminNavigation, type NavGroup } from "@/shared/data/navigationStructure";
 import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
@@ -25,111 +26,29 @@ import {
   MessageSquare,
   Plug,
   Rocket,
+  type LucideIcon,
 } from "lucide-react";
 
-interface SidebarItem {
-  title: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
+// Icon resolver: maps string names from navigation data to actual components
+const iconMap: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  Users,
+  Shield,
+  Activity,
+  Settings,
+  Zap,
+  Database,
+  CheckCircle2,
+  Brain,
+  BarChart,
+  MessageSquare,
+  Plug,
+  Rocket,
+};
 
-interface SidebarGroup {
-  title: string;
-  items: SidebarItem[];
+function resolveIcon(iconName: string): LucideIcon {
+  return iconMap[iconName] || LayoutDashboard;
 }
-
-const sidebarGroups: SidebarGroup[] = [
-  {
-    title: "DASHBOARD",
-    items: [
-      {
-        title: "Overview",
-        href: "/admin",
-        icon: LayoutDashboard,
-      },
-    ],
-  },
-  {
-    title: "USERS & ACCESS",
-    items: [
-      {
-        title: "User Management",
-        href: "/admin/users",
-        icon: Users,
-      },
-      {
-        title: "Role Management",
-        href: "/admin/roles",
-        icon: Shield,
-      },
-      {
-        title: "Activity Logs",
-        href: "/admin/logs",
-        icon: Activity,
-      },
-    ],
-  },
-  {
-    title: "CONTENT & FEEDBACK",
-    items: [
-      {
-        title: "Feedback Management",
-        href: "/admin/feedback",
-        icon: MessageSquare,
-      },
-    ],
-  },
-  {
-    title: "AI & AUTOMATION",
-    items: [
-      {
-        title: "AI Models",
-        href: "/admin/ai-models",
-        icon: Brain,
-      },
-      {
-        title: "AI Usage Analytics",
-        href: "/admin/ai-usage",
-        icon: BarChart,
-      },
-      {
-        title: "MCP Servers",
-        href: "/admin/mcp-servers",
-        icon: Plug,
-      },
-    ],
-  },
-  {
-    title: "SYSTEM",
-    items: [
-      {
-        title: "System Settings",
-        href: "/admin/settings",
-        icon: Settings,
-      },
-      {
-        title: "Integrations",
-        href: "/admin/integrations",
-        icon: Zap,
-      },
-      {
-        title: "Product Roadmap",
-        href: "/admin/roadmap",
-        icon: Rocket,
-      },
-      {
-        title: "Deployment Status",
-        href: "/admin/deployment",
-        icon: Database,
-      },
-      {
-        title: "Environment Check",
-        href: "/admin/environment",
-        icon: CheckCircle2,
-      },
-    ],
-  },
-];
 
 export function AdminSidebar() {
   const location = useLocation();
@@ -142,7 +61,7 @@ export function AdminSidebar() {
   // Initialize expanded state based on active route
   useEffect(() => {
     const initialExpanded: Record<string, boolean> = {};
-    sidebarGroups.forEach((group) => {
+    adminNavigation.forEach((group) => {
       const hasActiveItem = group.items.some((item) => location.pathname === item.href);
       initialExpanded[group.title] = hasActiveItem || group.title === "DASHBOARD";
     });
@@ -151,7 +70,7 @@ export function AdminSidebar() {
 
   // Update expanded state when route changes
   useEffect(() => {
-    sidebarGroups.forEach((group) => {
+    adminNavigation.forEach((group) => {
       const hasActiveItem = group.items.some((item) => location.pathname === item.href);
       if (hasActiveItem) {
         setExpandedGroups((prev) => ({ ...prev, [group.title]: true }));
@@ -189,11 +108,8 @@ export function AdminSidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <div className="space-y-2">
-            {sidebarGroups.map((group) => {
+            {adminNavigation.map((group: NavGroup) => {
               const isExpanded = expandedGroups[group.title] ?? true;
-              const hasActiveItem = group.items.some(
-                (item) => location.pathname === item.href
-              );
 
               return (
                 <Collapsible
@@ -212,7 +128,7 @@ export function AdminSidebar() {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-1">
                     {group.items.map((item) => {
-                      const Icon = item.icon;
+                      const Icon = resolveIcon(item.icon);
                       const isActive = location.pathname === item.href;
                       const isIntegrations = item.href === '/admin/integrations';
 

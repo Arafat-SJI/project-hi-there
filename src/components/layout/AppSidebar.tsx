@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { mainNavigation, type NavItem } from "@/shared/data/navigationStructure";
 import {
   LayoutDashboard,
   Users,
@@ -12,54 +13,29 @@ import {
   Brain,
   ChevronRight,
   MessageSquare,
+  Target,
+  FolderKanban,
+  BarChart3,
+  type LucideIcon,
 } from "lucide-react";
 
-interface SidebarItem {
-  title: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
-  adminOnly?: boolean;
-  featureFlag?: "enableClients" | "enableMeetings" | "enableTasks" | "enableKnowledgeBase" | "enableFeedback";
-}
+// Icon resolver: maps string names from navigation data to actual components
+const iconMap: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  CheckSquare,
+  BookOpen,
+  Brain,
+  MessageSquare,
+  Target,
+  FolderKanban,
+  BarChart3,
+};
 
-const sidebarItems: SidebarItem[] = [
-  {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Clients",
-    href: "/clients",
-    icon: Users,
-    featureFlag: "enableClients",
-  },
-  {
-    title: "Meetings",
-    href: "/meetings",
-    icon: Calendar,
-    featureFlag: "enableMeetings",
-  },
-  {
-    title: "Tasks",
-    href: "/tasks",
-    icon: CheckSquare,
-    featureFlag: "enableTasks",
-  },
-  {
-    title: "Knowledge Base",
-    href: "/knowledge",
-    icon: BookOpen,
-    featureFlag: "enableKnowledgeBase",
-  },
-  {
-    title: "Feedback",
-    href: "/feedback",
-    icon: MessageSquare,
-    featureFlag: "enableFeedback",
-  },
-];
+function resolveIcon(iconName: string): LucideIcon {
+  return iconMap[iconName] || LayoutDashboard;
+}
 
 export function AppSidebar() {
   const location = useLocation();
@@ -67,15 +43,12 @@ export function AppSidebar() {
   const { companyName } = useBranding();
   const { isFeatureEnabled, isLoading } = useFeatureFlags();
 
-  // Check if user has admin role
   const isAdmin = profile?.role === "admin" || profile?.role === "moderator";
 
-  // Filter sidebar items based on user role and feature flags
-  const visibleItems = sidebarItems.filter(item => {
-    // Check admin-only
+  // Filter items based on role and feature flags
+  const visibleItems = mainNavigation.filter((item: NavItem) => {
     if (item.adminOnly && !isAdmin) return false;
-    // Check feature flag
-    if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) return false;
+    if (item.featureFlag && !isFeatureEnabled(item.featureFlag as any)) return false;
     return true;
   });
 
@@ -103,7 +76,7 @@ export function AppSidebar() {
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <div className="space-y-1">
             {visibleItems.map((item) => {
-              const Icon = item.icon;
+              const Icon = resolveIcon(item.icon);
               const isActive = location.pathname === item.href ||
                              location.pathname.startsWith(item.href + "/");
 
@@ -146,7 +119,7 @@ export function AppSidebar() {
         <div className="border-t border-sidebar-border p-4">
           <div className="rounded-lg bg-sidebar-accent/50 px-4 py-3">
             <p className="text-sm font-medium text-sidebar-foreground">Framework</p>
-            <p className="text-xs text-muted-foreground">v1.0.0 • Enterprise</p>
+            <p className="text-xs text-muted-foreground">v1.0.0 - Enterprise</p>
           </div>
         </div>
       </div>
