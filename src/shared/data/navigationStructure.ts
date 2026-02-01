@@ -77,8 +77,19 @@ export const mainNavigation: NavItem[] = [
     icon: "MessageSquare",
     featureFlag: "enableFeedback",
   },
+  {
+    title: "EOS",
+    href: "/eos",
+    icon: "Target",
+    module: "eos",
+  },
+  {
+    title: "OKRs",
+    href: "/okrs",
+    icon: "Crosshair",
+    module: "eos",
+  },
   // Future modules:
-  // { title: "EOS", href: "/eos", icon: "Target", module: "eos" },
   // { title: "Projects", href: "/projects", icon: "FolderKanban", module: "projects" },
   // { title: "Productivity", href: "/productivity", icon: "BarChart3", module: "productivity" },
 ];
