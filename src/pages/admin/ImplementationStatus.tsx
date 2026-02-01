@@ -33,6 +33,9 @@ import {
   BookOpen,
   FolderOpen,
   ExternalLink,
+  Users,
+  UserCircle,
+  ArrowRight,
 } from "lucide-react";
 import {
   implementationStatus,
@@ -40,8 +43,16 @@ import {
   getStatusLabel,
   getModuleProgress,
   getQAProgress,
+  getPipelineColor,
+  getPipelineLabel,
+  getPipelineProgress,
+  getTeamModules,
+  TEAM,
+  SIGN_OFF_OWNER,
   type ModuleStatus,
   type ItemStatus,
+  type PipelineStatus,
+  type PipelinePhase as PipelinePhaseType,
 } from "@/shared/data/implementationStatus";
 
 function StatusBadge({ status }: { status: ItemStatus }) {
@@ -444,6 +455,224 @@ function DatabaseSummary() {
   );
 }
 
+// ─── Pipeline helpers ──────────────────────────────────────────────────────
+
+function PipelineBadge({ phase }: { phase: PipelinePhaseType }) {
+  const color = getPipelineColor(phase.status);
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <Badge
+        variant="outline"
+        className="text-[10px] font-medium px-1.5"
+        style={{ borderColor: color, color }}
+      >
+        {getPipelineLabel(phase.status)}
+      </Badge>
+      {phase.owner && (
+        <span className="text-[10px] text-muted-foreground">{phase.owner}</span>
+      )}
+    </div>
+  );
+}
+
+function TeamBoard() {
+  return (
+    <div className="space-y-6">
+      {/* Developer summary cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {TEAM.map((member) => {
+          const modules = getTeamModules(member.id);
+          const devDone = modules.filter((m) => m.pipeline.development.status === "done").length;
+          const qaDone = modules.filter((m) => m.pipeline.qa.status === "done").length;
+          const seedDone = modules.filter((m) => m.pipeline.dataSeeding.status === "done").length;
+          const signedOff = modules.filter((m) => m.pipeline.signOff.status === "done").length;
+          return (
+            <Card key={member.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <UserCircle className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-base">{member.name}</CardTitle>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {modules.length} modules assigned
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ background: getPipelineColor(devDone === modules.length ? "done" : "in-progress") }} />
+                    <span className="text-muted-foreground">Dev:</span>
+                    <span className="font-medium">{devDone}/{modules.length}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ background: getPipelineColor(qaDone === modules.length ? "done" : qaDone > 0 ? "in-progress" : "not-started") }} />
+                    <span className="text-muted-foreground">QA:</span>
+                    <span className="font-medium">{qaDone}/{modules.length}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ background: getPipelineColor(seedDone === modules.length ? "done" : seedDone > 0 ? "in-progress" : "not-started") }} />
+                    <span className="text-muted-foreground">Seeding:</span>
+                    <span className="font-medium">{seedDone}/{modules.length}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ background: getPipelineColor(signedOff === modules.length ? "done" : signedOff > 0 ? "in-progress" : "not-started") }} />
+                    <span className="text-muted-foreground">Sign-off:</span>
+                    <span className="font-medium">{signedOff}/{modules.length}</span>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {modules.map((m) => (
+                    <Badge key={m.id} variant="secondary" className="text-[10px]">
+                      {m.name.split("(")[0].trim()}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Pipeline matrix */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">Delivery Pipeline</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Each module flows through 4 phases: Development → QA (Lovable QA) → Data Seeding → Sign-off ({SIGN_OFF_OWNER}).
+          </p>
+        </CardHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">Module</TableHead>
+              <TableHead className="text-center">Owner</TableHead>
+              <TableHead className="text-center">Development</TableHead>
+              <TableHead className="text-center">
+                <ArrowRight className="inline h-3 w-3 mr-1" />QA
+              </TableHead>
+              <TableHead className="text-center">
+                <ArrowRight className="inline h-3 w-3 mr-1" />Data Seeding
+              </TableHead>
+              <TableHead className="text-center">
+                <ArrowRight className="inline h-3 w-3 mr-1" />Sign-off
+              </TableHead>
+              <TableHead className="text-center w-[80px]">Pipeline</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {implementationStatus.map((module) => {
+              const pipelinePct = getPipelineProgress(module);
+              return (
+                <TableRow key={module.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] shrink-0">P{module.phase}</Badge>
+                      <span className="font-medium text-sm">{module.name.split("(")[0].trim()}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary" className="text-xs">{module.owner}</Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <PipelineBadge phase={module.pipeline.development} />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <PipelineBadge phase={module.pipeline.qa} />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <PipelineBadge phase={module.pipeline.dataSeeding} />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <PipelineBadge phase={module.pipeline.signOff} />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center gap-1.5">
+                      <Progress value={pipelinePct} className="h-1.5 w-12" />
+                      <span className="text-[10px] text-muted-foreground">{pipelinePct}%</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Per-developer detail */}
+      {TEAM.map((member) => {
+        const modules = getTeamModules(member.id);
+        return (
+          <Card key={member.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <UserCircle className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base">{member.name}'s Modules</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {modules.map((module) => (
+                <div key={module.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">Phase {module.phase}</Badge>
+                      <span className="font-medium text-sm">{module.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Progress value={getModuleProgress(module)} className="h-1.5 w-16" />
+                      <span className="text-xs text-muted-foreground">{getModuleProgress(module)}% built</span>
+                    </div>
+                  </div>
+
+                  {/* Pipeline phases with notes */}
+                  <div className="grid grid-cols-4 gap-3">
+                    {(["development", "qa", "dataSeeding", "signOff"] as const).map((key) => {
+                      const phase = module.pipeline[key];
+                      const label = key === "dataSeeding" ? "Data Seeding" : key === "signOff" ? "Sign-off" : key === "qa" ? "QA" : "Development";
+                      return (
+                        <div key={key} className="text-center">
+                          <p className="text-xs font-medium mb-1">{label}</p>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] mb-1"
+                            style={{ borderColor: getPipelineColor(phase.status), color: getPipelineColor(phase.status) }}
+                          >
+                            {getPipelineLabel(phase.status)}
+                          </Badge>
+                          {phase.notes && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{phase.notes}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Next steps */}
+                  {module.nextSteps.length > 0 && (
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-xs font-medium mb-1">Next Steps</p>
+                      <ul className="space-y-0.5">
+                        {module.nextSteps.slice(0, 3).map((step, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                            <AlertCircle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
+                            {step}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Global documentation (cross-cutting, not module-specific) ─────────────
 const GLOBAL_DOCS = [
   { section: "Getting Started", items: [
@@ -590,13 +819,18 @@ export default function ImplementationStatus() {
 
       <OverviewCards />
 
-      <Tabs defaultValue="modules">
+      <Tabs defaultValue="team">
         <TabsList>
+          <TabsTrigger value="team">Team Board</TabsTrigger>
           <TabsTrigger value="modules">Modules</TabsTrigger>
           <TabsTrigger value="qa">QA Dashboard</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="docs">Docs & Architecture</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="team" className="mt-4">
+          <TeamBoard />
+        </TabsContent>
 
         <TabsContent value="modules" className="mt-4 space-y-4">
           {implementationStatus.map((module) => (
