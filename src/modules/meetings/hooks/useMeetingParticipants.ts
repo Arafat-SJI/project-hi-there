@@ -20,12 +20,12 @@ export function useMeetingParticipants(meetingId: string) {
     queryFn: async (): Promise<MeetingParticipant[]> => {
       const { data, error } = await supabase
         .from("meeting_participants")
-        .select("*, user:user_id(full_name, email, avatar_url)")
+        .select("*")
         .eq("meeting_id", meetingId)
         .order("role", { ascending: true });
 
       if (error) throw error;
-      return (data || []) as MeetingParticipant[];
+      return (data || []) as unknown as MeetingParticipant[];
     },
     enabled: !!meetingId,
   });

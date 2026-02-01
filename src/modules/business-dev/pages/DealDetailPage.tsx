@@ -109,8 +109,8 @@ export default function DealDetailPage() {
               style={{
                 backgroundColor: isActive ? cfg.color : `${cfg.color}15`,
                 color: isActive ? "#fff" : cfg.color,
-                ringColor: isCurrent ? cfg.color : undefined,
-              }}
+                "--tw-ring-color": isCurrent ? cfg.color : undefined,
+              } as React.CSSProperties}
               onClick={() => updateStage.mutate({ id: deal.id, stage })}
             >
               {cfg.label}

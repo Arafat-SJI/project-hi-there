@@ -16,11 +16,11 @@ export function useProjectMembers(projectId: string) {
     queryFn: async (): Promise<ProjectMember[]> => {
       const { data, error } = await supabase
         .from("project_members")
-        .select("*, user:user_id(full_name, email, avatar_url)")
+        .select("*")
         .eq("project_id", projectId)
         .order("joined_at");
       if (error) throw error;
-      return (data || []) as ProjectMember[];
+      return (data || []) as unknown as ProjectMember[];
     },
     enabled: !!projectId,
   });
@@ -111,11 +111,11 @@ export function useProjectComments(projectId: string) {
     queryFn: async (): Promise<ProjectComment[]> => {
       const { data, error } = await supabase
         .from("project_comments")
-        .select("*, user:user_id(full_name, email)")
+        .select("*")
         .eq("project_id", projectId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data || []) as ProjectComment[];
+      return (data || []) as unknown as ProjectComment[];
     },
     enabled: !!projectId,
   });

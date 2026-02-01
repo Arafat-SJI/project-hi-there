@@ -21,12 +21,12 @@ export function useMeetingAgenda(meetingId: string) {
     queryFn: async (): Promise<MeetingAgendaItem[]> => {
       const { data, error } = await supabase
         .from("meeting_agenda_items")
-        .select("*, presenter:presenter_id(full_name, email)")
+        .select("*")
         .eq("meeting_id", meetingId)
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
-      return (data || []) as MeetingAgendaItem[];
+      return (data || []) as unknown as MeetingAgendaItem[];
     },
     enabled: !!meetingId,
   });

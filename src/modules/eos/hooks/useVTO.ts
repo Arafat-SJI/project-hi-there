@@ -27,7 +27,7 @@ export function useVTO() {
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as VTOSection[];
     },
     enabled: !!user,
   });
@@ -50,7 +50,7 @@ export function useUpdateVTO() {
     }) => {
       const { data, error } = await supabase
         .from("eos_vto")
-        .update({ content, updated_by: user!.id, updated_at: new Date().toISOString() })
+        .update({ content: JSON.parse(JSON.stringify(content)), updated_by: user!.id, updated_at: new Date().toISOString() })
         .eq("section", section)
         .select()
         .single();

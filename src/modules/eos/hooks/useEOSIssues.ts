@@ -47,7 +47,7 @@ export function useEOSIssues(filters?: IssueFilters) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as EOSIssue[];
     },
     enabled: !!user,
   });
@@ -69,7 +69,7 @@ export function useEOSIssue(id: string | undefined) {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as unknown as EOSIssue;
     },
     enabled: !!id,
   });

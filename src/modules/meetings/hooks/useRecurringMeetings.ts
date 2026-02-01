@@ -28,7 +28,7 @@ export function useMeetingSeries() {
         .order("title", { ascending: true });
 
       if (error) throw error;
-      return (data || []) as MeetingSeries[];
+      return (data || []) as unknown as MeetingSeries[];
     },
     enabled: !!user,
   });
@@ -48,7 +48,7 @@ export function useMeetingSeriesDetail(id: string) {
         .single();
 
       if (error) throw error;
-      return data as MeetingSeries;
+      return data as unknown as MeetingSeries;
     },
     enabled: !!id,
   });
@@ -82,17 +82,17 @@ export function useCreateSeries() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (data: SeriesFormData) => {
+    mutationFn: async (formData: SeriesFormData) => {
       const { data: series, error } = await supabase
         .from("meeting_series")
-        .insert({
-          title: data.title,
-          description: data.description || null,
-          recurrence_rule: data.recurrence_rule,
-          duration_minutes: data.duration_minutes,
-          default_agenda: data.default_agenda || [],
+        .insert([{
+          title: formData.title,
+          description: formData.description || null,
+          recurrence_rule: formData.recurrence_rule,
+          duration_minutes: formData.duration_minutes,
+          default_agenda: JSON.parse(JSON.stringify(formData.default_agenda || [])),
           organizer_id: user?.id!,
-        })
+        }])
         .select()
         .single();
 
@@ -117,15 +117,16 @@ export function useUpdateSeries() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<SeriesFormData> }) => {
+      const updateData: Record<string, unknown> = {};
+      if (data.title !== undefined) updateData.title = data.title;
+      if (data.description !== undefined) updateData.description = data.description || null;
+      if (data.recurrence_rule !== undefined) updateData.recurrence_rule = data.recurrence_rule;
+      if (data.duration_minutes !== undefined) updateData.duration_minutes = data.duration_minutes;
+      if (data.default_agenda !== undefined) updateData.default_agenda = JSON.parse(JSON.stringify(data.default_agenda));
+
       const { data: series, error } = await supabase
         .from("meeting_series")
-        .update({
-          ...(data.title !== undefined && { title: data.title }),
-          ...(data.description !== undefined && { description: data.description || null }),
-          ...(data.recurrence_rule !== undefined && { recurrence_rule: data.recurrence_rule }),
-          ...(data.duration_minutes !== undefined && { duration_minutes: data.duration_minutes }),
-          ...(data.default_agenda !== undefined && { default_agenda: data.default_agenda }),
-        })
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();

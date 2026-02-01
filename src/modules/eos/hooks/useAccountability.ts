@@ -44,7 +44,7 @@ export function useAccountabilityChart() {
 
       return {
         ...chart,
-        responsibilities: buildTree(responsibilities || []),
+        responsibilities: buildTree((responsibilities || []) as unknown as AccountabilityResponsibility[]),
       };
     },
     enabled: !!user,
@@ -122,9 +122,9 @@ export function useMyAccountability() {
 
       return {
         ...responsibility,
-        direct_reports: reports || [],
+        direct_reports: (reports || []) as unknown as AccountabilityResponsibility[],
         gwc: gwc || null,
-      };
+      } as AccountabilityResponsibility;
     },
     enabled: !!user,
   });

@@ -18,7 +18,7 @@ export function useProjects(filters?: ProjectFilters) {
     queryFn: async (): Promise<Project[]> => {
       let query = supabase
         .from("projects")
-        .select("*, status:status_id(id, name, slug, color), owner:owner_id(full_name, email)")
+        .select("*")
         .eq("is_archived", filters?.is_archived ?? false)
         .order("updated_at", { ascending: false });
 
@@ -29,7 +29,7 @@ export function useProjects(filters?: ProjectFilters) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as Project[];
+      return (data || []) as unknown as Project[];
     },
     enabled: !!user,
   });
@@ -41,11 +41,11 @@ export function useProject(slug: string) {
     queryFn: async (): Promise<Project> => {
       const { data, error } = await supabase
         .from("projects")
-        .select("*, status:status_id(id, name, slug, color), owner:owner_id(full_name, email)")
+        .select("*")
         .eq("slug", slug)
         .single();
       if (error) throw error;
-      return data as Project;
+      return data as unknown as Project;
     },
     enabled: !!slug,
   });
