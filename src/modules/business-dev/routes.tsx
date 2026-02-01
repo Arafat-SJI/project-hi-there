@@ -12,6 +12,7 @@ import ClientForm from "@/pages/ClientForm";
 import ClientDetail from "@/pages/ClientDetail";
 import DealsPage from "./pages/DealsPage";
 import DealDetailPage from "./pages/DealDetailPage";
+import DealFormPage from "./pages/DealFormPage";
 import ContactsPage from "./pages/ContactsPage";
 
 export const businessDevRoutes = (
@@ -21,7 +22,9 @@ export const businessDevRoutes = (
     <Route path="/clients/:id" element={<ClientDetail />} />
     <Route path="/clients/:id/edit" element={<ClientForm />} />
     <Route path="/deals" element={<DealsPage />} />
+    <Route path="/deals/new" element={<DealFormPage />} />
     <Route path="/deals/:slug" element={<DealDetailPage />} />
+    <Route path="/deals/:slug/edit" element={<DealFormPage />} />
     <Route path="/contacts" element={<ContactsPage />} />
   </Route>
 );

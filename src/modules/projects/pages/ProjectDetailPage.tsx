@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Calendar, Users, Milestone, MessageSquare, AlertTriangle, Loader2, Plus, CheckCircle2 } from "lucide-react";
-import { useProject } from "../hooks/useProjects";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Calendar, Users, Milestone, MessageSquare, AlertTriangle, Loader2, Plus, CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { useProject, useDeleteProject } from "../hooks/useProjects";
 import { useProjectMembers } from "../hooks/useProjectDetail";
 import { useProjectMilestones, useAddMilestone, useUpdateMilestone } from "../hooks/useProjectDetail";
 import { useProjectComments, useAddProjectComment } from "../hooks/useProjectDetail";
@@ -28,6 +29,7 @@ export default function ProjectDetailPage() {
   const { data: comments = [] } = useProjectComments(project?.id || "");
   const { data: risks = [] } = useProjectRisks(project?.id || "");
   const addComment = useAddProjectComment();
+  const deleteProject = useDeleteProject();
   const addMilestone = useAddMilestone();
   const updateMilestone = useUpdateMilestone();
 
@@ -51,7 +53,7 @@ export default function ProjectDetailPage() {
     <div className="space-y-6">
       <div className="flex items-start gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/projects")}><ArrowLeft className="h-5 w-5" /></Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">{project.name}</h1>
           <div className="flex items-center gap-2 mt-1">
             {project.status && (
@@ -59,6 +61,28 @@ export default function ProjectDetailPage() {
             )}
             {project.owner && <span className="text-sm text-muted-foreground">Owner: {project.owner.full_name}</span>}
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/projects/${slug}/edit`)}>
+            <Pencil className="h-4 w-4 mr-1" />Edit
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4 mr-1" />Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete project?</AlertDialogTitle>
+                <AlertDialogDescription>This will permanently delete "{project.name}" and all associated milestones, comments, and members.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteProject.mutate(project.id, { onSuccess: () => navigate("/projects") })}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
