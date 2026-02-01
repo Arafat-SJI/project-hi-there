@@ -46,7 +46,7 @@ export function useProcessDocuments(categorySlug?: string) {
     queryFn: async (): Promise<ProcessDocument[]> => {
       let query = supabase
         .from("process_documents")
-        .select("*, category:category_id(name, slug), author:created_by(full_name)")
+        .select("*")
         .eq("status", "published")
         .order("title");
 
@@ -61,7 +61,7 @@ export function useProcessDocuments(categorySlug?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as ProcessDocument[];
+      return (data || []) as unknown as ProcessDocument[];
     },
   });
 }
@@ -80,12 +80,12 @@ export function useProcessDocument(categorySlug: string, docSlug: string) {
 
       const { data, error } = await supabase
         .from("process_documents")
-        .select("*, category:category_id(name, slug), author:created_by(full_name)")
+        .select("*")
         .eq("category_id", cat.id)
         .eq("slug", docSlug)
         .single();
       if (error) throw error;
-      return data as ProcessDocument;
+      return data as unknown as ProcessDocument;
     },
     enabled: !!categorySlug && !!docSlug,
   });

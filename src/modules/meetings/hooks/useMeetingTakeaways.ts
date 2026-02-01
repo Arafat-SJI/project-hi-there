@@ -21,12 +21,12 @@ export function useMeetingTakeaways(meetingId: string) {
     queryFn: async (): Promise<MeetingTakeaway[]> => {
       const { data, error } = await supabase
         .from("meeting_takeaways")
-        .select("*, assignee:assigned_to(full_name, email)")
+        .select("*")
         .eq("meeting_id", meetingId)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return (data || []) as MeetingTakeaway[];
+      return (data || []) as unknown as MeetingTakeaway[];
     },
     enabled: !!meetingId,
   });

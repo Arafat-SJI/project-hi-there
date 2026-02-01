@@ -91,11 +91,11 @@ export function useDepartments() {
     queryFn: async (): Promise<Department[]> => {
       const { data, error } = await supabase
         .from("departments")
-        .select("*, manager:manager_id(full_name)")
+        .select("*")
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
-      return (data || []) as Department[];
+      return (data || []) as unknown as Department[];
     },
   });
 }

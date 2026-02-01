@@ -17,7 +17,7 @@ export function useDeals(filters?: DealFilters) {
     queryFn: async (): Promise<Deal[]> => {
       let query = supabase
         .from("deals")
-        .select("*, owner:owner_id(full_name, email), client:client_id(name)")
+        .select("*")
         .order("updated_at", { ascending: false });
 
       if (filters?.stage && filters.stage !== "all") query = query.eq("stage", filters.stage);
@@ -27,7 +27,7 @@ export function useDeals(filters?: DealFilters) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as Deal[];
+      return (data || []) as unknown as Deal[];
     },
     enabled: !!user,
   });
@@ -39,11 +39,11 @@ export function useDeal(slug: string) {
     queryFn: async (): Promise<Deal> => {
       const { data, error } = await supabase
         .from("deals")
-        .select("*, owner:owner_id(full_name, email), client:client_id(name), contact:contact_id(first_name, last_name, email)")
+        .select("*")
         .eq("slug", slug)
         .single();
       if (error) throw error;
-      return data as Deal;
+      return data as unknown as Deal;
     },
     enabled: !!slug,
   });
@@ -169,11 +169,11 @@ export function useDealActivities(dealId: string) {
     queryFn: async (): Promise<DealActivity[]> => {
       const { data, error } = await supabase
         .from("deal_activities")
-        .select("*, user:user_id(full_name)")
+        .select("*")
         .eq("deal_id", dealId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data || []) as DealActivity[];
+      return (data || []) as unknown as DealActivity[];
     },
     enabled: !!dealId,
   });
@@ -185,11 +185,11 @@ export function useDealComments(dealId: string) {
     queryFn: async (): Promise<DealComment[]> => {
       const { data, error } = await supabase
         .from("deal_comments")
-        .select("*, user:user_id(full_name, email)")
+        .select("*")
         .eq("deal_id", dealId)
         .order("created_at");
       if (error) throw error;
-      return (data || []) as DealComment[];
+      return (data || []) as unknown as DealComment[];
     },
     enabled: !!dealId,
   });
