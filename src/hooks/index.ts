@@ -28,38 +28,6 @@ export { useIntegrationStatus } from './useIntegrationStatus';
 export { useClients } from './useClients';
 export { useTasks } from './useTasks';
 export { useMeetings } from './useMeetings';
-export {
-  useKnowledgeEntries,
-  useKnowledgeCategories,
-  useKnowledgeEntry,
-  useKnowledgeSearch,
-  useCreateKnowledgeEntry,
-  useUpdateKnowledgeEntry,
-  useDeleteKnowledgeEntry,
-  useTriggerEmbedding,
-  useIncrementViewCount,
-  useRelatedEntries,
-} from './useKnowledge';
-export {
-  useCategories,
-  useCategoryTree,
-  useCategory,
-  useCategoryBySlug,
-  useCreateCategory,
-  useUpdateCategory,
-  useDeleteCategory,
-  useReorderCategories,
-  useCategoryStats,
-  useEmbeddingStats,
-} from './useKnowledgeAdmin';
-export {
-  useUserKnowledgeFiles,
-  useUserKnowledgeSources,
-  useUploadUserKnowledgeFile,
-  useDeleteUserKnowledgeFile,
-  useCreateUserKnowledgeSource,
-  useUserFileStats,
-} from './useUserKnowledge';
 export { useNotifications } from './useNotifications';
 
 // ============================================
