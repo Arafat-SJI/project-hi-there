@@ -20,6 +20,7 @@ import {
   Crosshair,
   Eye,
   AlertCircle,
+  Repeat,
   type LucideIcon,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ const iconMap: Record<string, LucideIcon> = {
   Crosshair,
   Eye,
   AlertCircle,
+  Repeat,
 };
 
 function resolveIcon(iconName: string): LucideIcon {

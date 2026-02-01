@@ -51,6 +51,13 @@ export const mainNavigation: NavItem[] = [
     featureFlag: "enableMeetings",
   },
   {
+    title: "Series",
+    href: "/meetings/series",
+    icon: "Repeat",
+    module: "meetings",
+    featureFlag: "enableMeetings",
+  },
+  {
     title: "Tasks",
     href: "/tasks",
     icon: "CheckSquare",

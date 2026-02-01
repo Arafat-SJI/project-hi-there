@@ -1,21 +1,29 @@
 /**
  * Meetings Module Routes
  *
- * Meeting management with create, detail, and edit views.
+ * Meeting management with schedule, detail (tabbed), series, and legacy create/edit views.
  * Gated by the "meetings" module / "enableMeetings" feature flag.
  */
 import { Route } from "react-router-dom";
 import { ModuleRoute } from "@/components/routing/ModuleRoute";
 
-import Meetings from "@/pages/Meetings";
+// V2 module-owned pages
+import MeetingsSchedulePage from "./pages/MeetingsSchedulePage";
+import MeetingDetailV2Page from "./pages/MeetingDetailV2Page";
+import MeetingSeriesPage from "./pages/MeetingSeriesPage";
+
+// Legacy pages (still used for create/edit forms)
 import MeetingForm from "@/pages/MeetingForm";
-import MeetingDetail from "@/pages/MeetingDetail";
 
 export const meetingsRoutes = (
   <Route element={<ModuleRoute module="meetings" requiresFeatureFlag="enableMeetings" />}>
-    <Route path="/meetings" element={<Meetings />} />
+    {/* V2 routes */}
+    <Route path="/meetings" element={<MeetingsSchedulePage />} />
+    <Route path="/meetings/series" element={<MeetingSeriesPage />} />
+    <Route path="/meetings/:id" element={<MeetingDetailV2Page />} />
+
+    {/* Legacy create/edit forms */}
     <Route path="/meetings/new" element={<MeetingForm />} />
-    <Route path="/meetings/:id" element={<MeetingDetail />} />
     <Route path="/meetings/:id/edit" element={<MeetingForm />} />
   </Route>
 );
