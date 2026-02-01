@@ -29,6 +29,10 @@ import FeedbackManagement from "@/pages/admin/FeedbackManagement";
 import ProductRoadmap from "@/pages/admin/ProductRoadmap";
 import DeploymentStatus from "@/pages/DeploymentStatus";
 import MCPServers from "@/pages/MCPServers";
+import EmployeeManagement from "@/pages/admin/EmployeeManagement";
+import DepartmentManagement from "@/pages/admin/DepartmentManagement";
+import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
+import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 
 /**
  * Admin routes - require admin role
@@ -56,6 +60,14 @@ export const adminRoutes = (
     <Route path="/admin/ai-models" element={<AIModelManagement />} />
     <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
     <Route path="/admin/mcp-servers" element={<MCPServers />} />
+
+    {/* Team & Resources */}
+    <Route path="/admin/team/employees" element={<EmployeeManagement />} />
+    <Route path="/admin/team/departments" element={<DepartmentManagement />} />
+
+    {/* Knowledge Admin */}
+    <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />
+    <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
 
     {/* Content & Feedback */}
     <Route path="/admin/feedback" element={<FeedbackManagement />} />

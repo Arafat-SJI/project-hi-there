@@ -165,6 +165,41 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    title: "TEAM & RESOURCES",
+    items: [
+      {
+        title: "Employees",
+        href: "/admin/team/employees",
+        icon: "Users",
+      },
+      {
+        title: "Departments",
+        href: "/admin/team/departments",
+        icon: "Building2",
+      },
+      {
+        title: "Meeting Analytics",
+        href: "/admin/meeting-analytics",
+        icon: "Calendar",
+      },
+    ],
+  },
+  {
+    title: "KNOWLEDGE",
+    items: [
+      {
+        title: "Knowledge Analytics",
+        href: "/admin/knowledge/analytics",
+        icon: "BarChart3",
+      },
+      {
+        title: "Knowledge Categories",
+        href: "/admin/knowledge/categories",
+        icon: "FolderOpen",
+      },
+    ],
+  },
+  {
     title: "CONTENT & FEEDBACK",
     items: [
       {
