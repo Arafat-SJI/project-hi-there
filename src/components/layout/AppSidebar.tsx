@@ -23,6 +23,7 @@ import {
   Repeat,
   Handshake,
   Contact,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,6 +46,7 @@ const iconMap: Record<string, LucideIcon> = {
   Repeat,
   Handshake,
   Contact,
+  FileText,
 };
 
 function resolveIcon(iconName: string): LucideIcon {

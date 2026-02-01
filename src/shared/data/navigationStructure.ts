@@ -116,6 +116,18 @@ export const mainNavigation: NavItem[] = [
     icon: "FolderKanban",
     module: "projects",
   },
+  {
+    title: "Productivity",
+    href: "/productivity",
+    icon: "BarChart3",
+    module: "productivity",
+  },
+  {
+    title: "Processes",
+    href: "/process",
+    icon: "FileText",
+    module: "productivity",
+  },
 ];
 
 /**

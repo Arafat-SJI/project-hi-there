@@ -18,6 +18,7 @@ import { knowledgeRoutes } from "@/modules/knowledge";
 import { businessDevRoutes } from "@/modules/business-dev";
 import { eosRoutes } from "@/modules/eos";
 import { projectsRoutes } from "@/modules/projects";
+import { productivityRoutes } from "@/modules/productivity";
 import { adminRoutes } from "@/modules/admin";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
                 {knowledgeRoutes}
                 {eosRoutes}
                 {projectsRoutes}
+                {productivityRoutes}
               </Route>
             </Route>
 
