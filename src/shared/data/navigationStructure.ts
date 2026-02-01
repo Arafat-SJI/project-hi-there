@@ -96,9 +96,12 @@ export const mainNavigation: NavItem[] = [
     icon: "Crosshair",
     module: "eos",
   },
-  // Future modules:
-  // { title: "Projects", href: "/projects", icon: "FolderKanban", module: "projects" },
-  // { title: "Productivity", href: "/productivity", icon: "BarChart3", module: "productivity" },
+  {
+    title: "Projects",
+    href: "/projects",
+    icon: "FolderKanban",
+    module: "projects",
+  },
 ];
 
 /**
