@@ -53,6 +53,17 @@ export const coreProtectedRoutes = (
     <Route element={<ModuleRoute requiresFeatureFlag="enableNotifications" />}>
       <Route path="/notifications" element={<Notifications />} />
     </Route>
+
+    {/* AI features */}
+    <Route element={<ModuleRoute requiresFeatureFlag="enableAIAgents" />}>
+      <Route path="/ai-agents" element={<AIAgents />} />
+    </Route>
+    <Route element={<ModuleRoute requiresFeatureFlag="enableAIChat" />}>
+      <Route path="/ai-chat" element={<AIChat />} />
+    </Route>
+
+    {/* Personal knowledge */}
+    <Route path="/personal-knowledge" element={<PersonalKnowledge />} />
   </>
 );
 

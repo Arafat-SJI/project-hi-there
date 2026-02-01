@@ -91,6 +91,18 @@ export function useUpdateContact() {
   });
 }
 
+export function useDeleteContact() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("contacts").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [CONTACTS_KEY] }); toast.success("Contact deleted"); },
+    onError: (error: Error) => toast.error("Failed to delete contact", { description: error.message }),
+  });
+}
+
 export function useLeadFollowUps() {
   return useQuery({
     queryKey: [CONTACTS_KEY, "followups"],

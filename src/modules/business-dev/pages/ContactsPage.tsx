@@ -3,6 +3,7 @@
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ const FOLLOWUP_COLORS: Record<string, string> = {
 };
 
 export default function ContactsPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: contacts = [], isLoading } = useContacts(search || undefined);
@@ -144,7 +146,7 @@ export default function ContactsPage() {
             </TableHeader>
             <TableBody>
               {contacts.map((contact) => (
-                <TableRow key={contact.id}>
+                <TableRow key={contact.id} className="cursor-pointer hover:bg-accent/50" onClick={() => navigate(`/contacts/${contact.id}`)}>
                   <TableCell>
                     <p className="font-medium">{contact.first_name} {contact.last_name || ""}</p>
                     {contact.title && <p className="text-xs text-muted-foreground">{contact.title}</p>}

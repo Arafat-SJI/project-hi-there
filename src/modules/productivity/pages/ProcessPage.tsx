@@ -7,7 +7,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FileText, FolderOpen, Loader2, Plus, Tag } from "lucide-react";
+import { ArrowLeft, FileText, FolderOpen, Loader2, Pencil, Plus, Tag } from "lucide-react";
 import { useProcessCategories, useProcessDocuments, useProcessDocument } from "../hooks/useProcesses";
 
 export default function ProcessPage() {
@@ -34,9 +34,14 @@ function ProcessIndexView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Process Documentation</h1>
-        <p className="text-muted-foreground">Standard operating procedures and process docs</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Process Documentation</h1>
+          <p className="text-muted-foreground">Standard operating procedures and process docs</p>
+        </div>
+        <Button onClick={() => navigate("/process/new")}>
+          <Plus className="h-4 w-4 mr-2" />New Document
+        </Button>
       </div>
 
       {categories.length === 0 ? (
@@ -85,10 +90,13 @@ function ProcessCategoryView({ category }: { category: string }) {
     <div className="space-y-6">
       <div className="flex items-start gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/process")}><ArrowLeft className="h-5 w-5" /></Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">{currentCategory?.name || category}</h1>
           {currentCategory?.description && <p className="text-muted-foreground">{currentCategory.description}</p>}
         </div>
+        <Button onClick={() => navigate(`/process/${category}/new`)}>
+          <Plus className="h-4 w-4 mr-2" />New Document
+        </Button>
       </div>
 
       {documents.length === 0 ? (
@@ -145,7 +153,7 @@ function ProcessDocumentView({ category, slug }: { category: string; slug: strin
     <div className="space-y-6">
       <div className="flex items-start gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(`/process/${category}`)}><ArrowLeft className="h-5 w-5" /></Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">{doc.title}</h1>
           <div className="flex items-center gap-2 mt-1">
             {doc.category && <Badge variant="secondary">{doc.category.name}</Badge>}
@@ -153,6 +161,9 @@ function ProcessDocumentView({ category, slug }: { category: string; slug: strin
             {doc.author && <span className="text-sm text-muted-foreground">by {doc.author.full_name}</span>}
           </div>
         </div>
+        <Button variant="outline" size="sm" onClick={() => navigate(`/process/${category}/${slug}/edit`)}>
+          <Pencil className="h-4 w-4 mr-1" />Edit
+        </Button>
       </div>
 
       <Card>
