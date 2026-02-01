@@ -142,6 +142,11 @@ export const adminNavigation: NavGroup[] = [
         href: "/admin",
         icon: "LayoutDashboard",
       },
+      {
+        title: "Implementation Status",
+        href: "/admin/implementation-status",
+        icon: "ClipboardList",
+      },
     ],
   },
   {

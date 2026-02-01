@@ -26,6 +26,11 @@ import {
   MessageSquare,
   Plug,
   Rocket,
+  ClipboardList,
+  Building2,
+  Calendar,
+  BarChart3,
+  FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -44,6 +49,11 @@ const iconMap: Record<string, LucideIcon> = {
   MessageSquare,
   Plug,
   Rocket,
+  ClipboardList,
+  Building2,
+  Calendar,
+  BarChart3,
+  FolderOpen,
 };
 
 function resolveIcon(iconName: string): LucideIcon {
