@@ -9,7 +9,7 @@ import {
   useCreateKnowledgeEntry,
   useUpdateKnowledgeEntry,
   useKnowledgeCategories,
-} from "@/hooks/useKnowledge";
+} from "../hooks/useKnowledge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

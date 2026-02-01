@@ -37,7 +37,7 @@ import {
   useUpdateCategory,
   useDeleteCategory,
   useEmbeddingStats,
-} from '@/hooks/useKnowledgeAdmin';
+} from '@/modules/knowledge/hooks/useKnowledgeAdmin';
 import type { Database } from '@/integrations/supabase/types';
 
 type KnowledgeCategory = Database['public']['Tables']['knowledge_categories']['Row'];

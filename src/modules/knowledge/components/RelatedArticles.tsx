@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useRelatedEntries } from "@/hooks/useKnowledge";
+import { useRelatedEntries } from "../hooks/useKnowledge";
 import {
   Card,
   CardContent,

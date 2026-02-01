@@ -2,7 +2,7 @@
  * Knowledge Base Module Types
  */
 
-export type { KnowledgeEntry, KnowledgeCategory } from "@/hooks/useKnowledge";
+export type { KnowledgeEntry, KnowledgeCategory } from "../hooks/useKnowledge";
 
 export interface KnowledgeSource {
   id: string;

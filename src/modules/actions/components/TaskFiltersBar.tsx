@@ -7,16 +7,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search } from "lucide-react";
-import type { TaskFilters } from "../types/tasks";
-import type { TaskStream } from "../types/tasks";
+import type { TaskFilters, TaskStream, TaskCategory } from "../types/tasks";
 
 interface TaskFiltersBarProps {
   filters: TaskFilters;
   onFiltersChange: (filters: TaskFilters) => void;
   streams?: TaskStream[];
+  categories?: TaskCategory[];
 }
 
-export function TaskFiltersBar({ filters, onFiltersChange, streams }: TaskFiltersBarProps) {
+export function TaskFiltersBar({ filters, onFiltersChange, streams, categories }: TaskFiltersBarProps) {
   const update = (patch: Partial<TaskFilters>) => {
     onFiltersChange({ ...filters, ...patch });
   };
@@ -84,6 +84,29 @@ export function TaskFiltersBar({ filters, onFiltersChange, streams }: TaskFilter
                 <span className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
                   {s.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* Category */}
+      {categories && categories.length > 0 && (
+        <Select
+          value={filters.category_id || "all"}
+          onValueChange={(v) => update({ category_id: v === "all" ? undefined : v })}
+        >
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />
+                  {c.name}
                 </span>
               </SelectItem>
             ))}

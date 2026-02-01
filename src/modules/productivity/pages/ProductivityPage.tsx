@@ -2,15 +2,35 @@
  * Productivity Dashboard Page
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { Search, Users, TrendingUp, Clock, CheckSquare, Loader2, BarChart3 } from "lucide-react";
 import { useProductivityRecords, useProductivitySummary, useDepartments, useAvailableWeeks } from "../hooks/useProductivity";
+
+const ATTENDANCE_COLORS: Record<string, string> = {
+  present: "#22c55e",
+  partial: "#f59e0b",
+  leave: "#3b82f6",
+  absent: "#ef4444",
+};
+
+const deptChartConfig: ChartConfig = {
+  utilization: { label: "Utilization %", color: "#6366f1" },
+};
+
+const attendanceChartConfig: ChartConfig = {
+  present: { label: "Present", color: "#22c55e" },
+  partial: { label: "Partial", color: "#f59e0b" },
+  leave: { label: "Leave", color: "#3b82f6" },
+  absent: { label: "Absent", color: "#ef4444" },
+};
 
 export default function ProductivityPage() {
   const navigate = useNavigate();
@@ -78,6 +98,37 @@ export default function ProductivityPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Charts */}
+      {records.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Department Utilization Bar Chart */}
+          {summary && summary.departments.length > 0 && (
+            <Card className="lg:col-span-2">
+              <CardHeader><CardTitle className="text-base">Department Utilization</CardTitle></CardHeader>
+              <CardContent>
+                <ChartContainer config={deptChartConfig} className="h-[250px] w-full">
+                  <BarChart data={summary.departments.map((d) => ({ name: d.name, utilization: d.avg_utilization }))}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="utilization" fill="var(--color-utilization)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Attendance Donut Chart */}
+          <Card>
+            <CardHeader><CardTitle className="text-base">Attendance Distribution</CardTitle></CardHeader>
+            <CardContent>
+              <AttendanceDonut records={records} />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       <div className="flex items-center gap-3">
@@ -162,6 +213,56 @@ export default function ProductivityPage() {
           </Table>
         </Card>
       )}
+    </div>
+  );
+}
+
+function AttendanceDonut({ records }: { records: { attendance_status: string }[] }) {
+  const data = useMemo(() => {
+    const counts: Record<string, number> = { present: 0, partial: 0, leave: 0, absent: 0 };
+    records.forEach((r) => {
+      const s = r.attendance_status || "absent";
+      counts[s] = (counts[s] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .filter(([, v]) => v > 0)
+      .map(([name, value]) => ({ name, value }));
+  }, [records]);
+
+  const total = data.reduce((s, d) => s + d.value, 0);
+
+  if (data.length === 0) return <p className="text-sm text-muted-foreground text-center py-8">No data</p>;
+
+  return (
+    <div className="flex flex-col items-center">
+      <ChartContainer config={attendanceChartConfig} className="h-[200px] w-full">
+        <PieChart>
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={50}
+            outerRadius={80}
+            paddingAngle={2}
+            dataKey="value"
+            nameKey="name"
+          >
+            {data.map((entry) => (
+              <Cell key={entry.name} fill={ATTENDANCE_COLORS[entry.name] || "#6b7280"} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ChartContainer>
+      <div className="flex flex-wrap gap-3 justify-center mt-2">
+        {data.map((d) => (
+          <div key={d.name} className="flex items-center gap-1.5 text-xs">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ATTENDANCE_COLORS[d.name] }} />
+            <span className="capitalize">{d.name}</span>
+            <span className="text-muted-foreground">({Math.round((d.value / total) * 100)}%)</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

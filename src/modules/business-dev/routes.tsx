@@ -14,6 +14,7 @@ import DealsPage from "./pages/DealsPage";
 import DealDetailPage from "./pages/DealDetailPage";
 import DealFormPage from "./pages/DealFormPage";
 import ContactsPage from "./pages/ContactsPage";
+import ContactDetailPage from "./pages/ContactDetailPage";
 
 export const businessDevRoutes = (
   <Route element={<ModuleRoute module="business-dev" requiresFeatureFlag="enableClients" />}>
@@ -26,5 +27,6 @@ export const businessDevRoutes = (
     <Route path="/deals/:slug" element={<DealDetailPage />} />
     <Route path="/deals/:slug/edit" element={<DealFormPage />} />
     <Route path="/contacts" element={<ContactsPage />} />
+    <Route path="/contacts/:id" element={<ContactDetailPage />} />
   </Route>
 );

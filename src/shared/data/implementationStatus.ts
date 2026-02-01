@@ -95,7 +95,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Shahed" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: roles, default settings, sample users" },
+      dataSeeding: { status: "done", owner: "Shahed", notes: "supabase/seed/00-platform-core.sql — clients, app_modules, system_settings, feature flags, notifications, activity logs" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -141,7 +141,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Abesh" },
       qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Abesh", notes: "Seed: 10 tasks, 3 streams, sample comments" },
+      dataSeeding: { status: "done", owner: "Abesh", notes: "supabase/seed/01-actions.sql — 5 streams, 6 categories, 20 tasks, comments, stream members" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -158,13 +158,14 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "StreamTasksPage — tasks within a stream", status: "qa-ready" },
     ],
     hooks: [
-      { name: "useTasksV2 — CRUD, filters", status: "done" },
+      { name: "useTasksV2 — CRUD, filters (including category_id)", status: "done" },
       { name: "useTaskComments — comment thread", status: "done" },
       { name: "useTaskStreams — stream CRUD + members", status: "done" },
+      { name: "useTaskCategories — CRUD for task categories", status: "done" },
     ],
     components: [
-      { name: "TasksTable, CreateTaskDialog, TaskFiltersBar, TaskViewTabs", status: "done" },
-      { name: "SubTasksList, CommentThread", status: "done" },
+      { name: "TasksTable, CreateTaskDialog (with category selector), TaskFiltersBar (with category filter), TaskViewTabs", status: "done" },
+      { name: "SubTasksList (with creation + toggle), CommentThread", status: "done" },
       { name: "StreamCard, CreateStreamDialog", status: "done" },
     ],
     edgeFunctions: [
@@ -178,10 +179,11 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Create a stream, assign tasks to it, verify stream view", tested: false },
       { description: "Filter tasks by status and assignee", tested: false },
       { description: "Delete a task and verify removal", tested: false },
+      { description: "Create a task with a category, verify category badge shows", tested: false },
+      { description: "Filter tasks by category from the filters bar", tested: false },
+      { description: "Change task category from the detail page sidebar", tested: false },
     ],
     nextSteps: [
-      "Add task categories CRUD",
-      "Add subtask creation UI",
       "Implement task assignment notifications (edge function)",
     ],
   },
@@ -196,7 +198,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Abesh" },
       qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Abesh", notes: "Seed: VTO entries, 5 OKRs, 10 issues, scorecard metrics, org chart" },
+      dataSeeding: { status: "done", owner: "Abesh", notes: "supabase/seed/02-eos.sql — 3 pods, 8 VTO sections, 3 OKRs, 9 KRs, check-ins, 5 issues, scorecard, org chart, GWC" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -263,7 +265,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Abesh" },
       qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Abesh", notes: "Seed: 5 meetings, agenda items, recurring series, sample participants" },
+      dataSeeding: { status: "done", owner: "Abesh", notes: "supabase/seed/03-meetings.sql — 2 series, 6 meetings, participants, agenda items, takeaways, transcript" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -315,11 +317,11 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Knowledge Base",
     phase: 4,
     owner: "Shahed",
-    summary: "Database and types ready. UI leverages existing legacy pages. Vector search tables prepared.",
+    summary: "Fully modularized into src/modules/knowledge/ with pages, hooks, components. Vector search tables prepared.",
     pipeline: {
-      development: { status: "in-progress", owner: "Shahed", notes: "Legacy UI done, semantic search UI pending" },
+      development: { status: "in-progress", owner: "Shahed", notes: "Pages modularized, semantic search UI pending" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: 10 articles, categories, sample embeddings, common knowledge" },
+      dataSeeding: { status: "done", owner: "Shahed", notes: "supabase/seed/04-knowledge.sql — 4 categories, 7 articles, 3 sources, 3 common knowledge items" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -330,19 +332,25 @@ export const implementationStatus: ModuleStatus[] = [
     routes: { status: "done" },
     navigation: { status: "done" },
     pages: [
-      { name: "Knowledge listing (legacy)", status: "done", notes: "Routed from src/pages/" },
-      { name: "Knowledge detail (legacy)", status: "done" },
-      { name: "Knowledge form (legacy)", status: "done" },
-      { name: "Knowledge upload (legacy)", status: "done" },
+      { name: "Knowledge — hub listing with search and categories", status: "done" },
+      { name: "KnowledgeDetail — article view with markdown, bookmarks", status: "done" },
+      { name: "KnowledgeForm — create/edit with live preview, AI summary", status: "done" },
+      { name: "KnowledgeUpload — batch file upload with metadata", status: "done" },
+      { name: "KnowledgeByCategory — browse by category", status: "done" },
+      { name: "PersonalKnowledge — user knowledge file management", status: "done" },
       { name: "Semantic search UI", status: "not-started" },
       { name: "Embeddings explorer (admin)", status: "not-started" },
     ],
     hooks: [
-      { name: "useKnowledge (legacy)", status: "done" },
-      { name: "useKnowledgeAdmin (legacy)", status: "done" },
+      { name: "useKnowledge — entries CRUD, search, embedding, bookmarks (13 hooks)", status: "done" },
+      { name: "useKnowledgeAdmin — categories CRUD, tree, stats, embedding stats (10 hooks)", status: "done" },
+      { name: "useUserKnowledge — personal files and sources (placeholder)", status: "in-progress" },
       { name: "Embedding pipeline hooks", status: "not-started" },
     ],
-    components: [],
+    components: [
+      { name: "RelatedArticles — related article suggestions", status: "done" },
+      { name: "GoogleDriveFilePicker — Drive integration", status: "done" },
+    ],
     edgeFunctions: [
       { name: "auto-embed (embedding pipeline)", status: "not-started" },
       { name: "semantic-search", status: "not-started" },
@@ -355,9 +363,9 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Browse by category", tested: false },
     ],
     nextSteps: [
-      "Build semantic search UI (needs edge function deployed)",
-      "Modularize legacy pages into src/modules/knowledge/",
-      "Admin knowledge analytics page",
+      "Build semantic search UI (needs auto-embed edge function deployed first)",
+      "Embeddings explorer admin page",
+      "Flesh out useUserKnowledge (personal file management with Drive sync)",
     ],
   },
 
@@ -371,7 +379,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Zia" },
       qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Zia", notes: "Seed: 5 projects, milestones, members, risks, sample invoices" },
+      dataSeeding: { status: "done", owner: "Zia", notes: "supabase/seed/05-projects.sql — 5 statuses, 4 projects, members, milestones, comments, risks, billing, invoices" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -421,7 +429,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Zia" },
       qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Zia", notes: "Seed: 10 deals across stages, 15 contacts, lead follow-ups, sample clients" },
+      dataSeeding: { status: "done", owner: "Zia", notes: "supabase/seed/06-business-dev.sql — 6 contacts, 5 deals, activities, comments, lead follow-ups, communications, scheduled emails" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -435,7 +443,8 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "DealsPage — pipeline kanban view", status: "qa-ready" },
       { name: "DealFormPage — create + edit deal", status: "qa-ready" },
       { name: "DealDetailPage — tabbed with stage progress, edit/delete", status: "qa-ready" },
-      { name: "ContactsPage — listing with create dialog", status: "qa-ready" },
+      { name: "ContactsPage — listing with create dialog, clickable rows", status: "qa-ready" },
+      { name: "ContactDetailPage — view/edit/delete with lead follow-up management", status: "qa-ready" },
       { name: "Clients (legacy) — client CRUD", status: "done" },
     ],
     hooks: [
@@ -443,6 +452,7 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "useUpdateDeal — full field updates", status: "done" },
       { name: "useDeleteDeal — with cache invalidation", status: "done" },
       { name: "useContacts — CRUD + lead follow-ups", status: "done" },
+      { name: "useDeleteContact — with cache invalidation", status: "done" },
       { name: "useClients (legacy) — client CRUD", status: "done" },
     ],
     components: [],
@@ -458,12 +468,14 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Edit deal from detail page Edit button", tested: false },
       { description: "Delete deal via confirmation dialog", tested: false },
       { description: "Create a contact via dialog on /contacts", tested: false },
+      { description: "Click a contact row to view /contacts/:id detail page", tested: false },
+      { description: "Edit contact inline from detail page, save changes", tested: false },
+      { description: "Delete contact via confirmation dialog", tested: false },
+      { description: "Create and update lead follow-up from detail sidebar", tested: false },
       { description: "Verify lead follow-up status badge renders on contacts", tested: false },
       { description: "Legacy: create/edit/view clients at /clients/*", tested: false },
     ],
     nextSteps: [
-      "Contact detail/edit page (/contacts/:id)",
-      "useDeleteContact hook + delete button",
       "Deal activity logging on stage changes",
       "HubSpot integration (edge function)",
     ],
@@ -479,7 +491,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Zia" },
       qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Zia", notes: "Seed: departments, employee profiles, weekly records, process categories + docs" },
+      dataSeeding: { status: "done", owner: "Zia", notes: "supabase/seed/07-productivity.sql — 3 depts, 3 pods, 6 employees, 4 weeks records, leave events, 4 process docs, alerts" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -490,16 +502,22 @@ export const implementationStatus: ModuleStatus[] = [
     routes: { status: "done" },
     navigation: { status: "done" },
     pages: [
-      { name: "ProductivityPage — dashboard with dept overview", status: "qa-ready" },
+      { name: "ProductivityPage — dashboard with dept overview, bar chart, attendance donut", status: "qa-ready" },
       { name: "EmployeeDetailPage — profile + weekly history", status: "qa-ready" },
-      { name: "ProcessPage — index / category / document views", status: "qa-ready" },
+      { name: "ProcessPage — index / category / document views with New/Edit buttons", status: "qa-ready" },
+      { name: "ProcessFormPage — create + edit process document with tags", status: "qa-ready" },
     ],
     hooks: [
       { name: "useProductivity — records, summary, departments, weeks", status: "done" },
       { name: "useEmployees — profiles, productivity history", status: "done" },
-      { name: "useProcesses — categories, documents, CRUD", status: "done" },
+      { name: "useProcesses — categories, documents, create/read", status: "done" },
+      { name: "useUpdateProcessDocument — update with cache invalidation", status: "done" },
+      { name: "useDeleteProcessDocument — delete with cache invalidation", status: "done" },
     ],
-    components: [],
+    components: [
+      { name: "Department utilization bar chart (recharts)", status: "done" },
+      { name: "Attendance distribution donut chart (recharts)", status: "done" },
+    ],
     edgeFunctions: [
       { name: "Productivity CSV import", status: "not-started" },
       { name: "HR employee sync", status: "not-started" },
@@ -508,15 +526,19 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     qaChecklist: [
       { description: "Navigate /productivity and see department cards", tested: false },
+      { description: "Verify department utilization bar chart renders with data", tested: false },
+      { description: "Verify attendance donut chart renders with data", tested: false },
       { description: "Click an employee to see /productivity/employee/:email", tested: false },
       { description: "Navigate /process and see category cards", tested: false },
       { description: "Click a category to see documents list", tested: false },
       { description: "Click a document to see full content", tested: false },
+      { description: "Create a new process doc via /process/new or category New button", tested: false },
+      { description: "Edit a document from the detail view Edit button", tested: false },
+      { description: "Delete a document via confirmation dialog", tested: false },
+      { description: "Add and remove tags on a process document", tested: false },
     ],
     nextSteps: [
-      "Process document create/edit form",
       "CSV import page for productivity data",
-      "Charts: department trends, heatmap, donut chart",
       "Pod-level productivity breakdown",
     ],
   },
@@ -531,7 +553,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "in-progress", owner: "Shahed", notes: "Core admin done, EOS/data sync admin pages pending" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: system settings, feature flags, sample activity logs" },
+      dataSeeding: { status: "done", owner: "Shahed", notes: "Covered by supabase/seed/00-platform-core.sql (system_settings, app_config, activity_logs)" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -576,9 +598,9 @@ export const implementationStatus: ModuleStatus[] = [
     owner: "Shahed",
     summary: "AI agent management, chat interface, model configuration, usage analytics, MCP server integration.",
     pipeline: {
-      development: { status: "in-progress", owner: "Shahed", notes: "Admin pages done, user-facing agent/chat routes not wired" },
+      development: { status: "done", owner: "Shahed", notes: "Admin + user-facing routes wired, nav items added" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: AI providers, models, sample agents, demo conversations" },
+      dataSeeding: { status: "done", owner: "Shahed", notes: "supabase/seed/08-ai-agents.sql — 3 providers, 6 models, 5 agents, chat history, usage logs" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -588,14 +610,15 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     database: { tables: 5, status: "done", notes: "ai_agents, ai_agent_runs, ai_models, ai_providers, ai_usage_logs" },
     types: { status: "done" },
-    routes: { status: "in-progress", notes: "Admin routes wired, user-facing /ai-agents and /ai-chat not yet routed" },
-    navigation: { status: "done", notes: "Admin AI & Automation section in sidebar" },
+    routes: { status: "done", notes: "Admin + user-facing routes wired with feature flag gating" },
+    navigation: { status: "done", notes: "Admin AI & Automation section + user sidebar (AI Agents, AI Chat, Personal Knowledge)" },
     pages: [
       { name: "AIModelManagement — admin provider/model config", status: "done" },
       { name: "AIUsageAnalytics — admin usage dashboard + cost tracking", status: "done" },
       { name: "MCPServers — MCP server management", status: "done" },
-      { name: "AIAgents — agent CRUD + execution (page exists, route not wired)", status: "in-progress" },
-      { name: "AIChat — conversational AI interface (page exists, route not wired)", status: "in-progress" },
+      { name: "AIAgents — agent CRUD + execution", status: "qa-ready" },
+      { name: "AIChat — conversational AI interface", status: "qa-ready" },
+      { name: "PersonalKnowledge — user knowledge management", status: "qa-ready" },
     ],
     hooks: [
       { name: "useAIAgents — CRUD, toggle, run agent, execution history", status: "done" },
@@ -623,7 +646,6 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Open AI chat and send a message", tested: false },
     ],
     nextSteps: [
-      "Wire /ai-agents and /ai-chat user-facing routes",
       "Deploy auto-embed edge function for embedding pipeline",
       "Build semantic search UI in Knowledge Base",
       "Agent memory/conversation persistence tables",

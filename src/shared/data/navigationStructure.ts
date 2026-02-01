@@ -128,6 +128,23 @@ export const mainNavigation: NavItem[] = [
     icon: "FileText",
     module: "productivity",
   },
+  {
+    title: "AI Agents",
+    href: "/ai-agents",
+    icon: "Bot",
+    featureFlag: "enableAIAgents",
+  },
+  {
+    title: "AI Chat",
+    href: "/ai-chat",
+    icon: "MessageSquare",
+    featureFlag: "enableAIChat",
+  },
+  {
+    title: "Personal Knowledge",
+    href: "/personal-knowledge",
+    icon: "Brain",
+  },
 ];
 
 /**

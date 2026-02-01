@@ -24,7 +24,7 @@ import Notifications from "@/pages/Notifications";
 import Feedback from "@/pages/Feedback";
 import AIChat from "@/pages/AIChat";
 import AIAgents from "@/pages/AIAgents";
-import PersonalKnowledge from "@/pages/PersonalKnowledge";
+import PersonalKnowledge from "@/modules/knowledge/pages/PersonalKnowledge";
 
 /**
  * Public routes - no auth required
@@ -53,6 +53,17 @@ export const coreProtectedRoutes = (
     <Route element={<ModuleRoute requiresFeatureFlag="enableNotifications" />}>
       <Route path="/notifications" element={<Notifications />} />
     </Route>
+
+    {/* AI features */}
+    <Route element={<ModuleRoute requiresFeatureFlag="enableAIAgents" />}>
+      <Route path="/ai-agents" element={<AIAgents />} />
+    </Route>
+    <Route element={<ModuleRoute requiresFeatureFlag="enableAIChat" />}>
+      <Route path="/ai-chat" element={<AIChat />} />
+    </Route>
+
+    {/* Personal knowledge */}
+    <Route path="/personal-knowledge" element={<PersonalKnowledge />} />
   </>
 );
 

@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Upload, ArrowLeft, FileText, CheckCircle, AlertCircle, X } from "lucide-react";
 import { toast } from "sonner";
-import { useKnowledgeCategories } from "@/hooks/useKnowledge";
+import { useKnowledgeCategories } from "../hooks/useKnowledge";
 
 interface UploadedFile {
   file: File;

@@ -7,12 +7,12 @@
 import { Route } from "react-router-dom";
 import { ModuleRoute } from "@/components/routing/ModuleRoute";
 
-import Knowledge from "@/pages/Knowledge";
-import KnowledgeForm from "@/pages/KnowledgeForm";
-import KnowledgeDetail from "@/pages/KnowledgeDetail";
-import KnowledgeUpload from "@/pages/KnowledgeUpload";
-import KnowledgeByCategory from "@/pages/KnowledgeByCategory";
-import PersonalKnowledge from "@/pages/PersonalKnowledge";
+import Knowledge from "./pages/Knowledge";
+import KnowledgeForm from "./pages/KnowledgeForm";
+import KnowledgeDetail from "./pages/KnowledgeDetail";
+import KnowledgeUpload from "./pages/KnowledgeUpload";
+import KnowledgeByCategory from "./pages/KnowledgeByCategory";
+import PersonalKnowledge from "./pages/PersonalKnowledge";
 
 export const knowledgeRoutes = (
   <Route element={<ModuleRoute module="knowledge" requiresFeatureFlag="enableKnowledgeBase" />}>

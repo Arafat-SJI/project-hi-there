@@ -114,3 +114,30 @@ export function useCreateProcessDocument() {
     onError: (error: Error) => toast.error("Failed to create document", { description: error.message }),
   });
 }
+
+export function useUpdateProcessDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { title?: string; content?: string; tags?: string[]; category_id?: string } }) => {
+      const { error } = await supabase.from("process_documents").update({
+        ...data,
+        updated_at: new Date().toISOString(),
+      }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [PROCESSES_KEY] }); toast.success("Document updated"); },
+    onError: (error: Error) => toast.error("Failed to update document", { description: error.message }),
+  });
+}
+
+export function useDeleteProcessDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("process_documents").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [PROCESSES_KEY] }); toast.success("Document deleted"); },
+    onError: (error: Error) => toast.error("Failed to delete document", { description: error.message }),
+  });
+}

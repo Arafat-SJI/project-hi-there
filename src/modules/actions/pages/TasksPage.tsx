@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Plus, CheckSquare, Clock, AlertTriangle, ListTodo } from "lucide-react";
 import { useTasksV2, useTaskStats } from "../hooks/useTasksV2";
 import { useTaskStreams } from "../hooks/useTaskStreams";
+import { useTaskCategories } from "../hooks/useTaskCategories";
 import { useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
 import { TasksTable } from "../components/TasksTable";
 import { TaskViewTabs } from "../components/TaskViewTabs";
@@ -26,6 +27,7 @@ export default function TasksPage() {
   const { data: tasks, isLoading } = useTasksV2(mergedFilters);
   const { data: stats } = useTaskStats();
   const { data: streams } = useTaskStreams();
+  const { data: categories } = useTaskCategories();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
 
@@ -65,7 +67,7 @@ export default function TasksPage() {
       <TaskViewTabs currentView={view} onViewChange={setView} stats={stats} />
 
       {/* Filters */}
-      <TaskFiltersBar filters={filters} onFiltersChange={setFilters} streams={streams} />
+      <TaskFiltersBar filters={filters} onFiltersChange={setFilters} streams={streams} categories={categories} />
 
       {/* Task List */}
       {isLoading ? (

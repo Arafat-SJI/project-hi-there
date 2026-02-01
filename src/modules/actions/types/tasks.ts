@@ -60,6 +60,7 @@ export interface TaskFilters {
   priority?: TaskPriority | "all";
   assigned_to?: string;
   stream_id?: string;
+  category_id?: string;
   view?: TaskView;
   search?: string;
 }
