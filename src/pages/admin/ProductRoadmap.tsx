@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
   Clock,
@@ -39,6 +41,8 @@ import {
   BarChart3,
   FolderKanban,
   Handshake,
+  ClipboardList,
+  ExternalLink,
 } from "lucide-react";
 import {
   implementationStatus,
@@ -632,6 +636,39 @@ export default function ProductRoadmap() {
           <Timeline />
         </TabsContent>
       </Tabs>
+
+      {/* Developer Tools Card */}
+      <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500 text-white">
+                <ClipboardList className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg text-green-800 dark:text-green-200">
+                  Implementation Status
+                </CardTitle>
+                <CardDescription className="text-green-600 dark:text-green-400">
+                  Developer dashboard for tracking module progress
+                </CardDescription>
+              </div>
+            </div>
+            <Link to="/admin/implementation-status">
+              <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/50">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Tracker
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <p className="text-sm text-green-700 dark:text-green-300">
+            Track pages, hooks, components, database tables, edge functions, and QA checklists
+            for all modules. Updated by developers after each batch of work.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
