@@ -108,6 +108,47 @@ export function useCreateDeal() {
   });
 }
 
+export function useUpdateDeal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<DealFormData> & { lost_reason?: string } }) => {
+      const updates: Record<string, unknown> = {};
+      if (data.title !== undefined) updates.title = data.title;
+      if (data.description !== undefined) updates.description = data.description || null;
+      if (data.stage !== undefined) {
+        updates.stage = data.stage;
+        if (data.stage === "won" || data.stage === "lost") updates.closed_at = new Date().toISOString();
+        else updates.closed_at = null;
+      }
+      if (data.value !== undefined) updates.value = data.value || null;
+      if (data.client_id !== undefined) updates.client_id = data.client_id || null;
+      if (data.contact_id !== undefined) updates.contact_id = data.contact_id || null;
+      if (data.owner_id !== undefined) updates.owner_id = data.owner_id || null;
+      if (data.expected_close_date !== undefined) updates.expected_close_date = data.expected_close_date || null;
+      if (data.source !== undefined) updates.source = data.source || null;
+      if (data.lost_reason !== undefined) updates.lost_reason = data.lost_reason || null;
+
+      const { data: deal, error } = await supabase.from("deals").update(updates).eq("id", id).select().single();
+      if (error) throw error;
+      return deal;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [DEALS_KEY] }); toast.success("Deal updated"); },
+    onError: (error: Error) => toast.error("Failed to update deal", { description: error.message }),
+  });
+}
+
+export function useDeleteDeal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("deals").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [DEALS_KEY] }); toast.success("Deal deleted"); },
+    onError: (error: Error) => toast.error("Failed to delete deal", { description: error.message }),
+  });
+}
+
 export function useUpdateDealStage() {
   const queryClient = useQueryClient();
   return useMutation({

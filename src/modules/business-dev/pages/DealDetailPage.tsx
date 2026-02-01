@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, DollarSign, Calendar, User, Building2, MessageSquare, Activity, Loader2, ChevronRight } from "lucide-react";
-import { useDeal, useDealActivities, useDealComments, useAddDealComment, useUpdateDealStage } from "../hooks/useDeals";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft, DollarSign, Calendar, User, Building2, MessageSquare, Activity, Loader2, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { useDeal, useDealActivities, useDealComments, useAddDealComment, useUpdateDealStage, useDeleteDeal } from "../hooks/useDeals";
 import type { DealStage } from "../types";
 
 const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
@@ -35,6 +36,7 @@ export default function DealDetailPage() {
   const { data: comments = [] } = useDealComments(deal?.id || "");
   const addComment = useAddDealComment();
   const updateStage = useUpdateDealStage();
+  const deleteDeal = useDeleteDeal();
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -69,6 +71,28 @@ export default function DealDetailPage() {
             </Badge>
             {deal.client && <span className="text-sm text-muted-foreground">{deal.client.name}</span>}
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/deals/${slug}/edit`)}>
+            <Pencil className="h-4 w-4 mr-1" />Edit
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4 mr-1" />Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete deal?</AlertDialogTitle>
+                <AlertDialogDescription>This will permanently delete "{deal.title}" and all associated activities and comments.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteDeal.mutate(deal.id, { onSuccess: () => navigate("/deals") })}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
