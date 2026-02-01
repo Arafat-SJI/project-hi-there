@@ -33,6 +33,7 @@ import EmployeeManagement from "@/pages/admin/EmployeeManagement";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
+import ImplementationStatus from "@/pages/admin/ImplementationStatus";
 
 /**
  * Admin routes - require admin role
@@ -41,6 +42,7 @@ export const adminRoutes = (
   <>
     {/* Dashboard */}
     <Route path="/admin" element={<Admin />} />
+    <Route path="/admin/implementation-status" element={<ImplementationStatus />} />
 
     {/* Users & Access */}
     <Route path="/admin/users" element={<UserManagement />} />
