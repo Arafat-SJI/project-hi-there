@@ -1,121 +1,136 @@
 
 
-# Migration Execution Plan
+# Implementation Status Repositioning
 
-## Current Situation
+## Summary
 
-Your codebase has **60 migration files** in `supabase/migrations/`, but only the **foundation schema** has been applied to your database. The new module tables required by the frontend code don't exist yet.
+Move the "Implementation Status" link from the top of the admin sidebar (DASHBOARD group) to the Product Roadmap page as a prominent, standalone card with a light green background. This makes the development tracking tool more visible during active development while keeping it associated with the roadmap/vision section.
 
-### Build Errors Root Cause
+## Changes Overview
 
-The TypeScript errors like `"task_comments" is not assignable to parameter of type 'never'` happen because:
-1. Supabase generates `src/integrations/supabase/types.ts` from your **current database schema**
-2. The new tables (`task_streams`, `task_comments`, `contacts`, `deals`, etc.) don't exist in the database yet
-3. The frontend hooks reference these non-existent tables
+### 1. Remove Implementation Status from Admin Sidebar Navigation
 
----
+**File:** `src/shared/data/navigationStructure.ts`
 
-## What Needs to Be Applied
+Remove the Implementation Status item from the DASHBOARD group:
 
-### Already Applied (Foundation)
-- `profiles`, `roles`, `user_roles`
-- `clients`, `meetings`, `tasks` (basic)
-- `ai_agents`, `ai_models`, `ai_providers`
-- `knowledge_entries`, `embeddings`
-- `integration_*` tables
-- `notifications`, `feedback`
+```typescript
+// Before (lines 138-150)
+{
+  title: "DASHBOARD",
+  items: [
+    {
+      title: "Overview",
+      href: "/admin",
+      icon: "LayoutDashboard",
+    },
+    {
+      title: "Implementation Status",  // REMOVE this item
+      href: "/admin/implementation-status",
+      icon: "ClipboardList",
+    },
+  ],
+},
 
-### Needs to Be Applied (8 New Module Migrations)
-
-| Migration File | Tables Created | Table Count |
-|---------------|---------------|-------------|
-| `20260201_app_modules.sql` | `app_modules`, `user_module_permissions`, `system_settings` | 3 |
-| `20260201_actions_module.sql` | `task_streams`, `task_stream_members`, `task_categories`, `task_comments`, `task_attachments`, `task_contributors` + ALTER tasks | 6 + ALTER |
-| `20260201_eos_module.sql` | `vto`, `okrs`, `key_results`, `eos_issues`, etc. | ~12 |
-| `20260201_meetings_v2.sql` | `meeting_series`, `meeting_agenda_items`, `meeting_participants`, etc. | ~7 |
-| `20260201_knowledge_module.sql` | `knowledge_articles`, `article_versions`, etc. | ~7 |
-| `20260201_projects_module.sql` | `projects`, `project_phases`, `project_tasks`, etc. | ~10 |
-| `20260201_business_dev_module.sql` | `deals`, `contacts`, `lead_followup_contacts`, `deal_activities`, etc. | 7 |
-| `20260201_productivity_module.sql` | `employees`, `time_entries`, `productivity_metrics`, etc. | ~10 |
-
-**Total: ~60+ new tables and columns**
-
----
-
-## Recommended Execution Path
-
-### Option A: Run All 8 Module Migrations via Supabase SQL Editor (Recommended)
-
-**Step 1:** Open Supabase SQL Editor
-- URL: https://supabase.com/dashboard/project/tjkqvbxtziheggurtvcz/sql/new
-
-**Step 2:** Run migrations in this order:
-```text
-1. 20260201_app_modules.sql          (FIRST - creates module registry)
-2. 20260201_actions_module.sql       (extends tasks table)
-3. 20260201_eos_module.sql
-4. 20260201_meetings_v2.sql
-5. 20260201_knowledge_module.sql
-6. 20260201_projects_module.sql
-7. 20260201_business_dev_module.sql
-8. 20260201_productivity_module.sql
-```
-
-**Step 3:** After all migrations complete, regenerate TypeScript types:
-- In Lovable, the types will auto-regenerate when the database schema changes
-- This will resolve all the build errors
-
-### Option B: Run Combined File in Batches
-
-If you prefer using `supabase/all_migrations_combined.sql`:
-1. Search for `FILE: 20260201_app_modules.sql` (around line 7500+)
-2. Copy from there to the end of the file
-3. Paste into SQL Editor and run
-
----
-
-## Post-Migration Verification
-
-After running migrations, verify by querying:
-
-```sql
--- Check new tables exist
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
-AND table_name IN (
-  'app_modules',
-  'task_streams', 
-  'task_comments',
-  'contacts', 
-  'deals',
-  'okrs',
-  'projects'
-);
+// After
+{
+  title: "DASHBOARD",
+  items: [
+    {
+      title: "Overview",
+      href: "/admin",
+      icon: "LayoutDashboard",
+    },
+  ],
+},
 ```
 
 ---
 
-## What Happens Next
+### 2. Add Implementation Status Card to Product Roadmap Page
 
-After migrations are applied:
-1. **TypeScript types auto-update** - Supabase types regenerate
-2. **Build errors resolve** - Tables now exist in type definitions
-3. **New features work** - Actions, EOS, Business Dev modules become functional
+**File:** `src/pages/admin/ProductRoadmap.tsx`
+
+Add a prominent light green card at the bottom of the page (after the Tabs component) that links to the Implementation Status page:
+
+```typescript
+// Add after the Tabs component (around line 634)
+
+{/* Developer Tools Card */}
+<Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900">
+  <CardHeader className="pb-3">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500 text-white">
+          <ClipboardList className="h-5 w-5" />
+        </div>
+        <div>
+          <CardTitle className="text-lg text-green-800 dark:text-green-200">
+            Implementation Status
+          </CardTitle>
+          <CardDescription className="text-green-600 dark:text-green-400">
+            Developer dashboard for tracking module progress
+          </CardDescription>
+        </div>
+      </div>
+      <Link to="/admin/implementation-status">
+        <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-100">
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Open Tracker
+        </Button>
+      </Link>
+    </div>
+  </CardHeader>
+  <CardContent className="pt-0">
+    <p className="text-sm text-green-700 dark:text-green-300">
+      Track pages, hooks, components, database tables, edge functions, and QA checklists
+      for all modules. Updated by developers after each batch of work.
+    </p>
+  </CardContent>
+</Card>
+```
 
 ---
 
-## Quick Reference: Migration Files Location
+### 3. Add Required Imports to ProductRoadmap.tsx
 
-```text
-supabase/migrations/
-├── 20260201_app_modules.sql           ← Run 1st
-├── 20260201_actions_module.sql        ← Run 2nd
-├── 20260201_eos_module.sql            ← Run 3rd
-├── 20260201_meetings_v2.sql           ← Run 4th
-├── 20260201_knowledge_module.sql      ← Run 5th
-├── 20260201_projects_module.sql       ← Run 6th
-├── 20260201_business_dev_module.sql   ← Run 7th
-└── 20260201_productivity_module.sql   ← Run 8th
+Add to the existing imports:
+
+```typescript
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ClipboardList, ExternalLink } from "lucide-react";  // Add to existing lucide imports
 ```
+
+---
+
+## Visual Result
+
+**Before:**
+- Implementation Status appears at the top of the admin sidebar under "DASHBOARD"
+- Easy to miss among other menu items
+
+**After:**
+- Implementation Status removed from sidebar
+- Appears as a prominent light green card at the bottom of the Vision & Roadmap page
+- Green background makes it stand out as a developer tool
+- Clear "Open Tracker" button for quick access
+
+---
+
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `src/shared/data/navigationStructure.ts` | Remove Implementation Status from DASHBOARD group |
+| `src/pages/admin/ProductRoadmap.tsx` | Add light green developer card with link |
+
+---
+
+## Technical Notes
+
+- The route `/admin/implementation-status` remains unchanged in `src/modules/admin/routes.tsx`
+- The Implementation Status page itself requires no changes
+- The green styling uses Tailwind's green-50/green-950 for proper light/dark mode support
+- Card placement at the bottom keeps it prominent without disrupting the main content tabs
 
