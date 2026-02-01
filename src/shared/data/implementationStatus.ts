@@ -158,13 +158,14 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "StreamTasksPage — tasks within a stream", status: "qa-ready" },
     ],
     hooks: [
-      { name: "useTasksV2 — CRUD, filters", status: "done" },
+      { name: "useTasksV2 — CRUD, filters (including category_id)", status: "done" },
       { name: "useTaskComments — comment thread", status: "done" },
       { name: "useTaskStreams — stream CRUD + members", status: "done" },
+      { name: "useTaskCategories — CRUD for task categories", status: "done" },
     ],
     components: [
-      { name: "TasksTable, CreateTaskDialog, TaskFiltersBar, TaskViewTabs", status: "done" },
-      { name: "SubTasksList, CommentThread", status: "done" },
+      { name: "TasksTable, CreateTaskDialog (with category selector), TaskFiltersBar (with category filter), TaskViewTabs", status: "done" },
+      { name: "SubTasksList (with creation + toggle), CommentThread", status: "done" },
       { name: "StreamCard, CreateStreamDialog", status: "done" },
     ],
     edgeFunctions: [
@@ -178,10 +179,11 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Create a stream, assign tasks to it, verify stream view", tested: false },
       { description: "Filter tasks by status and assignee", tested: false },
       { description: "Delete a task and verify removal", tested: false },
+      { description: "Create a task with a category, verify category badge shows", tested: false },
+      { description: "Filter tasks by category from the filters bar", tested: false },
+      { description: "Change task category from the detail page sidebar", tested: false },
     ],
     nextSteps: [
-      "Add task categories CRUD",
-      "Add subtask creation UI",
       "Implement task assignment notifications (edge function)",
     ],
   },
@@ -315,9 +317,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Knowledge Base",
     phase: 4,
     owner: "Shahed",
-    summary: "Database and types ready. UI leverages existing legacy pages. Vector search tables prepared.",
+    summary: "Fully modularized into src/modules/knowledge/ with pages, hooks, components. Vector search tables prepared.",
     pipeline: {
-      development: { status: "in-progress", owner: "Shahed", notes: "Legacy UI done, semantic search UI pending" },
+      development: { status: "in-progress", owner: "Shahed", notes: "Pages modularized, semantic search UI pending" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
       dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: 10 articles, categories, sample embeddings, common knowledge" },
       signOff: { status: "not-started", owner: "Jairaj" },
@@ -330,19 +332,25 @@ export const implementationStatus: ModuleStatus[] = [
     routes: { status: "done" },
     navigation: { status: "done" },
     pages: [
-      { name: "Knowledge listing (legacy)", status: "done", notes: "Routed from src/pages/" },
-      { name: "Knowledge detail (legacy)", status: "done" },
-      { name: "Knowledge form (legacy)", status: "done" },
-      { name: "Knowledge upload (legacy)", status: "done" },
+      { name: "Knowledge — hub listing with search and categories", status: "done" },
+      { name: "KnowledgeDetail — article view with markdown, bookmarks", status: "done" },
+      { name: "KnowledgeForm — create/edit with live preview, AI summary", status: "done" },
+      { name: "KnowledgeUpload — batch file upload with metadata", status: "done" },
+      { name: "KnowledgeByCategory — browse by category", status: "done" },
+      { name: "PersonalKnowledge — user knowledge file management", status: "done" },
       { name: "Semantic search UI", status: "not-started" },
       { name: "Embeddings explorer (admin)", status: "not-started" },
     ],
     hooks: [
-      { name: "useKnowledge (legacy)", status: "done" },
-      { name: "useKnowledgeAdmin (legacy)", status: "done" },
+      { name: "useKnowledge — entries CRUD, search, embedding, bookmarks (13 hooks)", status: "done" },
+      { name: "useKnowledgeAdmin — categories CRUD, tree, stats, embedding stats (10 hooks)", status: "done" },
+      { name: "useUserKnowledge — personal files and sources (placeholder)", status: "in-progress" },
       { name: "Embedding pipeline hooks", status: "not-started" },
     ],
-    components: [],
+    components: [
+      { name: "RelatedArticles — related article suggestions", status: "done" },
+      { name: "GoogleDriveFilePicker — Drive integration", status: "done" },
+    ],
     edgeFunctions: [
       { name: "auto-embed (embedding pipeline)", status: "not-started" },
       { name: "semantic-search", status: "not-started" },
@@ -356,7 +364,6 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     nextSteps: [
       "Build semantic search UI (needs edge function deployed)",
-      "Modularize legacy pages into src/modules/knowledge/",
       "Admin knowledge analytics page",
     ],
   },
@@ -494,7 +501,7 @@ export const implementationStatus: ModuleStatus[] = [
     routes: { status: "done" },
     navigation: { status: "done" },
     pages: [
-      { name: "ProductivityPage — dashboard with dept overview", status: "qa-ready" },
+      { name: "ProductivityPage — dashboard with dept overview, bar chart, attendance donut", status: "qa-ready" },
       { name: "EmployeeDetailPage — profile + weekly history", status: "qa-ready" },
       { name: "ProcessPage — index / category / document views with New/Edit buttons", status: "qa-ready" },
       { name: "ProcessFormPage — create + edit process document with tags", status: "qa-ready" },
@@ -506,7 +513,10 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "useUpdateProcessDocument — update with cache invalidation", status: "done" },
       { name: "useDeleteProcessDocument — delete with cache invalidation", status: "done" },
     ],
-    components: [],
+    components: [
+      { name: "Department utilization bar chart (recharts)", status: "done" },
+      { name: "Attendance distribution donut chart (recharts)", status: "done" },
+    ],
     edgeFunctions: [
       { name: "Productivity CSV import", status: "not-started" },
       { name: "HR employee sync", status: "not-started" },
@@ -515,6 +525,8 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     qaChecklist: [
       { description: "Navigate /productivity and see department cards", tested: false },
+      { description: "Verify department utilization bar chart renders with data", tested: false },
+      { description: "Verify attendance donut chart renders with data", tested: false },
       { description: "Click an employee to see /productivity/employee/:email", tested: false },
       { description: "Navigate /process and see category cards", tested: false },
       { description: "Click a category to see documents list", tested: false },
@@ -526,7 +538,6 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     nextSteps: [
       "CSV import page for productivity data",
-      "Charts: department trends, heatmap, donut chart",
       "Pod-level productivity breakdown",
     ],
   },

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   useKnowledgeEntries,
   useKnowledgeCategories,
-} from "@/hooks/useKnowledge";
+} from "../hooks/useKnowledge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

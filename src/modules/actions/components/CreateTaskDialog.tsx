@@ -23,6 +23,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { useCreateTask } from "../hooks/useTasksV2";
 import { useTaskStreams } from "../hooks/useTaskStreams";
+import { useTaskCategories } from "../hooks/useTaskCategories";
 import type { TaskStatus, TaskPriority } from "../types/tasks";
 
 const schema = z.object({
@@ -32,6 +33,7 @@ const schema = z.object({
   priority: z.string().default("medium"),
   due_date: z.string().optional(),
   stream_id: z.string().optional(),
+  category_id: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -46,6 +48,7 @@ interface CreateTaskDialogProps {
 export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId }: CreateTaskDialogProps) {
   const createTask = useCreateTask();
   const { data: streams } = useTaskStreams();
+  const { data: categories } = useTaskCategories();
 
   const {
     register,
@@ -70,6 +73,7 @@ export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId
       priority: data.priority as TaskPriority,
       due_date: data.due_date,
       stream_id: data.stream_id || undefined,
+      category_id: data.category_id || undefined,
       parent_id: parentId,
     });
     reset();
@@ -170,6 +174,34 @@ export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId
                           style={{ backgroundColor: stream.color }}
                         />
                         {stream.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Category */}
+          {categories && categories.length > 0 && (
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select
+                onValueChange={(v) => setValue("category_id", v === "none" ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No category</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        {cat.name}
                       </span>
                     </SelectItem>
                   ))}

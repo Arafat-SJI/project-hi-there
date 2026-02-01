@@ -24,7 +24,7 @@ import Notifications from "@/pages/Notifications";
 import Feedback from "@/pages/Feedback";
 import AIChat from "@/pages/AIChat";
 import AIAgents from "@/pages/AIAgents";
-import PersonalKnowledge from "@/pages/PersonalKnowledge";
+import PersonalKnowledge from "@/modules/knowledge/pages/PersonalKnowledge";
 
 /**
  * Public routes - no auth required

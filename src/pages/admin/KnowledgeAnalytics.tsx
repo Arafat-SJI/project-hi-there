@@ -1,5 +1,5 @@
-import { useKnowledgeEntries, useKnowledgeCategories } from "@/hooks/useKnowledge";
-import { useEmbeddingStats } from "@/hooks/useKnowledgeAdmin";
+import { useKnowledgeEntries, useKnowledgeCategories } from "@/modules/knowledge/hooks/useKnowledge";
+import { useEmbeddingStats } from "@/modules/knowledge/hooks/useKnowledgeAdmin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {

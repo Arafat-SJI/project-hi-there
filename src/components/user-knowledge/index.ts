@@ -1,1 +1,1 @@
-export { GoogleDriveFilePicker } from "./GoogleDriveFilePicker";
+export { GoogleDriveFilePicker } from "@/modules/knowledge/components/GoogleDriveFilePicker";

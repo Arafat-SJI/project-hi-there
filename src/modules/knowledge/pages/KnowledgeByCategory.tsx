@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
-import { useCategoryBySlug } from "@/hooks/useKnowledgeAdmin";
-import { useKnowledgeEntries, useKnowledgeCategories } from "@/hooks/useKnowledge";
+import { useCategoryBySlug } from "../hooks/useKnowledgeAdmin";
+import { useKnowledgeEntries, useKnowledgeCategories } from "../hooks/useKnowledge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {

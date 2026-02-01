@@ -37,7 +37,7 @@ import {
   useUploadUserKnowledgeFile,
   useDeleteUserKnowledgeFile,
   useUserFileStats,
-} from "@/hooks/useUserKnowledge";
+} from "../hooks/useUserKnowledge";
 
 export default function PersonalKnowledge() {
   const [deleteId, setDeleteId] = useState<string | null>(null);

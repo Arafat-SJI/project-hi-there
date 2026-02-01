@@ -13,7 +13,7 @@ import {
   useIncrementViewCount,
   useRelatedEntries,
   useTriggerEmbedding,
-} from "@/hooks/useKnowledge";
+} from "../hooks/useKnowledge";
 import { Button } from "@/components/ui/button";
 import {
   Card,

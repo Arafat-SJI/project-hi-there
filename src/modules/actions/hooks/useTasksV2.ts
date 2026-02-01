@@ -52,6 +52,9 @@ export function useTasksV2(filters?: TaskFilters) {
       if (filters?.stream_id) {
         query = query.eq("stream_id", filters.stream_id);
       }
+      if (filters?.category_id) {
+        query = query.eq("category_id", filters.category_id);
+      }
       if (filters?.search) {
         query = query.ilike("title", `%${filters.search}%`);
       }

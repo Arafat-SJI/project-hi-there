@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { useTask, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
 import { useTaskComments } from "../hooks/useTaskComments";
+import { useTaskCategories } from "../hooks/useTaskCategories";
 import { SubTasksList } from "../components/SubTasksList";
 import { CommentThread } from "../components/comments/CommentThread";
 import type { TaskStatus, TaskPriority } from "../types/tasks";
@@ -68,6 +69,7 @@ export default function TaskDetailPage() {
   const { data: comments } = useTaskComments(id);
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const { data: categories } = useTaskCategories();
 
   if (isLoading) {
     return (
@@ -239,6 +241,34 @@ export default function TaskDetailPage() {
                   ? format(new Date(task.due_date), "MMM d, yyyy 'at' h:mm a")
                   : "No due date"}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Category */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Category</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={task.category_id || "none"}
+                onValueChange={(v) => updateTask.mutate({ id: task.id, data: { category_id: v === "none" ? undefined : v } })}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="No category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No category</SelectItem>
+                  {(categories || []).map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                        {cat.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </CardContent>
           </Card>
 
