@@ -95,7 +95,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Shahed" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: roles, default settings, sample users" },
+      dataSeeding: { status: "done", owner: "Shahed", notes: "supabase/seed/00-platform-core.sql — clients, app_modules, system_settings, feature flags, notifications, activity logs" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -141,7 +141,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Abesh" },
       qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Abesh", notes: "Seed: 10 tasks, 3 streams, sample comments" },
+      dataSeeding: { status: "done", owner: "Abesh", notes: "supabase/seed/01-actions.sql — 5 streams, 6 categories, 20 tasks, comments, stream members" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -198,7 +198,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Abesh" },
       qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Abesh", notes: "Seed: VTO entries, 5 OKRs, 10 issues, scorecard metrics, org chart" },
+      dataSeeding: { status: "done", owner: "Abesh", notes: "supabase/seed/02-eos.sql — 3 pods, 8 VTO sections, 3 OKRs, 9 KRs, check-ins, 5 issues, scorecard, org chart, GWC" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -265,7 +265,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Abesh" },
       qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Abesh", notes: "Seed: 5 meetings, agenda items, recurring series, sample participants" },
+      dataSeeding: { status: "done", owner: "Abesh", notes: "supabase/seed/03-meetings.sql — 2 series, 6 meetings, participants, agenda items, takeaways, transcript" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -321,7 +321,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "in-progress", owner: "Shahed", notes: "Pages modularized, semantic search UI pending" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: 10 articles, categories, sample embeddings, common knowledge" },
+      dataSeeding: { status: "done", owner: "Shahed", notes: "supabase/seed/04-knowledge.sql — 4 categories, 7 articles, 3 sources, 3 common knowledge items" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -379,7 +379,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Zia" },
       qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Zia", notes: "Seed: 5 projects, milestones, members, risks, sample invoices" },
+      dataSeeding: { status: "done", owner: "Zia", notes: "supabase/seed/05-projects.sql — 5 statuses, 4 projects, members, milestones, comments, risks, billing, invoices" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -429,7 +429,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Zia" },
       qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Zia", notes: "Seed: 10 deals across stages, 15 contacts, lead follow-ups, sample clients" },
+      dataSeeding: { status: "done", owner: "Zia", notes: "supabase/seed/06-business-dev.sql — 6 contacts, 5 deals, activities, comments, lead follow-ups, communications, scheduled emails" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -491,7 +491,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Zia" },
       qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Zia", notes: "Seed: departments, employee profiles, weekly records, process categories + docs" },
+      dataSeeding: { status: "done", owner: "Zia", notes: "supabase/seed/07-productivity.sql — 3 depts, 3 pods, 6 employees, 4 weeks records, leave events, 4 process docs, alerts" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -553,7 +553,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "in-progress", owner: "Shahed", notes: "Core admin done, EOS/data sync admin pages pending" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: system settings, feature flags, sample activity logs" },
+      dataSeeding: { status: "done", owner: "Shahed", notes: "Covered by supabase/seed/00-platform-core.sql (system_settings, app_config, activity_logs)" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
@@ -600,7 +600,7 @@ export const implementationStatus: ModuleStatus[] = [
     pipeline: {
       development: { status: "done", owner: "Shahed", notes: "Admin + user-facing routes wired, nav items added" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
-      dataSeeding: { status: "not-started", owner: "Shahed", notes: "Seed: AI providers, models, sample agents, demo conversations" },
+      dataSeeding: { status: "done", owner: "Shahed", notes: "supabase/seed/08-ai-agents.sql — 3 providers, 6 models, 5 agents, chat history, usage logs" },
       signOff: { status: "not-started", owner: "Jairaj" },
     },
     docs: [
