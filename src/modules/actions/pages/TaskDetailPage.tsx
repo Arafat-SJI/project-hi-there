@@ -1,0 +1,317 @@
+/**
+ * Task Detail Page
+ *
+ * Shows full task details with subtasks, comments, metadata sidebar,
+ * and inline status/priority editing.
+ */
+import { useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ArrowLeft,
+  Calendar,
+  Loader2,
+  Trash2,
+  Pencil,
+  GitBranch,
+  User,
+  Clock,
+} from "lucide-react";
+import { useTask, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
+import { useTaskComments } from "../hooks/useTaskComments";
+import { SubTasksList } from "../components/SubTasksList";
+import { CommentThread } from "../components/comments/CommentThread";
+import type { TaskStatus, TaskPriority } from "../types/tasks";
+
+const statusColors: Record<string, string> = {
+  todo: "bg-slate-100 text-slate-700",
+  in_progress: "bg-blue-100 text-blue-700",
+  completed: "bg-green-100 text-green-700",
+  cancelled: "bg-red-100 text-red-700",
+};
+
+const priorityColors: Record<string, string> = {
+  low: "bg-slate-100 text-slate-600",
+  medium: "bg-yellow-100 text-yellow-700",
+  high: "bg-orange-100 text-orange-700",
+  urgent: "bg-red-100 text-red-700",
+};
+
+export default function TaskDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [showDelete, setShowDelete] = useState(false);
+
+  const { data: task, isLoading } = useTask(id);
+  const { data: comments } = useTaskComments(id);
+  const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!task) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <p className="text-lg text-muted-foreground">Task not found</p>
+        <Button variant="outline" onClick={() => navigate("/tasks")}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Tasks
+        </Button>
+      </div>
+    );
+  }
+
+  const handleStatusChange = (status: TaskStatus) => {
+    updateTask.mutate({ id: task.id, data: { status } });
+  };
+
+  const handlePriorityChange = (priority: TaskPriority) => {
+    updateTask.mutate({ id: task.id, data: { priority } });
+  };
+
+  const handleDeleteConfirm = () => {
+    deleteTask.mutate(task.id, {
+      onSuccess: () => navigate("/tasks"),
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/tasks")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{task.title}</h1>
+            {task.stream && (
+              <span
+                className="inline-flex items-center gap-1 text-xs rounded-full px-2 py-0.5 mt-1"
+                style={{ backgroundColor: task.stream.color + "20", color: task.stream.color }}
+              >
+                <GitBranch className="h-3 w-3" />
+                {task.stream.name}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate(`/tasks/${task.id}/edit`)}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+          <Button variant="destructive" size="icon" onClick={() => setShowDelete(true)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content (2/3) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Task Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Task Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Status & Priority inline selects */}
+              <div className="flex items-center gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">Status</p>
+                  <Select value={task.status} onValueChange={(v) => handleStatusChange(v as TaskStatus)}>
+                    <SelectTrigger className="h-8 w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todo">To Do</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">Priority</p>
+                  <Select value={task.priority} onValueChange={(v) => handlePriorityChange(v as TaskPriority)}>
+                    <SelectTrigger className="h-8 w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Description */}
+              {task.description && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Description</p>
+                    <p className="text-sm whitespace-pre-wrap">{task.description}</p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Subtasks */}
+          <Card>
+            <CardContent className="pt-6">
+              <SubTasksList parentId={task.id} subtasks={task.subtasks || []} />
+            </CardContent>
+          </Card>
+
+          {/* Comments */}
+          <Card>
+            <CardContent className="pt-6">
+              <CommentThread taskId={task.id} comments={comments || []} />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar (1/3) */}
+        <div className="space-y-4">
+          {/* Assignment */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Assignment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">
+                    {task.assigned_user?.full_name || "Unassigned"}
+                  </p>
+                  {task.assigned_user?.email && (
+                    <p className="text-xs text-muted-foreground">{task.assigned_user.email}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Due Date */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Due Date</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                {task.due_date
+                  ? format(new Date(task.due_date), "MMM d, yyyy 'at' h:mm a")
+                  : "No due date"}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Related Items */}
+          {(task.clients || task.meetings) && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Related Items</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {task.clients && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Client: </span>
+                    <Link to={`/clients/${task.client_id}`} className="text-primary hover:underline">
+                      {task.clients.name}
+                    </Link>
+                  </div>
+                )}
+                {task.meetings && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Meeting: </span>
+                    <Link to={`/meetings/${task.meeting_id}`} className="text-primary hover:underline">
+                      {task.meetings.title}
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Metadata */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Metadata</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Clock className="h-3 w-3" />
+                Created {format(new Date(task.created_at), "MMM d, yyyy")}
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-3 w-3" />
+                Updated {format(new Date(task.updated_at), "MMM d, yyyy")}
+              </div>
+              {task.completed_at && (
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3 w-3" />
+                  Completed {format(new Date(task.completed_at), "MMM d, yyyy")}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{task.title}" and all its subtasks and comments.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

@@ -16,6 +16,7 @@ import {
   Target,
   FolderKanban,
   BarChart3,
+  GitBranch,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ const iconMap: Record<string, LucideIcon> = {
   Target,
   FolderKanban,
   BarChart3,
+  GitBranch,
 };
 
 function resolveIcon(iconName: string): LucideIcon {

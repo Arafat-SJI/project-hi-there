@@ -58,6 +58,13 @@ export const mainNavigation: NavItem[] = [
     featureFlag: "enableTasks",
   },
   {
+    title: "Streams",
+    href: "/tasks/streams",
+    icon: "GitBranch",
+    module: "actions",
+    featureFlag: "enableTasks",
+  },
+  {
     title: "Knowledge Base",
     href: "/knowledge",
     icon: "BookOpen",
