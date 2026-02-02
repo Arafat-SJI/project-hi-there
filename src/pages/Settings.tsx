@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import { usePreferences, useUpdatePreferences, useResetPreferences, UserPreferences } from "@/hooks/usePreferences";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -19,15 +20,20 @@ export default function Settings() {
   const { data: preferences, isLoading } = usePreferences();
   const updatePreferences = useUpdatePreferences();
   const resetPreferences = useResetPreferences();
+  const { setTheme } = useTheme();
 
   const [settings, setSettings] = useState<UserPreferences | null>(null);
 
-  // Sync settings with loaded preferences
+  // Sync settings with loaded preferences and apply theme
   useEffect(() => {
     if (preferences) {
       setSettings(preferences);
+      // Apply the saved theme immediately
+      // When "system" is selected, default to light mode
+      const themeToApply = preferences.appearance.theme === "system" ? "light" : preferences.appearance.theme;
+      setTheme(themeToApply);
     }
-  }, [preferences]);
+  }, [preferences, setTheme]);
 
   const handleSave = () => {
     if (settings) {
@@ -209,12 +215,22 @@ export default function Settings() {
             <Label>Theme</Label>
             <Select
               value={settings.appearance.theme}
-              onValueChange={(value) =>
+              onValueChange={(value) => {
+                const themeValue = value as "light" | "dark" | "system";
                 setSettings({
                   ...settings,
-                  appearance: { ...settings.appearance, theme: value as "light" | "dark" | "system" },
-                })
-              }
+                  appearance: { ...settings.appearance, theme: themeValue },
+                });
+                // Apply theme immediately
+                // When "system" is selected, default to light mode
+                const themeToApply = themeValue === "system" ? "light" : themeValue;
+                setTheme(themeToApply);
+                // Save to database
+                updatePreferences.mutate({
+                  ...settings,
+                  appearance: { ...settings.appearance, theme: themeValue },
+                });
+              }}
               disabled={isProcessing}
             >
               <SelectTrigger>
