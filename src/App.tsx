@@ -24,6 +24,7 @@ import { adminRoutes } from "@/modules/admin";
 
 // Client portal (public, no layout)
 import ClientPortalDashboard from "@/pages/client/ClientPortalDashboard";
+import ProjectDashboard from "@/pages/client/ProjectDashboard";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,12 @@ const App = () => (
               <Route
                 path="/projects/:slug/client-portal/:token"
                 element={<ClientPortalDashboard />}
+              />
+
+              {/* Legacy-style client project dashboard (optional) */}
+              <Route
+                path="/client/project/:token"
+                element={<ProjectDashboard />}
               />
 
               {/* Protected routes with dashboard layout */}
