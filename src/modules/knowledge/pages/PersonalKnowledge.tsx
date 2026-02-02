@@ -60,18 +60,18 @@ export default function PersonalKnowledge() {
       source: 'unified' as const,
       file_name: d.file_name ?? d.title,
       file_size: d.file_size,
+      file_type: d.file_type,
       processing_status: d.processing_status,
       created_at: d.created_at,
-      source_type: 'upload',
     })),
     ...files.map((f) => ({
       id: f.id,
       source: 'user_knowledge_files' as const,
       file_name: f.file_name,
       file_size: f.file_size,
+      file_type: f.file_type,
       processing_status: f.processing_status,
       created_at: f.created_at,
-      source_type: f.source_type,
     })),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
