@@ -1,18 +1,31 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle2, XCircle, Clock, Plug } from "lucide-react";
 import type { ProjectIntegration } from "@/modules/projects/hooks/useProjectIntegrations";
 
-/**
- * IntegrationsTab – project-level integrations (ActiveCollab, Slack, etc.).
- * Accepts optional integrations; when provided, shows status list. Otherwise placeholder.
- */
 interface IntegrationsTabProps {
   projectId: string;
   projectName: string;
   integrations?: ProjectIntegration[];
   isLoading?: boolean;
+}
+
+function ConnectionBadge({ connected, status }: { connected: boolean; status: string | null }) {
+  if (connected) {
+    return (
+      <Badge variant="default" className="gap-1">
+        <CheckCircle2 className="h-3 w-3" />
+        Connected
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary" className="gap-1">
+      <XCircle className="h-3 w-3" />
+      {status || "Not connected"}
+    </Badge>
+  );
 }
 
 export function IntegrationsTab({
@@ -22,12 +35,18 @@ export function IntegrationsTab({
   isLoading,
 }: IntegrationsTabProps) {
   const hasIntegrations = integrations.length > 0;
+  const connectedCount = integrations.filter((i) => i.connected).length;
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Integrations</CardTitle>
+          {hasIntegrations && (
+            <CardDescription>
+              {connectedCount} of {integrations.length} connected
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="space-y-3">
           {isLoading && (
@@ -40,16 +59,29 @@ export function IntegrationsTab({
                   key={i.id}
                   className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
                 >
-                  <span className="font-medium">{i.name}</span>
+                  <div className="flex items-center gap-3">
+                    {i.logo_url ? (
+                      <img
+                        src={i.logo_url}
+                        alt={i.name}
+                        className="h-6 w-6 rounded object-contain"
+                      />
+                    ) : (
+                      <Plug className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <div>
+                      <span className="font-medium">{i.name}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{i.slug}</span>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     {i.last_sync_at && (
-                      <span className="text-xs text-muted-foreground">
-                        Synced {new Date(i.last_sync_at).toLocaleString()}
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {new Date(i.last_sync_at).toLocaleString()}
                       </span>
                     )}
-                    <Badge variant={i.connected ? "default" : "secondary"}>
-                      {i.connected ? "Connected" : "Not connected"}
-                    </Badge>
+                    <ConnectionBadge connected={i.connected} status={i.connection_status} />
                     {!i.connected && (
                       <Button variant="outline" size="sm" disabled>
                         Connect
@@ -61,14 +93,14 @@ export function IntegrationsTab({
             </ul>
           )}
           {!isLoading && !hasIntegrations && (
-            <Alert>
-              <AlertDescription>
-                No integration slots configured yet. This tab will show ActiveCollab,
-                Slack, Google Calendar, and weekly AI updates for{" "}
-                <span className="font-medium">{projectName}</span> (
-                <span className="font-mono">{projectId}</span>) once you wire them.
-              </AlertDescription>
-            </Alert>
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Plug className="h-10 w-10 mb-3" />
+              <p className="text-sm font-medium">No integrations available</p>
+              <p className="text-xs">
+                Configure integrations in Admin &rarr; Integrations to connect tools
+                for <span className="font-medium">{projectName}</span>.
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
