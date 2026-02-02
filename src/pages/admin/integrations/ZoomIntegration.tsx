@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSyncZoom } from "@/hooks/useSyncZoom";
 import { useUserOAuthToken, useConnectOAuth, useDisconnectOAuth, useHasValidToken } from "@/hooks/useUserIntegrations";
 import { useMeetings } from "@/hooks/useMeetings";
+import { supabase } from "@/integrations/supabase/client";
+import { Copy, ExternalLink } from "lucide-react";
 
 export default function ZoomIntegration() {
   const { user } = useAuth();
@@ -40,9 +42,21 @@ export default function ZoomIntegration() {
   // Get Zoom meetings count
   const { data: meetings } = useMeetings({ meetingType: "zoom" });
 
+  // Get Supabase URL for redirect URL
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || window.location.origin;
+  const redirectUrl = `${supabaseUrl}/functions/v1/user-oauth-callback`;
+
   useEffect(() => {
     setCheckingStatus(false);
   }, [zoomToken]);
+
+  const copyRedirectUrl = () => {
+    navigator.clipboard.writeText(redirectUrl);
+    toast({
+      title: "Copied!",
+      description: "Redirect URL copied to clipboard",
+    });
+  };
 
   const handleConnect = async () => {
     setLoading(true);
@@ -125,6 +139,65 @@ export default function ZoomIntegration() {
       </div>
 
       <div className="grid gap-6">
+        {/* Configuration Card */}
+        <Card className="border-2 border-blue-200 dark:border-blue-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30">
+                <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              OAuth Configuration
+            </CardTitle>
+            <CardDescription>
+              Configure your Zoom OAuth app with these settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                    Redirect URL (OAuth Callback)
+                  </p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                    Add this URL to your Zoom OAuth app settings in the Zoom Marketplace
+                  </p>
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 rounded border border-blue-200 dark:border-blue-800">
+                    <code className="text-xs font-mono text-blue-900 dark:text-blue-100 flex-1 break-all">
+                      {redirectUrl}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={copyRedirectUrl}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Setup Steps:</p>
+              <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>Go to <a href="https://marketplace.zoom.us/develop/create" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">Zoom Marketplace <ExternalLink className="h-3 w-3" /></a></li>
+                <li>Create or edit your OAuth app</li>
+                <li>Add the Redirect URL above to your app settings</li>
+                <li>Copy your Client ID and Client Secret</li>
+                <li>Go to <Link to="/admin/integrations/zoom" className="text-primary hover:underline">Zoom Integration Settings</Link> and enter your credentials</li>
+              </ol>
+            </div>
+
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3">
+              <p className="text-xs text-amber-800 dark:text-amber-200">
+                <strong>Note:</strong> Make sure to request these scopes in your Zoom app: <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">meeting:read</code>, <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">recording:read</code>, and <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">user:read</code>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Connection Status Card */}
         <Card className="border-2">
           <CardHeader>
