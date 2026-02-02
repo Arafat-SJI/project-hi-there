@@ -16,7 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSyncZoom } from "@/hooks/useSyncZoom";
 import { useUserOAuthToken, useConnectOAuth, useDisconnectOAuth, useHasValidToken } from "@/hooks/useUserIntegrations";
 import { useMeetings } from "@/hooks/useMeetings";
-import { supabase } from "@/integrations/supabase/client";
 import { Copy, ExternalLink } from "lucide-react";
 
 export default function ZoomIntegration() {
