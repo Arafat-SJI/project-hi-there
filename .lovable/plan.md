@@ -1,136 +1,84 @@
 
+# Plan: Add Organization-Level Zoom Configuration to the Zoom Integration Page
 
-# Implementation Status Repositioning
+## Current Problem
 
-## Summary
+The Zoom integration page at `/admin/integrations/zoom` only shows user-level OAuth connection options. However, before users can connect their personal Zoom accounts, an **administrator must first configure the organization-level Zoom OAuth credentials** (Client ID and Client Secret).
 
-Move the "Implementation Status" link from the top of the admin sidebar (DASHBOARD group) to the Product Roadmap page as a prominent, standalone card with a light green background. This makes the development tracking tool more visible during active development while keeping it associated with the roadmap/vision section.
+Currently, these credentials should be configured via the generic ProviderDetail page at `/admin/integrations/zoom`, but because there's a specific route for `ZoomIntegration.tsx` that matches first, admins cannot access the configuration form.
 
-## Changes Overview
+## Solution Overview
 
-### 1. Remove Implementation Status from Admin Sidebar Navigation
+Add an **Admin Configuration section** to the existing `ZoomIntegration.tsx` page that allows administrators to:
+1. View the current organization-level Zoom configuration status
+2. Enter and save the Zoom Client ID and Client Secret
+3. Test the connection
+4. Only show user-level "Connect with Zoom" button once organization config is complete
 
-**File:** `src/shared/data/navigationStructure.ts`
+## Implementation Details
 
-Remove the Implementation Status item from the DASHBOARD group:
+### Changes to `src/pages/admin/integrations/ZoomIntegration.tsx`
 
-```typescript
-// Before (lines 138-150)
-{
-  title: "DASHBOARD",
-  items: [
-    {
-      title: "Overview",
-      href: "/admin",
-      icon: "LayoutDashboard",
-    },
-    {
-      title: "Implementation Status",  // REMOVE this item
-      href: "/admin/implementation-status",
-      icon: "ClipboardList",
-    },
-  ],
-},
+1. **Add new imports and hooks**:
+   - Import `useIntegrationProvider`, `useIntegrationFields`, `useOrganizationIntegration`, `useUpdateIntegration` from the existing integrations hooks
+   - Import `DynamicFormField` component for rendering credential fields
 
-// After
-{
-  title: "DASHBOARD",
-  items: [
-    {
-      title: "Overview",
-      href: "/admin",
-      icon: "LayoutDashboard",
-    },
-  ],
-},
-```
+2. **Add organization config state**:
+   - Fetch Zoom provider data and fields (client_id, client_secret)
+   - Fetch current organization integration config
+   - Track form state for credentials
 
----
+3. **Add Admin Configuration Card** (new section before the user connection card):
+   - Show configuration form with Client ID and Client Secret fields
+   - Save Configuration button that calls `useUpdateIntegration`
+   - Display connection status (configured/not configured)
+   - Only show "Connect with Zoom" user button when org config exists and is enabled
 
-### 2. Add Implementation Status Card to Product Roadmap Page
+4. **Conditional rendering**:
+   - If org integration is not configured → Show only admin config card with setup instructions
+   - If org integration is configured → Show both admin config card (collapsed/summary) and user connection options
 
-**File:** `src/pages/admin/ProductRoadmap.tsx`
+### UI Flow After Implementation
 
-Add a prominent light green card at the bottom of the page (after the Tabs component) that links to the Implementation Status page:
-
-```typescript
-// Add after the Tabs component (around line 634)
-
-{/* Developer Tools Card */}
-<Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900">
-  <CardHeader className="pb-3">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500 text-white">
-          <ClipboardList className="h-5 w-5" />
-        </div>
-        <div>
-          <CardTitle className="text-lg text-green-800 dark:text-green-200">
-            Implementation Status
-          </CardTitle>
-          <CardDescription className="text-green-600 dark:text-green-400">
-            Developer dashboard for tracking module progress
-          </CardDescription>
-        </div>
-      </div>
-      <Link to="/admin/implementation-status">
-        <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-100">
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Open Tracker
-        </Button>
-      </Link>
-    </div>
-  </CardHeader>
-  <CardContent className="pt-0">
-    <p className="text-sm text-green-700 dark:text-green-300">
-      Track pages, hooks, components, database tables, edge functions, and QA checklists
-      for all modules. Updated by developers after each batch of work.
-    </p>
-  </CardContent>
-</Card>
-```
+1. Admin navigates to `/admin/integrations/zoom`
+2. Admin sees "Organization Configuration" card at top with:
+   - Client ID input field
+   - Client Secret input field (masked)
+   - "Save Configuration" button
+   - "Test Connection" button
+3. After saving credentials, the user-level connection section becomes active
+4. Users can then click "Connect with Zoom" to link their personal accounts
 
 ---
 
-### 3. Add Required Imports to ProductRoadmap.tsx
+## Technical Details
 
-Add to the existing imports:
-
-```typescript
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ClipboardList, ExternalLink } from "lucide-react";  // Add to existing lucide imports
-```
-
----
-
-## Visual Result
-
-**Before:**
-- Implementation Status appears at the top of the admin sidebar under "DASHBOARD"
-- Easy to miss among other menu items
-
-**After:**
-- Implementation Status removed from sidebar
-- Appears as a prominent light green card at the bottom of the Vision & Roadmap page
-- Green background makes it stand out as a developer tool
-- Clear "Open Tracker" button for quick access
-
----
-
-## Files Modified
+### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/shared/data/navigationStructure.ts` | Remove Implementation Status from DASHBOARD group |
-| `src/pages/admin/ProductRoadmap.tsx` | Add light green developer card with link |
+| `src/pages/admin/integrations/ZoomIntegration.tsx` | Add organization config section with credential form |
 
----
+### Hooks to Use (already exist)
 
-## Technical Notes
+- `useIntegrationProvider('zoom')` - Get Zoom provider info
+- `useIntegrationFields(providerId)` - Get Client ID/Secret field definitions  
+- `useOrganizationIntegration(providerId)` - Get current org config
+- `useUpdateIntegration()` - Save credentials mutation
+- `useTestConnection()` - Test connection mutation
 
-- The route `/admin/implementation-status` remains unchanged in `src/modules/admin/routes.tsx`
-- The Implementation Status page itself requires no changes
-- The green styling uses Tailwind's green-50/green-950 for proper light/dark mode support
-- Card placement at the bottom keeps it prominent without disrupting the main content tabs
+### New UI Components Needed
 
+None - will reuse existing `DynamicFormField` component from `@/components/integrations/DynamicFormField`
+
+### Database State Required
+
+The migration you already approved has added the necessary records:
+- `integration_fields` table has `client_id` and `client_secret` entries for Zoom
+- `integration_providers` table has Zoom with `oauth_config` populated
+
+After entering credentials via the new form, a row will be created/updated in `organization_integrations` with:
+- `provider_id`: Zoom's provider ID
+- `config`: `{ "client_id": "...", "client_secret": "..." }`
+- `enabled`: true
+- `connection_status`: 'connected'
