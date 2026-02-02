@@ -11,7 +11,7 @@ export function useAllAgentPersonalizations() {
   return useQuery({
     queryKey: queryKeys.knowledge.agentPersonalizations(user?.id ?? ''),
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_agent_personalizations')
         .select('*')
         .eq('user_id', user!.id)
@@ -31,7 +31,7 @@ export function useUpdateAgentPersonalization() {
   return useMutation({
     mutationFn: async (payload: Partial<UserAgentPersonalization> & { id: string }) => {
       const { id, ...updates } = payload;
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_agent_personalizations')
         .update(updates)
         .eq('id', id)
@@ -58,7 +58,7 @@ export function useUpsertAgentPersonalization() {
 
   return useMutation({
     mutationFn: async (payload: { agent_id: string; additional_prompt?: string; attached_knowledge_files?: string[]; attached_unified_document_ids?: string[]; use_all_knowledge?: boolean; max_context_files?: number; relevance_threshold?: number }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_agent_personalizations')
         .upsert(
           { user_id: user!.id, ...payload },

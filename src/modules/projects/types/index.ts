@@ -145,4 +145,4 @@ export interface ProjectFilters {
   is_archived?: boolean;
 }
 
-export type ProjectTab = "overview" | "tasks" | "milestones" | "meetings" | "files" | "billing" | "issues" | "members" | "client_portal";
+export type ProjectTab = "overview" | "tasks" | "milestones" | "meetings" | "files" | "billing" | "issues" | "members" | "client_portal" | "integrations";

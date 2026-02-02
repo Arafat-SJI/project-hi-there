@@ -28,7 +28,7 @@ export function useProjectClientAccess(projectId: string) {
   return useQuery({
     queryKey: ["client-access", projectId],
     queryFn: async (): Promise<ProjectClientAccessRow[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("project_client_access")
         .select("*")
         .eq("project_id", projectId)
@@ -111,7 +111,7 @@ export function useRevokeClientAccess() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("project_client_access")
         .update({
           is_active: false,
@@ -135,7 +135,7 @@ export function useRestoreClientAccess() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ accessId, projectId }: { accessId: string; projectId: string }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("project_client_access")
         .update({
           is_active: true,

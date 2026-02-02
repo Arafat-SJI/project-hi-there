@@ -536,6 +536,7 @@ export type Database = {
           is_active: boolean | null
           is_core: boolean | null
           name: string
+          page_route: string | null
           slug: string
           sort_order: number | null
           updated_at: string | null
@@ -550,6 +551,7 @@ export type Database = {
           is_active?: boolean | null
           is_core?: boolean | null
           name: string
+          page_route?: string | null
           slug: string
           sort_order?: number | null
           updated_at?: string | null
@@ -564,11 +566,60 @@ export type Database = {
           is_active?: boolean | null
           is_core?: boolean | null
           name?: string
+          page_route?: string | null
           slug?: string
           sort_order?: number | null
           updated_at?: string | null
         }
         Relationships: []
+      }
+      client_feedback: {
+        Row: {
+          client_access_id: string | null
+          created_at: string | null
+          feedback_text: string
+          id: string
+          project_id: string
+          rating: number | null
+          week_number: number | null
+          year: number | null
+        }
+        Insert: {
+          client_access_id?: string | null
+          created_at?: string | null
+          feedback_text: string
+          id?: string
+          project_id: string
+          rating?: number | null
+          week_number?: number | null
+          year?: number | null
+        }
+        Update: {
+          client_access_id?: string | null
+          created_at?: string | null
+          feedback_text?: string
+          id?: string
+          project_id?: string
+          rating?: number | null
+          week_number?: number | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_feedback_client_access_id_fkey"
+            columns: ["client_access_id"]
+            isOneToOne: false
+            referencedRelation: "project_client_access"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_feedback_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clients: {
         Row: {
@@ -982,6 +1033,7 @@ export type Database = {
           metadata: Json | null
           provider_corpus_id: string | null
           provider_document_id: string | null
+          unified_document_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -997,6 +1049,7 @@ export type Database = {
           metadata?: Json | null
           provider_corpus_id?: string | null
           provider_document_id?: string | null
+          unified_document_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -1012,9 +1065,18 @@ export type Database = {
           metadata?: Json | null
           provider_corpus_id?: string | null
           provider_document_id?: string | null
+          unified_document_id?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "embeddings_unified_document_id_fkey"
+            columns: ["unified_document_id"]
+            isOneToOne: false
+            referencedRelation: "unified_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employee_profiles: {
         Row: {
@@ -1389,6 +1451,136 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      gemini_corpora: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          document_count: number | null
+          external_corpus_id: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          document_count?: number | null
+          external_corpus_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          document_count?: number | null
+          external_corpus_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      gemini_query_logs: {
+        Row: {
+          corpus_id: string | null
+          created_at: string | null
+          duration_ms: number | null
+          id: string
+          metadata: Json | null
+          query_text: string
+          result_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          corpus_id?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          metadata?: Json | null
+          query_text: string
+          result_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          corpus_id?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          metadata?: Json | null
+          query_text?: string
+          result_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gemini_query_logs_corpus_id_fkey"
+            columns: ["corpus_id"]
+            isOneToOne: false
+            referencedRelation: "gemini_corpora"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gemini_sync_logs: {
+        Row: {
+          completed_at: string | null
+          corpus_id: string
+          created_at: string | null
+          documents_added: number | null
+          documents_removed: number | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          started_at: string | null
+          status: string | null
+          sync_type: string
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          corpus_id: string
+          created_at?: string | null
+          documents_added?: number | null
+          documents_removed?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string | null
+          sync_type: string
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          corpus_id?: string
+          created_at?: string | null
+          documents_added?: number | null
+          documents_removed?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string | null
+          sync_type?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gemini_sync_logs_corpus_id_fkey"
+            columns: ["corpus_id"]
+            isOneToOne: false
+            referencedRelation: "gemini_corpora"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       graph_webhook_logs: {
         Row: {
@@ -1816,6 +2008,7 @@ export type Database = {
           id: string
           metadata: Json | null
           name: string
+          owner_id: string | null
           parent_id: string | null
           slug: string
           sort_order: number | null
@@ -1829,6 +2022,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           name: string
+          owner_id?: string | null
           parent_id?: string | null
           slug: string
           sort_order?: number | null
@@ -1842,6 +2036,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           name?: string
+          owner_id?: string | null
           parent_id?: string | null
           slug?: string
           sort_order?: number | null
@@ -2016,6 +2211,13 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "knowledge_files_category_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "knowledge_files_source_id_fkey"
             columns: ["source_id"]
@@ -3090,6 +3292,48 @@ export type Database = {
           },
         ]
       }
+      processing_queue_history: {
+        Row: {
+          batch_type: string
+          completed_at: string | null
+          created_at: string | null
+          failed_count: number | null
+          id: string
+          metadata: Json | null
+          processed_count: number | null
+          started_at: string | null
+          status: string | null
+          total_items: number | null
+          triggered_by: string | null
+        }
+        Insert: {
+          batch_type: string
+          completed_at?: string | null
+          created_at?: string | null
+          failed_count?: number | null
+          id?: string
+          metadata?: Json | null
+          processed_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_items?: number | null
+          triggered_by?: string | null
+        }
+        Update: {
+          batch_type?: string
+          completed_at?: string | null
+          created_at?: string | null
+          failed_count?: number | null
+          id?: string
+          metadata?: Json | null
+          processed_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_items?: number | null
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       productivity_alerts: {
         Row: {
           alert_type: string
@@ -3281,6 +3525,119 @@ export type Database = {
             foreignKeyName: "project_billing_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_client_access: {
+        Row: {
+          access_token: string
+          client_email: string
+          client_name: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          last_login_at: string | null
+          login_count: number | null
+          password_hash: string
+          project_id: string
+          project_slug: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string
+          client_email: string
+          client_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login_at?: string | null
+          login_count?: number | null
+          password_hash: string
+          project_id: string
+          project_slug?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string
+          client_email?: string
+          client_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login_at?: string | null
+          login_count?: number | null
+          password_hash?: string
+          project_id?: string
+          project_slug?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_client_access_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_client_comments: {
+        Row: {
+          comment_text: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_visible: boolean | null
+          milestone_id: string | null
+          project_id: string
+          sprint_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_visible?: boolean | null
+          milestone_id?: string | null
+          project_id: string
+          sprint_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_visible?: boolean | null
+          milestone_id?: string | null
+          project_id?: string
+          sprint_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_client_comments_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_client_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -3494,6 +3851,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          pm_notes: string | null
           project_id: string
           sort_order: number | null
           status: string | null
@@ -3507,6 +3865,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          pm_notes?: string | null
           project_id: string
           sort_order?: number | null
           status?: string | null
@@ -3520,6 +3879,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          pm_notes?: string | null
           project_id?: string
           sort_order?: number | null
           status?: string | null
@@ -3541,6 +3901,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          is_client_visible: boolean | null
           mitigation: string | null
           project_id: string
           reported_by: string | null
@@ -3553,6 +3914,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_client_visible?: boolean | null
           mitigation?: string | null
           project_id: string
           reported_by?: string | null
@@ -3565,6 +3927,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_client_visible?: boolean | null
           mitigation?: string | null
           project_id?: string
           reported_by?: string | null
@@ -4116,6 +4479,66 @@ export type Database = {
           },
         ]
       }
+      unified_documents: {
+        Row: {
+          chunk_count: number | null
+          created_at: string | null
+          drive_file_id: string | null
+          embedding_model: string | null
+          file_name: string | null
+          file_size: number | null
+          file_type: string | null
+          id: string
+          metadata: Json | null
+          owner_id: string
+          owner_type: string
+          processing_error: string | null
+          processing_status: string | null
+          source_id: string | null
+          storage_path: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          chunk_count?: number | null
+          created_at?: string | null
+          drive_file_id?: string | null
+          embedding_model?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          metadata?: Json | null
+          owner_id: string
+          owner_type: string
+          processing_error?: string | null
+          processing_status?: string | null
+          source_id?: string | null
+          storage_path?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          chunk_count?: number | null
+          created_at?: string | null
+          drive_file_id?: string | null
+          embedding_model?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          metadata?: Json | null
+          owner_id?: string
+          owner_type?: string
+          processing_error?: string | null
+          processing_status?: string | null
+          source_id?: string | null
+          storage_path?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_invites: {
         Row: {
           created_at: string | null
@@ -4469,6 +4892,26 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      match_embeddings: {
+        Args: {
+          filter_entity_type?: string
+          filter_user_id?: string
+          match_count?: number
+          match_threshold?: number
+          p_user_id?: string
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json
+          similarity: number
+          unified_document_id: string
+          user_id: string
+        }[]
       }
     }
     Enums: {

@@ -47,13 +47,13 @@ export function useUserKnowledgeFiles() {
   return useQuery({
     queryKey: ['user-knowledge-files', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_knowledge_files')
         .select('*')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as UserKnowledgeFile[];
+      return (data ?? []) as unknown as UserKnowledgeFile[];
     },
     enabled: !!user,
   });
@@ -65,7 +65,7 @@ export function useUserKnowledgeSources() {
   return useQuery({
     queryKey: ['user-knowledge-sources', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_knowledge_sources')
         .select('*')
         .eq('user_id', user!.id)
@@ -84,7 +84,7 @@ export function useUnifiedUserDocuments() {
   return useQuery({
     queryKey: queryKeys.knowledge.unifiedDocuments({ owner_type: 'user', owner_id: user?.id ?? '' }),
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('unified_documents')
         .select('*')
         .eq('owner_type', 'user')
@@ -151,7 +151,7 @@ export function useDeleteUserKnowledgeFile() {
 
   return useMutation({
     mutationFn: async (fileId: string) => {
-      const { error } = await supabase.from('user_knowledge_files').delete().eq('id', fileId);
+      const { error } = await (supabase as any).from('user_knowledge_files').delete().eq('id', fileId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -170,7 +170,7 @@ export function useDeleteUnifiedDocument() {
 
   return useMutation({
     mutationFn: async (docId: string) => {
-      const { error } = await supabase.from('unified_documents').delete().eq('id', docId);
+      const { error } = await (supabase as any).from('unified_documents').delete().eq('id', docId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -190,7 +190,7 @@ export function useCreateUserKnowledgeSource() {
 
   return useMutation({
     mutationFn: async (sourceData: Partial<UserKnowledgeSource>) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_knowledge_sources')
         .insert({ ...sourceData, user_id: user!.id })
         .select()
@@ -215,8 +215,8 @@ export function useUserKnowledgeStats() {
     queryKey: queryKeys.knowledge.userKnowledgeStats(user?.id ?? ''),
     queryFn: async () => {
       const [filesRes, unifiedRes] = await Promise.all([
-        supabase.from('user_knowledge_files').select('id, processing_status, file_size').eq('user_id', user!.id),
-        supabase.from('unified_documents').select('id, processing_status, file_size').eq('owner_type', 'user').eq('owner_id', user!.id),
+        (supabase as any).from('user_knowledge_files').select('id, processing_status, file_size').eq('user_id', user!.id),
+        (supabase as any).from('unified_documents').select('id, processing_status, file_size').eq('owner_type', 'user').eq('owner_id', user!.id),
       ]);
       const files = (filesRes.data ?? []) as { id: string; processing_status: string; file_size: number | null }[];
       const unified = (unifiedRes.data ?? []) as { id: string; processing_status: string; file_size: number | null }[];
