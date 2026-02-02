@@ -10,12 +10,12 @@ Ten architecture blueprint documents describe a mature monolithic application (t
 
 | Metric | Documented (Target) | Current Codebase | Gap |
 |--------|---------------------|------------------|-----|
-| Database tables | ~115 | 33 | ~82 tables missing |
-| Edge functions | ~225 | 47 | ~178 functions missing |
-| Routes | ~300 | ~51 | ~250 routes missing |
-| Pages | ~247 | ~40 | ~207 pages missing |
-| Components | ~533 | ~80 | ~453 components missing |
-| Hooks | ~296 | ~30 | ~266 hooks missing |
+| Database tables | ~115 | ~80 | ~35 tables remaining |
+| Edge functions | ~225 (54 consolidated) | 54 | Consolidation complete |
+| Routes | ~300 | ~120 | ~180 routes remaining |
+| Pages | ~247 | ~100 | ~147 pages remaining |
+| Components | ~533 | ~200 | ~333 components remaining |
+| Hooks | ~296 | ~90 | ~206 hooks remaining |
 
 ### Current Codebase Strengths (Keep)
 
@@ -389,7 +389,7 @@ src/modules/meetings/
 
 **Exit Criteria:** Create/edit meetings, recurring series, agendas with takeaways, transcript processing, AI summaries, Zoom integration (optional).
 
-> **STATUS: COMPLETE (UI)** — 3 new V2 pages, 5 components, 4 hooks, 7 new DB tables. Agenda, takeaways, participants, recurring series all functional. **PENDING:** Edge functions (AI summarization, categorization, task extraction, Zoom sync), transcript upload.
+> **STATUS: COMPLETE (UI + Zoom Integration)** — 3 new V2 pages, 5 components, 4 hooks, 7 new DB tables. Agenda, takeaways, participants, recurring series all functional. Zoom integration admin page (org-level config), sync-zoom-files and zoom-transcript-processing edge functions deployed. **PENDING:** Edge functions (AI summarization, categorization, task extraction), transcript upload UI.
 
 ---
 
@@ -422,7 +422,7 @@ src/modules/knowledge/
 
 **Exit Criteria:** Upload/manage knowledge files, categories, vector embeddings for semantic search, RAG queries, personal knowledge, Google Drive integration (optional).
 
-> **STATUS: PARTIAL** — DB tables (7) and types complete. Legacy pages routed. **PENDING:** Modularize legacy pages into `src/modules/knowledge/`, semantic search UI, embeddings explorer, edge functions (embedding pipeline, search, RAG).
+> **STATUS: COMPLETE** — 10 DB tables, 20+ hooks, 7 pages (list, upload, detail, category, personal, semantic search, form), Semantic Search page with vector/text toggle, Embeddings Explorer admin page, 10+ edge functions (knowledge-base, api-v1-documents, user-knowledge-upload/process/drive-sync, semantic-search, unified-knowledge-search, generate-embeddings, auto-embed-*, gemini-rag-query). Personal Knowledge wired to real Supabase queries. **PENDING:** Google Drive file picker integration testing, Gemini RAG production setup.
 
 ---
 
@@ -463,7 +463,7 @@ src/modules/projects/
 
 **Exit Criteria:** Project CRUD with tab-based detail, milestones, billing, file management, resource projection, client portal.
 
-> **STATUS: COMPLETE (UI)** — 3 pages (list, form, detail), 2 hooks, 10 DB tables. Full CRUD with create/edit/delete, milestones, members, risks, comments. **PENDING:** File upload, billing/invoicing UI, ActiveCollab sync, resource projection.
+> **STATUS: COMPLETE (UI + Integrations)** — 3 pages (list, form, detail), 8 hooks (6 new: useProjectSync, useResourceUtilization, etc.), 13 DB tables. Full CRUD with create/edit/delete, milestones, members, risks, comments. Client portal with PBKDF2 auth (ClientPortalDashboard, ProjectDashboard, 6 components). ActiveCollab and Jira sync edge functions deployed. Admin pages: ProjectModules, WorkTypes, EmployeeProjection, ProjectReports, ResourceUtilization. **PENDING:** File upload, billing/invoicing UI, resource projection charts.
 
 ---
 
@@ -555,7 +555,7 @@ The Admin module is built incrementally. Each phase adds the admin pages for its
 
 ---
 
-> **STATUS: IN PROGRESS** — 25 admin routes, 2 new pages (EmployeeManagement, DepartmentManagement), routed KnowledgeAnalytics + KnowledgeCategories. Added Team & Resources and Knowledge nav sections. **Implementation Status dashboard at `/admin/implementation-status`**. **PENDING:** EOS admin, data sync, reports, notifications, system sub-pages.
+> **STATUS: IN PROGRESS** — 30+ admin routes, 30+ admin pages. New pages: ZoomIntegration, ZoomMeetings, ProjectStatusSettings, ProjectModules, WorkTypesSettings, EmployeeProjection, ProjectReports, ResourceUtilizationReports, EmbeddingsExplorer, KnowledgeAnalytics, KnowledgeCategories, EmployeeManagement, DepartmentManagement, MeetingAnalytics. **Implementation Status dashboard at `/admin/implementation-status`**. **PENDING:** EOS admin config, data sync dashboards, notification management.
 
 ---
 
