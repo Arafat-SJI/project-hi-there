@@ -1,8 +1,8 @@
 /**
- * Project Detail Page - Tabbed view
+ * Project Detail Page - Tabbed view (URL-driven tabs)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,29 @@ import { useProjectMembers } from "../hooks/useProjectDetail";
 import { useProjectMilestones, useAddMilestone, useUpdateMilestone } from "../hooks/useProjectDetail";
 import { useProjectComments, useAddProjectComment } from "../hooks/useProjectDetail";
 import { useProjectRisks } from "../hooks/useProjectDetail";
+import { ClientAccessManagement } from "@/components/projects/ClientAccessManagement";
 import type { ProjectTab } from "../types";
 
+const TAB_URL_MAPPINGS: Record<string, ProjectTab> = {
+  overview: "overview",
+  milestones: "milestones",
+  members: "members",
+  issues: "issues",
+  client_portal: "client_portal",
+};
+const VALID_TAB_KEYS = new Set(Object.keys(TAB_URL_MAPPINGS));
+
 export default function ProjectDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, tab: tabParam } = useParams<{ slug: string; tab?: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
+  const activeTab: ProjectTab =
+    tabParam && VALID_TAB_KEYS.has(tabParam) ? TAB_URL_MAPPINGS[tabParam] : "overview";
+
+  useEffect(() => {
+    if (tabParam && !VALID_TAB_KEYS.has(tabParam)) {
+      navigate(`/projects/${slug}`, { replace: true });
+    }
+  }, [tabParam, slug, navigate]);
 
   const { data: project, isLoading } = useProject(slug!);
   const { data: members = [] } = useProjectMembers(project?.id || "");
@@ -86,12 +103,20 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProjectTab)}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => {
+          const next = v as ProjectTab;
+          if (next === "overview") navigate(`/projects/${slug}`);
+          else navigate(`/projects/${slug}/${next}`);
+        }}
+      >
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="milestones">Milestones ({milestones.length})</TabsTrigger>
           <TabsTrigger value="members">Members ({members.length})</TabsTrigger>
           <TabsTrigger value="issues">Risks ({risks.length})</TabsTrigger>
+          <TabsTrigger value="client_portal">Client Portal</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
@@ -194,6 +219,14 @@ export default function ProjectDetailPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="client_portal" className="mt-4">
+          <ClientAccessManagement
+            projectId={project.id}
+            projectName={project.name}
+            projectSlug={project.slug}
+          />
         </TabsContent>
       </Tabs>
     </div>

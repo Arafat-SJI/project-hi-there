@@ -22,6 +22,9 @@ import { projectsRoutes } from "@/modules/projects";
 import { productivityRoutes } from "@/modules/productivity";
 import { adminRoutes } from "@/modules/admin";
 
+// Client portal (public, no layout)
+import ClientPortalDashboard from "@/pages/client/ClientPortalDashboard";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -36,6 +39,12 @@ const App = () => (
             <Routes>
               {/* Public routes (login, signup, auth callbacks) */}
               {publicRoutes}
+
+              {/* Client portal: token + password, no layout */}
+              <Route
+                path="/projects/:slug/client-portal/:token"
+                element={<ClientPortalDashboard />}
+              />
 
               {/* Protected routes with dashboard layout */}
               <Route element={<ProtectedRoute />}>
