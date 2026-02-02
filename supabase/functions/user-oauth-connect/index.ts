@@ -120,26 +120,42 @@ serve(async (req) => {
       );
     }
 
+    // First get the provider ID from slug
+    const { data: providerData, error: providerError } = await supabase
+      .from("integration_providers")
+      .select("id")
+      .eq("slug", provider)
+      .single();
+
+    if (providerError || !providerData) {
+      return new Response(
+        JSON.stringify({ error: `Unknown provider: ${provider}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Check if organization has this provider enabled
     const { data: orgIntegration, error: orgError } = await supabase
       .from("organization_integrations")
-      .select("*, integration_providers!inner(*)")
-      .eq("integration_providers.slug", provider)
-      .eq("is_enabled", true)
+      .select("*")
+      .eq("provider_id", providerData.id)
+      .eq("enabled", true)
+      .eq("connection_status", "connected")
       .single();
 
     if (orgError || !orgIntegration) {
+      console.log("Org integration check failed:", { orgError, provider, providerId: providerData.id });
       return new Response(
         JSON.stringify({ error: `Provider ${provider} is not enabled for this organization` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Get client credentials from organization integration
-    const clientId = orgIntegration.credentials?.client_id;
+    // Get client credentials from organization integration config
+    const clientId = orgIntegration.config?.client_id;
     if (!clientId) {
       return new Response(
-        JSON.stringify({ error: `Provider ${provider} is not properly configured` }),
+        JSON.stringify({ error: `Provider ${provider} is not properly configured (missing client_id)` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
