@@ -70,12 +70,13 @@ INSERT INTO public.notifications (user_id, title, message, type, link, is_read) 
    'warning', '/actions/tasks', false);
 
 -- 6. Sample activity logs
+-- Note: Uses COALESCE to handle missing clients gracefully
 INSERT INTO public.activity_logs (user_id, action, resource_type, resource_id, details) VALUES
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
    'login', 'session', gen_random_uuid(), '{"method":"email"}'),
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
-   'create', 'client', (SELECT id FROM clients WHERE email = 'john.doe@example.com' LIMIT 1),
-   '{"client_name":"Acme Corp"}'),
+   'create', 'client', COALESCE((SELECT id FROM clients LIMIT 1), gen_random_uuid()),
+   '{"client_name":"Sample Client"}'),
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
    'update', 'deal', gen_random_uuid(), '{"field":"stage","from":"lead","to":"discovery"}');
 
