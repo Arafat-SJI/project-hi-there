@@ -196,3 +196,38 @@ AI.SEMANTIC_SEARCH: 'semantic-search'
 - Cost estimation before batch processing
 - Category-based organization with owner assignment
 - Meeting transcripts can be auto-embedded for knowledge retrieval
+
+## Implementation Status (this repo)
+
+### Database
+- **unified_documents** — Polymorphic owner_type/owner_id; RLS for user/org.
+- **embeddings** — Optional `unified_document_id`; `match_embeddings` supports `filter_entity_type`, `filter_user_id`, `p_user_id`.
+- **knowledge_categories** — Optional `owner_id` for "My Categories."
+- **processing_queue_history** — Batch run logs.
+- **gemini_corpora**, **gemini_sync_logs**, **gemini_query_logs** — Gemini RAG logging.
+- **app_modules** — Personal Knowledge module with `page_route` `/personal-knowledge`.
+- **user_agent_personalizations** — Optional `attached_unified_document_ids`.
+
+### Edge Functions
+- **knowledge-base** — Admin API for categories, sources, files, stats.
+- **api-v1-documents** — REST over `unified_documents`.
+- **client-documents** — Client-scoped documents.
+- **user-knowledge-upload** — Creates `unified_documents` (owner_type=user) and falls back to `user_knowledge_files`.
+- **user-knowledge-process** — Processes pending `unified_documents` and `user_knowledge_files`; calls `generate-embeddings` with `unified_document_id`.
+- **semantic-search** — Uses `match_embeddings` with optional `filter_entity_type`, `filter_user_id`.
+- **unified-knowledge-search** — Aggregates entries, user knowledge, unified docs, and semantic results.
+- **gemini-rag-query** — Stub; logs to `gemini_query_logs`.
+- **generate-embeddings** — Accepts `unified_document_id` and `chunk_index`.
+- **agent-conversation-chat** — RAG via `semantic-search`; user personalization (relevance_threshold, max_context_files, use_all_knowledge).
+
+### Frontend
+- **Routes:** `/knowledge`, `/knowledge/personal`, `/personal-knowledge`, `/knowledge/category/:slug`, etc.
+- **Personal Knowledge page** — Stats, Process Pending, upload, list (unified_documents + user_knowledge_files), delete.
+- **Hooks:** `useUserKnowledgeFiles`, `useUserKnowledgeSources`, `useUnifiedUserDocuments`, `useUserKnowledgeStats`, `useProcessAllPendingFiles`, `useSemanticMemorySearch`, `useKnowledgeBaseStats`, `useKnowledgeBaseCategories`, `useKnowledgeBaseSources`, `useKnowledgeBaseFiles`, `useAllAgentPersonalizations`, `useUpdateAgentPersonalization`, `useUpsertAgentPersonalization`.
+- **Types:** `src/types/knowledgeBase.ts` (UnifiedDocument, KnowledgeBaseStats, SemanticSearchResult, UserAgentPersonalization, etc.).
+- **Navigation:** Knowledge Base and Personal Knowledge (module: knowledge) in sidebar; BookMarked icon for Personal Knowledge.
+- **KnowledgeContextSelector** — AI context selection (personal, categories) in `src/components/ai/KnowledgeContextSelector.tsx`.
+
+### Testing
+- **Manual flows:** Org KB — create category, attach sources, upload files; verify processing and search in `/knowledge` and `/knowledge/category/:slug`. Personal — upload files (or use user-knowledge-upload with FormData), run Process Pending, verify unified_documents and embeddings; check Personal Knowledge page and AI chat RAG. Admin — call knowledge-base edge for stats/categories/sources/files.
+- **Unit tests (optional):** Mock Supabase and edge responses for hooks (e.g. `useSemanticMemorySearch`, `useUserKnowledgeStats`); assert query keys and derived state. Integration tests for edge functions: RLS, queue processing, semantic-search filters.

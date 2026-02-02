@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/lib/cache";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import type { UnifiedDocument } from "@/types/knowledgeBase";
 
 export interface UserKnowledgeFile {
   id: string;
@@ -14,7 +16,7 @@ export interface UserKnowledgeFile {
   mime_type: string | null;
   processing_status: string;
   processing_error: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -32,16 +34,12 @@ export interface UserKnowledgeSource {
   sync_status: string;
   file_count: number;
   total_size: number;
-  credentials: any;
-  sync_config: any;
-  metadata: any;
+  credentials: Record<string, unknown>;
+  sync_config: Record<string, unknown>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
-
-// NOTE: user_knowledge_files table needs to be created via migration before these hooks will work.
-// The migration file exists at: supabase/migrations/20260101_user_knowledge_files.sql
-// Until the migration is applied, these hooks will return empty data.
 
 export function useUserKnowledgeFiles() {
   const { user } = useAuth();
@@ -49,9 +47,13 @@ export function useUserKnowledgeFiles() {
   return useQuery({
     queryKey: ['user-knowledge-files', user?.id],
     queryFn: async () => {
-      // Table may not exist yet - return empty array
-      console.warn('user_knowledge_files table not yet available - migration required');
-      return [] as UserKnowledgeFile[];
+      const { data, error } = await supabase
+        .from('user_knowledge_files')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as UserKnowledgeFile[];
     },
     enabled: !!user,
   });
@@ -63,9 +65,33 @@ export function useUserKnowledgeSources() {
   return useQuery({
     queryKey: ['user-knowledge-sources', user?.id],
     queryFn: async () => {
-      // Table may not exist yet - return empty array
-      console.warn('user_knowledge_sources table not yet available - migration required');
-      return [] as UserKnowledgeSource[];
+      const { data, error } = await supabase
+        .from('user_knowledge_sources')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as UserKnowledgeSource[];
+    },
+    enabled: !!user,
+  });
+}
+
+/** Personal documents from unified_documents (owner_type = user) */
+export function useUnifiedUserDocuments() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: queryKeys.knowledge.unifiedDocuments({ owner_type: 'user', owner_id: user?.id ?? '' }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('unified_documents')
+        .select('*')
+        .eq('owner_type', 'user')
+        .eq('owner_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as UnifiedDocument[];
     },
     enabled: !!user,
   });
@@ -125,22 +151,34 @@ export function useDeleteUserKnowledgeFile() {
 
   return useMutation({
     mutationFn: async (fileId: string) => {
-      // Table may not exist yet
-      throw new Error('user_knowledge_files table not yet available - migration required');
+      const { error } = await supabase.from('user_knowledge_files').delete().eq('id', fileId);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-knowledge-files'] });
-      toast({
-        title: "Success",
-        description: "File deleted successfully",
-      });
+      toast({ title: "Success", description: "File deleted successfully" });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useDeleteUnifiedDocument() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (docId: string) => {
+      const { error } = await supabase.from('unified_documents').delete().eq('id', docId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.unifiedDocuments({}) });
+      toast({ title: "Success", description: "Document removed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -152,44 +190,76 @@ export function useCreateUserKnowledgeSource() {
 
   return useMutation({
     mutationFn: async (sourceData: Partial<UserKnowledgeSource>) => {
-      // Table may not exist yet
-      throw new Error('user_knowledge_sources table not yet available - migration required');
+      const { data, error } = await supabase
+        .from('user_knowledge_sources')
+        .insert({ ...sourceData, user_id: user!.id })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as UserKnowledgeSource;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-knowledge-sources'] });
-      toast({
-        title: "Success",
-        description: "Knowledge source created successfully",
-      });
+      toast({ title: "Success", description: "Knowledge source created successfully" });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
 
-export function useUserFileStats() {
+export function useUserKnowledgeStats() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['user-file-stats', user?.id],
+    queryKey: queryKeys.knowledge.userKnowledgeStats(user?.id ?? ''),
     queryFn: async () => {
-      // Function may not exist yet
-      console.warn('get_user_file_stats function not yet available - migration required');
+      const [filesRes, unifiedRes] = await Promise.all([
+        supabase.from('user_knowledge_files').select('id, processing_status, file_size').eq('user_id', user!.id),
+        supabase.from('unified_documents').select('id, processing_status, file_size').eq('owner_type', 'user').eq('owner_id', user!.id),
+      ]);
+      const files = (filesRes.data ?? []) as { id: string; processing_status: string; file_size: number | null }[];
+      const unified = (unifiedRes.data ?? []) as { id: string; processing_status: string; file_size: number | null }[];
+      const all = [...files, ...unified];
       return {
-        total_files: 0,
-        total_size: 0,
-        pending: 0,
-        processing: 0,
-        completed: 0,
-        failed: 0,
-        by_source: {},
+        total_files: all.length,
+        total_size: all.reduce((s, f) => s + (f.file_size ?? 0), 0),
+        pending: all.filter((f) => f.processing_status === 'pending').length,
+        processing: all.filter((f) => f.processing_status === 'processing').length,
+        completed: all.filter((f) => f.processing_status === 'completed').length,
+        failed: all.filter((f) => f.processing_status === 'failed').length,
+        by_source: {} as Record<string, number>,
       };
     },
     enabled: !!user,
+  });
+}
+
+export function useUserFileStats() {
+  return useUserKnowledgeStats();
+}
+
+export function useProcessAllPendingFiles() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('user-knowledge-process', {
+        body: { user_id: user?.id },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-knowledge-files'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.unifiedDocuments({}) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.userKnowledgeStats(user?.id ?? '') });
+      toast({ title: 'Processing started', description: 'Pending files are being processed.' });
+    },
+    onError: (e: Error) => {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    },
   });
 }

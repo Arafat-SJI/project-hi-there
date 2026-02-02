@@ -37,7 +37,8 @@ serve(async (req) => {
       metadata = {},
       user_id,
       model_id,
-      chunk_size = 800
+      chunk_size = 800,
+      unified_document_id,
     } = await req.json()
 
     if (!entity_type || !entity_id || !content) {
@@ -60,17 +61,19 @@ serve(async (req) => {
     let totalCost = 0
 
     // Generate embeddings for each chunk
-    for (const chunk of chunks) {
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
       const response = await generateEmbedding(supabaseClient, chunk, model_id)
 
       embeddings.push({
         entity_type,
         entity_id,
         user_id: user_id || null,
+        unified_document_id: unified_document_id || null,
         content: chunk,
+        chunk_index: i,
         metadata,
         embedding: response.embedding,
-        embedding_status: 'completed',
       })
 
       totalTokens += response.tokens

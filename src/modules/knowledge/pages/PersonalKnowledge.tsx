@@ -34,9 +34,12 @@ import {
 import { formatBytes, formatDateTime } from "@/lib/utils";
 import {
   useUserKnowledgeFiles,
+  useUnifiedUserDocuments,
   useUploadUserKnowledgeFile,
   useDeleteUserKnowledgeFile,
-  useUserFileStats,
+  useDeleteUnifiedDocument,
+  useUserKnowledgeStats,
+  useProcessAllPendingFiles,
 } from "../hooks/useUserKnowledge";
 
 export default function PersonalKnowledge() {
@@ -44,10 +47,34 @@ export default function PersonalKnowledge() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: files, isLoading } = useUserKnowledgeFiles();
-  const { data: stats } = useUserFileStats();
+  const { data: files = [], isLoading } = useUserKnowledgeFiles();
+  const { data: unifiedDocs = [] } = useUnifiedUserDocuments();
+  const { data: stats } = useUserKnowledgeStats();
   const uploadFile = useUploadUserKnowledgeFile();
   const deleteFile = useDeleteUserKnowledgeFile();
+  const deleteUnified = useDeleteUnifiedDocument();
+  const processPending = useProcessAllPendingFiles();
+
+  const allFiles = [
+    ...unifiedDocs.map((d) => ({
+      id: d.id,
+      source: 'unified' as const,
+      file_name: d.file_name ?? d.title,
+      file_size: d.file_size,
+      processing_status: d.processing_status,
+      created_at: d.created_at,
+      source_type: 'upload',
+    })),
+    ...files.map((f) => ({
+      id: f.id,
+      source: 'user_knowledge_files' as const,
+      file_name: f.file_name,
+      file_size: f.file_size,
+      processing_status: f.processing_status,
+      created_at: f.created_at,
+      source_type: f.source_type,
+    })),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
@@ -72,11 +99,21 @@ export default function PersonalKnowledge() {
     setIsDragging(false);
   };
 
+  const [deleteSource, setDeleteSource] = useState<'unified' | 'user_knowledge_files' | null>(null);
   const handleDelete = () => {
-    if (deleteId) {
-      deleteFile.mutate(deleteId);
+    if (deleteId && deleteSource) {
+      if (deleteSource === 'unified') {
+        deleteUnified.mutate(deleteId);
+      } else {
+        deleteFile.mutate(deleteId);
+      }
       setDeleteId(null);
+      setDeleteSource(null);
     }
+  };
+  const openDelete = (id: string, source: 'unified' | 'user_knowledge_files') => {
+    setDeleteId(id);
+    setDeleteSource(source);
   };
 
   const getStatusBadge = (status: string) => {
@@ -119,6 +156,16 @@ export default function PersonalKnowledge() {
             Upload and manage your personal documents for AI-powered search
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={() => processPending.mutate()}
+          disabled={processPending.isPending || (stats?.pending ?? 0) + (stats?.processing ?? 0) === 0}
+        >
+          {processPending.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : null}
+          Process Pending
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -229,7 +276,7 @@ export default function PersonalKnowledge() {
             <div className="flex h-32 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : !files || files.length === 0 ? (
+          ) : allFiles.length === 0 ? (
             <div className="flex h-32 flex-col items-center justify-center gap-2">
               <File className="h-12 w-12 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">No files uploaded yet</p>
@@ -247,8 +294,8 @@ export default function PersonalKnowledge() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {files.map((file) => (
-                  <TableRow key={file.id}>
+                {allFiles.map((file) => (
+                  <TableRow key={`${file.source}-${file.id}`}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <File className="h-4 w-4 text-muted-foreground" />
@@ -268,7 +315,7 @@ export default function PersonalKnowledge() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setDeleteId(file.id)}
+                        onClick={() => openDelete(file.id, file.source)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -282,7 +329,7 @@ export default function PersonalKnowledge() {
       </Card>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={() => { setDeleteId(null); setDeleteSource(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
