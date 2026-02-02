@@ -265,6 +265,11 @@ export const adminNavigation: NavGroup[] = [
         icon: "Rocket",
       },
       {
+        title: "Seed Data Runner",
+        href: "/admin/roadmap/seed",
+        icon: "Database",
+      },
+      {
         title: "Deployment Status",
         href: "/admin/deployment",
         icon: "Database",

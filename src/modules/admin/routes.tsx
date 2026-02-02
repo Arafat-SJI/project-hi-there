@@ -34,6 +34,7 @@ import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
+import SeedRunner from "@/pages/admin/SeedRunner";
 
 /**
  * Admin routes - require admin role
@@ -82,5 +83,6 @@ export const adminRoutes = (
     <Route path="/admin/sso-settings" element={<SSOSettings />} />
     <Route path="/admin/meeting-analytics" element={<MeetingAnalytics />} />
     <Route path="/admin/roadmap" element={<ProductRoadmap />} />
+    <Route path="/admin/roadmap/seed" element={<SeedRunner />} />
   </>
 );
