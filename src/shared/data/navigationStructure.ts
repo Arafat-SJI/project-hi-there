@@ -150,7 +150,9 @@ export const mainNavigation: NavItem[] = [
   {
     title: "Personal Knowledge",
     href: "/personal-knowledge",
-    icon: "Brain",
+    icon: "BookMarked",
+    module: "knowledge",
+    featureFlag: "enablePersonalKnowledge",
   },
 ];
 

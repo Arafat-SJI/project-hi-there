@@ -21,6 +21,7 @@ export const knowledgeRoutes = (
     <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
     <Route path="/knowledge/personal" element={<PersonalKnowledge />} />
     <Route path="/knowledge/search" element={<SemanticSearch />} />
+    <Route path="/personal-knowledge" element={<PersonalKnowledge />} />
     <Route path="/knowledge/category/:slug" element={<KnowledgeByCategory />} />
     <Route path="/knowledge/new" element={<KnowledgeForm />} />
     <Route path="/knowledge/:id" element={<KnowledgeDetail />} />

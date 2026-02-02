@@ -17,7 +17,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const { query, user_id, include_user_knowledge = true } = await req.json()
+    const { query, user_id, include_user_knowledge = true, use_semantic = true } = await req.json()
 
     if (!query) {
       return new Response(
@@ -26,7 +26,10 @@ serve(async (req) => {
       )
     }
 
-    // Search knowledge entries (full-text search)
+    const baseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    // Full-text: knowledge_entries
     const { data: entries } = await supabaseClient
       .from('knowledge_entries')
       .select('*')
@@ -34,9 +37,7 @@ serve(async (req) => {
       .eq('status', 'published')
       .limit(10)
 
-    let userKnowledgeResults = []
-
-    // Search user knowledge if requested
+    let userKnowledgeResults: unknown[] = []
     if (include_user_knowledge && user_id) {
       const { data: userKnowledge } = await supabaseClient
         .from('user_knowledge_files')
@@ -44,19 +45,57 @@ serve(async (req) => {
         .eq('user_id', user_id)
         .ilike('file_name', `%${query}%`)
         .limit(10)
-
       userKnowledgeResults = userKnowledge || []
     }
 
-    // Could also call semantic-search for vector similarity
-    // const semanticResults = await fetch(...)
+    // Unified docs (user) by text match on title
+    let unifiedResults: unknown[] = []
+    if (user_id) {
+      const { data: ud } = await supabaseClient
+        .from('unified_documents')
+        .select('*')
+        .eq('owner_type', 'user')
+        .eq('owner_id', user_id)
+        .ilike('title', `%${query}%`)
+        .limit(10)
+      unifiedResults = ud || []
+    }
+
+    // Semantic search (vector) if enabled
+    let semanticResults: unknown[] = []
+    if (use_semantic && baseUrl && serviceKey) {
+      try {
+        const semRes = await fetch(`${baseUrl}/functions/v1/semantic-search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
+          body: JSON.stringify({
+            query,
+            match_count: 10,
+            entity_type: null,
+            user_id: include_user_knowledge ? user_id : null,
+          }),
+        })
+        if (semRes.ok) {
+          const semBody = await semRes.json()
+          semanticResults = semBody.results || []
+        }
+      } catch {
+        // ignore
+      }
+    }
 
     return new Response(
       JSON.stringify({
         results: {
           knowledge_entries: entries || [],
           user_knowledge: userKnowledgeResults,
-          total: (entries?.length || 0) + userKnowledgeResults.length,
+          unified_documents: unifiedResults,
+          semantic: semanticResults,
+          total:
+            (entries?.length || 0) +
+            userKnowledgeResults.length +
+            unifiedResults.length +
+            semanticResults.length,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

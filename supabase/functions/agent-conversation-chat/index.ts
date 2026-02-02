@@ -76,36 +76,36 @@ serve(async (req) => {
       additionalContext = personalization.additional_prompt
     }
 
-    // 3. Get RAG context if enabled
+    // 3. Get RAG context if enabled (semantic search over user + org knowledge)
     let ragContext = ''
     if (include_rag) {
       try {
-        // Generate embedding for the user message
-        const { data: embeddingResponse, error: embeddingError } = await supabaseClient.functions.invoke(
-          'generate-embeddings',
-          {
-            body: { text: message, user_id }
-          }
-        )
-
-        if (!embeddingError && embeddingResponse?.embedding) {
-          // Search for relevant knowledge
-          const { data: relevantDocs } = await supabaseClient.rpc('match_embeddings', {
-            query_embedding: embeddingResponse.embedding,
-            match_threshold: personalization?.relevance_threshold ?? 0.7,
-            match_count: personalization?.max_context_files ?? 5,
-            p_user_id: user_id,
+        const baseUrl = Deno.env.get('SUPABASE_URL')
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+        if (baseUrl && serviceKey) {
+          const semRes = await fetch(`${baseUrl}/functions/v1/semantic-search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
+            body: JSON.stringify({
+              query: message,
+              match_threshold: personalization?.relevance_threshold ?? 0.7,
+              match_count: personalization?.max_context_files ?? 5,
+              entity_type: null,
+              user_id: personalization?.use_all_knowledge ? null : user_id,
+            }),
           })
-
-          if (relevantDocs && relevantDocs.length > 0) {
-            ragContext = '\n\nRELEVANT KNOWLEDGE:\n' + relevantDocs
-              .map((doc: any, i: number) => `[${i + 1}] ${doc.content}`)
-              .join('\n\n')
+          if (semRes.ok) {
+            const semBody = await semRes.json()
+            const relevantDocs = semBody.results ?? []
+            if (relevantDocs.length > 0) {
+              ragContext = '\n\nRELEVANT KNOWLEDGE:\n' + relevantDocs
+                .map((doc: { content?: string }, i: number) => `[${i + 1}] ${doc.content ?? ''}`)
+                .join('\n\n')
+            }
           }
         }
       } catch (ragError) {
         console.error('RAG search error:', ragError)
-        // Continue without RAG context
       }
     }
 

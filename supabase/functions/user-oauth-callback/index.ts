@@ -154,7 +154,7 @@ serve(async (req) => {
       .from("organization_integrations")
       .select("*, integration_providers!inner(*)")
       .eq("integration_providers.slug", provider)
-      .eq("is_enabled", true)
+      .eq("enabled", true)
       .single();
 
     if (orgError || !orgIntegration) {
@@ -163,11 +163,13 @@ serve(async (req) => {
       );
     }
 
-    const { client_id, client_secret } = orgIntegration.credentials || {};
+    // Get credentials from config JSONB field (fallback to credentials for backward compatibility)
+    const config = orgIntegration.config || orgIntegration.credentials || {};
+    const { client_id, client_secret } = config;
 
     if (!client_id || !client_secret) {
       return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent("Provider not properly configured")}`
+        `${appUrl}/settings?error=${encodeURIComponent("Provider not properly configured. Please add Client ID and Client Secret in the integration settings.")}`
       );
     }
 

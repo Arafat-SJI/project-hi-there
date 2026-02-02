@@ -47,28 +47,53 @@ serve(async (req) => {
           continue
         }
 
-        // Create database record
-        const { data: dbData, error: dbError } = await supabaseClient
-          .from('user_knowledge_files')
+        // Create unified_documents row (owner_type = 'user')
+        const { data: unifiedData, error: unifiedError } = await supabaseClient
+          .from('unified_documents')
           .insert([{
-            user_id: userId,
-            source_id: sourceId,
-            source_type: 'upload',
+            owner_type: 'user',
+            owner_id: userId,
+            source_id: sourceId || null,
+            title: fileName,
             file_name: fileName,
-            file_path: filePath,
+            file_type: file.type,
             file_size: file.size,
-            mime_type: file.type,
+            storage_path: filePath,
             processing_status: 'pending',
             metadata: {
               original_name: fileName,
               uploaded_at: new Date().toISOString(),
+              source_id: sourceId,
             },
           }])
           .select()
           .single()
 
-        if (!dbError && dbData) {
-          uploadedFiles.push(dbData)
+        if (!unifiedError && unifiedData) {
+          uploadedFiles.push(unifiedData)
+        } else {
+          // Fallback: user_knowledge_files if unified_documents insert fails
+          const { data: dbData, error: dbError } = await supabaseClient
+            .from('user_knowledge_files')
+            .insert([{
+              user_id: userId,
+              source_id: sourceId,
+              source_type: 'upload',
+              file_name: fileName,
+              file_path: filePath,
+              file_size: file.size,
+              mime_type: file.type,
+              processing_status: 'pending',
+              metadata: {
+                original_name: fileName,
+                uploaded_at: new Date().toISOString(),
+              },
+            }])
+            .select()
+            .single()
+          if (!dbError && dbData) {
+            uploadedFiles.push(dbData)
+          }
         }
       }
     }

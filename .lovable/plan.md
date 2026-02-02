@@ -1,136 +1,132 @@
 
+# Plan: Create Missing OAuth Tables and Fix Callback Edge Function
 
-# Implementation Status Repositioning
+## Current Problem
 
-## Summary
+When you click "Connect with Zoom", the OAuth flow initiates but the connection status never displays anything. This is because **two essential database tables are missing** that the OAuth flow requires:
 
-Move the "Implementation Status" link from the top of the admin sidebar (DASHBOARD group) to the Product Roadmap page as a prominent, standalone card with a light green background. This makes the development tracking tool more visible during active development while keeping it associated with the roadmap/vision section.
+1. **`oauth_states`** - Stores temporary state tokens for CSRF protection during OAuth authorization
+2. **`user_oauth_tokens`** - Stores user OAuth credentials after successful authorization
 
-## Changes Overview
+Additionally, there's a column name mismatch in the callback edge function that needs correction.
 
-### 1. Remove Implementation Status from Admin Sidebar Navigation
+## Solution Overview
 
-**File:** `src/shared/data/navigationStructure.ts`
-
-Remove the Implementation Status item from the DASHBOARD group:
-
-```typescript
-// Before (lines 138-150)
-{
-  title: "DASHBOARD",
-  items: [
-    {
-      title: "Overview",
-      href: "/admin",
-      icon: "LayoutDashboard",
-    },
-    {
-      title: "Implementation Status",  // REMOVE this item
-      href: "/admin/implementation-status",
-      icon: "ClipboardList",
-    },
-  ],
-},
-
-// After
-{
-  title: "DASHBOARD",
-  items: [
-    {
-      title: "Overview",
-      href: "/admin",
-      icon: "LayoutDashboard",
-    },
-  ],
-},
-```
+1. Create the `oauth_states` table with appropriate columns and RLS policies
+2. Create the `user_oauth_tokens` table with appropriate columns and RLS policies  
+3. Fix the `user-oauth-callback` edge function to use the correct column name (`enabled` instead of `is_enabled`)
 
 ---
 
-### 2. Add Implementation Status Card to Product Roadmap Page
+## Implementation Details
 
-**File:** `src/pages/admin/ProductRoadmap.tsx`
+### Step 1: Database Migration
 
-Add a prominent light green card at the bottom of the page (after the Tabs component) that links to the Implementation Status page:
+Create the two required tables:
 
-```typescript
-// Add after the Tabs component (around line 634)
+**`oauth_states` table:**
+- `id` - UUID primary key
+- `state` - Unique state token (used for CSRF protection)
+- `user_id` - Reference to the user initiating OAuth
+- `provider` - Provider slug (e.g., 'zoom', 'google')
+- `redirect_uri` - Where to redirect after completion
+- `expires_at` - Expiration timestamp (typically 10 minutes)
+- `created_at` - Creation timestamp
 
-{/* Developer Tools Card */}
-<Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900">
-  <CardHeader className="pb-3">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500 text-white">
-          <ClipboardList className="h-5 w-5" />
-        </div>
-        <div>
-          <CardTitle className="text-lg text-green-800 dark:text-green-200">
-            Implementation Status
-          </CardTitle>
-          <CardDescription className="text-green-600 dark:text-green-400">
-            Developer dashboard for tracking module progress
-          </CardDescription>
-        </div>
-      </div>
-      <Link to="/admin/implementation-status">
-        <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-100">
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Open Tracker
-        </Button>
-      </Link>
-    </div>
-  </CardHeader>
-  <CardContent className="pt-0">
-    <p className="text-sm text-green-700 dark:text-green-300">
-      Track pages, hooks, components, database tables, edge functions, and QA checklists
-      for all modules. Updated by developers after each batch of work.
-    </p>
-  </CardContent>
-</Card>
-```
+**`user_oauth_tokens` table:**
+- `id` - UUID primary key
+- `user_id` - Reference to the user
+- `provider_slug` - Provider identifier (e.g., 'zoom')
+- `access_token` - Encrypted OAuth access token
+- `refresh_token` - Encrypted OAuth refresh token (optional)
+- `token_type` - Token type (e.g., 'Bearer')
+- `expires_at` - Token expiration timestamp
+- `scopes` - Array of granted scopes
+- `account_email` - Connected account email
+- `account_name` - Connected account name
+- `account_id` - Connected account ID
+- `account_avatar_url` - Connected account avatar
+- `is_active` - Whether the connection is active
+- `last_used_at` - Last usage timestamp
+- `last_refreshed_at` - Last token refresh timestamp
+- `error_message` - Any error message
+- `error_at` - Error timestamp
+- `metadata` - Additional metadata (JSONB)
+- `created_at` / `updated_at` - Timestamps
 
----
+**RLS Policies:**
+- Users can only read/manage their own tokens
+- Service role can access all tokens (for edge functions)
 
-### 3. Add Required Imports to ProductRoadmap.tsx
+### Step 2: Fix Edge Function
 
-Add to the existing imports:
-
-```typescript
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ClipboardList, ExternalLink } from "lucide-react";  // Add to existing lucide imports
-```
+Update `supabase/functions/user-oauth-callback/index.ts`:
+- Change `.eq("is_enabled", true)` to `.eq("enabled", true)` to match the actual column name
 
 ---
 
-## Visual Result
-
-**Before:**
-- Implementation Status appears at the top of the admin sidebar under "DASHBOARD"
-- Easy to miss among other menu items
-
-**After:**
-- Implementation Status removed from sidebar
-- Appears as a prominent light green card at the bottom of the Vision & Roadmap page
-- Green background makes it stand out as a developer tool
-- Clear "Open Tracker" button for quick access
-
----
-
-## Files Modified
+## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/shared/data/navigationStructure.ts` | Remove Implementation Status from DASHBOARD group |
-| `src/pages/admin/ProductRoadmap.tsx` | Add light green developer card with link |
+| Database migration (new) | Create `oauth_states` and `user_oauth_tokens` tables with RLS |
+| `supabase/functions/user-oauth-callback/index.ts` | Fix column name from `is_enabled` to `enabled` |
+
+## Expected Outcome
+
+After these changes:
+1. Admin saves Zoom Client ID and Client Secret (already working)
+2. User clicks "Connect with Zoom" → State is stored in `oauth_states`
+3. User authorizes on Zoom → Redirected back to callback
+4. Callback exchanges code for tokens → Tokens stored in `user_oauth_tokens`
+5. User sees "Connected" status with their Zoom account info
 
 ---
 
-## Technical Notes
+## Technical Details
 
-- The route `/admin/implementation-status` remains unchanged in `src/modules/admin/routes.tsx`
-- The Implementation Status page itself requires no changes
-- The green styling uses Tailwind's green-50/green-950 for proper light/dark mode support
-- Card placement at the bottom keeps it prominent without disrupting the main content tabs
+### Database Schema (SQL Preview)
 
+```text
+oauth_states
+├── id (uuid, PK)
+├── state (text, unique)
+├── user_id (uuid, FK → auth.users)
+├── provider (text)
+├── redirect_uri (text)
+├── expires_at (timestamptz)
+└── created_at (timestamptz)
+
+user_oauth_tokens
+├── id (uuid, PK)
+├── user_id (uuid, FK → auth.users)
+├── provider_slug (text)
+├── access_token (text, encrypted)
+├── refresh_token (text, nullable)
+├── token_type (text, default 'Bearer')
+├── expires_at (timestamptz, nullable)
+├── scopes (text[], default '{}')
+├── account_email (text, nullable)
+├── account_name (text, nullable)
+├── account_id (text, nullable)
+├── account_avatar_url (text, nullable)
+├── is_active (boolean, default true)
+├── last_used_at (timestamptz, nullable)
+├── last_refreshed_at (timestamptz, nullable)
+├── error_message (text, nullable)
+├── error_at (timestamptz, nullable)
+├── metadata (jsonb, default '{}')
+├── created_at (timestamptz)
+├── updated_at (timestamptz)
+└── UNIQUE(user_id, provider_slug)
+```
+
+### Edge Function Fix
+
+```text
+// Before (line 157)
+.eq("is_enabled", true)
+
+// After
+.eq("enabled", true)
+```
