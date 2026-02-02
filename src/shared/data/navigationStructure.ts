@@ -93,6 +93,13 @@ export const mainNavigation: NavItem[] = [
     featureFlag: "enableKnowledgeBase",
   },
   {
+    title: "Semantic Search",
+    href: "/knowledge/search",
+    icon: "Sparkles",
+    module: "knowledge",
+    featureFlag: "enableKnowledgeBase",
+  },
+  {
     title: "Feedback",
     href: "/feedback",
     icon: "MessageSquare",
@@ -213,6 +220,11 @@ export const adminNavigation: NavGroup[] = [
         title: "Knowledge Categories",
         href: "/admin/knowledge/categories",
         icon: "FolderOpen",
+      },
+      {
+        title: "Embeddings Explorer",
+        href: "/admin/knowledge/embeddings",
+        icon: "Brain",
       },
     ],
   },

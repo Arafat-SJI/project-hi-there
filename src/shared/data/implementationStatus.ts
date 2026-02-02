@@ -82,7 +82,7 @@ export const TEAM: TeamMember[] = [
 
 export const SIGN_OFF_OWNER = "Jairaj";
 
-// ─── Last updated: 2026-02-01 ─────────────────────────────────────────────────
+// ─── Last updated: 2026-02-02 ─────────────────────────────────────────────────
 
 export const implementationStatus: ModuleStatus[] = [
   // ── Phase 0: Foundation ──────────────────────────────────────────────────────
@@ -319,7 +319,7 @@ export const implementationStatus: ModuleStatus[] = [
     owner: "Shahed",
     summary: "Fully modularized into src/modules/knowledge/ with pages, hooks, components. Vector search tables prepared.",
     pipeline: {
-      development: { status: "in-progress", owner: "Shahed", notes: "Pages modularized, semantic search UI pending" },
+      development: { status: "in-progress", owner: "Shahed", notes: "Core pages done, hooks wired, semantic search + embeddings explorer built. Bookmark hooks connected." },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
       dataSeeding: { status: "done", owner: "Shahed", notes: "supabase/seed/04-knowledge.sql — 4 categories, 7 articles, 3 sources, 3 common knowledge items" },
       signOff: { status: "not-started", owner: "Jairaj" },
@@ -338,22 +338,26 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "KnowledgeUpload — batch file upload with metadata", status: "done" },
       { name: "KnowledgeByCategory — browse by category", status: "done" },
       { name: "PersonalKnowledge — user knowledge file management", status: "done" },
-      { name: "Semantic search UI", status: "not-started" },
-      { name: "Embeddings explorer (admin)", status: "not-started" },
+      { name: "SemanticSearch — AI-powered vector search with similarity scores", status: "done" },
+      { name: "EmbeddingsExplorer — admin embedding queue, coverage, search logs", status: "done" },
     ],
     hooks: [
-      { name: "useKnowledge — entries CRUD, search, embedding, bookmarks (13 hooks)", status: "done" },
+      { name: "useKnowledge — entries CRUD, search, embedding, bookmarks (13 hooks, bookmarks wired)", status: "done" },
       { name: "useKnowledgeAdmin — categories CRUD, tree, stats, embedding stats (10 hooks)", status: "done" },
-      { name: "useUserKnowledge — personal files and sources (placeholder)", status: "in-progress" },
-      { name: "Embedding pipeline hooks", status: "not-started" },
+      { name: "useUserKnowledge — file CRUD, sources, stats (7 hooks, fully wired to Supabase)", status: "done" },
+      { name: "Embedding pipeline hooks (inline in EmbeddingsExplorer)", status: "done" },
     ],
     components: [
       { name: "RelatedArticles — related article suggestions", status: "done" },
       { name: "GoogleDriveFilePicker — Drive integration", status: "done" },
     ],
     edgeFunctions: [
-      { name: "auto-embed (embedding pipeline)", status: "not-started" },
-      { name: "semantic-search", status: "not-started" },
+      { name: "auto-embed-knowledge-entry — batch + single entry embedding", status: "done" },
+      { name: "auto-embed-knowledge-files — file embedding pipeline", status: "done" },
+      { name: "semantic-search — pgvector similarity search", status: "done" },
+      { name: "unified-knowledge-search — combined text + semantic", status: "done" },
+      { name: "user-knowledge-upload — user file upload handler", status: "done" },
+      { name: "generate-embeddings — shared chunking + embedding", status: "done" },
       { name: "gemini-rag", status: "not-started" },
     ],
     qaChecklist: [
@@ -361,11 +365,15 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Create a knowledge article and verify it saves", tested: false },
       { description: "Upload a file to knowledge base", tested: false },
       { description: "Browse by category", tested: false },
+      { description: "Navigate /knowledge/search and run a semantic query", tested: false },
+      { description: "Upload a personal file in /knowledge/personal", tested: false },
+      { description: "Navigate /admin/knowledge/embeddings and see stats", tested: false },
+      { description: "Trigger batch embedding from embeddings explorer", tested: false },
     ],
     nextSteps: [
-      "Build semantic search UI (needs auto-embed edge function deployed first)",
-      "Embeddings explorer admin page",
-      "Flesh out useUserKnowledge (personal file management with Drive sync)",
+      "Deploy auto-embed edge function to Supabase (need OPENAI_API_KEY in secrets)",
+      "Google Drive sync for personal knowledge sources",
+      "Gemini RAG integration",
     ],
   },
 
@@ -549,7 +557,7 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Admin Panel Extensions",
     phase: 8,
     owner: "Shahed",
-    summary: "21 existing admin pages. Added team management and knowledge admin sections.",
+    summary: "24 admin pages. Team management, knowledge admin, embeddings explorer, seed runner.",
     pipeline: {
       development: { status: "in-progress", owner: "Shahed", notes: "Core admin done, EOS/data sync admin pages pending" },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
@@ -570,6 +578,9 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "DepartmentManagement — department overview", status: "qa-ready" },
       { name: "KnowledgeAnalytics (existing, newly routed)", status: "qa-ready" },
       { name: "KnowledgeCategories (existing, newly routed)", status: "qa-ready" },
+      { name: "EmbeddingsExplorer — embedding coverage, queue, search logs", status: "done" },
+      { name: "SeedRunner — admin seed SQL execution UI", status: "done" },
+      { name: "ImplementationStatus — full module tracker", status: "done" },
       { name: "All other admin pages (21 total)", status: "done" },
     ],
     hooks: [],
@@ -581,6 +592,8 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Navigate /admin/team/departments and see departments", tested: false },
       { description: "Navigate /admin/knowledge/analytics", tested: false },
       { description: "Navigate /admin/knowledge/categories", tested: false },
+      { description: "Navigate /admin/knowledge/embeddings and see embedding stats", tested: false },
+      { description: "Navigate /admin/roadmap/seed and see seed runner", tested: false },
       { description: "Verify admin sidebar shows Team & Knowledge sections", tested: false },
     ],
     nextSteps: [
@@ -632,8 +645,8 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     edgeFunctions: [
       { name: "run-ai-agent — agent execution runtime", status: "done" },
-      { name: "auto-embed — embedding pipeline", status: "not-started" },
-      { name: "semantic-search — vector similarity search", status: "not-started" },
+      { name: "auto-embed — embedding pipeline (shared with Knowledge)", status: "done" },
+      { name: "semantic-search — vector similarity search (shared with Knowledge)", status: "done" },
       { name: "gemini-rag — RAG with Gemini", status: "not-started" },
     ],
     qaChecklist: [
@@ -646,9 +659,9 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Open AI chat and send a message", tested: false },
     ],
     nextSteps: [
-      "Deploy auto-embed edge function for embedding pipeline",
-      "Build semantic search UI in Knowledge Base",
+      "Deploy edge functions to Supabase production (need API keys in secrets)",
       "Agent memory/conversation persistence tables",
+      "Gemini RAG integration",
     ],
   },
 ];

@@ -303,23 +303,56 @@ export function useIncrementViewCount() {
   });
 }
 
-// Note: Bookmark functionality requires knowledge_bookmarks table to be created
-// Placeholder hooks that return disabled state
-
 /**
- * Hook to toggle bookmark status for an entry (placeholder - table not yet created)
+ * Hook to toggle bookmark status for an entry
  */
 export function useToggleBookmark() {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (_entryId: string) => {
-      throw new Error("Bookmarks feature not yet available");
+    mutationFn: async (entryId: string) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Check if already bookmarked
+      const { data: existing } = await (supabase as any)
+        .from("knowledge_bookmarks")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("entry_id", entryId)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await (supabase as any)
+          .from("knowledge_bookmarks")
+          .delete()
+          .eq("id", existing.id);
+        if (error) throw error;
+        return { bookmarked: false };
+      } else {
+        const { error } = await (supabase as any)
+          .from("knowledge_bookmarks")
+          .insert({ user_id: user.id, entry_id: entryId });
+        if (error) throw error;
+        return { bookmarked: true };
+      }
     },
-    onError: () => {
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["knowledge-bookmarks"] });
+      queryClient.invalidateQueries({ queryKey: ["knowledge-bookmark-status"] });
+      invalidateKeys.knowledge(queryClient);
       toast({
-        title: "Coming Soon",
-        description: "Bookmarks feature is not yet available",
+        title: result.bookmarked ? "Bookmarked" : "Bookmark Removed",
+        description: result.bookmarked
+          ? "Entry added to your bookmarks"
+          : "Entry removed from your bookmarks",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to toggle bookmark",
         variant: "destructive",
       });
     },
@@ -327,24 +360,47 @@ export function useToggleBookmark() {
 }
 
 /**
- * Hook to fetch user's bookmarked entries (placeholder)
+ * Hook to fetch user's bookmarked entries
  */
 export function useBookmarkedEntries() {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ["knowledge-bookmarks"],
-    queryFn: async () => [] as any[],
-    enabled: false,
+    queryKey: ["knowledge-bookmarks", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("knowledge_bookmarks")
+        .select("*, knowledge_entries(*, knowledge_categories(*))")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
   });
 }
 
 /**
- * Hook to check if an entry is bookmarked (placeholder)
+ * Hook to check if an entry is bookmarked
  */
-export function useIsBookmarked(_entryId: string) {
+export function useIsBookmarked(entryId: string) {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ["knowledge-bookmark-status"],
-    queryFn: async () => false,
-    enabled: false,
+    queryKey: ["knowledge-bookmark-status", entryId, user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("knowledge_bookmarks")
+        .select("id")
+        .eq("user_id", user!.id)
+        .eq("entry_id", entryId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data;
+    },
+    enabled: !!user && !!entryId,
   });
 }
 

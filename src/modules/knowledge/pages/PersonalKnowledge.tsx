@@ -28,7 +28,6 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Cloud,
   HardDrive,
 } from "lucide-react";
 import { formatBytes, formatDateTime } from "@/lib/utils";
@@ -98,15 +97,25 @@ export default function PersonalKnowledge() {
     );
   };
 
-  const getSourceIcon = (sourceType: string) => {
-    switch (sourceType) {
-      case "upload":
-        return <Upload className="h-4 w-4" />;
-      case "google_drive":
-        return <Cloud className="h-4 w-4" />;
-      default:
-        return <HardDrive className="h-4 w-4" />;
+  const getFileTypeIcon = (fileType: string | null) => {
+    if (!fileType) return <HardDrive className="h-4 w-4" />;
+    const type = fileType.toLowerCase();
+    if (type.includes("pdf")) return <File className="h-4 w-4 text-red-500" />;
+    if (type.includes("doc") || type.includes("word")) return <File className="h-4 w-4 text-blue-500" />;
+    if (type.includes("sheet") || type.includes("excel") || type.includes("csv"))
+      return <File className="h-4 w-4 text-green-500" />;
+    if (type.includes("text") || type.includes("md") || type.includes("txt"))
+      return <File className="h-4 w-4 text-gray-500" />;
+    return <HardDrive className="h-4 w-4" />;
+  };
+
+  const getFileTypeLabel = (fileType: string | null, fileName: string) => {
+    if (fileType) {
+      const short = fileType.split("/").pop() || fileType;
+      return short.toUpperCase();
     }
+    const ext = fileName.split(".").pop();
+    return ext ? ext.toUpperCase() : "File";
   };
 
   return (
@@ -239,7 +248,7 @@ export default function PersonalKnowledge() {
               <TableHeader>
                 <TableRow>
                   <TableHead>File Name</TableHead>
-                  <TableHead>Source</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Size</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Uploaded</TableHead>
@@ -257,8 +266,8 @@ export default function PersonalKnowledge() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {getSourceIcon(file.source_type)}
-                        <span className="capitalize">{file.source_type}</span>
+                        {getFileTypeIcon(file.file_type)}
+                        <span className="text-xs">{getFileTypeLabel(file.file_type, file.file_name)}</span>
                       </div>
                     </TableCell>
                     <TableCell>{formatBytes(file.file_size || 0)}</TableCell>
