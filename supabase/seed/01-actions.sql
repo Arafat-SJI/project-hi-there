@@ -40,6 +40,12 @@ DECLARE
   cl_acme UUID := (SELECT id FROM clients WHERE email = 'john.doe@example.com' LIMIT 1);
   cl_tech UUID := (SELECT id FROM clients WHERE email = 'jane.smith@techstart.io' LIMIT 1);
 BEGIN
+  -- Guard: skip if tasks already seeded
+  IF EXISTS (SELECT 1 FROM tasks WHERE slug = 'implement-sso-entra') THEN
+    RAISE NOTICE 'Tasks already seeded — skipping.';
+    RETURN;
+  END IF;
+
   INSERT INTO tasks (title, slug, description, status, priority, due_date, assigned_to, created_by, stream_id, category_id, client_id, position) VALUES
     -- Engineering stream
     ('Implement SSO with Microsoft Entra', 'implement-sso-entra', 'Set up SAML/OIDC flow for enterprise clients.', 'in_progress', 'high', NOW() + INTERVAL '7 days', u1, u1, s_eng, c_feat, NULL, 1),
@@ -69,8 +75,7 @@ BEGIN
     ('Follow up with FinEdge after demo', 'followup-finedge', 'Send proposal and ROI calculator.', 'todo', 'high', NOW() + INTERVAL '1 day', u1, u1, s_sal, c_adm, NULL, 1),
     ('Prepare case study — Acme Corp', 'case-study-acme', 'Write up success story for marketing.', 'in_progress', 'medium', NOW() + INTERVAL '10 days', u1, u1, s_sal, c_doc, cl_acme, 2),
     ('Cold outreach list — Healthcare SaaS', 'outreach-healthcare', 'Build prospect list of 50 healthcare SaaS companies.', 'todo', 'low', NOW() + INTERVAL '14 days', u1, u1, s_sal, c_res, NULL, 3),
-    ('Update CRM deal stages', 'update-crm-stages', 'Align internal deal stages with HubSpot pipeline.', 'completed', 'low', NOW() - INTERVAL '7 days', u1, u1, s_sal, c_adm, NULL, 4)
-  ON CONFLICT (slug) DO NOTHING;
+    ('Update CRM deal stages', 'update-crm-stages', 'Align internal deal stages with HubSpot pipeline.', 'completed', 'low', NOW() - INTERVAL '7 days', u1, u1, s_sal, c_adm, NULL, 4);
 END $$;
 
 -- 4. Task comments
