@@ -49,8 +49,7 @@ INSERT INTO okrs (title, description, owner_id, status, quarter, start_date, end
 VALUES
   ('Ship all 10 modules to production', 'Complete development, QA, and data seeding for all platform modules.', u1, 'active', 'Q1 2026', '2026-01-01', '2026-03-31', 65, pod_eng, u1),
   ('Acquire 10 pilot customers', 'Sign paid pilot agreements with 10 mid-market agencies.', u1, 'active', 'Q1 2026', '2026-01-01', '2026-03-31', 20, pod_sales, u1),
-  ('Establish operational excellence', 'Implement SOPs, OKR tracking, and team cadences.', u1, 'on_track', 'Q1 2026', '2026-01-01', '2026-03-31', 40, pod_ops, u1)
-RETURNING id INTO okr1;
+  ('Establish operational excellence', 'Implement SOPs, OKR tracking, and team cadences.', u1, 'on_track', 'Q1 2026', '2026-01-01', '2026-03-31', 40, pod_ops, u1);
 
 SELECT id INTO okr1 FROM okrs WHERE title = 'Ship all 10 modules to production' LIMIT 1;
 SELECT id INTO okr2 FROM okrs WHERE title = 'Acquire 10 pilot customers' LIMIT 1;
