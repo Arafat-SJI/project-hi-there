@@ -154,7 +154,7 @@ serve(async (req) => {
       .from("organization_integrations")
       .select("*, integration_providers!inner(*)")
       .eq("integration_providers.slug", provider)
-      .eq("is_enabled", true)
+      .eq("enabled", true)
       .single();
 
     if (orgError || !orgIntegration) {

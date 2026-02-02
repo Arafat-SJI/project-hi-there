@@ -2891,6 +2891,36 @@ export type Database = {
         }
         Relationships: []
       }
+      oauth_states: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          provider: string
+          redirect_uri: string | null
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          provider: string
+          redirect_uri?: string | null
+          state: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          provider?: string
+          redirect_uri?: string | null
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       okr_check_ins: {
         Row: {
           confidence: string | null
@@ -4749,6 +4779,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_oauth_tokens: {
+        Row: {
+          access_token: string
+          account_avatar_url: string | null
+          account_email: string | null
+          account_id: string | null
+          account_name: string | null
+          created_at: string
+          error_at: string | null
+          error_message: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_refreshed_at: string | null
+          last_used_at: string | null
+          metadata: Json | null
+          provider_slug: string
+          refresh_token: string | null
+          scopes: string[] | null
+          token_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          account_avatar_url?: string | null
+          account_email?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          created_at?: string
+          error_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_refreshed_at?: string | null
+          last_used_at?: string | null
+          metadata?: Json | null
+          provider_slug: string
+          refresh_token?: string | null
+          scopes?: string[] | null
+          token_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          account_avatar_url?: string | null
+          account_email?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          created_at?: string
+          error_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_refreshed_at?: string | null
+          last_used_at?: string | null
+          metadata?: Json | null
+          provider_slug?: string
+          refresh_token?: string | null
+          scopes?: string[] | null
+          token_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
