@@ -81,6 +81,6 @@ INSERT INTO public.activity_logs (user_id, action, resource_type, resource_id, d
 -- 7. Sample feedback
 INSERT INTO public.feedback (user_id, type, subject, message, rating, status) VALUES
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
-   'feature', 'Dark mode support', 'Would love a dark mode toggle in settings.', 4, 'open'),
+   'feature', 'Dark mode support', 'Would love a dark mode toggle in settings.', 4, 'pending'),
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
-   'bug', 'Calendar not loading on Safari', 'Meetings calendar blank on Safari 18.', 2, 'open');
+   'bug', 'Calendar not loading on Safari', 'Meetings calendar blank on Safari 18.', 2, 'pending');
