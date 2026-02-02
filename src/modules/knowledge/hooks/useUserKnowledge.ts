@@ -8,14 +8,15 @@ import type { UnifiedDocument } from "@/types/knowledgeBase";
 export interface UserKnowledgeFile {
   id: string;
   user_id: string;
-  source_id: string | null;
-  source_type: string;
+  title: string;
   file_name: string;
-  file_path: string | null;
+  file_type: string | null;
   file_size: number | null;
+  storage_path: string | null;
   mime_type: string | null;
   processing_status: string;
   processing_error: string | null;
+  chunk_count: number | null;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -106,41 +107,47 @@ export function useUploadUserKnowledgeFile() {
     mutationFn: async (file: File) => {
       if (!user) throw new Error("User not authenticated");
 
-      // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const storagePath = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
         .from('user-knowledge')
-        .upload(fileName, file);
+        .upload(storagePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Note: File record creation will fail until migration is applied
+      // Create database record
+      const { data, error } = await (supabase as any)
+        .from('user_knowledge_files')
+        .insert({
+          user_id: user.id,
+          title: file.name.replace(/\.[^.]+$/, ''),
+          file_name: file.name,
+          file_type: file.type || fileExt || null,
+          file_size: file.size,
+          storage_path: storagePath,
+          processing_status: 'pending',
+          metadata: { original_name: file.name },
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
       toast({
         title: "File Uploaded",
-        description: "File uploaded to storage. Database record pending migration.",
+        description: `${file.name} uploaded successfully`,
       });
 
-      return {
-        id: '',
-        user_id: user.id,
-        source_type: 'upload',
-        file_name: file.name,
-        file_path: uploadData.path,
-        file_size: file.size,
-        mime_type: file.type,
-        processing_status: 'pending',
-      } as UserKnowledgeFile;
+      return data as UserKnowledgeFile;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-knowledge-files'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.userKnowledgeStats('' ) });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Upload Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Upload Failed", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -151,11 +158,27 @@ export function useDeleteUserKnowledgeFile() {
 
   return useMutation({
     mutationFn: async (fileId: string) => {
+      // Get file info for storage cleanup
+      const { data: file } = await (supabase as any)
+        .from('user_knowledge_files')
+        .select('storage_path')
+        .eq('id', fileId)
+        .maybeSingle();
+
+      // Delete storage file if it exists
+      if (file?.storage_path) {
+        await supabase.storage
+          .from('user-knowledge')
+          .remove([file.storage_path]);
+      }
+
+      // Delete database record
       const { error } = await (supabase as any).from('user_knowledge_files').delete().eq('id', fileId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-knowledge-files'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.userKnowledgeStats('') });
       toast({ title: "Success", description: "File deleted successfully" });
     },
     onError: (error: Error) => {

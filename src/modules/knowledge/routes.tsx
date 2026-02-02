@@ -13,12 +13,14 @@ import KnowledgeDetail from "./pages/KnowledgeDetail";
 import KnowledgeUpload from "./pages/KnowledgeUpload";
 import KnowledgeByCategory from "./pages/KnowledgeByCategory";
 import PersonalKnowledge from "./pages/PersonalKnowledge";
+import SemanticSearch from "./pages/SemanticSearch";
 
 export const knowledgeRoutes = (
   <Route element={<ModuleRoute module="knowledge" requiresFeatureFlag="enableKnowledgeBase" />}>
     <Route path="/knowledge" element={<Knowledge />} />
     <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
     <Route path="/knowledge/personal" element={<PersonalKnowledge />} />
+    <Route path="/knowledge/search" element={<SemanticSearch />} />
     <Route path="/personal-knowledge" element={<PersonalKnowledge />} />
     <Route path="/knowledge/category/:slug" element={<KnowledgeByCategory />} />
     <Route path="/knowledge/new" element={<KnowledgeForm />} />

@@ -6,13 +6,13 @@
  */
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
   Clock,
@@ -602,14 +602,22 @@ export default function ProductRoadmap() {
   return (
     <div className="container mx-auto max-w-7xl space-y-8 p-6">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Rocket className="h-8 w-8 text-primary" />
-          Vision & Roadmap
-        </h1>
-        <p className="text-muted-foreground">
-          Product vision, live delivery status, and feature roadmap for SJ Control Tower
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Rocket className="h-8 w-8 text-primary" />
+            Vision & Roadmap
+          </h1>
+          <p className="text-muted-foreground">
+            Product vision, live delivery status, and feature roadmap for SJ Control Tower
+          </p>
+        </div>
+        <Link to="/admin/roadmap/seed">
+          <Button variant="outline" size="sm">
+            <Database className="h-4 w-4 mr-2" />
+            Seed Data
+          </Button>
+        </Link>
       </div>
 
       <Tabs defaultValue="vision" className="space-y-6">

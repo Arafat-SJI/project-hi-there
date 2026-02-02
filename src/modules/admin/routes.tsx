@@ -42,6 +42,8 @@ import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
+import SeedRunner from "@/pages/admin/SeedRunner";
+import EmbeddingsExplorer from "@/pages/admin/EmbeddingsExplorer";
 
 /**
  * Admin routes - require admin role
@@ -84,6 +86,7 @@ export const adminRoutes = (
     {/* Knowledge Admin */}
     <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />
     <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
+    <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />
 
     {/* Content & Feedback */}
     <Route path="/admin/feedback" element={<FeedbackManagement />} />
@@ -103,5 +106,6 @@ export const adminRoutes = (
     <Route path="/admin/sso-settings" element={<SSOSettings />} />
     <Route path="/admin/meeting-analytics" element={<MeetingAnalytics />} />
     <Route path="/admin/roadmap" element={<ProductRoadmap />} />
+    <Route path="/admin/roadmap/seed" element={<SeedRunner />} />
   </>
 );
