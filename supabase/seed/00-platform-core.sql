@@ -12,14 +12,24 @@ DO $$ BEGIN
 END $$;
 
 -- 1. Clients (5 already exist from test-data migration; add 3 more)
-INSERT INTO public.clients (name, email, company, phone, status, metadata) VALUES
-  ('Rachel Green', 'rachel@designstudio.co', 'Design Studio Co', '+1-555-0201', 'active',
-   '{"notes":"Creative agency, monthly retainer","industry":"design"}'),
-  ('Tom Bradley', 'tom@finedge.io', 'FinEdge Solutions', '+1-555-0202', 'active',
-   '{"notes":"Fintech startup, Series A","industry":"finance"}'),
-  ('Lisa Nguyen', 'lisa@healthsync.com', 'HealthSync Inc', '+1-555-0203', 'prospect',
-   '{"notes":"Healthcare SaaS, evaluating platform","industry":"healthcare"}')
-ON CONFLICT (email) DO NOTHING;
+-- Guard: clients table has no UNIQUE on email, so use conditional inserts
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM clients WHERE email = 'rachel@designstudio.co') THEN
+    INSERT INTO public.clients (name, email, company, phone, status, metadata) VALUES
+      ('Rachel Green', 'rachel@designstudio.co', 'Design Studio Co', '+1-555-0201', 'active',
+       '{"notes":"Creative agency, monthly retainer","industry":"design"}');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM clients WHERE email = 'tom@finedge.io') THEN
+    INSERT INTO public.clients (name, email, company, phone, status, metadata) VALUES
+      ('Tom Bradley', 'tom@finedge.io', 'FinEdge Solutions', '+1-555-0202', 'active',
+       '{"notes":"Fintech startup, Series A","industry":"finance"}');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM clients WHERE email = 'lisa@healthsync.com') THEN
+    INSERT INTO public.clients (name, email, company, phone, status, metadata) VALUES
+      ('Lisa Nguyen', 'lisa@healthsync.com', 'HealthSync Inc', '+1-555-0203', 'prospect',
+       '{"notes":"Healthcare SaaS, evaluating platform","industry":"healthcare"}');
+  END IF;
+END $$;
 
 -- 2. App modules (enable all 10 modules for demo)
 INSERT INTO public.app_modules (name, slug, description, icon, category, is_core, is_active, sort_order) VALUES
@@ -75,8 +85,8 @@ INSERT INTO public.activity_logs (user_id, action, resource_type, resource_id, d
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
    'login', 'session', gen_random_uuid(), '{"method":"email"}'),
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
-   'create', 'client', COALESCE((SELECT id FROM clients LIMIT 1), gen_random_uuid()),
-   '{"client_name":"Sample Client"}'),
+   'create', 'client', (SELECT id::text FROM clients WHERE email = 'john.doe@example.com' LIMIT 1),
+   '{"client_name":"Acme Corp"}'),
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
    'update', 'deal', gen_random_uuid(), '{"field":"stage","from":"lead","to":"discovery"}');
 

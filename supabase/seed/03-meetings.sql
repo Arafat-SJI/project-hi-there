@@ -85,12 +85,28 @@ IF m3 IS NOT NULL THEN
 END IF;
 
 -- 6. Transcript for TechStart demo
+-- Note: meeting_transcripts has two possible schemas depending on migration order:
+--   V1 (20260101): full_transcript, summary, speaker_count, etc.
+--   V2 (20260201): content, ai_summary, source, duration_seconds, etc.
+-- We try V2 first (module-level), then V1 (legacy), to support both.
 IF m6 IS NOT NULL THEN
-  INSERT INTO meeting_transcripts (meeting_id, content, language, source, word_count, duration_seconds, ai_summary) VALUES
-    (m6,
-     'Presenter: Welcome everyone to the product demo. Today I will walk you through our new AI features including the knowledge base semantic search and the agent framework. Jane: Thanks, we are excited to see what you have built. Presenter: Let me start with the knowledge base. You can upload documents and our system automatically chunks and embeds them for semantic search...',
-     'en', 'zoom', 280, 2700,
-     'Demo covered AI knowledge base with semantic search, agent framework with custom system prompts, and productivity analytics. TechStart expressed strong interest in the knowledge base feature. Action: Send pricing proposal by Friday.');
+  BEGIN
+    INSERT INTO meeting_transcripts (meeting_id, content, source, word_count, duration_seconds, ai_summary) VALUES
+      (m6,
+       'Presenter: Welcome everyone to the product demo. Today I will walk you through our new AI features including the knowledge base semantic search and the agent framework. Jane: Thanks, we are excited to see what you have built. Presenter: Let me start with the knowledge base. You can upload documents and our system automatically chunks and embeds them for semantic search...',
+       'zoom', 280, 2700,
+       'Demo covered AI knowledge base with semantic search, agent framework with custom system prompts, and productivity analytics. TechStart expressed strong interest in the knowledge base feature. Action: Send pricing proposal by Friday.');
+  EXCEPTION WHEN undefined_column THEN
+    BEGIN
+      INSERT INTO meeting_transcripts (meeting_id, full_transcript, word_count, summary) VALUES
+        (m6,
+         'Presenter: Welcome everyone to the product demo. Today I will walk you through our new AI features including the knowledge base semantic search and the agent framework. Jane: Thanks, we are excited to see what you have built. Presenter: Let me start with the knowledge base. You can upload documents and our system automatically chunks and embeds them for semantic search...',
+         280,
+         'Demo covered AI knowledge base with semantic search, agent framework with custom system prompts, and productivity analytics. TechStart expressed strong interest in the knowledge base feature. Action: Send pricing proposal by Friday.');
+    EXCEPTION WHEN undefined_column THEN
+      RAISE NOTICE 'meeting_transcripts: schema mismatch — skipping transcript seed.';
+    END;
+  END;
 END IF;
 
 -- 7. Meeting assignments
