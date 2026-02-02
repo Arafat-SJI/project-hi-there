@@ -233,10 +233,11 @@ CREATE POLICY "Admins can view all gemini_query_logs"
 -- attached_knowledge_files UUID[] already exists; optional: add attached_unified_document_ids UUID[]
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'user_agent_personalizations' AND column_name = 'attached_unified_document_ids'
-  ) THEN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'user_agent_personalizations')
+     AND NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'user_agent_personalizations' AND column_name = 'attached_unified_document_ids'
+     ) THEN
     ALTER TABLE public.user_agent_personalizations
     ADD COLUMN attached_unified_document_ids UUID[] DEFAULT '{}';
   END IF;
