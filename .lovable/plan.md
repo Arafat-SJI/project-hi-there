@@ -1,84 +1,132 @@
 
-# Plan: Add Organization-Level Zoom Configuration to the Zoom Integration Page
+# Plan: Create Missing OAuth Tables and Fix Callback Edge Function
 
 ## Current Problem
 
-The Zoom integration page at `/admin/integrations/zoom` only shows user-level OAuth connection options. However, before users can connect their personal Zoom accounts, an **administrator must first configure the organization-level Zoom OAuth credentials** (Client ID and Client Secret).
+When you click "Connect with Zoom", the OAuth flow initiates but the connection status never displays anything. This is because **two essential database tables are missing** that the OAuth flow requires:
 
-Currently, these credentials should be configured via the generic ProviderDetail page at `/admin/integrations/zoom`, but because there's a specific route for `ZoomIntegration.tsx` that matches first, admins cannot access the configuration form.
+1. **`oauth_states`** - Stores temporary state tokens for CSRF protection during OAuth authorization
+2. **`user_oauth_tokens`** - Stores user OAuth credentials after successful authorization
+
+Additionally, there's a column name mismatch in the callback edge function that needs correction.
 
 ## Solution Overview
 
-Add an **Admin Configuration section** to the existing `ZoomIntegration.tsx` page that allows administrators to:
-1. View the current organization-level Zoom configuration status
-2. Enter and save the Zoom Client ID and Client Secret
-3. Test the connection
-4. Only show user-level "Connect with Zoom" button once organization config is complete
+1. Create the `oauth_states` table with appropriate columns and RLS policies
+2. Create the `user_oauth_tokens` table with appropriate columns and RLS policies  
+3. Fix the `user-oauth-callback` edge function to use the correct column name (`enabled` instead of `is_enabled`)
+
+---
 
 ## Implementation Details
 
-### Changes to `src/pages/admin/integrations/ZoomIntegration.tsx`
+### Step 1: Database Migration
 
-1. **Add new imports and hooks**:
-   - Import `useIntegrationProvider`, `useIntegrationFields`, `useOrganizationIntegration`, `useUpdateIntegration` from the existing integrations hooks
-   - Import `DynamicFormField` component for rendering credential fields
+Create the two required tables:
 
-2. **Add organization config state**:
-   - Fetch Zoom provider data and fields (client_id, client_secret)
-   - Fetch current organization integration config
-   - Track form state for credentials
+**`oauth_states` table:**
+- `id` - UUID primary key
+- `state` - Unique state token (used for CSRF protection)
+- `user_id` - Reference to the user initiating OAuth
+- `provider` - Provider slug (e.g., 'zoom', 'google')
+- `redirect_uri` - Where to redirect after completion
+- `expires_at` - Expiration timestamp (typically 10 minutes)
+- `created_at` - Creation timestamp
 
-3. **Add Admin Configuration Card** (new section before the user connection card):
-   - Show configuration form with Client ID and Client Secret fields
-   - Save Configuration button that calls `useUpdateIntegration`
-   - Display connection status (configured/not configured)
-   - Only show "Connect with Zoom" user button when org config exists and is enabled
+**`user_oauth_tokens` table:**
+- `id` - UUID primary key
+- `user_id` - Reference to the user
+- `provider_slug` - Provider identifier (e.g., 'zoom')
+- `access_token` - Encrypted OAuth access token
+- `refresh_token` - Encrypted OAuth refresh token (optional)
+- `token_type` - Token type (e.g., 'Bearer')
+- `expires_at` - Token expiration timestamp
+- `scopes` - Array of granted scopes
+- `account_email` - Connected account email
+- `account_name` - Connected account name
+- `account_id` - Connected account ID
+- `account_avatar_url` - Connected account avatar
+- `is_active` - Whether the connection is active
+- `last_used_at` - Last usage timestamp
+- `last_refreshed_at` - Last token refresh timestamp
+- `error_message` - Any error message
+- `error_at` - Error timestamp
+- `metadata` - Additional metadata (JSONB)
+- `created_at` / `updated_at` - Timestamps
 
-4. **Conditional rendering**:
-   - If org integration is not configured → Show only admin config card with setup instructions
-   - If org integration is configured → Show both admin config card (collapsed/summary) and user connection options
+**RLS Policies:**
+- Users can only read/manage their own tokens
+- Service role can access all tokens (for edge functions)
 
-### UI Flow After Implementation
+### Step 2: Fix Edge Function
 
-1. Admin navigates to `/admin/integrations/zoom`
-2. Admin sees "Organization Configuration" card at top with:
-   - Client ID input field
-   - Client Secret input field (masked)
-   - "Save Configuration" button
-   - "Test Connection" button
-3. After saving credentials, the user-level connection section becomes active
-4. Users can then click "Connect with Zoom" to link their personal accounts
+Update `supabase/functions/user-oauth-callback/index.ts`:
+- Change `.eq("is_enabled", true)` to `.eq("enabled", true)` to match the actual column name
+
+---
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| Database migration (new) | Create `oauth_states` and `user_oauth_tokens` tables with RLS |
+| `supabase/functions/user-oauth-callback/index.ts` | Fix column name from `is_enabled` to `enabled` |
+
+## Expected Outcome
+
+After these changes:
+1. Admin saves Zoom Client ID and Client Secret (already working)
+2. User clicks "Connect with Zoom" → State is stored in `oauth_states`
+3. User authorizes on Zoom → Redirected back to callback
+4. Callback exchanges code for tokens → Tokens stored in `user_oauth_tokens`
+5. User sees "Connected" status with their Zoom account info
 
 ---
 
 ## Technical Details
 
-### Files to Modify
+### Database Schema (SQL Preview)
 
-| File | Change |
-|------|--------|
-| `src/pages/admin/integrations/ZoomIntegration.tsx` | Add organization config section with credential form |
+```text
+oauth_states
+├── id (uuid, PK)
+├── state (text, unique)
+├── user_id (uuid, FK → auth.users)
+├── provider (text)
+├── redirect_uri (text)
+├── expires_at (timestamptz)
+└── created_at (timestamptz)
 
-### Hooks to Use (already exist)
+user_oauth_tokens
+├── id (uuid, PK)
+├── user_id (uuid, FK → auth.users)
+├── provider_slug (text)
+├── access_token (text, encrypted)
+├── refresh_token (text, nullable)
+├── token_type (text, default 'Bearer')
+├── expires_at (timestamptz, nullable)
+├── scopes (text[], default '{}')
+├── account_email (text, nullable)
+├── account_name (text, nullable)
+├── account_id (text, nullable)
+├── account_avatar_url (text, nullable)
+├── is_active (boolean, default true)
+├── last_used_at (timestamptz, nullable)
+├── last_refreshed_at (timestamptz, nullable)
+├── error_message (text, nullable)
+├── error_at (timestamptz, nullable)
+├── metadata (jsonb, default '{}')
+├── created_at (timestamptz)
+├── updated_at (timestamptz)
+└── UNIQUE(user_id, provider_slug)
+```
 
-- `useIntegrationProvider('zoom')` - Get Zoom provider info
-- `useIntegrationFields(providerId)` - Get Client ID/Secret field definitions  
-- `useOrganizationIntegration(providerId)` - Get current org config
-- `useUpdateIntegration()` - Save credentials mutation
-- `useTestConnection()` - Test connection mutation
+### Edge Function Fix
 
-### New UI Components Needed
+```text
+// Before (line 157)
+.eq("is_enabled", true)
 
-None - will reuse existing `DynamicFormField` component from `@/components/integrations/DynamicFormField`
-
-### Database State Required
-
-The migration you already approved has added the necessary records:
-- `integration_fields` table has `client_id` and `client_secret` entries for Zoom
-- `integration_providers` table has Zoom with `oauth_config` populated
-
-After entering credentials via the new form, a row will be created/updated in `organization_integrations` with:
-- `provider_id`: Zoom's provider ID
-- `config`: `{ "client_id": "...", "client_secret": "..." }`
-- `enabled`: true
-- `connection_status`: 'connected'
+// After
+.eq("enabled", true)
+```
