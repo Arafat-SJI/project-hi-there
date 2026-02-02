@@ -33,6 +33,10 @@ export function ProviderCard({ provider, orgIntegration, onClick }: ProviderCard
   const handleClick = () => {
     if (onClick) {
       onClick();
+    } else if (provider.slug === 'zoom') {
+      navigate('/admin/integrations/zoom');
+    } else if (provider.slug === 'microsoft-teams') {
+      navigate('/admin/integrations/microsoft-teams');
     } else {
       navigate(`/admin/integrations/${provider.slug}`);
     }

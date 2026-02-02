@@ -20,6 +20,8 @@ import ProviderDetail from "@/pages/admin/ProviderDetail";
 import OAuthCallback from "@/pages/admin/OAuthCallback";
 import MicrosoftTeamsIntegration from "@/pages/admin/integrations/MicrosoftTeamsIntegration";
 import TeamsMeetings from "@/pages/admin/integrations/TeamsMeetings";
+import ZoomIntegration from "@/pages/admin/integrations/ZoomIntegration";
+import ZoomMeetings from "@/pages/admin/integrations/ZoomMeetings";
 import IntegrationAnalytics from "@/pages/admin/IntegrationAnalytics";
 import ProjectReports from "@/pages/admin/ProjectReports";
 import ResourceUtilizationReports from "@/pages/admin/ResourceUtilizationReports";
@@ -65,6 +67,8 @@ export const adminRoutes = (
     <Route path="/admin/integrations/analytics" element={<IntegrationAnalytics />} />
     <Route path="/admin/integrations/microsoft-teams" element={<MicrosoftTeamsIntegration />} />
     <Route path="/admin/integrations/microsoft-teams/meetings" element={<TeamsMeetings />} />
+    <Route path="/admin/integrations/zoom" element={<ZoomIntegration />} />
+    <Route path="/admin/integrations/zoom/meetings" element={<ZoomMeetings />} />
     <Route path="/admin/integrations/:slug" element={<ProviderDetail />} />
 
     {/* AI & Automation */}
