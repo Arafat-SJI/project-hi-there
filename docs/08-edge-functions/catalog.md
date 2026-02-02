@@ -11,7 +11,7 @@ Edge Functions run serverless TypeScript code close to your users. They handle:
 - Email and notifications
 - Business logic that requires secrets
 
-**Total Functions:** 41
+**Total Functions:** 54
 
 ## Quick Reference
 
@@ -19,17 +19,20 @@ Use this table to quickly find functions by category:
 
 | Category | Count | Key Dependencies |
 |----------|-------|------------------|
-| AI & Machine Learning | 9 | `OPENAI_API_KEY` |
-| Authentication & Security | 4 | Various OAuth credentials |
+| AI & Machine Learning | 12 | `OPENAI_API_KEY` |
+| Authentication & Security | 6 | Various OAuth credentials |
 | Google Integration | 2 | `GOOGLE_CLIENT_*` |
 | Microsoft Integration | 1 | `MICROSOFT_CLIENT_ID` |
 | Zoom Integration | 2 | `ZOOM_*` |
-| Knowledge & Embeddings | 4 | `OPENAI_API_KEY` |
+| Knowledge & Embeddings | 5 | `OPENAI_API_KEY` |
 | User Knowledge | 3 | Varies |
+| Client Portal | 3 | None |
+| Project Integration | 2 | Provider-specific |
 | OAuth Flows | 6 | Provider-specific |
 | Notifications & Email | 3 | `SENDGRID_API_KEY` |
-| API Endpoints | 2 | None |
-| System & Utilities | 5 | Varies |
+| API Endpoints | 3 | None |
+| MCP (Model Context Protocol) | 2 | Varies |
+| System & Utilities | 4 | Varies |
 
 ---
 
@@ -198,6 +201,89 @@ Use this table to quickly find functions by category:
 
 ---
 
+### `agent-chat-stream`
+**Purpose:** Stream AI agent responses in real-time using SSE (Server-Sent Events)
+
+**Required Secrets:**
+- `OPENAI_API_KEY`
+
+**Features Enabled:**
+- `enableAIAgents`
+
+**Endpoints:**
+- `POST /agent-chat-stream`
+
+**Use Cases:**
+- Real-time chat streaming
+- Long-running agent responses
+- Token-by-token output
+
+---
+
+### `agent-conversation-chat`
+**Purpose:** Conversational chat with RAG context from knowledge base and user personalizations
+
+**Required Secrets:**
+- `OPENAI_API_KEY`
+
+**Features Enabled:**
+- `enableAIAgents`
+- `enableKnowledgeBase`
+
+**Endpoints:**
+- `POST /agent-conversation-chat`
+
+**Related Files:**
+- `src/modules/knowledge/hooks/useSemanticMemorySearch.ts`
+
+**Use Cases:**
+- RAG-powered agent conversations
+- User-personalized AI responses
+- Knowledge-grounded chat
+
+---
+
+### `extract-agent-memories`
+**Purpose:** Extract and store key memories from agent conversations for future context
+
+**Required Secrets:**
+- `OPENAI_API_KEY`
+
+**Features Enabled:**
+- `enableAIAgents`
+
+**Endpoints:**
+- `POST /extract-agent-memories`
+
+**Use Cases:**
+- Long-term memory for AI agents
+- Conversation summarization
+- Context persistence across sessions
+
+---
+
+### `gemini-rag-query`
+**Purpose:** Retrieval-Augmented Generation queries using Google Gemini
+
+**Required Secrets:**
+- `GOOGLE_API_KEY` (Gemini)
+
+**Features Enabled:**
+- `enableKnowledgeBase`
+
+**Endpoints:**
+- `POST /gemini-rag-query`
+
+**Related Files:**
+- `src/pages/admin/GeminiRAG.tsx`
+
+**Use Cases:**
+- Alternative RAG backend to OpenAI
+- Gemini-powered knowledge queries
+- Cross-model knowledge retrieval
+
+---
+
 ## Authentication & Security
 
 ### `azure-auth-login`
@@ -256,6 +342,36 @@ Use this table to quickly find functions by category:
 
 **Related Files:**
 - `src/hooks/useAuthConfig.ts`
+
+---
+
+### `promote-first-admin`
+**Purpose:** Promote the first registered user to admin role during initial setup
+
+**Required Secrets:**
+- None
+
+**Endpoints:**
+- `POST /promote-first-admin`
+
+**Use Cases:**
+- First-time installation setup
+- Bootstrap admin access
+
+---
+
+### `promote-to-admin`
+**Purpose:** Promote an existing user to administrator role
+
+**Required Secrets:**
+- None
+
+**Endpoints:**
+- `POST /promote-to-admin`
+
+**Use Cases:**
+- Admin user management
+- Role escalation
 
 ---
 
@@ -358,6 +474,27 @@ Use this table to quickly find functions by category:
 
 ## Knowledge & Embeddings
 
+### `knowledge-base`
+**Purpose:** Admin API for knowledge base management — categories, sources, files, and stats
+
+**Required Secrets:**
+- None
+
+**Features Enabled:**
+- `enableKnowledgeBase`
+
+**Endpoints:**
+- `GET /knowledge-base?action=stats`
+- `GET /knowledge-base?action=categories`
+- `GET /knowledge-base?action=sources`
+- `GET /knowledge-base?action=files`
+- `POST /knowledge-base`
+
+**Related Files:**
+- `src/modules/knowledge/hooks/useKnowledgeBase.ts`
+
+---
+
 ### `auto-embed-knowledge-entry`
 **Purpose:** Automatically generate embeddings when knowledge entries are created
 
@@ -446,6 +583,111 @@ Use this table to quickly find functions by category:
 
 **Endpoints:**
 - `POST /user-knowledge-upload`
+
+---
+
+## Client Portal
+
+### `client-dashboard-api`
+**Purpose:** API for the external client portal dashboard — project status, milestones, documents
+
+**Required Secrets:**
+- None
+
+**Features Enabled:**
+- `enableClients`
+
+**Endpoints:**
+- `GET /client-dashboard-api`
+- `POST /client-dashboard-api`
+
+**Authentication:** Client portal token (PBKDF2 password-based)
+
+**Related Files:**
+- `src/pages/client-portal/ClientPortalDashboard.tsx`
+
+---
+
+### `client-documents`
+**Purpose:** Manage documents scoped to a specific client
+
+**Required Secrets:**
+- None
+
+**Features Enabled:**
+- `enableClients`
+
+**Endpoints:**
+- `GET /client-documents`
+- `POST /client-documents`
+- `DELETE /client-documents/:id`
+
+**Authentication:** Client portal token or Supabase JWT
+
+---
+
+### `create-client-access`
+**Purpose:** Create client portal access credentials (token + password hash)
+
+**Required Secrets:**
+- None
+
+**Features Enabled:**
+- `enableClients`
+
+**Endpoints:**
+- `POST /create-client-access`
+
+**Related Files:**
+- `src/components/projects/ClientAccessManagement.tsx`
+
+**Use Cases:**
+- Generate client login credentials
+- Set up external client portal access
+- Manage client access tokens
+
+---
+
+## Project Integration
+
+### `sync-projects-activecollab`
+**Purpose:** Sync projects and tasks from ActiveCollab project management tool
+
+**Required Secrets:**
+- `ACTIVECOLLAB_API_TOKEN`
+- `ACTIVECOLLAB_API_URL`
+
+**Endpoints:**
+- `POST /sync-projects-activecollab`
+
+**Related Files:**
+- `src/hooks/useProjectSync.ts`
+
+**Use Cases:**
+- Import projects from ActiveCollab
+- Sync task status updates
+- Two-way project synchronization
+
+---
+
+### `sync-projects-jira`
+**Purpose:** Sync projects, issues, and sprints from Jira
+
+**Required Secrets:**
+- `JIRA_API_TOKEN`
+- `JIRA_API_URL`
+- `JIRA_USER_EMAIL`
+
+**Endpoints:**
+- `POST /sync-projects-jira`
+
+**Related Files:**
+- `src/hooks/useProjectSync.ts`
+
+**Use Cases:**
+- Import Jira projects and sprints
+- Sync issue status updates
+- Sprint progress tracking
 
 ---
 
@@ -619,6 +861,70 @@ Use this table to quickly find functions by category:
 
 ---
 
+### `api-v1-documents`
+**Purpose:** RESTful API for unified document management (polymorphic owner)
+
+**Required Secrets:**
+- None
+
+**Features Enabled:**
+- `enableKnowledgeBase`
+
+**Endpoints:**
+- `GET /api-v1-documents`
+- `POST /api-v1-documents`
+- `PUT /api-v1-documents/:id`
+- `DELETE /api-v1-documents/:id`
+
+**Authentication:** API key or Supabase JWT
+
+**Use Cases:**
+- CRUD for unified_documents table
+- Filter by owner_type (user, project, client, deal, common)
+- Document processing status management
+
+---
+
+## MCP (Model Context Protocol)
+
+### `execute-mcp-tool`
+**Purpose:** Execute a tool on a registered MCP server
+
+**Required Secrets:**
+- Varies by MCP server configuration
+
+**Endpoints:**
+- `POST /execute-mcp-tool`
+
+**Related Files:**
+- `src/pages/admin/MCPServers.tsx`
+
+**Use Cases:**
+- Run MCP tools from AI agents
+- External tool execution
+- AI-driven automation
+
+---
+
+### `verify-mcp-server`
+**Purpose:** Verify connectivity and capabilities of a registered MCP server
+
+**Required Secrets:**
+- Varies by MCP server configuration
+
+**Endpoints:**
+- `POST /verify-mcp-server`
+
+**Related Files:**
+- `src/pages/admin/MCPServers.tsx`
+
+**Use Cases:**
+- Health check MCP server connections
+- Discover available tools
+- Validate server configuration
+
+---
+
 ## System & Utilities
 
 ### `check-environment`
@@ -657,6 +963,25 @@ Use this table to quickly find functions by category:
 - First-time setup
 - Development environments
 - Demo data
+
+---
+
+### `run-seed`
+**Purpose:** Execute SQL seed files from the admin Seed Data Runner
+
+**Required Secrets:**
+- None
+
+**Endpoints:**
+- `POST /run-seed`
+
+**Related Files:**
+- `src/pages/admin/SeedRunner.tsx`
+
+**Use Cases:**
+- Run specific seed SQL files from admin panel
+- Module-specific data seeding
+- Development/staging data population
 
 ---
 

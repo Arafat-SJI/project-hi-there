@@ -10,24 +10,28 @@ The Knowledge Base module provides organization-wide and personal knowledge mana
 ## Routes Owned
 ```
 /knowledge                              → Knowledge base main (categories, recent)
+/knowledge/upload                       → Knowledge file upload
+/knowledge/personal                     → Personal knowledge (alias)
+/knowledge/search                       → Semantic search UI (vector + text toggle)
 /knowledge/category/:slug               → Category detail
-/knowledge/clients/:clientSlug          → Client knowledge detail
-/knowledge/meetings                     → Knowledge-embedded meetings
-/personal-knowledge                     → Personal knowledge
+/knowledge/new                          → Create knowledge entry
+/knowledge/:id                          → Knowledge entry detail
+/knowledge/:id/edit                     → Edit knowledge entry
+/personal-knowledge                     → Personal knowledge (standalone route)
 
 Admin routes:
-/admin/knowledge                        → Knowledge dashboard
+/admin/knowledge/analytics              → Knowledge analytics dashboard
+/admin/knowledge/categories             → Category management
+/admin/knowledge/embeddings             → Embeddings explorer (vector stats, queue, search logs)
 /admin/knowledge/queue                  → Processing queue
 /admin/knowledge/sources                → Knowledge sources
-/admin/knowledge/categories             → Category management
 /admin/knowledge/batch                  → Batch upload
 /admin/knowledge/files                  → File management
 /admin/knowledge/sync                   → Sync status
 /admin/knowledge/gemini                 → Gemini RAG
 /admin/knowledge/common                 → Common knowledge management
-/admin/ai/semantic-search               → Semantic search
+/admin/ai/semantic-search               → Semantic search (admin)
 /admin/ai/embeddings                    → Embedding management
-/admin/ai/embeddings-explorer           → Embeddings explorer
 /admin/memory/dashboard                 → Memory dashboard
 /admin/memory/user-stats                → User memory stats
 /admin/memory/embeddings                → Embedding pipeline monitor
@@ -221,11 +225,14 @@ AI.SEMANTIC_SEARCH: 'semantic-search'
 - **agent-conversation-chat** — RAG via `semantic-search`; user personalization (relevance_threshold, max_context_files, use_all_knowledge).
 
 ### Frontend
-- **Routes:** `/knowledge`, `/knowledge/personal`, `/personal-knowledge`, `/knowledge/category/:slug`, etc.
+- **Routes:** `/knowledge`, `/knowledge/upload`, `/knowledge/personal`, `/knowledge/search`, `/personal-knowledge`, `/knowledge/category/:slug`, `/knowledge/new`, `/knowledge/:id`, `/knowledge/:id/edit`.
+- **Admin Routes:** `/admin/knowledge/analytics`, `/admin/knowledge/categories`, `/admin/knowledge/embeddings` (Embeddings Explorer).
+- **Semantic Search page** — Toggle between vector (semantic) and text search; calls `semantic-search` edge function; color-coded similarity scores; search history.
+- **Embeddings Explorer admin page** — Overview stats (total embeddings, coverage, queue, searches); embedding queue table; vector search logs; batch trigger.
 - **Personal Knowledge page** — Stats, Process Pending, upload, list (unified_documents + user_knowledge_files), delete.
-- **Hooks:** `useUserKnowledgeFiles`, `useUserKnowledgeSources`, `useUnifiedUserDocuments`, `useUserKnowledgeStats`, `useProcessAllPendingFiles`, `useSemanticMemorySearch`, `useKnowledgeBaseStats`, `useKnowledgeBaseCategories`, `useKnowledgeBaseSources`, `useKnowledgeBaseFiles`, `useAllAgentPersonalizations`, `useUpdateAgentPersonalization`, `useUpsertAgentPersonalization`.
+- **Hooks:** `useUserKnowledgeFiles`, `useUserKnowledgeSources`, `useUnifiedUserDocuments`, `useUserKnowledgeStats`, `useUserFileStats`, `useProcessAllPendingFiles`, `useUploadUserKnowledgeFile`, `useDeleteUserKnowledgeFile`, `useDeleteUnifiedDocument`, `useCreateUserKnowledgeSource`, `useSemanticMemorySearch`, `useKnowledgeBaseStats`, `useKnowledgeBaseCategories`, `useKnowledgeBaseSources`, `useKnowledgeBaseFiles`, `useAllAgentPersonalizations`, `useUpdateAgentPersonalization`, `useUpsertAgentPersonalization`.
 - **Types:** `src/types/knowledgeBase.ts` (UnifiedDocument, KnowledgeBaseStats, SemanticSearchResult, UserAgentPersonalization, etc.).
-- **Navigation:** Knowledge Base and Personal Knowledge (module: knowledge) in sidebar; BookMarked icon for Personal Knowledge.
+- **Navigation:** Knowledge Base, Semantic Search, and Personal Knowledge (module: knowledge) in sidebar; BookMarked icon for Personal Knowledge; Embeddings Explorer in admin sidebar.
 - **KnowledgeContextSelector** — AI context selection (personal, categories) in `src/components/ai/KnowledgeContextSelector.tsx`.
 
 ### Testing
