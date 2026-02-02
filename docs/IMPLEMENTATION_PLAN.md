@@ -463,7 +463,7 @@ src/modules/projects/
 
 **Exit Criteria:** Project CRUD with tab-based detail, milestones, billing, file management, resource projection, client portal.
 
-> **STATUS: COMPLETE (UI + Integrations)** — 3 pages (list, form, detail), 8 hooks (6 new: useProjectSync, useResourceUtilization, etc.), 13 DB tables. Full CRUD with create/edit/delete, milestones, members, risks, comments. Client portal with PBKDF2 auth (ClientPortalDashboard, ProjectDashboard, 6 components). ActiveCollab and Jira sync edge functions deployed. Admin pages: ProjectModules, WorkTypes, EmployeeProjection, ProjectReports, ResourceUtilization. **PENDING:** File upload, billing/invoicing UI, resource projection charts.
+> **STATUS: COMPLETE (UI + Integrations + Real Data)** — 4 pages (list, form, detail, client portal), 8 hooks all wired to real Supabase, 13 DB tables. Full CRUD with create/edit/delete, milestones, members, risks, comments. Client portal with PBKDF2 auth (ClientPortalDashboard, 6 components). ActiveCollab and Jira sync edge functions deployed. **IntegrationsTab** wired to real `organization_integrations` + `integration_providers` (connection badges, logos, sync times). **TasksTab** wired to real `tasks` via project→client_id lookup (priority badges, assigned users). Admin pages: ProjectModules, WorkTypes, EmployeeProjection, ProjectReports, ResourceUtilization. **PENDING:** File upload, billing/invoicing UI, resource projection charts, ProjectKnowledgePage.
 
 ---
 
@@ -555,7 +555,14 @@ The Admin module is built incrementally. Each phase adds the admin pages for its
 
 ---
 
-> **STATUS: IN PROGRESS** — 30+ admin routes, 30+ admin pages. New pages: ZoomIntegration, ZoomMeetings, ProjectStatusSettings, ProjectModules, WorkTypesSettings, EmployeeProjection, ProjectReports, ResourceUtilizationReports, EmbeddingsExplorer, KnowledgeAnalytics, KnowledgeCategories, EmployeeManagement, DepartmentManagement, MeetingAnalytics. **Implementation Status dashboard at `/admin/implementation-status`**. **PENDING:** EOS admin config, data sync dashboards, notification management.
+> **STATUS: IN PROGRESS** — 30+ admin routes, 30+ admin pages. Key pages built and functional:
+> - **Team:** EmployeeManagement, DepartmentManagement
+> - **Knowledge:** KnowledgeAnalytics, KnowledgeCategories, EmbeddingsExplorer
+> - **Integrations:** ZoomIntegration, ZoomMeetings
+> - **Settings:** ProjectStatusSettings (full CRUD + color picker + reorder), ProjectModules, WorkTypesSettings (full CRUD + category + billable flag + rates + reorder)
+> - **Reports:** ProjectReports (summary cards + real Supabase aggregates), ResourceUtilizationReports (dept bar chart, employee table, billable ratio, efficiency, filters)
+> - **System:** SeedRunner, ImplementationStatus dashboard
+> - **PENDING:** EOS admin config, data sync dashboards, notification management, EmployeeProjection.
 
 ---
 
