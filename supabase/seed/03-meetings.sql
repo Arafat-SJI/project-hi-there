@@ -20,8 +20,7 @@ VALUES
   ('Weekly L10 Meeting', 'EOS Level 10 leadership meeting every Monday at 9 AM.', 'RRULE:FREQ=WEEKLY;BYDAY=MO', 90, u1,
    '[{"title":"Segue (good news)","duration":5},{"title":"Scorecard review","duration":10},{"title":"Rock review","duration":10},{"title":"Customer/employee headlines","duration":5},{"title":"To-do review","duration":5},{"title":"IDS (issues)","duration":50},{"title":"Conclude","duration":5}]'::jsonb, true),
   ('Daily Standup', 'Quick daily sync for engineering team.', 'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR', 15, u1,
-   '[{"title":"Yesterday","duration":5},{"title":"Today","duration":5},{"title":"Blockers","duration":5}]'::jsonb, true)
-RETURNING id INTO series_l10;
+   '[{"title":"Yesterday","duration":5},{"title":"Today","duration":5},{"title":"Blockers","duration":5}]'::jsonb, true);
 
 SELECT id INTO series_l10   FROM meeting_series WHERE title = 'Weekly L10 Meeting' LIMIT 1;
 SELECT id INTO series_standup FROM meeting_series WHERE title = 'Daily Standup' LIMIT 1;
@@ -36,8 +35,7 @@ INSERT INTO meetings (title, description, scheduled_at, duration_minutes, provid
   ('L10 Meeting — Feb 3', 'Weekly leadership meeting.',  '2026-02-03 09:00:00-05', 90, 'zoom', 'scheduled', u1, NULL, 'l10', series_l10, true),
   -- Client meetings
   ('Acme Corp — Quarterly Review', 'Q1 business review with Acme leadership.', '2026-02-05 14:00:00-05', 60, 'google_meet', 'scheduled', u1, cl_acme, 'client_review', NULL, false),
-  ('TechStart — Product Demo', 'Demo of new AI features for TechStart team.', '2026-01-28 11:00:00-05', 45, 'zoom', 'completed', u1, cl_tech, 'demo', NULL, false)
-RETURNING id INTO m1;
+  ('TechStart — Product Demo', 'Demo of new AI features for TechStart team.', '2026-01-28 11:00:00-05', 45, 'zoom', 'completed', u1, cl_tech, 'demo', NULL, false);
 
 SELECT id INTO m1 FROM meetings WHERE title = 'L10 Meeting — Jan 13' LIMIT 1;
 SELECT id INTO m2 FROM meetings WHERE title = 'L10 Meeting — Jan 20' LIMIT 1;
@@ -71,8 +69,7 @@ IF m3 IS NOT NULL THEN
     (m3, 'Customer Headlines',      'Notable customer events this week.',           5,  u1, 4, true, u1),
     (m3, 'To-Do Review',            'Check off completed to-dos from last week.',   5,  u1, 5, true, u1),
     (m3, 'IDS — Issues',            'Identify, Discuss, Solve.',                    50, u1, 6, true, u1),
-    (m3, 'Conclude',                'Rate meeting 1-10, review to-dos.',            5,  u1, 7, true, u1)
-  RETURNING id INTO ag1;
+    (m3, 'Conclude',                'Rate meeting 1-10, review to-dos.',            5,  u1, 7, true, u1);
 
   SELECT id INTO ag1 FROM meeting_agenda_items WHERE meeting_id = m3 AND title = 'IDS — Issues' LIMIT 1;
   SELECT id INTO ag2 FROM meeting_agenda_items WHERE meeting_id = m3 AND title = 'To-Do Review' LIMIT 1;
