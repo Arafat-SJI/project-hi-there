@@ -10,13 +10,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Video, CheckCircle2, AlertCircle, Loader2, RefreshCw, Eye, Calendar } from "lucide-react";
+import { Video, CheckCircle2, AlertCircle, Loader2, RefreshCw, Eye, Calendar, Settings, Copy, ExternalLink, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSyncZoom } from "@/hooks/useSyncZoom";
 import { useUserOAuthToken, useConnectOAuth, useDisconnectOAuth, useHasValidToken } from "@/hooks/useUserIntegrations";
 import { useMeetings } from "@/hooks/useMeetings";
-import { Copy, ExternalLink } from "lucide-react";
+import { 
+  useIntegrationProvider, 
+  useIntegrationFields, 
+  useOrganizationIntegration, 
+  useUpdateIntegration 
+} from "@/hooks/useIntegrations";
+import { DynamicFormField } from "@/components/integrations/DynamicFormField";
 
 export default function ZoomIntegration() {
   const { user } = useAuth();
@@ -25,8 +31,19 @@ export default function ZoomIntegration() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [orgConfigValues, setOrgConfigValues] = useState<Record<string, string>>({});
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
 
-  // Check Zoom connection status
+  // Organization-level integration hooks
+  const { data: zoomProvider, isLoading: providerLoading } = useIntegrationProvider("zoom");
+  const { data: integrationFields, isLoading: fieldsLoading } = useIntegrationFields(zoomProvider?.id || "");
+  const { data: orgIntegration, isLoading: orgIntegrationLoading } = useOrganizationIntegration(zoomProvider?.id || "");
+  const updateIntegration = useUpdateIntegration();
+
+  // Check if org-level integration is configured
+  const isOrgConfigured = !!orgIntegration && orgIntegration.enabled && orgIntegration.connection_status === 'connected';
+
+  // Check Zoom connection status (user-level)
   const { data: zoomToken } = useUserOAuthToken("zoom");
   const { hasValidToken, isExpired, hasError, errorMessage } = useHasValidToken("zoom");
   const isConnected = !!zoomToken && hasValidToken;
@@ -42,12 +59,22 @@ export default function ZoomIntegration() {
   const { data: meetings } = useMeetings({ meetingType: "zoom" });
 
   // Get Supabase URL for redirect URL
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || window.location.origin;
+  const supabaseUrl = "https://tjkqvbxtziheggurtvcz.supabase.co";
   const redirectUrl = `${supabaseUrl}/functions/v1/user-oauth-callback`;
 
+  // Initialize org config values from existing integration
   useEffect(() => {
-    setCheckingStatus(false);
-  }, [zoomToken]);
+    if (orgIntegration?.config) {
+      const config = orgIntegration.config as Record<string, string>;
+      setOrgConfigValues(config);
+    }
+  }, [orgIntegration]);
+
+  useEffect(() => {
+    if (!providerLoading && !fieldsLoading && !orgIntegrationLoading) {
+      setCheckingStatus(false);
+    }
+  }, [providerLoading, fieldsLoading, orgIntegrationLoading, zoomToken]);
 
   const copyRedirectUrl = () => {
     navigator.clipboard.writeText(redirectUrl);
@@ -112,6 +139,48 @@ export default function ZoomIntegration() {
       console.error("Sync error:", err);
     }
   };
+
+  const handleSaveOrgConfig = async () => {
+    if (!zoomProvider) return;
+    
+    setIsSavingConfig(true);
+    try {
+      await updateIntegration.mutateAsync({
+        providerId: zoomProvider.id,
+        config: orgConfigValues,
+        enabled: true,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+      
+      toast({
+        title: "Configuration saved",
+        description: "Zoom organization configuration has been saved successfully.",
+      });
+    } catch (err: any) {
+      console.error("Save config error:", err);
+      toast({
+        title: "Save failed",
+        description: err.message || "Failed to save configuration",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
+
+  const handleFieldChange = (fieldKey: string, value: string) => {
+    setOrgConfigValues((prev) => ({
+      ...prev,
+      [fieldKey]: value,
+    }));
+  };
+
+  // Check if all required fields are filled
+  const hasRequiredFields = integrationFields?.every((field) => {
+    if (!field.is_required) return true;
+    return !!orgConfigValues[field.field_key];
+  }) ?? false;
 
   if (checkingStatus) {
     return (
@@ -197,6 +266,106 @@ export default function ZoomIntegration() {
           </CardContent>
         </Card>
 
+        {/* Organization Configuration Card */}
+        <Card className={`border-2 ${isOrgConfigured ? 'border-green-200 dark:border-green-800' : 'border-amber-200 dark:border-amber-800'}`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-md ${isOrgConfigured ? 'bg-green-100 dark:bg-green-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
+                <Settings className={`h-5 w-5 ${isOrgConfigured ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
+              </div>
+              Organization Configuration
+              {isOrgConfigured ? (
+                <Badge variant="outline" className="ml-2 border-green-200 text-green-700 dark:border-green-800 dark:text-green-300">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Configured
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="ml-2 border-amber-200 text-amber-700 dark:border-amber-800 dark:text-amber-300">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Setup Required
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              {isOrgConfigured 
+                ? "Zoom OAuth credentials are configured. Users can now connect their accounts."
+                : "Enter your Zoom OAuth credentials to enable user connections."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!isOrgConfigured && (
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-amber-900 dark:text-amber-100">Configuration Required</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      You must configure the Zoom OAuth credentials before users can connect their Zoom accounts. 
+                      Get your Client ID and Client Secret from the{" "}
+                      <a href="https://marketplace.zoom.us/develop/apps" target="_blank" rel="noopener noreferrer" className="underline">
+                        Zoom Marketplace
+                      </a>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Credential Fields */}
+            {integrationFields && integrationFields.length > 0 ? (
+              <div className="space-y-4">
+                {integrationFields.map((field) => (
+                  <DynamicFormField
+                    key={field.id}
+                    field={field}
+                    value={orgConfigValues[field.field_key] || ""}
+                    onChange={(value) => handleFieldChange(field.field_key, value)}
+                    showMasked={isOrgConfigured}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Loading configuration fields...
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 pt-2">
+              <Button
+                onClick={handleSaveOrgConfig}
+                disabled={isSavingConfig || !hasRequiredFields}
+                size="lg"
+              >
+                {isSavingConfig ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Configuration
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {isOrgConfigured && (
+              <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-green-900 dark:text-green-100">Configuration Active</p>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      Users can now connect their personal Zoom accounts using the connection section below.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Connection Status Card */}
         <Card className="border-2">
           <CardHeader>
@@ -277,6 +446,21 @@ export default function ZoomIntegration() {
               </div>
             ) : (
               <div className="space-y-4">
+                {!isOrgConfigured && (
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/50">
+                        <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-amber-900 dark:text-amber-100">Organization Setup Required</p>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          An administrator must configure the Zoom OAuth credentials above before you can connect.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-muted">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-full bg-muted">
@@ -285,13 +469,15 @@ export default function ZoomIntegration() {
                     <div>
                       <p className="font-semibold">Not connected</p>
                       <p className="text-sm text-muted-foreground">
-                        Connect to enable Zoom features
+                        {isOrgConfigured 
+                          ? "Connect to enable Zoom features"
+                          : "Configure organization credentials first"}
                       </p>
                     </div>
                   </div>
                   <Button
                     onClick={handleConnect}
-                    disabled={loading || connectOAuth.isPending}
+                    disabled={loading || connectOAuth.isPending || !isOrgConfigured}
                     size="lg"
                   >
                     {loading || connectOAuth.isPending ? (
