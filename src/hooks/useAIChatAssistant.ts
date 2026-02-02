@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -19,30 +19,91 @@ export interface ChatOptions {
   model_id?: string;
 }
 
+const DEFAULT_GREETING = "Hello! I'm your AI assistant. How can I help you today?";
+
 export function useAIChatAssistant(initialMessage?: string) {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (initialMessage) {
-      return [
-        {
-          id: "1",
-          role: "assistant",
-          content: initialMessage,
-          timestamp: new Date(),
-        },
-      ];
-    }
-    return [
-      {
-        id: "1",
-        role: "assistant",
-        content: "Hello! I'm your AI assistant. How can I help you today?",
-        timestamp: new Date(),
-      },
-    ];
-  });
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [sessionId] = useState(() => `session-${Date.now()}`);
+
+  // Load existing conversation history for this user's most recent session
+  useEffect(() => {
+    if (!user || historyLoaded) return;
+
+    async function loadHistory() {
+      const { data, error } = await supabase
+        .from("ai_chat_history")
+        .select("id, role, content, metadata, created_at, session_id")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (error || !data || data.length === 0) {
+        // No history — show greeting
+        setMessages([
+          {
+            id: "greeting",
+            role: "assistant",
+            content: initialMessage || DEFAULT_GREETING,
+            timestamp: new Date(),
+          },
+        ]);
+        setHistoryLoaded(true);
+        return;
+      }
+
+      // Load last session's messages
+      const lastSessionId = data[0].session_id;
+      const { data: history } = await supabase
+        .from("ai_chat_history")
+        .select("id, role, content, metadata, created_at")
+        .eq("user_id", user!.id)
+        .eq("session_id", lastSessionId)
+        .order("created_at", { ascending: true })
+        .limit(100);
+
+      if (history && history.length > 0) {
+        setMessages(
+          history.map((row) => ({
+            id: row.id,
+            role: row.role as "user" | "assistant",
+            content: row.content,
+            timestamp: new Date(row.created_at),
+            metadata: row.metadata,
+          }))
+        );
+      } else {
+        setMessages([
+          {
+            id: "greeting",
+            role: "assistant",
+            content: initialMessage || DEFAULT_GREETING,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+      setHistoryLoaded(true);
+    }
+
+    loadHistory();
+  }, [user, historyLoaded, initialMessage]);
+
+  // Persist a message to ai_chat_history
+  const persistMessage = useCallback(
+    async (msg: ChatMessage) => {
+      if (!user) return;
+      await supabase.from("ai_chat_history").insert({
+        user_id: user.id,
+        session_id: sessionId,
+        role: msg.role,
+        content: msg.content,
+        metadata: msg.metadata ?? null,
+      });
+    },
+    [user, sessionId]
+  );
 
   const sendMessage = useCallback(
     async (content: string, options: ChatOptions = {}) => {
@@ -61,8 +122,10 @@ export function useAIChatAssistant(initialMessage?: string) {
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
 
+      // Persist user message
+      persistMessage(userMessage);
+
       try {
-        // Call ai-chat-assistant edge function
         const { data, error } = await supabase.functions.invoke("ai-chat-assistant", {
           body: {
             message: content,
@@ -87,6 +150,10 @@ export function useAIChatAssistant(initialMessage?: string) {
         };
 
         setMessages((prev) => [...prev, aiMessage]);
+
+        // Persist AI response
+        persistMessage(aiMessage);
+
         return aiMessage;
       } catch (error: any) {
         console.error("AI Chat error:", error);
@@ -108,28 +175,47 @@ export function useAIChatAssistant(initialMessage?: string) {
         setIsLoading(false);
       }
     },
-    [user, sessionId]
+    [user, sessionId, persistMessage]
   );
 
-  const clearHistory = useCallback(() => {
+  const clearHistory = useCallback(async () => {
+    // Clear local state
     setMessages([
       {
-        id: "1",
+        id: "greeting",
         role: "assistant",
-        content: "Hello! I'm your AI assistant. How can I help you today?",
+        content: initialMessage || DEFAULT_GREETING,
         timestamp: new Date(),
       },
     ]);
-  }, []);
 
-  const removeMessage = useCallback((messageId: string) => {
-    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-  }, []);
+    // Delete persisted history for this user's current session
+    if (user) {
+      await supabase
+        .from("ai_chat_history")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("session_id", sessionId);
+    }
+  }, [user, sessionId, initialMessage]);
+
+  const removeMessage = useCallback(
+    async (messageId: string) => {
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+
+      // Also remove from persistence
+      if (user) {
+        await supabase.from("ai_chat_history").delete().eq("id", messageId);
+      }
+    },
+    [user]
+  );
 
   return {
     messages,
     isLoading,
     sessionId,
+    historyLoaded,
     sendMessage,
     clearHistory,
     removeMessage,

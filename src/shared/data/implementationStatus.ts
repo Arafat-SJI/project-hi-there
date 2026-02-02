@@ -608,7 +608,7 @@ export const implementationStatus: ModuleStatus[] = [
     navigation: { status: "done" },
     pages: [
       { name: "EmployeeManagement — admin employee list", status: "qa-ready" },
-      { name: "EmployeeProjection — resource projection (stub)", status: "planned" },
+      { name: "EmployeeProjection — resource allocation dashboard with dept distribution, pods, employee roster", status: "done" },
       { name: "DepartmentManagement — department overview", status: "qa-ready" },
       { name: "KnowledgeAnalytics (existing, newly routed)", status: "qa-ready" },
       { name: "KnowledgeCategories (existing, newly routed)", status: "qa-ready" },
@@ -618,7 +618,7 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "ZoomIntegration — Zoom OAuth setup + user connection", status: "done" },
       { name: "ZoomMeetings — synced Zoom meetings list", status: "done" },
       { name: "ProjectStatusSettings — full CRUD with color picker, reorder, active/default toggle", status: "done" },
-      { name: "ProjectModules — toggle project detail tabs", status: "in-progress" },
+      { name: "ProjectModules — toggle project detail tabs, persisted to system_settings", status: "done" },
       { name: "WorkTypesSettings — full CRUD with category, billable flag, default rate, reorder", status: "done" },
       { name: "ProjectReports — summary cards + project table with real aggregates", status: "done" },
       { name: "ResourceUtilizationReports — utilization dashboard with dept chart, employee table, billable ratio", status: "done" },
@@ -627,6 +627,7 @@ export const implementationStatus: ModuleStatus[] = [
     hooks: [
       { name: "useProjectStatuses — CRUD + reorder for project_statuses table", status: "done" },
       { name: "useWorkTypes — CRUD + reorder for work_types table", status: "done" },
+      { name: "useProjectModuleSettings — system_settings persistence + useToggleProjectModule mutation", status: "done" },
     ],
     components: [],
     edgeFunctions: [],
@@ -646,6 +647,8 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Navigate /admin/settings/work-types — create billable/non-billable types with rates", tested: false },
       { description: "Navigate /admin/reports/resource-utilization — verify summary cards, dept chart, employee table", tested: false },
       { description: "Filter resource utilization by department and week", tested: false },
+      { description: "Navigate /admin/team/employee_projection — verify summary cards, dept distribution, pods, employee table", tested: false },
+      { description: "Toggle project modules on/off and verify persistence (page reload keeps state)", tested: false },
     ],
     nextSteps: [
       "EOS admin pages (VTO config, scorecard settings)",
@@ -685,7 +688,7 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     hooks: [
       { name: "useAIAgents — CRUD, toggle, run agent, execution history", status: "done" },
-      { name: "useAIChatAssistant — chat functionality", status: "in-progress" },
+      { name: "useAIChatAssistant — chat with ai_chat_history persistence, session load, clear/remove", status: "done" },
       { name: "useModelSync — sync models from providers", status: "done" },
       { name: "useAgentPersonalizations — per-agent knowledge config + prompt overrides", status: "done" },
     ],
