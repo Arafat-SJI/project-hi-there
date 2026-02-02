@@ -20,12 +20,21 @@ DECLARE
   session2 UUID := gen_random_uuid();
 BEGIN
 
--- 1. AI Providers
-INSERT INTO ai_providers (name, slug, description, api_key_secret_name, base_url, enabled) VALUES
-  ('OpenAI',    'openai',    'GPT-4, GPT-3.5, and embedding models.',       'OPENAI_API_KEY',    'https://api.openai.com/v1',      true),
-  ('Anthropic', 'anthropic', 'Claude Opus, Sonnet, and Haiku models.',      'ANTHROPIC_API_KEY', 'https://api.anthropic.com/v1',    true),
-  ('Google',    'google',    'Gemini Pro and embedding models.',             'GOOGLE_API_KEY',    'https://generativelanguage.googleapis.com', false)
-ON CONFLICT (slug) DO NOTHING;
+-- 1. AI Providers (description column may or may not exist depending on migration)
+-- Try with description first, fall back to without
+BEGIN
+  INSERT INTO ai_providers (name, slug, description, api_key_secret_name, base_url, enabled) VALUES
+    ('OpenAI',    'openai',    'GPT-4, GPT-3.5, and embedding models.',       'OPENAI_API_KEY',    'https://api.openai.com/v1',      true),
+    ('Anthropic', 'anthropic', 'Claude Opus, Sonnet, and Haiku models.',      'ANTHROPIC_API_KEY', 'https://api.anthropic.com/v1',    true),
+    ('Google',    'google',    'Gemini Pro and embedding models.',             'GOOGLE_API_KEY',    'https://generativelanguage.googleapis.com', false)
+  ON CONFLICT (slug) DO NOTHING;
+EXCEPTION WHEN undefined_column THEN
+  INSERT INTO ai_providers (name, slug, api_key_secret_name, base_url, enabled) VALUES
+    ('OpenAI',    'openai',    'OPENAI_API_KEY',    'https://api.openai.com/v1',      true),
+    ('Anthropic', 'anthropic', 'ANTHROPIC_API_KEY', 'https://api.anthropic.com/v1',    true),
+    ('Google',    'google',    'GOOGLE_API_KEY',    'https://generativelanguage.googleapis.com', false)
+  ON CONFLICT (slug) DO NOTHING;
+END;
 
 SELECT id INTO prov_openai    FROM ai_providers WHERE slug = 'openai' LIMIT 1;
 SELECT id INTO prov_anthropic FROM ai_providers WHERE slug = 'anthropic' LIMIT 1;
