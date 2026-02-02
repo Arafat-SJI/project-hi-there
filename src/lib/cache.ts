@@ -33,6 +33,13 @@ export const queryKeys = {
     categories: ["knowledge", "categories"] as const,
     category: (id: string) => ["knowledge", "category", id] as const,
     search: (query: string) => ["knowledge", "search", query] as const,
+    files: (filters?: Record<string, any>) => ["knowledge", "files", filters] as const,
+    sources: ["knowledge", "sources"] as const,
+    stats: ["knowledge", "stats"] as const,
+    unifiedDocuments: (filters?: Record<string, any>) => ["knowledge", "unifiedDocuments", filters] as const,
+    semanticSearch: (query: string, opts?: Record<string, any>) => ["knowledge", "semanticSearch", query, opts] as const,
+    userKnowledgeStats: (userId: string) => ["knowledge", "userStats", userId] as const,
+    agentPersonalizations: (userId: string) => ["knowledge", "agentPersonalizations", userId] as const,
   },
 
   // Tasks

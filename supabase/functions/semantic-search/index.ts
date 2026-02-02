@@ -57,22 +57,14 @@ serve(async (req) => {
     const embeddingData = await embeddingResponse.json()
     const embedding = embeddingData.data[0].embedding
 
-    // Search for similar embeddings using pgvector
-    let rpcQuery = supabaseClient.rpc('match_embeddings', {
+    // Search for similar embeddings using pgvector (with optional filters)
+    const { data, error } = await supabaseClient.rpc('match_embeddings', {
       query_embedding: embedding,
       match_threshold,
       match_count,
+      filter_entity_type: entity_type || null,
+      filter_user_id: user_id || null,
     })
-
-    if (entity_type) {
-      rpcQuery = rpcQuery.eq('entity_type', entity_type)
-    }
-
-    if (user_id) {
-      rpcQuery = rpcQuery.eq('user_id', user_id)
-    }
-
-    const { data, error } = await rpcQuery
 
     if (error) {
       console.error('Search error:', error)

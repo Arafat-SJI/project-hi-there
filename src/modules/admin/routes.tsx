@@ -12,6 +12,9 @@ import UserManagement from "@/pages/admin/UserManagement";
 import RoleManagement from "@/pages/admin/RoleManagement";
 import ActivityLogs from "@/pages/admin/ActivityLogs";
 import SystemSettings from "@/pages/admin/SystemSettings";
+import ProjectStatusSettings from "@/pages/admin/ProjectStatusSettings";
+import ProjectModules from "@/pages/admin/ProjectModules";
+import WorkTypesSettings from "@/pages/admin/WorkTypesSettings";
 import Integrations from "@/pages/admin/Integrations";
 import ProviderDetail from "@/pages/admin/ProviderDetail";
 import OAuthCallback from "@/pages/admin/OAuthCallback";
@@ -20,6 +23,8 @@ import TeamsMeetings from "@/pages/admin/integrations/TeamsMeetings";
 import ZoomIntegration from "@/pages/admin/integrations/ZoomIntegration";
 import ZoomMeetings from "@/pages/admin/integrations/ZoomMeetings";
 import IntegrationAnalytics from "@/pages/admin/IntegrationAnalytics";
+import ProjectReports from "@/pages/admin/ProjectReports";
+import ResourceUtilizationReports from "@/pages/admin/ResourceUtilizationReports";
 import AIModelManagement from "@/pages/admin/AIModelManagement";
 import AIUsageAnalytics from "@/pages/admin/AIUsageAnalytics";
 import EnvironmentValidator from "@/pages/admin/EnvironmentValidator";
@@ -32,6 +37,7 @@ import ProductRoadmap from "@/pages/admin/ProductRoadmap";
 import DeploymentStatus from "@/pages/DeploymentStatus";
 import MCPServers from "@/pages/MCPServers";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement";
+import EmployeeProjection from "@/pages/admin/EmployeeProjection";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
@@ -53,6 +59,9 @@ export const adminRoutes = (
 
     {/* System */}
     <Route path="/admin/settings" element={<SystemSettings />} />
+    <Route path="/admin/settings/project-statuses" element={<ProjectStatusSettings />} />
+    <Route path="/admin/settings/project-modules" element={<ProjectModules />} />
+    <Route path="/admin/settings/work-types" element={<WorkTypesSettings />} />
     <Route path="/admin/integrations" element={<Integrations />} />
     <Route path="/admin/integrations/oauth/callback" element={<OAuthCallback />} />
     <Route path="/admin/integrations/analytics" element={<IntegrationAnalytics />} />
@@ -69,6 +78,7 @@ export const adminRoutes = (
 
     {/* Team & Resources */}
     <Route path="/admin/team/employees" element={<EmployeeManagement />} />
+    <Route path="/admin/team/employee_projection" element={<EmployeeProjection />} />
     <Route path="/admin/team/departments" element={<DepartmentManagement />} />
 
     {/* Knowledge Admin */}
@@ -77,6 +87,13 @@ export const adminRoutes = (
 
     {/* Content & Feedback */}
     <Route path="/admin/feedback" element={<FeedbackManagement />} />
+
+    {/* Reports */}
+    <Route path="/admin/reports/projects" element={<ProjectReports />} />
+    <Route
+      path="/admin/reports/resource-utilization"
+      element={<ResourceUtilizationReports />}
+    />
 
     {/* Deployment & Config */}
     <Route path="/admin/deployment" element={<DeploymentStatus />} />

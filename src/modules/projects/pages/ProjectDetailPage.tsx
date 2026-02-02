@@ -1,8 +1,9 @@
 /**
- * Project Detail Page - Tabbed view
+ * Project Detail Page - Tabbed view (URL-driven tabs)
+ * Tabs are conditionally shown via useEnabledProjectModules().
  */
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,28 +11,74 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Calendar, Users, Milestone, MessageSquare, AlertTriangle, Loader2, Plus, CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Users, AlertTriangle, Loader2, Plus, CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { useProject, useDeleteProject } from "../hooks/useProjects";
 import { useProjectMembers } from "../hooks/useProjectDetail";
 import { useProjectMilestones, useAddMilestone, useUpdateMilestone } from "../hooks/useProjectDetail";
 import { useProjectComments, useAddProjectComment } from "../hooks/useProjectDetail";
 import { useProjectRisks } from "../hooks/useProjectDetail";
+import { useProjectTasks } from "../hooks/useProjectTasks";
+import { useProjectIntegrations } from "../hooks/useProjectIntegrations";
+import { useEnabledProjectModules } from "@/hooks/useProjectModuleSettings";
+import { ClientAccessManagement } from "@/components/projects/ClientAccessManagement";
+import { OverviewTab } from "@/components/projects/OverviewTab";
+import { TasksTab } from "@/components/projects/TasksTab";
+import { IntegrationsTab } from "@/components/projects/IntegrationsTab";
 import type { ProjectTab } from "../types";
 
+const TAB_URL_MAPPINGS: Record<string, ProjectTab> = {
+  overview: "overview",
+  milestones: "milestones",
+  members: "members",
+  issues: "issues",
+  client_portal: "client_portal",
+  tasks: "tasks",
+  integrations: "integrations",
+};
+const VALID_TAB_KEYS = new Set(Object.keys(TAB_URL_MAPPINGS));
+const TAB_ORDER: ProjectTab[] = [
+  "overview",
+  "tasks",
+  "milestones",
+  "members",
+  "issues",
+  "integrations",
+  "client_portal",
+];
+
 export default function ProjectDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, tab: tabParam } = useParams<{ slug: string; tab?: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
+  const activeTab: ProjectTab =
+    tabParam && VALID_TAB_KEYS.has(tabParam) ? TAB_URL_MAPPINGS[tabParam] : "overview";
 
   const { data: project, isLoading } = useProject(slug!);
+  const { data: enabledModules = {} } = useEnabledProjectModules();
   const { data: members = [] } = useProjectMembers(project?.id || "");
   const { data: milestones = [] } = useProjectMilestones(project?.id || "");
   const { data: comments = [] } = useProjectComments(project?.id || "");
   const { data: risks = [] } = useProjectRisks(project?.id || "");
+  const { data: tasks = [], isLoading: tasksLoading } = useProjectTasks(project?.id || "");
+  const { data: integrations = [], isLoading: integrationsLoading } = useProjectIntegrations(project?.id || "");
   const addComment = useAddProjectComment();
   const deleteProject = useDeleteProject();
   const addMilestone = useAddMilestone();
   const updateMilestone = useUpdateMilestone();
+
+  const visibleTabs = useMemo(() => {
+    return TAB_ORDER.filter((tab) => enabledModules[tab] !== false);
+  }, [enabledModules]);
+
+  useEffect(() => {
+    if (tabParam && !VALID_TAB_KEYS.has(tabParam)) {
+      navigate(`/projects/${slug}`, { replace: true });
+      return;
+    }
+    // If current tab is disabled by module settings, redirect to overview
+    if (tabParam && visibleTabs.length > 0 && !visibleTabs.includes(tabParam as ProjectTab)) {
+      navigate(`/projects/${slug}`, { replace: true });
+    }
+  }, [tabParam, slug, navigate, visibleTabs]);
 
   const [newComment, setNewComment] = useState("");
   const [newMilestone, setNewMilestone] = useState("");
@@ -86,27 +133,33 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProjectTab)}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => {
+          const next = v as ProjectTab;
+          if (next === "overview") navigate(`/projects/${slug}`);
+          else navigate(`/projects/${slug}/${next}`);
+        }}
+      >
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="milestones">Milestones ({milestones.length})</TabsTrigger>
-          <TabsTrigger value="members">Members ({members.length})</TabsTrigger>
-          <TabsTrigger value="issues">Risks ({risks.length})</TabsTrigger>
+          {visibleTabs.map((tab) => (
+            <TabsTrigger key={tab} value={tab}>
+              {tab === "overview" && "Overview"}
+              {tab === "tasks" && `Tasks (${tasks.length})`}
+              {tab === "milestones" && `Milestones (${milestones.length})`}
+              {tab === "members" && `Members (${members.length})`}
+              {tab === "issues" && `Risks (${risks.length})`}
+              {tab === "integrations" && "Integrations"}
+              {tab === "client_portal" && "Client Portal"}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card className="lg:col-span-2">
-              <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                {project.description && <p className="text-sm text-muted-foreground">{project.description}</p>}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  {project.start_date && <div><p className="text-muted-foreground">Start</p><p>{new Date(project.start_date).toLocaleDateString()}</p></div>}
-                  {project.end_date && <div><p className="text-muted-foreground">End</p><p>{new Date(project.end_date).toLocaleDateString()}</p></div>}
-                  {project.budget && <div><p className="text-muted-foreground">Budget</p><p>{project.currency} {project.budget.toLocaleString()}</p></div>}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="lg:col-span-2 space-y-4">
+              <OverviewTab project={project} />
+            </div>
             <Card>
               <CardHeader><CardTitle className="text-base">Activity</CardTitle></CardHeader>
               <CardContent>
@@ -126,6 +179,28 @@ export default function ProjectDetailPage() {
             </Card>
           </div>
         </TabsContent>
+
+        {visibleTabs.includes("tasks") && (
+          <TabsContent value="tasks" className="mt-4">
+            <TasksTab
+              projectId={project.id}
+              projectSlug={project.slug}
+              tasks={tasks}
+              isLoading={tasksLoading}
+            />
+          </TabsContent>
+        )}
+
+        {visibleTabs.includes("integrations") && (
+          <TabsContent value="integrations" className="mt-4">
+            <IntegrationsTab
+              projectId={project.id}
+              projectName={project.name}
+              integrations={integrations}
+              isLoading={integrationsLoading}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="milestones" className="mt-4 space-y-4">
           <div className="flex items-center gap-2">
@@ -194,6 +269,14 @@ export default function ProjectDetailPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="client_portal" className="mt-4">
+          <ClientAccessManagement
+            projectId={project.id}
+            projectName={project.name}
+            projectSlug={project.slug}
+          />
         </TabsContent>
       </Tabs>
     </div>

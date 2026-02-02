@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import {
@@ -22,6 +22,7 @@ import {
   useToggleService,
   useSetDefaultService,
 } from '@/hooks/useIntegrations';
+import { useSyncProjects } from '@/hooks/useIntegrationSync';
 import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
 import { UsageStats } from '@/components/integrations/UsageStats';
@@ -47,9 +48,13 @@ export default function ProviderDetail() {
     30
   );
 
-  // Check if this is an AI provider
+  // Check if this is an AI provider or Project Management provider with sync
   const [isAIProvider, setIsAIProvider] = useState(false);
   const [categorySlug, setCategorySlug] = useState<string>('');
+  const isProjectManagementWithSync =
+    categorySlug === 'project-management' &&
+    (slug === 'activecollab' || slug === 'jira');
+  const syncProjects = useSyncProjects(slug || '');
 
   useEffect(() => {
     const fetchCategory = async () => {
@@ -409,6 +414,40 @@ export default function ProviderDetail() {
           onSetDefault={handleSetDefaultService}
           isLoading={toggleService.isPending || setDefaultService.isPending}
         />
+      )}
+
+      {/* Sync projects - Only for connected Project Management providers (ActiveCollab, Jira) */}
+      {isProjectManagementWithSync && orgIntegration?.connection_status === 'connected' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sync projects</CardTitle>
+            <CardDescription>
+              Load projects from {provider.name} into the Projects list. New and updated
+              projects will be created or updated; existing projects are matched by external ID.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => syncProjects.mutate()}
+              disabled={syncProjects.isPending}
+            >
+              {syncProjects.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Sync projects
+            </Button>
+            {syncProjects.data && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Last sync: {syncProjects.data.projects_synced} project
+                {syncProjects.data.projects_synced !== 1 ? 's' : ''} synced
+                ({syncProjects.data.projects_created} created, {syncProjects.data.projects_updated}{' '}
+                updated).
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* AI Models Section - Only for AI providers */}

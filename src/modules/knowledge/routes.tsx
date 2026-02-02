@@ -19,6 +19,7 @@ export const knowledgeRoutes = (
     <Route path="/knowledge" element={<Knowledge />} />
     <Route path="/knowledge/upload" element={<KnowledgeUpload />} />
     <Route path="/knowledge/personal" element={<PersonalKnowledge />} />
+    <Route path="/personal-knowledge" element={<PersonalKnowledge />} />
     <Route path="/knowledge/category/:slug" element={<KnowledgeByCategory />} />
     <Route path="/knowledge/new" element={<KnowledgeForm />} />
     <Route path="/knowledge/:id" element={<KnowledgeDetail />} />

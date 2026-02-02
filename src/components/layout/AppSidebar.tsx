@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useModuleAccess } from "@/shared/hooks/useModuleAccess";
 import { mainNavigation, type NavItem } from "@/shared/data/navigationStructure";
 import {
   LayoutDashboard,
@@ -10,6 +11,7 @@ import {
   Calendar,
   CheckSquare,
   BookOpen,
+  BookMarked,
   Brain,
   Bot,
   ChevronRight,
@@ -35,6 +37,7 @@ const iconMap: Record<string, LucideIcon> = {
   Calendar,
   CheckSquare,
   BookOpen,
+  BookMarked,
   Brain,
   Bot,
   MessageSquare,
@@ -59,14 +62,16 @@ export function AppSidebar() {
   const location = useLocation();
   const { profile } = useAuth();
   const { companyName } = useBranding();
-  const { isFeatureEnabled, isLoading } = useFeatureFlags();
+  const { isFeatureEnabled } = useFeatureFlags();
+  const { hasModule } = useModuleAccess();
 
   const isAdmin = profile?.role === "admin" || profile?.role === "moderator";
 
-  // Filter items based on role and feature flags
+  // Filter items based on role, feature flags, and module access
   const visibleItems = mainNavigation.filter((item: NavItem) => {
     if (item.adminOnly && !isAdmin) return false;
     if (item.featureFlag && !isFeatureEnabled(item.featureFlag as any)) return false;
+    if (item.module && !hasModule(item.module)) return false;
     return true;
   });
 
