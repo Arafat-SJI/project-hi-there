@@ -44,7 +44,7 @@ export function useOKRs(filters?: OKRFilters) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as OKR[];
     },
     enabled: !!user,
   });
@@ -77,8 +77,8 @@ export function useOKRDetail(id: string | undefined) {
 
       return {
         ...okr,
-        key_results: keyResults || [],
-      };
+        key_results: (keyResults || []) as unknown as OKRKeyResult[],
+      } as OKR;
     },
     enabled: !!id,
   });
@@ -100,7 +100,7 @@ export function useOKRCheckIns(okrId: string | undefined) {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as OKRCheckIn[];
     },
     enabled: !!okrId,
   });

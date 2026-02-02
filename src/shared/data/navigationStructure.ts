@@ -151,18 +151,13 @@ export const mainNavigation: NavItem[] = [
  * Admin panel navigation (admin sidebar)
  */
 export const adminNavigation: NavGroup[] = [
-  {
+{
     title: "DASHBOARD",
     items: [
       {
         title: "Overview",
         href: "/admin",
         icon: "LayoutDashboard",
-      },
-      {
-        title: "Implementation Status",
-        href: "/admin/implementation-status",
-        icon: "ClipboardList",
       },
     ],
   },

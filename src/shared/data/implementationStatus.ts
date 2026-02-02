@@ -61,8 +61,8 @@ export interface ModuleStatus {
   pipeline: Pipeline;
   database: { tables: number; status: ItemStatus; notes?: string };
   types: { status: ItemStatus };
-  routes: { status: ItemStatus };
-  navigation: { status: ItemStatus };
+  routes: { status: ItemStatus; notes?: string };
+  navigation: { status: ItemStatus; notes?: string };
   pages: StatusItem[];
   hooks: StatusItem[];
   components: StatusItem[];

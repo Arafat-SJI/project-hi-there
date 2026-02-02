@@ -28,7 +28,7 @@ export function useScorecards() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as EOSScorecard[];
     },
     enabled: !!user,
   });
@@ -58,7 +58,7 @@ export function useScorecardDetail(id: string | undefined) {
         .eq("scorecard_id", id)
         .order("sort_order", { ascending: true });
 
-      return { ...scorecard, metrics: metrics || [] };
+      return { ...scorecard, metrics: (metrics || []) as unknown as EOSScorecardMetric[] } as EOSScorecard;
     },
     enabled: !!id,
   });
@@ -80,7 +80,7 @@ export function useScorecardMetrics(scorecardId: string | undefined) {
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as EOSScorecardMetric[];
     },
     enabled: !!scorecardId,
   });

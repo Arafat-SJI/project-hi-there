@@ -67,6 +67,7 @@ INSERT INTO public.app_config (key, value, category, description) VALUES
 ON CONFLICT (key) DO NOTHING;
 
 -- 5. Sample notifications for first user
+-- Note: type must be one of: info, success, warning, error
 INSERT INTO public.notifications (user_id, title, message, type, link, is_read) VALUES
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
    'Welcome to Control Tower', 'Your platform is ready. Explore the modules from the sidebar.',
@@ -79,6 +80,7 @@ INSERT INTO public.notifications (user_id, title, message, type, link, is_read) 
    'warning', '/actions/tasks', false);
 
 -- 6. Sample activity logs
+-- Note: Uses COALESCE to handle missing clients gracefully
 INSERT INTO public.activity_logs (user_id, action, resource_type, resource_id, details) VALUES
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
    'login', 'session', gen_random_uuid(), '{"method":"email"}'),
@@ -89,6 +91,7 @@ INSERT INTO public.activity_logs (user_id, action, resource_type, resource_id, d
    'update', 'deal', gen_random_uuid(), '{"field":"stage","from":"lead","to":"discovery"}');
 
 -- 7. Sample feedback
+-- Note: status must be one of: pending, reviewed, resolved, closed
 INSERT INTO public.feedback (user_id, type, subject, message, rating, status) VALUES
   ((SELECT id FROM auth.users ORDER BY created_at LIMIT 1),
    'feature', 'Dark mode support', 'Would love a dark mode toggle in settings.', 4, 'pending'),

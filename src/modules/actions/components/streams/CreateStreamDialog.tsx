@@ -51,7 +51,7 @@ export function CreateStreamDialog({ open, onOpenChange }: CreateStreamDialogPro
   const selectedColor = watch("color");
 
   const onSubmit = async (data: FormValues) => {
-    await createStream.mutateAsync(data);
+    await createStream.mutateAsync({ name: data.name, description: data.description, color: data.color });
     reset();
     onOpenChange(false);
   };
