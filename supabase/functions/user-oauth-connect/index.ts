@@ -126,10 +126,11 @@ serve(async (req) => {
     }
 
     // Get client credentials from organization integration
-    const clientId = orgIntegration.credentials?.client_id;
+    // Note: credentials are stored in config JSONB field
+    const clientId = orgIntegration.config?.client_id || orgIntegration.credentials?.client_id;
     if (!clientId) {
       return new Response(
-        JSON.stringify({ error: `Provider ${provider} is not properly configured` }),
+        JSON.stringify({ error: `Provider ${provider} is not properly configured. Please add Client ID in the integration settings.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
