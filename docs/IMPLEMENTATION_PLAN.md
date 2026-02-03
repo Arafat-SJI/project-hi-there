@@ -463,7 +463,7 @@ src/modules/projects/
 
 **Exit Criteria:** Project CRUD with tab-based detail, milestones, billing, file management, resource projection, client portal.
 
-> **STATUS: COMPLETE (UI + Integrations + Real Data)** — 4 pages (list, form, detail, client portal), 8 hooks all wired to real Supabase, 13 DB tables. Full CRUD with create/edit/delete, milestones, members, risks, comments. Client portal with PBKDF2 auth (ClientPortalDashboard, 6 components). ActiveCollab and Jira sync edge functions deployed. **IntegrationsTab** wired to real `organization_integrations` + `integration_providers` (connection badges, logos, sync times). **TasksTab** wired to real `tasks` via project→client_id lookup (priority badges, assigned users). Admin pages: ProjectModules, WorkTypes, EmployeeProjection, ProjectReports, ResourceUtilization. **PENDING:** File upload, billing/invoicing UI, resource projection charts, ProjectKnowledgePage.
+> **STATUS: COMPLETE (UI + Integrations + Real Data)** — 4 pages (list, form, detail, client portal), 8 hooks all wired to real Supabase, 13 DB tables. Full CRUD with create/edit/delete, milestones, members, risks, comments. Client portal with PBKDF2 auth (ClientPortalDashboard, 6 components). ActiveCollab and Jira sync edge functions deployed. **IntegrationsTab** wired to real `organization_integrations` + `integration_providers` (connection badges, logos, sync times). **TasksTab** wired to real `tasks` via project→client_id lookup (priority badges, assigned users). **ProjectKnowledgePage** wired to `unified_documents` (owner_type=project) with summary cards, searchable table, file type badges, processing status. Admin pages: ProjectModules, WorkTypes, EmployeeProjection, ProjectReports, ResourceUtilization. **PENDING:** File upload, billing/invoicing UI, resource projection charts.
 
 ---
 
@@ -499,7 +499,7 @@ src/modules/business-dev/
 
 **Exit Criteria:** Deal pipeline (Lead→Won/Lost), client management, contacts, lead follow-up, email integration, HubSpot sync (optional).
 
-> **STATUS: COMPLETE (UI)** — 4 pages (pipeline, form, detail, contacts), 2 hooks (deals CRUD + contacts CRUD), 7 DB tables. Full deal CRUD with pipeline view, stage transitions, edit/delete. Contact creation + listing. Legacy client pages routed. **PENDING:** Contact detail/edit page, HubSpot sync, email automation, lead scoring AI.
+> **STATUS: COMPLETE (UI + Activity Logging)** — 4 pages (pipeline, form, detail, contacts), 2 hooks (deals CRUD + contacts CRUD), 7 DB tables. Full deal CRUD with pipeline view, stage transitions, edit/delete. Contact creation + listing. Legacy client pages routed. **useUpdateDealStage** now logs `deal_activities` entries on stage changes (from/to stages, won/lost descriptions). **PENDING:** Contact detail/edit page, HubSpot sync, email automation, lead scoring AI.
 
 ---
 
@@ -533,7 +533,7 @@ src/modules/productivity/
 
 **Exit Criteria:** Productivity dashboard with department/pod views, employee detail, process documentation, CSV import, AI insights.
 
-> **STATUS: COMPLETE (UI)** — 3 pages (dashboard, employee detail, process docs), 3 hooks, 10 DB tables + 6 seeded process categories. **PENDING:** Process doc create/edit form, CSV import, charts (dept trends, heatmap), pod breakdown, edge functions (HR sync, AI insights, weekly digest).
+> **STATUS: COMPLETE (UI + Real Data + Pod Breakdown)** — 3 pages (dashboard, employee detail, process docs), 5 hooks (records, summary, departments, weeks, podProductivity), 10 DB tables + 6 seeded process categories. Dashboard has summary cards, department overview grid, **Pod Breakdown** panel (per-pod utilization bars, efficiency, tasks via 4-table join), department utilization bar chart, attendance donut chart, filterable employee table. Process docs: index + category + detail views, create/edit forms (QA-ready). **PENDING:** CSV import, employee detail historical trends, edge functions (HR sync, AI insights, weekly digest).
 
 ---
 
@@ -556,13 +556,13 @@ The Admin module is built incrementally. Each phase adds the admin pages for its
 ---
 
 > **STATUS: IN PROGRESS** — 30+ admin routes, 30+ admin pages. Key pages built and functional:
-> - **Team:** EmployeeManagement, DepartmentManagement
+> - **Team:** EmployeeManagement, DepartmentManagement, EmployeeProjection (summary cards, dept distribution, pods, employee roster)
 > - **Knowledge:** KnowledgeAnalytics, KnowledgeCategories, EmbeddingsExplorer
 > - **Integrations:** ZoomIntegration, ZoomMeetings
-> - **Settings:** ProjectStatusSettings (full CRUD + color picker + reorder), ProjectModules, WorkTypesSettings (full CRUD + category + billable flag + rates + reorder)
+> - **Settings:** ProjectStatusSettings (full CRUD + color picker + reorder), ProjectModules (system_settings persistence), WorkTypesSettings (full CRUD + category + billable flag + rates + reorder)
 > - **Reports:** ProjectReports (summary cards + real Supabase aggregates), ResourceUtilizationReports (dept bar chart, employee table, billable ratio, efficiency, filters)
 > - **System:** SeedRunner, ImplementationStatus dashboard
-> - **PENDING:** EOS admin config, data sync dashboards, notification management, EmployeeProjection.
+> - **PENDING:** EOS admin config, data sync dashboards, notification management.
 
 ---
 

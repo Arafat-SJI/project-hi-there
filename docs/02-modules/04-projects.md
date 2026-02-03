@@ -588,12 +588,36 @@ Admin routes:
 - `project_statuses`: Admin-configurable project lifecycle stages  
 - ActiveCollab credentials stored as integration secrets  
 
+#### Implementation Status (Framework Pages Built)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| ProjectDetailPage | Done | Tab-based layout with toggleable tabs |
+| IntegrationsTab | Done | ConnectionBadge, service logos, sync timestamps, empty state |
+| TasksTab | Done | Priority badges, assigned user, completion counter |
+| ProjectKnowledgePage | Done | Summary cards (total docs, embedded, chunks), searchable document table from `unified_documents`, file type badges, processing status |
+| ProjectReports (admin) | Done | 4 summary cards, Supabase aggregates |
+| ProjectStatusSettings (admin) | Done | Full CRUD, color picker, reorder |
+| WorkTypesSettings (admin) | Done | Full CRUD, category, billable flag, reorder |
+| ProjectModules (admin) | Done | Toggle tabs, system_settings persistence |
+| useProjectIntegrations | Done | Real Supabase query to `project_integrations` |
+| useProjectTasks | Done | Real Supabase query to `project_tasks` with filters |
+| useProjectReports | Done | Aggregate queries for project reporting |
+| useProjectStatuses | Done | CRUD + reorder for `project_statuses` table |
+| useProjectDocuments | Done | Query `unified_documents` with owner_type=project filter |
+
+#### Pending
+- Billing/invoicing UI
+- ActiveCollab task sync wiring
+- Resource projection weekly allocation table
+- Project backup/restore
+
 #### Implementation Notes (full)
 
-- Project detail uses tab-based navigation (overview, tasks, meetings, billing, files, integrations, issues, client portal)  
-- Tabs are toggleable via system_settings → project_modules  
-- ActiveCollab integration syncs tasks, time records, expenses, budgets  
-- Resource projection provides capacity planning with weekly allocation table  
-- Client portal uses token-based access (no auth required)  
+- Project detail uses tab-based navigation (overview, tasks, meetings, billing, files, integrations, issues, client portal)
+- Tabs are toggleable via system_settings → project_modules
+- ActiveCollab integration syncs tasks, time records, expenses, budgets
+- Resource projection provides capacity planning with weekly allocation table
+- Client portal uses token-based access (no auth required)
 - Backup/restore creates full project snapshots  
 

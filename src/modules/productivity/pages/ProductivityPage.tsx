@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { Search, Users, TrendingUp, Clock, CheckSquare, Loader2, BarChart3 } from "lucide-react";
-import { useProductivityRecords, useProductivitySummary, useDepartments, useAvailableWeeks } from "../hooks/useProductivity";
+import { Progress } from "@/components/ui/progress";
+import { Search, Users, TrendingUp, Clock, CheckSquare, Loader2, BarChart3, Boxes } from "lucide-react";
+import { useProductivityRecords, useProductivitySummary, useDepartments, useAvailableWeeks, usePodProductivity } from "../hooks/useProductivity";
 
 const ATTENDANCE_COLORS: Record<string, string> = {
   present: "#22c55e",
@@ -46,6 +47,7 @@ export default function ProductivityPage() {
     department: department !== "all" ? department : undefined,
     week_start: weekStart,
   });
+  const { data: podStats = [] } = usePodProductivity(weekStart);
 
   return (
     <div className="space-y-6">
@@ -93,6 +95,52 @@ export default function ProductivityPage() {
                   <p className="text-sm font-medium truncate">{dept.name}</p>
                   <p className="text-2xl font-bold mt-1">{dept.avg_utilization}%</p>
                   <p className="text-xs text-muted-foreground">{dept.employee_count} employees</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pod Breakdown */}
+      {podStats.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Boxes className="h-4 w-4" />
+              Pod Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {podStats.map((pod) => (
+                <div key={pod.pod_id} className="flex items-center gap-4 rounded-md border px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{pod.pod_name}</span>
+                      <Badge variant="outline" className="text-xs">{pod.department_name}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{pod.member_count} members</p>
+                  </div>
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="w-32">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Utilization</span>
+                        <span className={pod.avg_utilization >= 80 ? "text-green-600 font-medium" : pod.avg_utilization >= 60 ? "text-yellow-600 font-medium" : "text-red-600 font-medium"}>
+                          {pod.avg_utilization}%
+                        </span>
+                      </div>
+                      <Progress value={pod.avg_utilization} className="h-1.5" />
+                    </div>
+                    <div className="text-center w-16">
+                      <p className="text-xs text-muted-foreground">Efficiency</p>
+                      <p className="font-medium">{pod.avg_efficiency}%</p>
+                    </div>
+                    <div className="text-center w-16">
+                      <p className="text-xs text-muted-foreground">Tasks</p>
+                      <p className="font-medium">{pod.total_tasks}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

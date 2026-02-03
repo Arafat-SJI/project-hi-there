@@ -203,6 +203,24 @@ HUBSPOT.SYNC_CONTACTS: 'hubspot-sync-contacts'
 **Used by:** Projects (source deals, client access), Knowledge Base (deal knowledge), Admin (HubSpot settings)
 **Integrations:** HubSpot (CRM sync), Gmail (email ingestion), SendGrid (email sending), Google Drive (deal folders)
 
+## Implementation Status (Framework Pages Built)
+
+### Deal Pipeline
+| Component | Status | Notes |
+|-----------|--------|-------|
+| DealsPage | Done | Pipeline board view with stage columns and deal cards |
+| DealDetailPage | Done | Full deal detail with tabs, stage progression, activity timeline |
+| useDeals | Done | Core CRUD + stage counts + filtering |
+| useUpdateDealStage | Done | Stage mutation with automatic `deal_activities` logging (from/to stage, won/lost description) |
+| useDealActivities | Done | Activity timeline query for deal detail |
+| ConvertToWinPage | Done | Deal-to-project conversion flow |
+
+### Pending
+- HubSpot bidirectional sync wiring
+- AI deal scoring integration
+- Deal coaching memory persistence
+- Email drafting with AI
+
 ## Implementation Notes
 - Deal pipeline: Lead → Discovery → Estimation → Proposal → Won/Lost
 - HubSpot sync is bidirectional (queue-based with retry)

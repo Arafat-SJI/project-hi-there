@@ -328,7 +328,7 @@ The following admin pages have been fully built and wired to real Supabase data:
 |------|-------|--------|-------|
 | ProjectStatusSettings | `/admin/settings/project-statuses` | Done | Full CRUD with color picker, reorder, active/default toggle, delete validation |
 | WorkTypesSettings | `/admin/settings/work-types` | Done | Full CRUD with category (5 types), billable flag, default rate, color picker, reorder |
-| ProjectModules | `/admin/settings/project-modules` | In Progress | Toggle project detail tabs |
+| ProjectModules | `/admin/settings/project-modules` | Done | Toggle project detail tabs, persisted to `system_settings` with useToggleProjectModule mutation |
 
 ### Reports
 | Page | Route | Status | Notes |
@@ -347,12 +347,17 @@ The following admin pages have been fully built and wired to real Supabase data:
 |------|------|--------|-------|
 | useProjectStatuses | `src/hooks/useProjectStatuses.ts` | Done | CRUD + reorder for `project_statuses` table with delete validation |
 | useWorkTypes | `src/hooks/useWorkTypes.ts` | Done | CRUD + reorder for `work_types` table (uses `(supabase as any)` cast since table not in auto-generated types) |
+| useProjectModuleSettings | `src/hooks/useProjectModuleSettings.ts` | Done | system_settings persistence + useToggleProjectModule upsert mutation |
+
+### Team & Resources (continued)
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| EmployeeProjection | `/admin/team/employee_projection` | Done | Summary cards (employees, FT count, departments, pod allocation rate), dept distribution bars, pods/teams panel, filterable employee roster table |
 
 ### Pending Admin Pages
 - EOS admin pages (VTO config, scorecard settings)
 - Data sync dashboard (HR, HubSpot, ActiveCollab)
 - Notification management admin page
-- EmployeeProjection (resource projection, currently stub)
 
 ## Implementation Notes
 - All admin routes wrap with `<ProtectedRoute><AdminRoute><AdminLayout>...</AdminLayout></AdminRoute></ProtectedRoute>`

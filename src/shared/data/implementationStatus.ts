@@ -432,6 +432,7 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "TasksTab — priority badges, assigned user, status config, empty state", status: "done" },
       { name: "OverviewTab, ProjectsBackupStatus, ProjectsRestoreBackupDialog", status: "done" },
       { name: "ClientPortal components (6) — progress ring, milestones, invoices, risks, sprints, deadlines", status: "done" },
+      { name: "ProjectKnowledgePage — unified_documents query with search, file type, processing status, chunk count", status: "done" },
     ],
     edgeFunctions: [
       { name: "sync-projects-activecollab — sync projects from ActiveCollab", status: "done" },
@@ -455,7 +456,6 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "View TasksTab — see priority badges, status badges, assigned users", tested: false },
     ],
     nextSteps: [
-      "Build ProjectKnowledgePage with unified_documents integration",
       "Billing/invoicing UI",
     ],
   },
@@ -490,6 +490,7 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     hooks: [
       { name: "useDeals — CRUD, pipeline stats, activities, comments", status: "done" },
+      { name: "useUpdateDealStage — stage transition with auto deal_activities logging", status: "done" },
       { name: "useUpdateDeal — full field updates", status: "done" },
       { name: "useDeleteDeal — with cache invalidation", status: "done" },
       { name: "useContacts — CRUD + lead follow-ups", status: "done" },
@@ -517,7 +518,6 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Legacy: create/edit/view clients at /clients/*", tested: false },
     ],
     nextSteps: [
-      "Deal activity logging on stage changes",
       "HubSpot integration (edge function)",
     ],
   },
@@ -550,6 +550,7 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     hooks: [
       { name: "useProductivity — records, summary, departments, weeks", status: "done" },
+      { name: "usePodProductivity — pod-level utilization/efficiency/tasks aggregation", status: "done" },
       { name: "useEmployees — profiles, productivity history", status: "done" },
       { name: "useProcesses — categories, documents, create/read", status: "done" },
       { name: "useUpdateProcessDocument — update with cache invalidation", status: "done" },
@@ -558,6 +559,7 @@ export const implementationStatus: ModuleStatus[] = [
     components: [
       { name: "Department utilization bar chart (recharts)", status: "done" },
       { name: "Attendance distribution donut chart (recharts)", status: "done" },
+      { name: "Pod Breakdown panel — per-pod utilization, efficiency, tasks", status: "done" },
     ],
     edgeFunctions: [
       { name: "Productivity CSV import", status: "not-started" },
@@ -569,6 +571,7 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Navigate /productivity and see department cards", tested: false },
       { description: "Verify department utilization bar chart renders with data", tested: false },
       { description: "Verify attendance donut chart renders with data", tested: false },
+      { description: "Verify Pod Breakdown shows pods with utilization bars and task counts", tested: false },
       { description: "Click an employee to see /productivity/employee/:email", tested: false },
       { description: "Navigate /process and see category cards", tested: false },
       { description: "Click a category to see documents list", tested: false },
@@ -580,7 +583,6 @@ export const implementationStatus: ModuleStatus[] = [
     ],
     nextSteps: [
       "CSV import page for productivity data",
-      "Pod-level productivity breakdown",
     ],
   },
 

@@ -168,6 +168,38 @@ PRODUCTIVITY.IMPORT_CSV: 'import-productivity-csv'
 - EOS (employees with accountability)
 - Meetings (meeting efficiency as productivity metric)
 
+## Implementation Status (Framework Pages Built)
+
+### Dashboard
+| Component | Status | Notes |
+|-----------|--------|-------|
+| ProductivityPage | Done | Summary cards, department overview grid, pod breakdown panel, department utilization bar chart, attendance donut chart, filterable employee table with search/department/week filters |
+| Pod Breakdown | Done | Per-pod utilization Progress bar (color-coded), efficiency %, task count, department badge, member count |
+| Department Utilization Chart | Done | recharts BarChart from summary departments |
+| Attendance Donut | Done | recharts PieChart with present/partial/leave/absent segments |
+
+### Hooks
+| Hook | Status | Notes |
+|------|--------|-------|
+| useProductivityRecords | Done | Filterable query to `productivity_records` with department/location/week/search |
+| useProductivitySummary | Done | Aggregates total employees, avg utilization/efficiency, tasks completed, department breakdown |
+| usePodProductivity | Done | Parallel queries to pods + pod_members + employee_profiles + productivity_records, aggregates per pod |
+| useDepartments | Done | Active departments list |
+| useAvailableWeeks | Done | Distinct week_start values for week selector |
+
+### Process Documentation
+| Component | Status | Notes |
+|-----------|--------|-------|
+| ProcessPage | QA-ready | Index / category / document views |
+| ProcessFormPage | QA-ready | Create + edit process document with tags |
+| useProcesses | Done | Categories, documents, CRUD operations |
+
+### Pending
+- Productivity CSV import admin page
+- Employee detail historical trends
+- AI productivity insights generation
+- Pod health metrics and alerts
+
 ## Implementation Notes
 - Productivity data imported via CSV or HR system sync
 - Week-based tracking (ISO week numbers)
