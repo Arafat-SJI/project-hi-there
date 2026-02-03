@@ -1,8 +1,8 @@
 -- ============================================================================
--- Admin Seed SQL Executor
+-- ONE-TIME FIX: Create admin_exec_sql if you see PGRST202 / "function not in schema cache"
 -- ============================================================================
--- Provides a SECURITY DEFINER function that admins can call (via edge function)
--- to execute seed SQL scripts from the admin UI.
+-- Run this in Supabase Dashboard → SQL Editor → New query → Run
+-- (Same as migration 20260202_admin_exec_sql.sql)
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.admin_exec_sql(sql_content TEXT)
@@ -31,7 +31,6 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $fn$;
 
--- Restrict: only callable via service-role (edge functions), not via anon/authenticated
 REVOKE ALL ON FUNCTION public.admin_exec_sql(TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.admin_exec_sql(TEXT) FROM anon;
 REVOKE ALL ON FUNCTION public.admin_exec_sql(TEXT) FROM authenticated;

@@ -79,6 +79,7 @@ serve(async (req) => {
     const durationMs = Date.now() - startMs;
 
     if (rpcError) {
+      // Return 200 with success: false so the client can read the error body (avoids "non-2xx" generic error)
       return new Response(
         JSON.stringify({
           success: false,
@@ -86,31 +87,36 @@ serve(async (req) => {
           code: rpcError.code,
           durationMs,
         }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     // admin_exec_sql returns { success, error?, message? }
     const result = data as { success: boolean; error?: string; state?: string; message?: string };
 
-    // ── Audit log ─────────────────────────────────────────────────────────
-    await supabase.from("activity_logs").insert({
-      user_id: user.id,
-      action: result.success ? "seed_run_success" : "seed_run_failed",
-      resource_type: "seed",
-      resource_id: body.fileName || "unknown",
-      details: JSON.stringify({
-        fileName: body.fileName,
-        success: result.success,
-        error: result.error || null,
-        durationMs,
-      }),
-    });
+    // ── Audit log (non-fatal: do not fail the request if insert fails) ─────
+    try {
+      await supabase.from("activity_logs").insert({
+        user_id: user.id,
+        action: result.success ? "seed_run_success" : "seed_run_failed",
+        resource_type: "seed",
+        resource_id: body.fileName || "unknown",
+        details: JSON.stringify({
+          fileName: body.fileName,
+          success: result.success,
+          error: result.error || null,
+          durationMs,
+        }),
+      });
+    } catch {
+      // ignore audit failure
+    }
 
+    // Always return 200 so the client can read success/error from the body (avoids generic "non-2xx" error)
     return new Response(
       JSON.stringify({ ...result, durationMs, fileName: body.fileName }),
       {
-        status: result.success ? 200 : 422,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );

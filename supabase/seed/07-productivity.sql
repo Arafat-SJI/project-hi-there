@@ -60,7 +60,7 @@ INSERT INTO employee_profiles (email, full_name, department_id, title, hire_date
   ('marcus@sjinnovation.com',  'Marcus Williams', dept_ops,  'Operations Manager',    '2025-02-01', 'New York, NY', 'full-time', true)
 ON CONFLICT (email) DO NOTHING;
 
--- 5. Productivity records (4 weeks of data for 5 employees)
+-- 5. Productivity records (4 weeks of data for 5 employees) — idempotent: skip if row exists
 INSERT INTO productivity_records (employee_email, week_start, week_number, year, total_hours, billable_hours, tasks_completed, tasks_assigned, meetings_attended, utilization_pct, efficiency_score, attendance_status, department, location) VALUES
   -- Week of Jan 6
   ('shahed@sjinnovation.com',  '2026-01-05', 2, 2026, 42, 36, 8, 10, 4, 85.7, 80.0, 'present', 'Engineering', 'New York, NY'),
@@ -88,7 +88,8 @@ INSERT INTO productivity_records (employee_email, week_start, week_number, year,
   ('abesh@sjinnovation.com',   '2026-01-26', 5, 2026, 40, 35, 8,  9, 3, 87.5, 88.9, 'present', 'Engineering', 'Dhaka, BD'),
   ('zia@sjinnovation.com',     '2026-01-26', 5, 2026, 40, 34, 8, 10, 3, 85.0, 80.0, 'present', 'Engineering', 'Dhaka, BD'),
   ('sarah@sjinnovation.com',   '2026-01-26', 5, 2026, 40, 33, 5,  6, 8, 82.5, 83.3, 'present', 'Sales & BD',  'San Francisco, CA'),
-  ('marcus@sjinnovation.com',  '2026-01-26', 5, 2026, 0,  0,  0,  0, 0, 0.0,   0.0, 'leave',   'Operations & HR', 'New York, NY');
+  ('marcus@sjinnovation.com',  '2026-01-26', 5, 2026, 0,  0,  0,  0, 0, 0.0,   0.0, 'leave',   'Operations & HR', 'New York, NY')
+ON CONFLICT (employee_email, week_start) DO NOTHING;
 
 -- 6. Leave events
 INSERT INTO leave_events (employee_email, leave_type, start_date, end_date, is_half_day, notes, approved_by, status) VALUES
@@ -109,7 +110,7 @@ SELECT id INTO cat_eng   FROM process_categories WHERE slug = 'engineering-proce
 SELECT id INTO cat_hr    FROM process_categories WHERE slug = 'hr-people' LIMIT 1;
 SELECT id INTO cat_sales FROM process_categories WHERE slug = 'sales-processes' LIMIT 1;
 
--- 8. Process documents
+-- 8. Process documents — idempotent: skip if (category_id, slug) exists
 INSERT INTO process_documents (category_id, title, slug, content, version, status, tags, created_by, updated_by) VALUES
   (cat_eng, 'Code Review Process', 'code-review-process',
    E'# Code Review Process\n\n## Steps\n1. Developer creates PR with description.\n2. Assign reviewer within 2 hours.\n3. Reviewer provides feedback within 4 hours.\n4. Address comments, re-request review.\n5. Merge after approval.\n\n## Standards\n- Max 400 lines per PR.\n- Include tests for new features.\n- No console.log in production code.',
@@ -125,7 +126,8 @@ INSERT INTO process_documents (category_id, title, slug, content, version, statu
 
   (cat_sales, 'Lead Qualification Framework', 'lead-qualification',
    E'# Lead Qualification Framework (BANT)\n\n## Budget\n- Can they afford our solution?\n- Budget range: $20K–$100K annually.\n\n## Authority\n- Are we talking to the decision-maker?\n- Identify economic buyer vs. champion.\n\n## Need\n- Pain points alignment with our modules.\n- Current tools and gaps.\n\n## Timeline\n- When do they need a solution?\n- Buying cycle length.',
-   1, 'published', ARRAY['sales','qualification'], u1, u1);
+   1, 'published', ARRAY['sales','qualification'], u1, u1)
+ON CONFLICT (category_id, slug) DO NOTHING;
 
 -- 9. Productivity alerts
 INSERT INTO productivity_alerts (employee_email, alert_type, severity, title, description, week_start, is_read) VALUES
