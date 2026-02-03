@@ -4,7 +4,7 @@ import { MeetingProvider } from "../_shared/meeting-providers.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
 }
 
 serve(async (req) => {
@@ -13,6 +13,36 @@ serve(async (req) => {
   }
 
   try {
+    // Manual JWT validation for ES256 compatibility
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Create client with auth header for RLS
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+
+    // Validate the JWT
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
+    if (authError || !user) {
+      console.error('JWT validation failed:', authError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('[sync-zoom-files] Authenticated user:', user.id)
+
     const ZOOM_CLIENT_ID = Deno.env.get('ZOOM_CLIENT_ID')
     const ZOOM_CLIENT_SECRET = Deno.env.get('ZOOM_CLIENT_SECRET')
     const ZOOM_ACCOUNT_ID = Deno.env.get('ZOOM_ACCOUNT_ID')
@@ -21,6 +51,7 @@ serve(async (req) => {
       throw new Error('Zoom credentials not configured')
     }
 
+    // Use service role for database operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
