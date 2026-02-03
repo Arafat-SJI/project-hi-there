@@ -57,6 +57,9 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
         "meeting:write:open_app",
         "meeting:write:registrant",
         "user:read:user",
+        "cloud_recording:read:list_user_recordings",
+        "cloud_recording:read:list_recording_files",
+        "cloud_recording:read:list_recording_registrants",
       ],
     },
     microsoft: {
