@@ -16,14 +16,26 @@
  * @module meetings/components
  */
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { format, isPast, isWithinInterval, addDays } from "date-fns";
+import { useTaskStreams } from "@/modules/actions/hooks/useTaskStreams";
+import { useCreateTaskFromActionItem } from "../hooks/useMeetingActionItems";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,6 +57,7 @@ interface ActionItemRow {
   due_date: string | null;
   is_completed: boolean;
   assigned_to: string | null;
+  task_id: string | null;
   meeting_id: string;
   meeting: {
     id: string;
@@ -159,6 +172,9 @@ export function ActionItemsPanel({
 }: ActionItemsPanelProps) {
   const { data: items = [], isLoading } = useActionItems(userId);
   const toggleItem = useToggleActionItem();
+  const { data: streams = [] } = useTaskStreams();
+  const createTask = useCreateTaskFromActionItem();
+  const [selectedStreams, setSelectedStreams] = useState<Record<string, string | null>>({});
 
   // Apply optional limit
   const displayItems = limit ? items.slice(0, limit) : items;
@@ -253,6 +269,57 @@ export function ActionItemsPanel({
                       <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                         {item.meeting.title}
                       </span>
+                    )}
+                    {item.task_id && (
+                      <Badge variant="secondary" className="text-xs">
+                        Task linked
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Select
+                      value={selectedStreams[item.id] || "none"}
+                      onValueChange={(value) =>
+                        setSelectedStreams((prev) => ({
+                          ...prev,
+                          [item.id]: value === "none" ? null : value,
+                        }))
+                      }
+                      disabled={!!item.task_id}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select stream" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No stream</SelectItem>
+                        {streams.map((stream) => (
+                          <SelectItem key={stream.id} value={stream.id}>
+                            {stream.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {item.task_id ? (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/tasks/${item.task_id}`}>View Task</Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          createTask.mutate({
+                            actionItemId: item.id,
+                            meetingId: item.meeting_id,
+                            title: item.content,
+                            assignedTo: item.assigned_to,
+                            dueDate: item.due_date,
+                            streamId: selectedStreams[item.id],
+                          })
+                        }
+                        disabled={createTask.isPending}
+                      >
+                        Create Task
+                      </Button>
                     )}
                   </div>
                 </div>
