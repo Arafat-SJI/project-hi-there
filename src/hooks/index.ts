@@ -82,6 +82,7 @@ export {
 } from './useUserIntegrations';
 export { useSyncZoom } from './useSyncZoom';
 export { useZoomFiles } from './useZoomFiles';
+export { useSyncGoogleMeet } from './useSyncGoogleMeet';
 
 // ============================================
 // UI Utilities
