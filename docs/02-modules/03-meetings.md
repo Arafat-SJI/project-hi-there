@@ -197,6 +197,20 @@ ZOOM.MANAGE_ACCOUNT: 'manage-zoom-account'
 - Added "Series" tab (conditional on `series_id`) → SeriesHistoryTab
 - MeetingDetailTab type updated: `"details" | "agenda" | "takeaways" | "participants" | "related-tasks" | "series-history"`
 
+### Built (Sprint 3 — Action Items, Transcripts, Assignments)
+
+**2 New Hooks:**
+- **useMeetingActionItems** (`src/modules/meetings/hooks/useMeetingActionItems.ts`) — `useMeetingActionItems(meetingId)`, `useMyActionItems()` (cross-meeting, user-scoped), `useActionItemStats()` (total/completed/overdue/upcoming)
+- **useMeetingAssignment** (`src/modules/meetings/hooks/useMeetingAssignment.ts`) — `useMeetingAssignments(meetingId)`, `useEntityMeetings(entityType, entityId)`, `useAssignMeeting()`, `useUnassignMeeting()`
+
+**2 New Components:**
+- **TranscriptTab** (`src/modules/meetings/components/transcript/TranscriptTab.tsx`) — Transcript viewer with AI summary, speaker segments, search within transcript, source badge
+- **ActionItemsPanel** (`src/modules/meetings/components/ActionItemsPanel.tsx`) — Pending action items panel with due date urgency badges (overdue/soon), completion toggle, meeting title links
+
+**MeetingDetailV2Page:**
+- Added "Transcript" tab (always shown) → TranscriptTab
+- MeetingDetailTab type now includes `"transcript"`
+
 ## Implementation Notes
 - Meetings support both one-off and recurring series
 - Zoom integration syncs recordings, transcripts, and files

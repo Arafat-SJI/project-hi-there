@@ -351,7 +351,7 @@ src/modules/eos/
 
 **Exit Criteria:** V/TO working, OKRs with key results and check-ins, issues with pod organization and AI triage, scorecard with metrics, accountability chart with GWC assessments.
 
-> **STATUS: COMPLETE (UI + Admin + Issue Sub-Pages + AI Suggestions)** — 16 user pages (9 core + 7 issue sub-pages) + 4 admin pages, 17 components (12 core + 5 AI suggestion), 9 hooks (6 core + useEOSIssuesByPod + useAIIssueSuggestions + useEOSIssueInsights), 12 DB tables. V/TO, OKRs, Issues, Scorecard, Accountability all functional. Admin: VTO section mgmt, scorecard + metrics CRUD, chart version mgmt + role CRUD. Issue sub-pages: All, Solved, Archived, Anonymous, AI (with suggestion review queue), ByPod, PodOverview. **PENDING:** Edge functions (12), AI suggestion generation from transcripts.
+> **STATUS: COMPLETE (UI + Admin + Issue Sub-Pages + AI Suggestions + Admin Components)** — 16 user pages + 4 admin pages, 24 components (12 core + 5 AI suggestion + 6 accountability admin + MetricTrendChart), 9 hooks, 12 DB tables. V/TO, OKRs, Issues, Scorecard, Accountability all functional. Admin components: ChartForm, ChartHistoryTimeline, ChartVersionHistory, ResponsibilitiesEditor, EmployeeAccountabilityModal, GWCAssessmentDialog. MetricTrendChart for scorecard metric trends. **PENDING:** Edge functions (12), AI suggestion generation from transcripts.
 
 ---
 
@@ -389,7 +389,7 @@ src/modules/meetings/
 
 **Exit Criteria:** Create/edit meetings, recurring series, agendas with takeaways, transcript processing, AI summaries, Zoom integration (optional).
 
-> **STATUS: COMPLETE (UI + Zoom + Transcripts + Efficiency + Detail Enhancements)** — 4 pages (schedule, detail, series, transcripts), 10 components (5 core + AddParticipantDialog, MeetingParticipantSelector, PreviousAgendaViewer, SeriesHistoryTab, RelatedTasksTab), 5 hooks, 7 DB tables. MeetingDetailV2Page now has 6 tabs: Details, Agenda, Takeaways, Participants, Tasks, Series. **MeetingTranscriptsPage** with search, status filter, preview dialog. **useMeetingEfficiency** wired to MeetingAnalytics. **PENDING:** Edge functions (AI summarization, categorization, task extraction).
+> **STATUS: COMPLETE (UI + Zoom + Transcripts + Efficiency + Detail + Action Items + Assignments)** — 4 pages, 12 components (+ TranscriptTab, ActionItemsPanel), 7 hooks (+ useMeetingActionItems, useMeetingAssignment), 7 DB tables. MeetingDetailV2Page now has 7 tabs: Details, Agenda, Takeaways, Participants, Transcript, Tasks, Series. TranscriptTab with AI summary, speaker segments, search. ActionItemsPanel for cross-meeting action item tracking. useMeetingAssignment links meetings to clients/projects/deals. **PENDING:** Edge functions (AI summarization, categorization, task extraction).
 
 ---
 

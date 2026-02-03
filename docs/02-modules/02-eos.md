@@ -223,6 +223,22 @@ OKRS.SUMMARY: 'api-v1-okrs/summary'
 - `/eos/issues/pod-overview` → IssuesPodOverviewPage
 - `/eos/issues/pod/:podId` → IssuesByPodPage
 
+### Built (Sprint 3 — Accountability Admin Components + MetricTrendChart)
+
+**6 Accountability Admin Components** (in `src/modules/eos/components/accountability/`):
+- **ChartForm** — Create/edit accountability chart form
+- **ChartHistoryTimeline** — Vertical timeline of chart versions with colored dots
+- **ChartVersionHistory** — Table view with publish actions
+- **ResponsibilitiesEditor** — Inline responsibility list editor with add/edit/delete
+- **EmployeeAccountabilityModal** — Role detail modal with GWC display
+- **GWCAssessmentDialog** — Toggle G/W/C assessment dialog with notes
+
+**MetricTrendChart** (`src/modules/eos/components/scorecard/MetricTrendChart.tsx`):
+- Recharts LineChart visualizing scorecard metrics over time
+- Groups metrics by `week_of` date, one line per metric name
+- Dynamic chart config, optional target reference line
+- Wrapped in shadcn ChartContainer with ChartTooltip
+
 ## Implementation Notes
 - OKRs replace the legacy Rocks/Goals system
 - Issues have AI-powered triage, pattern detection, and suggestion features

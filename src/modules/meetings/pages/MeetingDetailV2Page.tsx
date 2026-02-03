@@ -24,6 +24,7 @@ import {
   ClipboardList,
   CheckSquare,
   History,
+  ScrollText,
 } from "lucide-react";
 import { useMeeting } from "@/hooks/useMeetings";
 import { AgendaTab } from "../components/agenda/AgendaTab";
@@ -31,6 +32,7 @@ import { TakeawaysTab } from "../components/takeaways/TakeawaysTab";
 import { ParticipantsTab } from "../components/participants/ParticipantsTab";
 import { RelatedTasksTab } from "../components/RelatedTasksTab";
 import { SeriesHistoryTab } from "../components/series/SeriesHistoryTab";
+import { TranscriptTab } from "../components/transcript/TranscriptTab";
 import type { MeetingDetailTab } from "../types";
 
 export default function MeetingDetailV2Page() {
@@ -133,6 +135,10 @@ export default function MeetingDetailV2Page() {
             <Users className="h-4 w-4" />
             Participants
           </TabsTrigger>
+          <TabsTrigger value="transcript" className="flex items-center gap-1.5">
+            <ScrollText className="h-4 w-4" />
+            Transcript
+          </TabsTrigger>
           <TabsTrigger value="related-tasks" className="flex items-center gap-1.5">
             <CheckSquare className="h-4 w-4" />
             Tasks
@@ -218,6 +224,11 @@ export default function MeetingDetailV2Page() {
         {/* Participants Tab */}
         <TabsContent value="participants" className="mt-4">
           <ParticipantsTab meetingId={id!} />
+        </TabsContent>
+
+        {/* Transcript Tab */}
+        <TabsContent value="transcript" className="mt-4">
+          <TranscriptTab meetingId={id!} />
         </TabsContent>
 
         {/* Related Tasks Tab */}

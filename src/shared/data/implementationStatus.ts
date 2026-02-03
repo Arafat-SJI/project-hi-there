@@ -199,7 +199,7 @@ export const implementationStatus: ModuleStatus[] = [
     name: "EOS (V/TO, OKRs, Issues, Scorecard, Accountability)",
     phase: 2,
     owner: "Abesh",
-    summary: "Full EOS framework. 16 user pages (incl. 7 issue sub-pages), 4 admin pages, 17 components (incl. 5 AI suggestion), 9 hooks. Admin: VTO config, Scorecard workspace, Accountability chart mgmt.",
+    summary: "Full EOS framework. 16 user pages (incl. 7 issue sub-pages), 4 admin pages, 24 components (incl. 5 AI suggestion, 6 accountability admin, MetricTrendChart), 9 hooks. Admin: VTO config, Scorecard workspace, Accountability chart mgmt.",
     pipeline: {
       development: { status: "done", owner: "Abesh" },
       qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
@@ -257,6 +257,13 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "AIReviewQueue — pending suggestions queue", status: "done" },
       { name: "AIWeeklyDigest — weekly AI suggestion summary", status: "done" },
       { name: "AISuggestionStats — stats panel with type breakdown", status: "done" },
+      { name: "ChartForm — create/edit accountability chart form", status: "done" },
+      { name: "ChartHistoryTimeline — vertical timeline of chart versions", status: "done" },
+      { name: "ChartVersionHistory — table view of chart versions with publish", status: "done" },
+      { name: "ResponsibilitiesEditor — inline responsibility list editor", status: "done" },
+      { name: "EmployeeAccountabilityModal — role detail modal with GWC", status: "done" },
+      { name: "GWCAssessmentDialog — GWC toggle assessment dialog", status: "done" },
+      { name: "MetricTrendChart — recharts line chart for scorecard metrics over time", status: "done" },
     ],
     edgeFunctions: [
       { name: "extract-meeting-issues", status: "not-started" },
@@ -280,6 +287,12 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Navigate /eos/issues/pod-overview — see pod cards with stats", tested: false },
       { description: "Click a pod card to navigate to /eos/issues/pod/:podId", tested: false },
       { description: "Create an issue from pod view with defaultPodId pre-filled", tested: false },
+      { description: "View MetricTrendChart on scorecard page with weekly data", tested: false },
+      { description: "Use ChartForm to create a new accountability chart version", tested: false },
+      { description: "View ChartHistoryTimeline with version dots and badges", tested: false },
+      { description: "Edit responsibilities inline with ResponsibilitiesEditor", tested: false },
+      { description: "Open EmployeeAccountabilityModal and see role detail + GWC", tested: false },
+      { description: "Run GWCAssessmentDialog — toggle G/W/C switches and save", tested: false },
     ],
     nextSteps: [
       "AI issue suggestions edge function (generate from meeting transcripts)",
@@ -293,7 +306,7 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Meetings V2",
     phase: 3,
     owner: "Abesh",
-    summary: "Extended meetings with agenda, takeaways, participants, recurring series. Detail page enhanced with Tasks and Series History tabs. Transcripts page, efficiency scoring, analytics dashboard.",
+    summary: "Extended meetings with agenda, takeaways, participants, recurring series. Detail page with 7 tabs (incl. Transcript, Tasks, Series). Action items tracking, meeting assignments, transcripts, efficiency scoring.",
     pipeline: {
       development: { status: "done", owner: "Abesh" },
       qa: { status: "not-started", owner: "Abesh", notes: "Test via Lovable QA module" },
@@ -309,7 +322,7 @@ export const implementationStatus: ModuleStatus[] = [
     navigation: { status: "done" },
     pages: [
       { name: "MeetingsSchedulePage — list + calendar toggle", status: "qa-ready" },
-      { name: "MeetingDetailV2Page — tabbed detail (details, agenda, takeaways, participants, tasks, series)", status: "qa-ready" },
+      { name: "MeetingDetailV2Page — tabbed detail (details, agenda, takeaways, participants, transcript, tasks, series)", status: "qa-ready" },
       { name: "MeetingSeriesPage — recurring series", status: "qa-ready" },
       { name: "MeetingTranscriptsPage — transcript browser with search, status filter, preview dialog", status: "done" },
     ],
@@ -319,6 +332,8 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "useMeetingParticipants — CRUD + attendance", status: "done" },
       { name: "useRecurringMeetings — series CRUD", status: "done" },
       { name: "useMeetingEfficiency — efficiency score, agenda/takeaway rates, monthly trend", status: "done" },
+      { name: "useMeetingActionItems — action items query, my items, stats (total/completed/overdue/upcoming)", status: "done" },
+      { name: "useMeetingAssignment — link meetings to client/project/deal, entity queries", status: "done" },
     ],
     components: [
       { name: "AgendaTab, TakeawaysTab, ParticipantsTab", status: "done" },
@@ -329,6 +344,8 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "PreviousAgendaViewer — read-only agenda from previous meeting in series", status: "done" },
       { name: "SeriesHistoryTab — timeline of all meetings in a series", status: "done" },
       { name: "RelatedTasksTab — action items and linked tasks from takeaways", status: "done" },
+      { name: "TranscriptTab — transcript viewer with AI summary, speaker segments, search", status: "done" },
+      { name: "ActionItemsPanel — pending action items with due date urgency, completion toggle", status: "done" },
     ],
     edgeFunctions: [
       { name: "Meeting summarization AI", status: "not-started" },
@@ -350,6 +367,10 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Search transcripts by meeting title or content", tested: false },
       { description: "Preview transcript via eye icon dialog", tested: false },
       { description: "View Meeting Analytics efficiency score and monthly trend", tested: false },
+      { description: "View Transcript tab — see AI summary, speaker segments, search", tested: false },
+      { description: "View ActionItemsPanel — see pending items with due date badges", tested: false },
+      { description: "Toggle action item completion from panel", tested: false },
+      { description: "Assign meeting to a client/project/deal via useMeetingAssignment", tested: false },
     ],
     nextSteps: [
       "Transcript upload and AI summarization",
