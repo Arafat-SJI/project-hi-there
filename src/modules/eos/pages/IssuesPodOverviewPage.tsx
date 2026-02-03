@@ -14,6 +14,7 @@ import { Loader2, AlertCircle, Users, AlertTriangle, Inbox } from "lucide-react"
 import { useEOSIssuesByPod } from "../hooks/useEOSIssuesByPod";
 import { useUpdateIssue, useDeleteIssue } from "../hooks/useEOSIssues";
 import { IssuesTable } from "../components/issues/IssuesTable";
+import { IssuesNavTabs } from "../components/issues/IssuesNavTabs";
 
 export default function IssuesPodOverviewPage() {
   const navigate = useNavigate();
@@ -43,6 +44,7 @@ export default function IssuesPodOverviewPage() {
           Overview of issues across all pods
         </p>
       </div>
+      <IssuesNavTabs />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

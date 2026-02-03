@@ -19,7 +19,6 @@ interface SeriesMeeting {
   id: string;
   title: string;
   scheduled_at: string | null;
-  meeting_date: string | null;
   status: string | null;
   duration_minutes: number | null;
   created_at: string;
@@ -41,7 +40,7 @@ export function SeriesHistoryTab({ seriesId }: SeriesHistoryTabProps) {
     queryFn: async (): Promise<SeriesMeeting[]> => {
       const { data, error } = await supabase
         .from("meetings")
-        .select("id, title, scheduled_at, meeting_date, status, duration_minutes, created_at")
+        .select("id, title, scheduled_at, status, duration_minutes, created_at")
         .eq("series_id", seriesId)
         .order("created_at", { ascending: false });
 
@@ -60,7 +59,7 @@ export function SeriesHistoryTab({ seriesId }: SeriesHistoryTabProps) {
   }
 
   const getMeetingDate = (meeting: SeriesMeeting): string | null => {
-    return meeting.meeting_date || meeting.scheduled_at || meeting.created_at;
+    return meeting.scheduled_at || meeting.created_at;
   };
 
   return (

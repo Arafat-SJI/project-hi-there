@@ -12,6 +12,7 @@ import { useEOSIssues, useIssueStats, useUpdateIssue, useDeleteIssue } from "../
 import { IssuesTable } from "../components/issues/IssuesTable";
 import { IssueStatsCards } from "../components/issues/IssueStatsCards";
 import { IssueFiltersBar } from "../components/issues/IssueFiltersBar";
+import { IssuesNavTabs } from "../components/issues/IssuesNavTabs";
 import { CreateIssueDialog } from "../components/issues/CreateIssueDialog";
 import type { IssueFilters } from "../types";
 
@@ -39,6 +40,8 @@ export default function IssuesArchivedPage() {
           Report Issue
         </Button>
       </div>
+
+      <IssuesNavTabs />
 
       {stats && <IssueStatsCards stats={stats} />}
 
