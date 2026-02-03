@@ -137,7 +137,9 @@ serve(async (req) => {
     )
 
     if (!recordingsResponse.ok) {
-      throw new Error('Failed to fetch Zoom recordings')
+      const errorText = await recordingsResponse.text()
+      console.error('[sync-zoom-files] Zoom API error:', recordingsResponse.status, errorText)
+      throw new Error(`Failed to fetch Zoom recordings: ${recordingsResponse.status} - ${errorText}`)
     }
 
     const recordingsData = await recordingsResponse.json()
