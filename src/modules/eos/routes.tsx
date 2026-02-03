@@ -20,6 +20,7 @@ import IssuesAnonymousPage from "./pages/IssuesAnonymousPage";
 import IssuesAIPage from "./pages/IssuesAIPage";
 import IssuesByPodPage from "./pages/IssuesByPodPage";
 import IssuesPodOverviewPage from "./pages/IssuesPodOverviewPage";
+import EOSIssuesAIAnalyzePage from "./pages/EOSIssuesAIAnalyzePage";
 import ScorecardPage from "./pages/ScorecardPage";
 import AccountabilityPage from "./pages/AccountabilityPage";
 import MyAccountabilityPage from "./pages/MyAccountabilityPage";
@@ -34,6 +35,7 @@ export const eosRoutes = (
     <Route path="/eos/issues/archived" element={<IssuesArchivedPage />} />
     <Route path="/eos/issues/anonymous" element={<IssuesAnonymousPage />} />
     <Route path="/eos/issues/ai" element={<IssuesAIPage />} />
+    <Route path="/eos/issues/ai/analyze" element={<EOSIssuesAIAnalyzePage />} />
     <Route path="/eos/issues/pod-overview" element={<IssuesPodOverviewPage />} />
     <Route path="/eos/issues/pod/:podId" element={<IssuesByPodPage />} />
     <Route path="/eos/issues/:issueId" element={<IssueDetailPage />} />
