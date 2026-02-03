@@ -161,3 +161,108 @@ export interface ProductivitySummary {
   total_tasks_completed: number;
   departments: { name: string; avg_utilization: number; employee_count: number }[];
 }
+
+// ========== Path B: Base project (EmployeeProductivity) types ==========
+
+export interface EmployeeBase {
+  id: string;
+  name: string;
+  email: string;
+  title: string | null;
+  role: string | null;
+  reportingManagerId: string | null;
+  reportingManagerEmail: string | null;
+  reportingManagerName: string | null;
+  dottedLineManagerEmail: string | null;
+  location: string | null;
+  department: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  deleted_at: string | null;
+}
+
+export interface ActionItemBase {
+  id: string;
+  email: string;
+  summary: string | null;
+  status: string | null;
+  priority: "high" | "medium" | "low" | null;
+  week: string | null;
+  excludeFromScoring: boolean;
+  createdDate: string;
+  updatedAt: string;
+  deleted_at: string | null;
+}
+
+export interface EmployeeProductivityBase {
+  id: string;
+  week: string;
+  email: string;
+  name: string | null;
+  employee_code: unknown;
+  location: string | null;
+  department: string | null;
+  computer_name: string | null;
+  computer_activities_hr: string | null;
+  productive_time_hr: string | null;
+  productivity_percentage: number | null;
+  unproductive_time_hr: string | null;
+  unproductivity_percentage: string | null;
+  neutral_time_hr: string | null;
+  present_days: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmployeeWithActionItems extends EmployeeBase {
+  actionItems?: ActionItemBase[];
+}
+
+export interface EmployeeProductivityWithEmployee extends EmployeeProductivityBase {
+  Employee?: EmployeeWithActionItems;
+  employee?: EmployeeWithActionItems;
+}
+
+export interface ProductivityMetricsData {
+  averageProductivity: number;
+  totalEmployees: number;
+  highPerformers: number;
+  averagePerformers: number;
+  lowPerformers: number;
+  averageBillableHours?: number;
+  latestMonthForBillableHours?: string;
+  week: string | null;
+}
+
+export interface ProductivityMetricsResponse {
+  success: boolean;
+  data: ProductivityMetricsData;
+}
+
+export interface ProductivityPagination {
+  page: number;
+  hasNextPage: boolean;
+  total: number;
+  limit?: number;
+  totalRecords?: number;
+  totalPages?: number;
+  hasPreviousPage?: boolean;
+}
+
+export interface EmployeeProductivityListResponse {
+  success: boolean;
+  data: {
+    data: EmployeeProductivityWithEmployee[];
+    pagination: ProductivityPagination;
+  };
+}
+
+export interface DepartmentProductivityData {
+  department: string;
+  averageProductivity?: number;
+  avgProductivity?: number;
+  employeeCount: number;
+  totalHours?: number;
+  totalPresentDays?: number;
+}

@@ -48,6 +48,7 @@ import AdminEOS from "@/pages/admin/eos/AdminEOS";
 import VTOAdmin from "@/pages/admin/eos/VTOAdmin";
 import ScorecardWorkspace from "@/pages/admin/eos/ScorecardWorkspace";
 import AdminEOSAccountability from "@/pages/admin/eos/AdminEOSAccountability";
+import ProductivityImport from "@/pages/admin/ProductivityImport";
 
 /**
  * Admin routes - require admin role
@@ -84,6 +85,7 @@ export const adminRoutes = (
 
     {/* Team & Resources */}
     <Route path="/admin/team/employees" element={<EmployeeManagement />} />
+    <Route path="/admin/productivity-import" element={<ProductivityImport />} />
     <Route path="/admin/team/employee_projection" element={<EmployeeProjection />} />
     <Route path="/admin/team/departments" element={<DepartmentManagement />} />
 

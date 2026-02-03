@@ -56,6 +56,7 @@ import seed05b from "../../../supabase/seed/05b-project-client-access.sql?raw";
 import seed05c from "../../../supabase/seed/05c-project-module-settings.sql?raw";
 import seed06 from "../../../supabase/seed/06-business-dev.sql?raw";
 import seed07 from "../../../supabase/seed/07-productivity.sql?raw";
+import seed07b from "../../../supabase/seed/07b-productivity-base.sql?raw";
 import seed08 from "../../../supabase/seed/08-ai-agents.sql?raw";
 
 // ── Seed file metadata ────────────────────────────────────────────────────────
@@ -159,6 +160,15 @@ const SEED_FILES: SeedFile[] = [
     description: "Departments, pods, employees, productivity records, leave events, process docs, alerts",
     module: "productivity",
     sql: seed07,
+    dependencies: ["00"],
+  },
+  {
+    id: "07b",
+    name: "Productivity Base (Path B)",
+    fileName: "07b-productivity-base.sql",
+    description: "Employee, ActionItem, EmployeeProductivity for base-project parity (CSV import)",
+    module: "productivity",
+    sql: seed07b,
     dependencies: ["00"],
   },
   {
