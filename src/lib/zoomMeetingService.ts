@@ -114,42 +114,7 @@ interface ZoomMeetingResponse {
 }
 
 /**
- * Get valid Zoom access token for the current user
- */
-async function getZoomAccessToken(): Promise<string> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error("User not authenticated");
-  }
-
-  const { data: tokenData, error: tokenError } = await supabase
-    .from('user_oauth_tokens')
-    .select('access_token, refresh_token, expires_at')
-    .eq('user_id', user.id)
-    .eq('provider_slug', 'zoom')
-    .eq('is_active', true)
-    .single();
-
-  if (tokenError || !tokenData) {
-    throw new Error('Zoom account not connected. Please connect your Zoom account first.');
-  }
-
-  let accessToken = tokenData.access_token;
-
-  // Check if token is expired and refresh if needed
-  const expiresAt = new Date(tokenData.expires_at);
-  const now = new Date();
-  if (expiresAt <= now && tokenData.refresh_token) {
-    // Token expired, need to refresh
-    // For now, throw error - refresh logic should be handled by edge function
-    throw new Error('Zoom token expired. Please disconnect and reconnect your Zoom account.');
-  }
-
-  return accessToken;
-}
-
-/**
- * Create a new Zoom meeting
+ * Create a new Zoom meeting via edge function
  * 
  * @param input - Meeting details (topic, start time, duration, attendees)
  * @returns Created meeting details including join URL
@@ -187,76 +152,42 @@ export async function createZoomMeeting(
     throw new Error('Duration cannot exceed 24 hours');
   }
 
-  // Get access token
-  const accessToken = await getZoomAccessToken();
-
-  // Build Zoom API request body
-  const requestBody: Record<string, unknown> = {
-    topic: topic,
-    type: 2, // Scheduled meeting
-    start_time: startDate.toISOString(),
-    duration: input.duration,
-    timezone: input.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-    agenda: input.agenda || '',
-    settings: {
-      host_video: input.settings?.host_video ?? true,
-      participant_video: input.settings?.participant_video ?? false,
-      join_before_host: input.settings?.join_before_host ?? false,
-      mute_upon_entry: input.settings?.mute_upon_entry ?? false,
-      waiting_room: input.settings?.waiting_room ?? false,
-      registrants_email_notification: input.settings?.registrants_email_notification ?? true,
-      ...input.settings,
-    },
-  };
-
-  // Add registrants if provided
-  if (input.registrants && input.registrants.length > 0) {
-    requestBody.settings = {
-      ...(requestBody.settings as Record<string, unknown>),
-      approval_type: 0, // Automatically approve
-      registrants_confirmation_email: true,
-    };
-    requestBody.registrants = input.registrants;
-  }
-
-  console.log('[ZoomMeetings] Creating Zoom meeting:', topic);
+  console.log('[ZoomMeetings] Creating Zoom meeting via edge function:', topic);
 
   try {
-    const response = await fetch('https://api.zoom.us/v2/users/me/meetings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
+    const { data, error } = await supabase.functions.invoke('create-zoom-meeting', {
+      body: {
+        topic: topic,
+        start_time: startDate.toISOString(),
+        duration: input.duration,
+        timezone: input.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        agenda: input.agenda || '',
+        settings: input.settings,
+        registrants: input.registrants,
       },
-      body: JSON.stringify(requestBody),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-      
-      if (response.status === 401) {
-        throw new Error('Zoom authentication failed. Please disconnect and reconnect your Zoom account.');
-      } else if (response.status === 403) {
-        throw new Error('Missing Zoom permissions. Please ensure your Zoom app has meeting:write:meeting scope.');
-      }
-      
-      throw new Error(`Failed to create Zoom meeting: ${errorMessage}`);
+    if (error) {
+      console.error('[ZoomMeetings] Edge function error:', error);
+      throw new Error(error.message || 'Failed to create Zoom meeting');
     }
 
-    const data: ZoomMeetingResponse = await response.json();
-    
-    if (!data.id || !data.join_url) {
-      throw new Error('Invalid response from Zoom API - missing meeting ID or join URL');
+    if (data?.error) {
+      console.error('[ZoomMeetings] API error:', data.error);
+      throw new Error(data.error);
     }
 
-    console.log('[ZoomMeetings] Zoom meeting created successfully:', data.id);
+    if (!data?.zoom_meeting_id || !data?.join_url) {
+      throw new Error('Invalid response from server - missing meeting ID or join URL');
+    }
+
+    console.log('[ZoomMeetings] Zoom meeting created successfully:', data.zoom_meeting_id);
 
     return {
-      zoom_meeting_id: String(data.id),
-      title: data.topic,
-      scheduled_at: data.start_time,
-      duration_minutes: data.duration,
+      zoom_meeting_id: data.zoom_meeting_id,
+      title: data.title,
+      scheduled_at: data.scheduled_at,
+      duration_minutes: data.duration_minutes,
       join_url: data.join_url,
       start_url: data.start_url,
       meeting_type: 'zoom',
