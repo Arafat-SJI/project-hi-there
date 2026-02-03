@@ -173,6 +173,44 @@ ZOOM.MANAGE_ACCOUNT: 'manage-zoom-account'
 - Knowledge Base (embed meetings into knowledge)
 - Actions (convert takeaways to tasks)
 
+## Implementation Status
+
+### Built (Sprint 1)
+- **MeetingTranscriptsPage** (`src/modules/meetings/pages/MeetingTranscriptsPage.tsx`) — Transcript browser with search, status filter, summary cards (total/with AI summary/processed), table with meeting name, date, source, speakers, status, summary preview, preview dialog
+- **useMeetingEfficiency** (`src/modules/meetings/hooks/useMeetingEfficiency.ts`) — Efficiency metrics: totalMeetings, avgDuration, avgParticipants, avgTakeaways, agendaRate, takeawayRate, avgEfficiencyScore (weighted composite: 25pts agenda + 25pts takeaways + 25pts duration + 25pts attendance), monthly trend
+- **MeetingAnalytics efficiency section** — Wired useMeetingEfficiency to admin MeetingAnalytics page with efficiency score card, breakdown (agenda rate, takeaway rate, avg participants, avg takeaways), monthly efficiency trend with progress bars
+
+### Routes Registered
+- `/meetings/transcripts` → MeetingTranscriptsPage
+
+### Built (Sprint 2 — Detail Page Enhancements)
+
+**5 New Components:**
+- **AddParticipantDialog** (`src/modules/meetings/components/participants/AddParticipantDialog.tsx`) — Dialog with name, email, role selector, calls `useAddParticipant()`
+- **MeetingParticipantSelector** (`src/modules/meetings/components/participants/MeetingParticipantSelector.tsx`) — Inline participant list with avatars, role badges, remove buttons
+- **PreviousAgendaViewer** (`src/modules/meetings/components/agenda/PreviousAgendaViewer.tsx`) — Read-only agenda from previous meeting in series
+- **SeriesHistoryTab** (`src/modules/meetings/components/series/SeriesHistoryTab.tsx`) — Timeline of all meetings in a series with status badges, clickable
+- **RelatedTasksTab** (`src/modules/meetings/components/RelatedTasksTab.tsx`) — Action items and linked tasks from meeting takeaways
+
+**MeetingDetailV2Page Enhanced:**
+- Added "Tasks" tab (always shown) → RelatedTasksTab
+- Added "Series" tab (conditional on `series_id`) → SeriesHistoryTab
+- MeetingDetailTab type updated: `"details" | "agenda" | "takeaways" | "participants" | "related-tasks" | "series-history"`
+
+### Built (Sprint 3 — Action Items, Transcripts, Assignments)
+
+**2 New Hooks:**
+- **useMeetingActionItems** (`src/modules/meetings/hooks/useMeetingActionItems.ts`) — `useMeetingActionItems(meetingId)`, `useMyActionItems()` (cross-meeting, user-scoped), `useActionItemStats()` (total/completed/overdue/upcoming)
+- **useMeetingAssignment** (`src/modules/meetings/hooks/useMeetingAssignment.ts`) — `useMeetingAssignments(meetingId)`, `useEntityMeetings(entityType, entityId)`, `useAssignMeeting()`, `useUnassignMeeting()`
+
+**2 New Components:**
+- **TranscriptTab** (`src/modules/meetings/components/transcript/TranscriptTab.tsx`) — Transcript viewer with AI summary, speaker segments, search within transcript, source badge
+- **ActionItemsPanel** (`src/modules/meetings/components/ActionItemsPanel.tsx`) — Pending action items panel with due date urgency badges (overdue/soon), completion toggle, meeting title links
+
+**MeetingDetailV2Page:**
+- Added "Transcript" tab (always shown) → TranscriptTab
+- MeetingDetailTab type now includes `"transcript"`
+
 ## Implementation Notes
 - Meetings support both one-off and recurring series
 - Zoom integration syncs recordings, transcripts, and files

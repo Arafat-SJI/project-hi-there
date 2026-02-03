@@ -174,6 +174,71 @@ OKRS.SUMMARY: 'api-v1-okrs/summary'
 - Meetings → extract-meeting-issues extracts issues from meeting transcripts
 - Projects → extract-project-issues extracts issues from projects
 
+## Implementation Status
+
+### Built (Sprint 1 — Admin Pages)
+- **AdminEOS** (`src/pages/admin/eos/AdminEOS.tsx`) — Hub page with section cards (VTO, Scorecard, Accountability, System Config, Import Issues)
+- **VTOAdmin** (`src/pages/admin/eos/VTOAdmin.tsx`) — VTO section table with edit title, reset to default template, content preview
+- **ScorecardWorkspace** (`src/pages/admin/eos/ScorecardWorkspace.tsx`) — Full CRUD for scorecards and metrics (type, target, unit, goal direction)
+- **AdminEOSAccountability** (`src/pages/admin/eos/AdminEOSAccountability.tsx`) — Chart version management (publish/archive), role CRUD with department and responsibilities
+
+### Admin Routes Registered
+- `/admin/eos` → AdminEOS hub
+- `/admin/eos/vto` → VTOAdmin
+- `/admin/eos/scorecards` → ScorecardWorkspace
+- `/admin/eos/accountability` → AdminEOSAccountability
+
+### Admin Navigation
+- Added EOS group to `navigationStructure.ts` adminNavigation with 4 items
+
+### Built (Sprint 2 — Issue Sub-Pages + AI Suggestions)
+
+**7 Issue Sub-Pages:**
+- **IssuesAllPage** (`src/modules/eos/pages/IssuesAllPage.tsx`) — All issues, no pre-filter
+- **IssuesSolvedPage** (`src/modules/eos/pages/IssuesSolvedPage.tsx`) — Pre-filtered `status: "solved"`
+- **IssuesArchivedPage** (`src/modules/eos/pages/IssuesArchivedPage.tsx`) — Pre-filtered `status: "archived"`
+- **IssuesAnonymousPage** (`src/modules/eos/pages/IssuesAnonymousPage.tsx`) — Client-side `is_anonymous` filter
+- **IssuesAIPage** (`src/modules/eos/pages/IssuesAIPage.tsx`) — AI-sourced issues + suggestion stats + review queue
+- **IssuesByPodPage** (`src/modules/eos/pages/IssuesByPodPage.tsx`) — Pod-scoped issues with `defaultPodId` on create
+- **IssuesPodOverviewPage** (`src/modules/eos/pages/IssuesPodOverviewPage.tsx`) — Pod dashboard with stats cards, navigation
+
+**3 New Hooks:**
+- **useEOSIssuesByPod** (`src/modules/eos/hooks/useEOSIssuesByPod.ts`) — Groups issues by pod with per-pod stats (total, open, in_progress, solved, critical). Also exports `usePodIssues(podId)`.
+- **useAIIssueSuggestions** (`src/modules/eos/hooks/useAIIssueSuggestions.ts`) — CRUD for AI suggestions with `useSuggestionStats()` and `useReviewSuggestion()` (accept/reject mutation)
+- **useEOSIssueInsights** (`src/modules/eos/hooks/useEOSIssueInsights.ts`) — Analytics: byStatus, byPriority, byCategory, byPod, bySource, avgResolutionDays, recentTrend (14-day), anonymousCount
+
+**5 AI Suggestion Components:**
+- **AISuggestionCard** — Card with type badge (color-coded), confidence bar, accept/reject buttons
+- **AISuggestionReviewDialog** — Full-detail review modal with accept/reject
+- **AIReviewQueue** — Pending suggestions queue
+- **AIWeeklyDigest** — Weekly summary with acceptance rate, type breakdown
+- **AISuggestionStats** — Stats panel with 4 stat cards + confidence bar + type breakdown
+
+### Sprint 2 Routes Registered
+- `/eos/issues/all` → IssuesAllPage
+- `/eos/issues/solved` → IssuesSolvedPage
+- `/eos/issues/archived` → IssuesArchivedPage
+- `/eos/issues/anonymous` → IssuesAnonymousPage
+- `/eos/issues/ai` → IssuesAIPage
+- `/eos/issues/pod-overview` → IssuesPodOverviewPage
+- `/eos/issues/pod/:podId` → IssuesByPodPage
+
+### Built (Sprint 3 — Accountability Admin Components + MetricTrendChart)
+
+**6 Accountability Admin Components** (in `src/modules/eos/components/accountability/`):
+- **ChartForm** — Create/edit accountability chart form
+- **ChartHistoryTimeline** — Vertical timeline of chart versions with colored dots
+- **ChartVersionHistory** — Table view with publish actions
+- **ResponsibilitiesEditor** — Inline responsibility list editor with add/edit/delete
+- **EmployeeAccountabilityModal** — Role detail modal with GWC display
+- **GWCAssessmentDialog** — Toggle G/W/C assessment dialog with notes
+
+**MetricTrendChart** (`src/modules/eos/components/scorecard/MetricTrendChart.tsx`):
+- Recharts LineChart visualizing scorecard metrics over time
+- Groups metrics by `week_of` date, one line per metric name
+- Dynamic chart config, optional target reference line
+- Wrapped in shadcn ChartContainer with ChartTooltip
+
 ## Implementation Notes
 - OKRs replace the legacy Rocks/Goals system
 - Issues have AI-powered triage, pattern detection, and suggestion features

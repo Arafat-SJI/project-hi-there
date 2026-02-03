@@ -36,6 +36,10 @@ import {
   Users,
   UserCircle,
   ArrowRight,
+  BarChart3,
+  TrendingUp,
+  Package,
+  ListChecks,
 } from "lucide-react";
 import {
   implementationStatus,
@@ -87,9 +91,17 @@ function StatusIcon({ status }: { status: ItemStatus }) {
 
 function OverviewCards() {
   const totalModules = implementationStatus.length;
+  const devDoneModules = implementationStatus.filter(
+    (m) => m.pipeline.development.status === "done"
+  ).length;
   const totalPages = implementationStatus.reduce((sum, m) => sum + m.pages.length, 0);
-  const qaReadyPages = implementationStatus.reduce(
-    (sum, m) => sum + m.pages.filter((p) => p.status === "qa-ready").length,
+  const donePages = implementationStatus.reduce(
+    (sum, m) => sum + m.pages.filter((p) => p.status === "done" || p.status === "qa-ready").length,
+    0
+  );
+  const totalHooks = implementationStatus.reduce((sum, m) => sum + m.hooks.length, 0);
+  const doneHooks = implementationStatus.reduce(
+    (sum, m) => sum + m.hooks.filter((h) => h.status === "done").length,
     0
   );
   const totalQA = implementationStatus.reduce((sum, m) => sum + m.qaChecklist.length, 0);
@@ -103,6 +115,7 @@ function OverviewCards() {
     (sum, m) => sum + m.edgeFunctions.filter((e) => e.status === "done").length,
     0
   );
+  const totalNextSteps = implementationStatus.reduce((sum, m) => sum + m.nextSteps.length, 0);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -110,45 +123,47 @@ function OverviewCards() {
         <CardContent className="pt-4">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Layers className="h-4 w-4" />
-            <span className="text-sm">Modules</span>
+            <span className="text-sm">Modules Dev Done</span>
           </div>
-          <p className="text-2xl font-bold mt-1">{totalModules}</p>
-          <p className="text-xs text-muted-foreground">All phases scoped</p>
+          <p className="text-2xl font-bold mt-1">
+            {devDoneModules} <span className="text-sm font-normal text-muted-foreground">/ {totalModules}</span>
+          </p>
+          <Progress value={(devDoneModules / totalModules) * 100} className="h-1.5 mt-2" />
         </CardContent>
       </Card>
       <Card>
         <CardContent className="pt-4">
           <div className="flex items-center gap-2 text-muted-foreground">
             <FileCode className="h-4 w-4" />
-            <span className="text-sm">Pages QA-Ready</span>
+            <span className="text-sm">Pages Built</span>
           </div>
           <p className="text-2xl font-bold mt-1">
-            {qaReadyPages} <span className="text-sm font-normal text-muted-foreground">/ {totalPages}</span>
+            {donePages} <span className="text-sm font-normal text-muted-foreground">/ {totalPages}</span>
           </p>
-          <Progress value={(qaReadyPages / totalPages) * 100} className="h-1.5 mt-2" />
+          <Progress value={(donePages / totalPages) * 100} className="h-1.5 mt-2" />
         </CardContent>
       </Card>
       <Card>
         <CardContent className="pt-4">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <FlaskConical className="h-4 w-4" />
-            <span className="text-sm">QA Checks</span>
+            <BarChart3 className="h-4 w-4" />
+            <span className="text-sm">Hooks Wired</span>
           </div>
           <p className="text-2xl font-bold mt-1">
-            {testedQA} <span className="text-sm font-normal text-muted-foreground">/ {totalQA}</span>
+            {doneHooks} <span className="text-sm font-normal text-muted-foreground">/ {totalHooks}</span>
           </p>
-          <Progress value={totalQA > 0 ? (testedQA / totalQA) * 100 : 0} className="h-1.5 mt-2" />
+          <Progress value={(doneHooks / totalHooks) * 100} className="h-1.5 mt-2" />
         </CardContent>
       </Card>
       <Card>
         <CardContent className="pt-4">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Database className="h-4 w-4" />
-            <span className="text-sm">Database</span>
+            <span className="text-sm">Infrastructure</span>
           </div>
-          <p className="text-2xl font-bold mt-1">{totalTables} tables</p>
+          <p className="text-2xl font-bold mt-1">{totalTables} <span className="text-sm font-normal text-muted-foreground">tables</span></p>
           <p className="text-xs text-muted-foreground">
-            Edge functions: {edgeFnDone}/{totalEdgeFns}
+            Edge fns: {edgeFnDone}/{totalEdgeFns} · QA: {testedQA}/{totalQA} · Remaining: {totalNextSteps}
           </p>
         </CardContent>
       </Card>
@@ -926,6 +941,332 @@ function DocsTab() {
   );
 }
 
+// ─── PM Overview — product manager snapshot ─────────────────────────────────
+
+function PMOverviewTab() {
+  // Compute metrics
+  const totalModules = implementationStatus.length;
+  const devDoneModules = implementationStatus.filter(
+    (m) => m.pipeline.development.status === "done"
+  );
+  const devInProgress = implementationStatus.filter(
+    (m) => m.pipeline.development.status === "in-progress"
+  );
+  const allPages = implementationStatus.flatMap((m) => m.pages);
+  const allHooks = implementationStatus.flatMap((m) => m.hooks);
+  const allComponents = implementationStatus.flatMap((m) => m.components);
+  const allEdgeFns = implementationStatus.flatMap((m) => m.edgeFunctions);
+  const totalItems = [...allPages, ...allHooks, ...allComponents, ...allEdgeFns];
+  const doneItems = totalItems.filter((i) => i.status === "done" || i.status === "qa-ready");
+  const plannedItems = totalItems.filter((i) => i.status === "planned" || i.status === "not-started");
+  const overallPct = totalItems.length > 0 ? Math.round((doneItems.length / totalItems.length) * 100) : 0;
+
+  const totalQA = implementationStatus.reduce((s, m) => s + m.qaChecklist.length, 0);
+  const testedQA = implementationStatus.reduce(
+    (s, m) => s + m.qaChecklist.filter((q) => q.tested).length, 0
+  );
+
+  // Recently completed items (done pages + hooks + components) grouped by module
+  const recentByModule = implementationStatus
+    .map((m) => {
+      const donePages = m.pages.filter((p) => p.status === "done");
+      const doneHooks = m.hooks.filter((h) => h.status === "done");
+      const doneComps = m.components.filter((c) => c.status === "done");
+      const items = [
+        ...donePages.map((p) => ({ ...p, type: "Page" as const })),
+        ...doneHooks.map((h) => ({ ...h, type: "Hook" as const })),
+        ...doneComps.map((c) => ({ ...c, type: "Component" as const })),
+      ];
+      return { module: m, items };
+    })
+    .filter((g) => g.items.length > 0);
+
+  // Remaining work per module
+  const remainingByModule = implementationStatus
+    .map((m) => ({
+      module: m,
+      nextSteps: m.nextSteps,
+      pendingPages: m.pages.filter((p) => p.status === "planned" || p.status === "not-started"),
+      pendingEdgeFns: m.edgeFunctions.filter((e) => e.status === "planned" || e.status === "not-started"),
+    }))
+    .filter((g) => g.nextSteps.length > 0 || g.pendingPages.length > 0 || g.pendingEdgeFns.length > 0);
+
+  return (
+    <div className="space-y-6">
+      {/* PM Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Package className="h-4 w-4" />
+              <span className="text-sm">Modules</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {devDoneModules.length}<span className="text-sm font-normal text-muted-foreground">/{totalModules} dev done</span>
+            </p>
+            <Progress value={(devDoneModules.length / totalModules) * 100} className="h-1.5 mt-2" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-sm">Overall Build</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">{overallPct}%</p>
+            <p className="text-xs text-muted-foreground">{doneItems.length}/{totalItems.length} items done</p>
+            <Progress value={overallPct} className="h-1.5 mt-2" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <FileCode className="h-4 w-4" />
+              <span className="text-sm">Pages</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {allPages.filter((p) => p.status === "done" || p.status === "qa-ready").length}
+              <span className="text-sm font-normal text-muted-foreground">/{allPages.length}</span>
+            </p>
+            <Progress value={(allPages.filter((p) => p.status === "done" || p.status === "qa-ready").length / allPages.length) * 100} className="h-1.5 mt-2" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <BarChart3 className="h-4 w-4" />
+              <span className="text-sm">Hooks</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {allHooks.filter((h) => h.status === "done").length}
+              <span className="text-sm font-normal text-muted-foreground">/{allHooks.length}</span>
+            </p>
+            <Progress value={(allHooks.filter((h) => h.status === "done").length / allHooks.length) * 100} className="h-1.5 mt-2" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ListChecks className="h-4 w-4" />
+              <span className="text-sm">QA Tested</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {testedQA}<span className="text-sm font-normal text-muted-foreground">/{totalQA}</span>
+            </p>
+            <Progress value={totalQA > 0 ? (testedQA / totalQA) * 100 : 0} className="h-1.5 mt-2" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Module Progress Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Layers className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">Module Progress at a Glance</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Each module's development, pages, hooks, and pipeline status in one table.
+          </p>
+        </CardHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Module</TableHead>
+              <TableHead className="text-center">Owner</TableHead>
+              <TableHead className="text-center">Dev</TableHead>
+              <TableHead className="text-center">Pages</TableHead>
+              <TableHead className="text-center">Hooks</TableHead>
+              <TableHead className="text-center">Edge Fns</TableHead>
+              <TableHead className="text-center">Build %</TableHead>
+              <TableHead className="text-center">QA</TableHead>
+              <TableHead>Remaining</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {implementationStatus.map((module) => {
+              const progress = getModuleProgress(module);
+              const qa = getQAProgress(module);
+              const pagesTotal = module.pages.length;
+              const pagesDone = module.pages.filter((p) => p.status === "done" || p.status === "qa-ready").length;
+              const hooksTotal = module.hooks.length;
+              const hooksDone = module.hooks.filter((h) => h.status === "done").length;
+              const efTotal = module.edgeFunctions.length;
+              const efDone = module.edgeFunctions.filter((e) => e.status === "done").length;
+              return (
+                <TableRow key={module.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] shrink-0">P{module.phase}</Badge>
+                      <span className="font-medium text-sm">{module.name.split("(")[0].trim()}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary" className="text-xs">{module.owner}</Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px]"
+                      style={{
+                        borderColor: getPipelineColor(module.pipeline.development.status),
+                        color: getPipelineColor(module.pipeline.development.status),
+                      }}
+                    >
+                      {getPipelineLabel(module.pipeline.development.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    <span className={pagesDone === pagesTotal ? "text-green-600 font-medium" : ""}>
+                      {pagesDone}/{pagesTotal}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    <span className={hooksDone === hooksTotal ? "text-green-600 font-medium" : ""}>
+                      {hooksDone}/{hooksTotal}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    {efTotal > 0 ? (
+                      <span className={efDone === efTotal ? "text-green-600 font-medium" : ""}>
+                        {efDone}/{efTotal}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <Progress value={progress} className="h-1.5 w-14" />
+                      <span className="text-xs font-medium">{progress}%</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    {qa.total > 0 ? (
+                      <span className={qa.tested === qa.total && qa.total > 0 ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                        {qa.tested}/{qa.total}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs text-muted-foreground">
+                      {module.nextSteps.length > 0
+                        ? module.nextSteps[0].length > 40
+                          ? module.nextSteps[0].substring(0, 40) + "…"
+                          : module.nextSteps[0]
+                        : "✓ All dev items done"}
+                      {module.nextSteps.length > 1 && (
+                        <span className="text-amber-600"> +{module.nextSteps.length - 1} more</span>
+                      )}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* What's Done — by module */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <CardTitle className="text-base">Completed Work by Module</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            All pages, hooks, and components that have been built and are ready for review/QA.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {recentByModule.map(({ module, items }) => (
+            <div key={module.id} className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">Phase {module.phase}</Badge>
+                  <span className="font-medium text-sm">{module.name}</span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="text-xs"
+                  style={{
+                    borderColor: getStatusColor("done"),
+                    color: getStatusColor("done"),
+                  }}
+                >
+                  {items.length} items done
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                {items.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                    <Badge variant="outline" className="text-[9px] px-1 shrink-0">{item.type}</Badge>
+                    <span className="truncate text-muted-foreground">{item.name.split("—")[0].trim()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* What's Left — by module */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-amber-500" />
+            <CardTitle className="text-base">Remaining Work</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Outstanding dev items, pending pages, and planned edge functions across all modules.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {remainingByModule.map(({ module, nextSteps, pendingPages, pendingEdgeFns }) => (
+            <div key={module.id} className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">Phase {module.phase}</Badge>
+                  <span className="font-medium text-sm">{module.name.split("(")[0].trim()}</span>
+                  <Badge variant="secondary" className="text-xs">{module.owner}</Badge>
+                </div>
+                <span className="text-xs text-amber-600 font-medium">
+                  {nextSteps.length + pendingPages.length + pendingEdgeFns.length} items
+                </span>
+              </div>
+              <div className="space-y-1">
+                {nextSteps.map((step, i) => (
+                  <div key={`ns-${i}`} className="flex items-start gap-2 text-sm">
+                    <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground">{step}</span>
+                  </div>
+                ))}
+                {pendingPages.map((p, i) => (
+                  <div key={`pp-${i}`} className="flex items-start gap-2 text-sm">
+                    <Circle className="h-3.5 w-3.5 text-purple-500 shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground">{p.name}</span>
+                    <StatusBadge status={p.status} />
+                  </div>
+                ))}
+                {pendingEdgeFns.map((e, i) => (
+                  <div key={`ef-${i}`} className="flex items-start gap-2 text-sm">
+                    <Server className="h-3.5 w-3.5 text-gray-400 shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground">{e.name}</span>
+                    <StatusBadge status={e.status} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function ImplementationStatus() {
   return (
     <div className="space-y-6">
@@ -942,8 +1283,9 @@ export default function ImplementationStatus() {
 
       <OverviewCards />
 
-      <Tabs defaultValue="team">
+      <Tabs defaultValue="pm-overview">
         <TabsList>
+          <TabsTrigger value="pm-overview">PM Overview</TabsTrigger>
           <TabsTrigger value="team">Team Board</TabsTrigger>
           <TabsTrigger value="modules">Modules</TabsTrigger>
           <TabsTrigger value="next">Next Steps</TabsTrigger>
@@ -951,6 +1293,10 @@ export default function ImplementationStatus() {
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="docs">Docs & Architecture</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="pm-overview" className="mt-4">
+          <PMOverviewTab />
+        </TabsContent>
 
         <TabsContent value="team" className="mt-4">
           <TeamBoard />

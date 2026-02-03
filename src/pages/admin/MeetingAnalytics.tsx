@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import {
   Loader2,
   Calendar,
@@ -26,7 +27,11 @@ import {
   BarChart3,
   Sparkles,
   RefreshCw,
+  Gauge,
+  ListChecks,
+  FileText,
 } from 'lucide-react';
+import { useMeetingEfficiency } from '@/modules/meetings/hooks/useMeetingEfficiency';
 
 interface MeetingStats {
   total: number;
@@ -43,6 +48,8 @@ interface MeetingStats {
 export default function MeetingAnalytics() {
   const [timeRange, setTimeRange] = useState('30');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const { data: efficiency } = useMeetingEfficiency(parseInt(timeRange, 10));
 
   const { data: stats, isLoading, refetch } = useQuery<MeetingStats>({
     queryKey: ['meeting-analytics', timeRange],
@@ -349,6 +356,98 @@ export default function MeetingAnalytics() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Meeting Efficiency */}
+      {efficiency && (
+        <Card className="border-green-500/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gauge className="h-5 w-5 text-green-600" />
+              Meeting Efficiency
+            </CardTitle>
+            <CardDescription>
+              Composite score based on agenda, takeaways, duration, and attendance
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Efficiency Score */}
+            <div className="flex items-center gap-4">
+              <div className="text-4xl font-bold text-green-600">
+                {efficiency.avgEfficiencyScore}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">Average Efficiency Score</p>
+                <Progress value={efficiency.avgEfficiencyScore} className="h-3" />
+              </div>
+            </div>
+
+            {/* Efficiency Breakdown */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="p-3 rounded-lg border">
+                <div className="flex items-center gap-2 mb-1">
+                  <ListChecks className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Agenda Rate</span>
+                </div>
+                <p className="text-xl font-bold">{efficiency.agendaRate}%</p>
+                <p className="text-xs text-muted-foreground">
+                  {efficiency.withAgenda} of {efficiency.totalMeetings} meetings
+                </p>
+              </div>
+              <div className="p-3 rounded-lg border">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Takeaway Rate</span>
+                </div>
+                <p className="text-xl font-bold">{efficiency.takeawayRate}%</p>
+                <p className="text-xs text-muted-foreground">
+                  {efficiency.withTakeaways} of {efficiency.totalMeetings} meetings
+                </p>
+              </div>
+              <div className="p-3 rounded-lg border">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Avg Participants</span>
+                </div>
+                <p className="text-xl font-bold">{efficiency.avgParticipants}</p>
+                <p className="text-xs text-muted-foreground">
+                  Per meeting average
+                </p>
+              </div>
+              <div className="p-3 rounded-lg border">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Avg Takeaways</span>
+                </div>
+                <p className="text-xl font-bold">{efficiency.avgTakeaways}</p>
+                <p className="text-xs text-muted-foreground">
+                  Per meeting average
+                </p>
+              </div>
+            </div>
+
+            {/* Monthly Efficiency Trend */}
+            {efficiency.byMonth.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-3">Monthly Efficiency Trend</h4>
+                <div className="space-y-2">
+                  {efficiency.byMonth.map((m) => (
+                    <div key={m.month} className="flex items-center gap-3">
+                      <span className="text-sm w-16 text-muted-foreground">{m.month}</span>
+                      <div className="flex-1">
+                        <Progress value={m.avgEfficiency} className="h-2" />
+                      </div>
+                      <span className="text-sm font-medium w-10 text-right">{m.avgEfficiency}</span>
+                      <span className="text-xs text-muted-foreground w-20 text-right">
+                        {m.meetings} mtg{m.meetings !== 1 ? "s" : ""}, {m.avgDuration}m avg
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* AI Insights */}
       <Card className="border-primary/20">

@@ -44,6 +44,10 @@ import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
 import SeedRunner from "@/pages/admin/SeedRunner";
 import EmbeddingsExplorer from "@/pages/admin/EmbeddingsExplorer";
+import AdminEOS from "@/pages/admin/eos/AdminEOS";
+import VTOAdmin from "@/pages/admin/eos/VTOAdmin";
+import ScorecardWorkspace from "@/pages/admin/eos/ScorecardWorkspace";
+import AdminEOSAccountability from "@/pages/admin/eos/AdminEOSAccountability";
 
 /**
  * Admin routes - require admin role
@@ -87,6 +91,12 @@ export const adminRoutes = (
     <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />
     <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
     <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />
+
+    {/* EOS Admin */}
+    <Route path="/admin/eos" element={<AdminEOS />} />
+    <Route path="/admin/eos/vto" element={<VTOAdmin />} />
+    <Route path="/admin/eos/scorecards" element={<ScorecardWorkspace />} />
+    <Route path="/admin/eos/accountability" element={<AdminEOSAccountability />} />
 
     {/* Content & Feedback */}
     <Route path="/admin/feedback" element={<FeedbackManagement />} />

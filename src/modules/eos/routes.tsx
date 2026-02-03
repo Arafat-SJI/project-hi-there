@@ -1,7 +1,7 @@
 /**
  * EOS Module Routes
  *
- * V/TO, OKRs, Issues, Scorecard, and Accountability pages.
+ * V/TO, OKRs, Issues (with sub-views), Scorecard, and Accountability pages.
  * Gated by the "eos" module.
  */
 import { Route } from "react-router-dom";
@@ -13,6 +13,13 @@ import VTOPage from "./pages/VTOPage";
 import OKRsPage from "./pages/OKRsPage";
 import IssuesPage from "./pages/IssuesPage";
 import IssueDetailPage from "./pages/IssueDetailPage";
+import IssuesAllPage from "./pages/IssuesAllPage";
+import IssuesSolvedPage from "./pages/IssuesSolvedPage";
+import IssuesArchivedPage from "./pages/IssuesArchivedPage";
+import IssuesAnonymousPage from "./pages/IssuesAnonymousPage";
+import IssuesAIPage from "./pages/IssuesAIPage";
+import IssuesByPodPage from "./pages/IssuesByPodPage";
+import IssuesPodOverviewPage from "./pages/IssuesPodOverviewPage";
 import ScorecardPage from "./pages/ScorecardPage";
 import AccountabilityPage from "./pages/AccountabilityPage";
 import MyAccountabilityPage from "./pages/MyAccountabilityPage";
@@ -22,6 +29,13 @@ export const eosRoutes = (
     <Route path="/eos" element={<EOSHubPage />} />
     <Route path="/eos/vto" element={<VTOPage />} />
     <Route path="/eos/issues" element={<IssuesPage />} />
+    <Route path="/eos/issues/all" element={<IssuesAllPage />} />
+    <Route path="/eos/issues/solved" element={<IssuesSolvedPage />} />
+    <Route path="/eos/issues/archived" element={<IssuesArchivedPage />} />
+    <Route path="/eos/issues/anonymous" element={<IssuesAnonymousPage />} />
+    <Route path="/eos/issues/ai" element={<IssuesAIPage />} />
+    <Route path="/eos/issues/pod-overview" element={<IssuesPodOverviewPage />} />
+    <Route path="/eos/issues/pod/:podId" element={<IssuesByPodPage />} />
     <Route path="/eos/issues/:issueId" element={<IssueDetailPage />} />
     <Route path="/eos/scorecard" element={<ScorecardPage />} />
     <Route path="/eos/accountability" element={<AccountabilityPage />} />
