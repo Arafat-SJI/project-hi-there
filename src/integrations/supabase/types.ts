@@ -5021,6 +5021,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_exec_sql: { Args: { sql_content: string }; Returns: Json }
       get_user_modules: {
         Args: never
         Returns: {

@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, Plus } from "lucide-react";
 import { useOKRDetail } from "../hooks/useOKRs";
 import { KeyResultProgress } from "../components/okr/KeyResultProgress";
+import { KeyResultProgressChart } from "../components/okr/KeyResultProgressChart";
 import { CheckInDialog } from "../components/okr/CheckInDialog";
 import type { OKRKeyResult } from "../types";
 
@@ -89,6 +90,7 @@ export function OKRDetailDialog({ open, onOpenChange, okrId }: OKRDetailDialogPr
                     {okr.key_results.map((kr) => (
                       <div key={kr.id} className="relative group">
                         <KeyResultProgress keyResult={kr} />
+                        <KeyResultProgressChart keyResult={kr} checkIns={(kr as any).check_ins || []} />
                         <Button
                           size="sm"
                           variant="outline"

@@ -211,10 +211,32 @@ ZOOM.MANAGE_ACCOUNT: 'manage-zoom-account'
 - Added "Transcript" tab (always shown) → TranscriptTab
 - MeetingDetailTab type now includes `"transcript"`
 
+### Built (Sprint 4 — AI Features + Cross-Module + Efficiency Dashboard)
+
+**2 AI Hooks:**
+- **useGenerateMeetingSummary** (`src/modules/meetings/hooks/useGenerateMeetingSummary.ts`) — Invoke `generate-meeting-summary` edge function, returns structured summary
+- **useExtractMeetingTasks** (`src/modules/meetings/hooks/useExtractMeetingTasks.ts`) — AI extract action items from transcript, `useCreateTasksFromExtraction()` for batch insert
+
+**3 Cross-Module Hooks:**
+- **useCrossModuleMeetings** (`src/modules/meetings/hooks/useCrossModuleMeetings.ts`) — `useClientMeetings(clientId)`, `useDealMeetings(dealId)`, `useProjectMeetings(projectId)` via meeting_assignments join
+
+**1 User-Facing Component:**
+- **MeetingEfficiencyDashboard** (`src/modules/meetings/components/MeetingEfficiencyDashboard.tsx`) — Self-contained dashboard with time range selector (30/60/90 days), efficiency score hero card, 4 stat cards, monthly trend BarChart, meeting quality breakdown
+
 ## Implementation Notes
 - Meetings support both one-off and recurring series
 - Zoom integration syncs recordings, transcripts, and files
 - AI features: summarization, task extraction, issue extraction, categorization
+### Wired (Sprint 5 — Component Integration)
+
+**MeetingsSchedulePage** now has 3-tab view:
+- Schedule (original list/calendar with stats, filters, search)
+- Efficiency (MeetingEfficiencyDashboard — self-contained with time range selector, score card, trend chart, quality breakdown)
+- Action Items (ActionItemsPanel with showMeetingTitle=true — pending items with due date urgency, completion toggle)
+
+**Navigation** — Added "Transcripts" nav item under meetings module in sidebar
+
+## Implementation Notes
 - Takeaways can be converted to Actions (tasks) via edge function
 - Meeting assignments link meetings to clients and projects
 - Efficiency analyzer provides meeting quality metrics

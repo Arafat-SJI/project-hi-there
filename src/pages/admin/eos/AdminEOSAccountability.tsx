@@ -40,7 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Network, CheckCircle2, Archive, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Loader2, Plus, Network, CheckCircle2, Archive, Pencil, Trash2, UserPlus, ClipboardCheck } from "lucide-react";
 import {
   useAccountabilityCharts,
   useAccountabilityChart,
@@ -51,7 +51,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { AccountabilityChart, AccountabilityResponsibility } from "@/modules/eos/types";
+import type { AccountabilityChart, AccountabilityResponsibility, GWCAssessment } from "@/modules/eos/types";
+import { ChartHistoryTimeline } from "@/modules/eos/components/accountability/ChartHistoryTimeline";
+import { EmployeeAccountabilityModal } from "@/modules/eos/components/accountability/EmployeeAccountabilityModal";
+import { GWCAssessmentDialog } from "@/modules/eos/components/accountability/GWCAssessmentDialog";
 
 const ACCOUNTABILITY_KEY = "eos-accountability";
 
@@ -133,6 +136,33 @@ function useUpdateResponsibility() {
   });
 }
 
+function useSaveGWCAssessment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      responsibility_id: string;
+      gets_it: boolean;
+      wants_it: boolean;
+      has_capacity: boolean;
+      notes?: string;
+    }) => {
+      const { error } = await (supabase as any)
+        .from("gwc_assessments")
+        .upsert(
+          { ...data, assessed_at: new Date().toISOString() },
+          { onConflict: "responsibility_id" }
+        );
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ACCOUNTABILITY_KEY] });
+      toast.success("GWC assessment saved");
+    },
+    onError: (e: Error) => toast.error("Failed to save assessment", { description: e.message }),
+  });
+}
+
 interface RoleFormData {
   role_title: string;
   department: string;
@@ -149,6 +179,7 @@ export default function AdminEOSAccountability() {
   const addResponsibility = useAddResponsibility();
   const deleteResponsibility = useDeleteResponsibility();
   const updateResponsibility = useUpdateResponsibility();
+  const saveGWCAssessment = useSaveGWCAssessment();
 
   const [chartDialog, setChartDialog] = useState(false);
   const [chartName, setChartName] = useState("");
@@ -159,6 +190,8 @@ export default function AdminEOSAccountability() {
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [deleteRoleTarget, setDeleteRoleTarget] = useState<string | null>(null);
   const [publishTarget, setPublishTarget] = useState<string | null>(null);
+  const [viewRoleId, setViewRoleId] = useState<string | null>(null);
+  const [assessRoleId, setAssessRoleId] = useState<string | null>(null);
 
   const isLoading = chartsLoading || currentLoading;
 
@@ -188,6 +221,9 @@ export default function AdminEOSAccountability() {
   const flatRoles = currentChart?.responsibilities
     ? flattenResponsibilities(currentChart.responsibilities)
     : [];
+
+  const viewedRole = viewRoleId ? flatRoles.find((r) => r.id === viewRoleId) ?? null : null;
+  const assessedRole = assessRoleId ? flatRoles.find((r) => r.id === assessRoleId) ?? null : null;
 
   return (
     <div className="space-y-6">
@@ -276,6 +312,21 @@ export default function AdminEOSAccountability() {
         </Table>
       </Card>
 
+      {/* Chart History Timeline */}
+      {(charts || []).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Version Timeline</CardTitle>
+            <CardDescription>
+              Visual history of chart versions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartHistoryTimeline charts={charts || []} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Current Chart Responsibilities */}
       {currentChart && (
         <Card>
@@ -323,7 +374,13 @@ export default function AdminEOSAccountability() {
                     <TableCell>
                       <span style={{ paddingLeft: `${role.depth * 24}px` }} className="font-medium flex items-center gap-1">
                         {role.depth > 0 && <span className="text-muted-foreground">└</span>}
-                        {role.role_title}
+                        <button
+                          type="button"
+                          className="hover:underline hover:text-primary text-left"
+                          onClick={() => setViewRoleId(role.id)}
+                        >
+                          {role.role_title}
+                        </button>
                       </span>
                     </TableCell>
                     <TableCell>
@@ -342,6 +399,14 @@ export default function AdminEOSAccountability() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="GWC Assessment"
+                          onClick={() => setAssessRoleId(role.id)}
+                        >
+                          <ClipboardCheck className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -506,6 +571,32 @@ export default function AdminEOSAccountability() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Employee Accountability Modal */}
+      {viewedRole && (
+        <EmployeeAccountabilityModal
+          responsibility={viewedRole}
+          open={!!viewRoleId}
+          onOpenChange={(open) => { if (!open) setViewRoleId(null); }}
+        />
+      )}
+
+      {/* GWC Assessment Dialog */}
+      {assessedRole && (
+        <GWCAssessmentDialog
+          responsibilityId={assessedRole.id}
+          roleTitle={assessedRole.role_title}
+          currentAssessment={assessedRole.gwc ?? null}
+          open={!!assessRoleId}
+          onOpenChange={(open) => { if (!open) setAssessRoleId(null); }}
+          onSave={(data) => {
+            saveGWCAssessment.mutate(data, {
+              onSuccess: () => setAssessRoleId(null),
+            });
+          }}
+          isSaving={saveGWCAssessment.isPending}
+        />
+      )}
     </div>
   );
 }

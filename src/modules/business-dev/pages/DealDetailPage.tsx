@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, DollarSign, Calendar, User, Building2, MessageSquare, Activity, Loader2, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, DollarSign, Calendar, User, Building2, MessageSquare, Activity, Loader2, ChevronRight, Pencil, Trash2, Video } from "lucide-react";
 import { useDeal, useDealActivities, useDealComments, useAddDealComment, useUpdateDealStage, useDeleteDeal } from "../hooks/useDeals";
+import { useDealMeetings } from "@/modules/meetings/hooks/useCrossModuleMeetings";
 import type { DealStage } from "../types";
 
 const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
@@ -37,6 +38,7 @@ export default function DealDetailPage() {
   const addComment = useAddDealComment();
   const updateStage = useUpdateDealStage();
   const deleteDeal = useDeleteDeal();
+  const { data: linkedMeetings = [] } = useDealMeetings(deal?.id);
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -124,6 +126,7 @@ export default function DealDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="activities">Activities ({activities.length})</TabsTrigger>
           <TabsTrigger value="comments">Comments ({comments.length})</TabsTrigger>
+          <TabsTrigger value="meetings">Meetings ({linkedMeetings.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
@@ -262,6 +265,40 @@ export default function DealDetailPage() {
                       <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
                     </div>
                     <p className="text-sm text-muted-foreground">{c.content}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="meetings" className="mt-4">
+          {linkedMeetings.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">No meetings linked to this deal.</p>
+          ) : (
+            <div className="space-y-2">
+              {linkedMeetings.map((item) => (
+                <Card
+                  key={item.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => navigate(`/meetings/${item.meeting?.id}`)}
+                >
+                  <CardContent className="flex items-start gap-3 py-3 px-4">
+                    <Video className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{item.meeting?.title || "Untitled Meeting"}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {item.meeting?.status && (
+                          <Badge variant="secondary" className="text-xs">{item.meeting.status}</Badge>
+                        )}
+                        {item.meeting?.duration_minutes && (
+                          <span className="text-xs text-muted-foreground">{item.meeting.duration_minutes} min</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {item.meeting?.scheduled_at ? new Date(item.meeting.scheduled_at).toLocaleDateString() : "—"}
+                    </span>
                   </CardContent>
                 </Card>
               ))}
