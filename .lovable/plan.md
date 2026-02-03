@@ -1,9 +1,9 @@
-
-
 # Plan: Add Zoom Cloud Recording Scopes to OAuth Connect
 
 ## Problem
+
 The `sync-zoom-files` function is failing with error:
+
 ```
 Invalid access token, does not contain scopes:
 [cloud_recording:read:list_user_recordings, cloud_recording:read:list_user_recordings:admin]
@@ -16,10 +16,13 @@ This happens because the `user-oauth-connect` edge function doesn't request clou
 Update the Zoom provider configuration in `supabase/functions/user-oauth-connect/index.ts` to include the cloud recording scopes that match your Zoom app.
 
 ### File to Modify
+
 **`supabase/functions/user-oauth-connect/index.ts`** (lines 52-61)
 
 ### Change
+
 Update the Zoom scopes from:
+
 ```typescript
 zoom: {
   authUrl: "https://zoom.us/oauth/authorize",
@@ -34,6 +37,7 @@ zoom: {
 ```
 
 To:
+
 ```typescript
 zoom: {
   authUrl: "https://zoom.us/oauth/authorize",
@@ -57,10 +61,11 @@ zoom: {
 - The edge function will be deployed automatically after the code change
 
 ## Expected Result
+
 After this change:
+
 1. Users who click "Connect with Zoom" will be prompted to authorize the cloud recording permissions
 2. The resulting access token will include the recording scopes
 3. The `sync-zoom-files` function will successfully fetch Zoom recordings
 
 **Important**: Existing connected users must **disconnect and reconnect** their Zoom account to get the new scopes.
-
