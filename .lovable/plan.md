@@ -1,102 +1,88 @@
 
 
-# Plan: Fix Build Errors in Multiple Files
+# Plan: Fix CORS Error by Creating Edge Function Proxy for Zoom Meeting Creation
 
-## Overview
-There are 4 distinct issues causing 16+ build errors. The fixes involve either correcting table/column references or adding proper type handling.
-
-## Issues and Fixes
-
-### 1. Project Backups Files (table doesn't exist)
-
-**Files:**
-- `src/components/projects/ProjectsBackupStatus.tsx`
-- `src/components/projects/ProjectsRestoreBackupDialog.tsx`
-
-**Problem:** These files query a `project_backups` table that doesn't exist in the database schema.
-
-**Solution:** Delete both files since they reference non-existent infrastructure. If backup functionality is needed later, it should be rebuilt with proper database tables.
-
----
-
-### 2. GeminiRAGConfig.tsx (wrong column names)
-
-**File:** `src/pages/admin/GeminiRAGConfig.tsx`
-
-**Problem:** The interface expects columns that don't exist:
-- Expects: `description`, `last_synced_at`
-- Actual: `display_name`, `updated_at`
-
-**Solution:** Update the interface and query to match actual schema:
+## Problem
+The `createZoomMeeting` function in `src/lib/zoomMeetingService.ts` is calling the Zoom API directly from the browser:
 ```typescript
-interface GeminiCorpus {
-  id: string;
-  name: string;
-  display_name: string | null;  // Changed from description
-  is_active: boolean | null;
-  updated_at: string | null;    // Changed from last_synced_at
-  created_at: string | null;
-}
-```
-Update the select query and UI to use `display_name` instead of `description`.
-
----
-
-### 3. MemoryAnalytics.tsx (wrong column names)
-
-**File:** `src/pages/admin/MemoryAnalytics.tsx`
-
-**Problem:** The interface uses old column names:
-- `job_type` should be `batch_type`
-- `processed_items` should be `processed_count`
-- `error_message` doesn't exist (needs `failed_count` + `metadata` instead)
-
-**Solution:** Update interface to match actual schema:
-```typescript
-interface QueueHistoryRow {
-  id: string;
-  batch_type: string;           // Changed from job_type
-  status: string | null;
-  started_at: string | null;
-  completed_at: string | null;
-  total_items: number | null;
-  processed_count: number | null; // Changed from processed_items
-  failed_count: number | null;    // Added (replacing error_message)
-}
+const response = await fetch('https://api.zoom.us/v2/users/me/meetings', { ... });
 ```
 
----
+This fails with a CORS error because Zoom's API is designed for server-to-server communication and doesn't include CORS headers for browser requests.
 
-### 4. ZoomMeetingService.ts (spread type issue)
+## Solution
+Create a new Edge Function `create-zoom-meeting` that acts as a proxy between the frontend and the Zoom API. This follows the same pattern as the existing `sync-zoom-files` function.
 
-**File:** `src/lib/zoomMeetingService.ts` (line 215)
+## Implementation
 
-**Problem:** `requestBody.settings` is `unknown` type, cannot spread.
+### 1. Create Edge Function: `supabase/functions/create-zoom-meeting/index.ts`
 
-**Solution:** Add type assertion or properly type the settings object:
-```typescript
-requestBody.settings = {
-  ...(requestBody.settings as Record<string, unknown>),
-  approval_type: 0,
-  registrants_confirmation_email: true,
-};
+This function will:
+- Authenticate the user via JWT validation
+- Retrieve the user's Zoom OAuth token from the database
+- Handle token refresh if expired
+- Make the server-to-server request to Zoom API
+- Return the response with proper CORS headers
+
+```text
+Request Flow:
+Browser → Edge Function → Zoom API
+                ↓
+         (CORS headers added)
+                ↓
+Browser ← Edge Function ← Zoom API Response
 ```
 
----
+### 2. Update `supabase/config.toml`
 
-## Summary of Changes
+Add the new function with `verify_jwt = false` to support ES256 token validation (as per project standards).
+
+### 3. Update `src/lib/zoomMeetingService.ts`
+
+Change from direct Zoom API call to calling the edge function:
+```typescript
+// Before (CORS error)
+const response = await fetch('https://api.zoom.us/v2/users/me/meetings', { ... });
+
+// After (works via proxy)
+const { data, error } = await supabase.functions.invoke('create-zoom-meeting', {
+  body: { topic, start_time, duration, timezone, agenda, settings, registrants }
+});
+```
+
+## Files to Create/Modify
 
 | File | Action |
 |------|--------|
-| `ProjectsBackupStatus.tsx` | Delete |
-| `ProjectsRestoreBackupDialog.tsx` | Delete |
-| `GeminiRAGConfig.tsx` | Update interface and query |
-| `MemoryAnalytics.tsx` | Update interface and query |
-| `zoomMeetingService.ts` | Add type assertion |
+| `supabase/functions/create-zoom-meeting/index.ts` | **Create** - New edge function proxy |
+| `supabase/config.toml` | **Modify** - Add function config |
+| `src/lib/zoomMeetingService.ts` | **Modify** - Use edge function instead of direct API call |
 
-## Technical Notes
+## Technical Details
 
-- The deleted backup components may need to be removed from imports/routes elsewhere
-- After these fixes, the Zoom OAuth flow will work with the newly added recording scopes
-- Users should still disconnect and reconnect Zoom after deployment to get new tokens with recording permissions
+### Edge Function Implementation
+
+The edge function will:
+1. Handle CORS preflight (OPTIONS) requests
+2. Validate the user's JWT token manually (ES256 compatibility)
+3. Retrieve user's Zoom OAuth token from `user_oauth_tokens` table
+4. Refresh token if expired using org credentials from `organization_integrations`
+5. Make POST request to `https://api.zoom.us/v2/users/me/meetings`
+6. Return Zoom's response with CORS headers
+
+### Security Considerations
+
+- User authentication validated via JWT before any Zoom API calls
+- Zoom OAuth tokens retrieved server-side (never exposed to browser)
+- Token refresh handled automatically with proper credential management
+- CORS headers only added for authenticated responses
+
+## Expected Result
+
+After implementation:
+1. User clicks "Create Zoom Meeting" in the app
+2. Frontend calls `create-zoom-meeting` edge function
+3. Edge function authenticates user, retrieves Zoom token, calls Zoom API
+4. Meeting is created successfully without CORS errors
+5. Response returned to frontend with meeting details
 
