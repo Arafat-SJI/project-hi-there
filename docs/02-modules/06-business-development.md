@@ -55,8 +55,8 @@ No module-specific components directory. UI is built directly in the page files.
 
 | Hook | Purpose | Tables Queried |
 |------|---------|----------------|
-| `useDeals.ts` | Deal CRUD, pipeline management, stage transitions | `deals`, `deal_activities` |
-| `useContacts.ts` | Contact CRUD | `contacts` |
+| `useDeals.ts` | Deal CRUD, pipeline stats, stage transitions, activity log, comments | `deals`, `deal_activities`, `deal_comments` |
+| `useContacts.ts` | Contact CRUD, lead follow-up management | `contacts`, `lead_followup_contacts` |
 
 ### Edge Functions
 
@@ -70,15 +70,19 @@ No edge functions are invoked directly from the Business Dev module.
 |-------|---------|
 | `deals` | Deal records (title, stage, value, client_id, owner_id) |
 | `deal_activities` | Deal activity log (stage changes, notes) |
+| `deal_comments` | Deal comments/notes |
 | `clients` | Client records |
-| `client_contacts` | Client contact associations |
 | `contacts` | Contact records |
+| `lead_followup_contacts` | Lead follow-up tracking for contacts |
 
 ## Cross-Module Dependencies
 
 **Depends on:** Platform Core (auth, layouts, UI)
+**Cross-module imports:**
+- `DealDetailPage` imports `useDealMeetings` from Meetings module
+- `ClientDetail.tsx` imports `useClientMeetings` from Meetings module
+- `DealFormPage` imports `useClients` from `src/hooks/useClients.ts`
 **Used by:**
-- Meetings (`useClientMeetings`, `useDealMeetings` from meetings module)
 - Projects (projects reference `client_id`)
 
 ## Implementation Status
@@ -94,10 +98,13 @@ No edge functions are invoked directly from the Business Dev module.
 | Client listing (legacy) | Done |
 | Client detail (legacy) | Done |
 
+### Known Issues
+
+- No module-specific components — all UI is inline in page files
+- Client pages (`Clients.tsx`, `ClientForm.tsx`, `ClientDetail.tsx`) live in legacy `src/pages/` instead of module directory
+
 ### Pending
 
-- Contact edit/update page
 - HubSpot CRM sync
 - Email automation
 - AI deal scoring
-- Lead follow-up workflow
