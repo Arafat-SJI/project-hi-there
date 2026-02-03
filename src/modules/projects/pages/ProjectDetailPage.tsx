@@ -23,11 +23,11 @@ import { useProjectTasks } from "../hooks/useProjectTasks";
 import { useProjectIntegrations } from "../hooks/useProjectIntegrations";
 import { useEnabledProjectModules } from "@/hooks/useProjectModuleSettings";
 import { useProjectMeetings } from "@/modules/meetings/hooks/useCrossModuleMeetings";
-import { ClientAccessManagement } from "@/components/projects/ClientAccessManagement";
-import { OverviewTab } from "@/components/projects/OverviewTab";
-import { TasksTab } from "@/components/projects/TasksTab";
-import { IntegrationsTab } from "@/components/projects/IntegrationsTab";
-import { BillingTab } from "@/components/projects/BillingTab";
+import { ClientAccessManagement } from "@/modules/projects/components/ClientAccessManagement";
+import { OverviewTab } from "@/modules/projects/components/OverviewTab";
+import { TasksTab } from "@/modules/projects/components/TasksTab";
+import { IntegrationsTab } from "@/modules/projects/components/IntegrationsTab";
+import { BillingTab } from "@/modules/projects/components/BillingTab";
 import type { ProjectTab } from "../types";
 
 const TAB_URL_MAPPINGS: Record<string, ProjectTab> = {

@@ -217,4 +217,3 @@ export function BillingTab({ projectId, projectSlug }: BillingTabProps) {
     </div>
   );
 }
-

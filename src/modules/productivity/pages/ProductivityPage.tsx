@@ -90,15 +90,15 @@ export default function ProductivityPage() {
       )}
 
       {/* AI Insights */}
-      {insights.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              AI productivity insights
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            AI productivity insights
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {insights.length > 0 ? (
             <div className="space-y-2">
               {insights.slice(0, 6).map((insight) => (
                 <div
@@ -141,9 +141,13 @@ export default function ProductivityPage() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No AI insights for this period yet. Insights are generated from productivity data; try adjusting filters or importing more data.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {summary && summary.departments.length > 0 && (
         <Card>

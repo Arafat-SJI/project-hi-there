@@ -1,5 +1,8 @@
 /**
  * Productivity Hook - Core productivity data queries
+ *
+ * Employee detail and list are keyed by employee_email. Ensure productivity
+ * data uses unique emails per person (e.g. from HR/CSV import) for correct aggregation.
  */
 
 import { useQuery } from "@tanstack/react-query";

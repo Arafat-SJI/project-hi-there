@@ -46,4 +46,3 @@ export function OverviewTab({ project }: OverviewTabProps) {
     </Card>
   );
 }
-

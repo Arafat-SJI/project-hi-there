@@ -3,7 +3,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Search, FolderKanban, Calendar, Loader2, Database } from "lucide-react";
 import { useProjects, useProjectStatuses } from "../hooks/useProjects";
 import { useClients } from "@/hooks/useClients";
-import { GlobalProjectsRestoreDialog } from "@/components/projects/GlobalProjectsRestoreDialog";
+import { GlobalProjectsRestoreDialog } from "@/modules/projects/components/GlobalProjectsRestoreDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,6 +32,18 @@ export default function ProjectsPage() {
   });
   const { data: clients = [] } = useClients();
 
+  const ownerIds = useMemo(() => [...new Set((projects || []).map((p) => p.owner_id).filter(Boolean))] as string[], [projects]);
+  const { data: ownerProfiles = [] } = useQuery({
+    queryKey: ["profiles", ownerIds],
+    queryFn: async () => {
+      if (ownerIds.length === 0) return [];
+      const { data, error } = await supabase.from("profiles").select("id, full_name, email").in("id", ownerIds);
+      if (error) throw error;
+      return (data || []) as { id: string; full_name: string | null; email: string | null }[];
+    },
+    enabled: ownerIds.length > 0,
+  });
+
   const statusById = useMemo(
     () => Object.fromEntries(statuses.map((s) => [s.id, s])),
     [statuses],
@@ -39,6 +51,10 @@ export default function ProjectsPage() {
   const clientById = useMemo(
     () => Object.fromEntries(clients.map((c) => [c.id, c])),
     [clients],
+  );
+  const ownerById = useMemo(
+    () => Object.fromEntries(ownerProfiles.map((p) => [p.id, p])),
+    [ownerProfiles],
   );
 
   const backupAll = useMutation({
@@ -187,8 +203,7 @@ export default function ProjectsPage() {
                           : "No client"}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Owner: {/* owner name not joined in this schema */}
-                        —
+                        Owner: {project.owner_id && ownerById[project.owner_id]?.full_name ? ownerById[project.owner_id].full_name : "—"}
                       </span>
                     </div>
                   </TableCell>
