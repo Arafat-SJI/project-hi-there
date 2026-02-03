@@ -183,6 +183,20 @@ ZOOM.MANAGE_ACCOUNT: 'manage-zoom-account'
 ### Routes Registered
 - `/meetings/transcripts` → MeetingTranscriptsPage
 
+### Built (Sprint 2 — Detail Page Enhancements)
+
+**5 New Components:**
+- **AddParticipantDialog** (`src/modules/meetings/components/participants/AddParticipantDialog.tsx`) — Dialog with name, email, role selector, calls `useAddParticipant()`
+- **MeetingParticipantSelector** (`src/modules/meetings/components/participants/MeetingParticipantSelector.tsx`) — Inline participant list with avatars, role badges, remove buttons
+- **PreviousAgendaViewer** (`src/modules/meetings/components/agenda/PreviousAgendaViewer.tsx`) — Read-only agenda from previous meeting in series
+- **SeriesHistoryTab** (`src/modules/meetings/components/series/SeriesHistoryTab.tsx`) — Timeline of all meetings in a series with status badges, clickable
+- **RelatedTasksTab** (`src/modules/meetings/components/RelatedTasksTab.tsx`) — Action items and linked tasks from meeting takeaways
+
+**MeetingDetailV2Page Enhanced:**
+- Added "Tasks" tab (always shown) → RelatedTasksTab
+- Added "Series" tab (conditional on `series_id`) → SeriesHistoryTab
+- MeetingDetailTab type updated: `"details" | "agenda" | "takeaways" | "participants" | "related-tasks" | "series-history"`
+
 ## Implementation Notes
 - Meetings support both one-off and recurring series
 - Zoom integration syncs recordings, transcripts, and files

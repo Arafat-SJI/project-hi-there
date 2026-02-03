@@ -22,11 +22,15 @@ import {
   FileText,
   ListChecks,
   ClipboardList,
+  CheckSquare,
+  History,
 } from "lucide-react";
 import { useMeeting } from "@/hooks/useMeetings";
 import { AgendaTab } from "../components/agenda/AgendaTab";
 import { TakeawaysTab } from "../components/takeaways/TakeawaysTab";
 import { ParticipantsTab } from "../components/participants/ParticipantsTab";
+import { RelatedTasksTab } from "../components/RelatedTasksTab";
+import { SeriesHistoryTab } from "../components/series/SeriesHistoryTab";
 import type { MeetingDetailTab } from "../types";
 
 export default function MeetingDetailV2Page() {
@@ -129,6 +133,16 @@ export default function MeetingDetailV2Page() {
             <Users className="h-4 w-4" />
             Participants
           </TabsTrigger>
+          <TabsTrigger value="related-tasks" className="flex items-center gap-1.5">
+            <CheckSquare className="h-4 w-4" />
+            Tasks
+          </TabsTrigger>
+          {(meeting as any).series_id && (
+            <TabsTrigger value="series-history" className="flex items-center gap-1.5">
+              <History className="h-4 w-4" />
+              Series
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Details Tab */}
@@ -205,6 +219,18 @@ export default function MeetingDetailV2Page() {
         <TabsContent value="participants" className="mt-4">
           <ParticipantsTab meetingId={id!} />
         </TabsContent>
+
+        {/* Related Tasks Tab */}
+        <TabsContent value="related-tasks" className="mt-4">
+          <RelatedTasksTab meetingId={id!} />
+        </TabsContent>
+
+        {/* Series History Tab */}
+        {(meeting as any).series_id && (
+          <TabsContent value="series-history" className="mt-4">
+            <SeriesHistoryTab seriesId={(meeting as any).series_id} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

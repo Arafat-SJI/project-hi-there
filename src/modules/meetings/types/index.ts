@@ -253,4 +253,6 @@ export type MeetingDetailTab =
   | "takeaways"
   | "transcript"
   | "participants"
-  | "series";
+  | "series"
+  | "related-tasks"
+  | "series-history";

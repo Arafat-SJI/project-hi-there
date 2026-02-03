@@ -191,6 +191,38 @@ OKRS.SUMMARY: 'api-v1-okrs/summary'
 ### Admin Navigation
 - Added EOS group to `navigationStructure.ts` adminNavigation with 4 items
 
+### Built (Sprint 2 — Issue Sub-Pages + AI Suggestions)
+
+**7 Issue Sub-Pages:**
+- **IssuesAllPage** (`src/modules/eos/pages/IssuesAllPage.tsx`) — All issues, no pre-filter
+- **IssuesSolvedPage** (`src/modules/eos/pages/IssuesSolvedPage.tsx`) — Pre-filtered `status: "solved"`
+- **IssuesArchivedPage** (`src/modules/eos/pages/IssuesArchivedPage.tsx`) — Pre-filtered `status: "archived"`
+- **IssuesAnonymousPage** (`src/modules/eos/pages/IssuesAnonymousPage.tsx`) — Client-side `is_anonymous` filter
+- **IssuesAIPage** (`src/modules/eos/pages/IssuesAIPage.tsx`) — AI-sourced issues + suggestion stats + review queue
+- **IssuesByPodPage** (`src/modules/eos/pages/IssuesByPodPage.tsx`) — Pod-scoped issues with `defaultPodId` on create
+- **IssuesPodOverviewPage** (`src/modules/eos/pages/IssuesPodOverviewPage.tsx`) — Pod dashboard with stats cards, navigation
+
+**3 New Hooks:**
+- **useEOSIssuesByPod** (`src/modules/eos/hooks/useEOSIssuesByPod.ts`) — Groups issues by pod with per-pod stats (total, open, in_progress, solved, critical). Also exports `usePodIssues(podId)`.
+- **useAIIssueSuggestions** (`src/modules/eos/hooks/useAIIssueSuggestions.ts`) — CRUD for AI suggestions with `useSuggestionStats()` and `useReviewSuggestion()` (accept/reject mutation)
+- **useEOSIssueInsights** (`src/modules/eos/hooks/useEOSIssueInsights.ts`) — Analytics: byStatus, byPriority, byCategory, byPod, bySource, avgResolutionDays, recentTrend (14-day), anonymousCount
+
+**5 AI Suggestion Components:**
+- **AISuggestionCard** — Card with type badge (color-coded), confidence bar, accept/reject buttons
+- **AISuggestionReviewDialog** — Full-detail review modal with accept/reject
+- **AIReviewQueue** — Pending suggestions queue
+- **AIWeeklyDigest** — Weekly summary with acceptance rate, type breakdown
+- **AISuggestionStats** — Stats panel with 4 stat cards + confidence bar + type breakdown
+
+### Sprint 2 Routes Registered
+- `/eos/issues/all` → IssuesAllPage
+- `/eos/issues/solved` → IssuesSolvedPage
+- `/eos/issues/archived` → IssuesArchivedPage
+- `/eos/issues/anonymous` → IssuesAnonymousPage
+- `/eos/issues/ai` → IssuesAIPage
+- `/eos/issues/pod-overview` → IssuesPodOverviewPage
+- `/eos/issues/pod/:podId` → IssuesByPodPage
+
 ## Implementation Notes
 - OKRs replace the legacy Rocks/Goals system
 - Issues have AI-powered triage, pattern detection, and suggestion features
