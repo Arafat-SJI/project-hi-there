@@ -45,6 +45,8 @@ import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
 import SeedRunner from "@/pages/admin/SeedRunner";
+import GeminiRAGConfig from "@/pages/admin/GeminiRAGConfig";
+import MemoryAnalytics from "@/pages/admin/MemoryAnalytics";
 import EmbeddingsExplorer from "@/pages/admin/EmbeddingsExplorer";
 import AdminEOS from "@/pages/admin/eos/AdminEOS";
 import VTOAdmin from "@/pages/admin/eos/VTOAdmin";
@@ -97,6 +99,8 @@ export const adminRoutes = (
     <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />
     <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
     <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />
+  <Route path="/admin/knowledge/gemini" element={<GeminiRAGConfig />} />
+  <Route path="/admin/knowledge/memory-analytics" element={<MemoryAnalytics />} />
 
     {/* EOS Admin */}
     <Route path="/admin/eos" element={<AdminEOS />} />

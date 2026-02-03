@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FolderKanban, Milestone, ShieldAlert, DollarSign } from "lucide-react";
 import { useProjectReports } from "@/hooks/useProjectReports";
+import { ProjectsBackupStatus } from "@/components/projects/ProjectsBackupStatus";
 
 function StatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
@@ -173,6 +174,9 @@ export default function ProjectReports() {
           )}
         </CardContent>
       </Card>
+
+      {/* Backup overview */}
+      <ProjectsBackupStatus />
     </div>
   );
 }

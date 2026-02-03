@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Calendar, Users, AlertTriangle, Loader2, Plus, CheckCircle2, Pencil, Trash2, Video } from "lucide-react";
+import { ArrowLeft, Calendar, Users, AlertTriangle, Loader2, Plus, CheckCircle2, Pencil, Trash2, Video, Brain } from "lucide-react";
 import { useProject, useDeleteProject } from "../hooks/useProjects";
 import { useProjectMembers } from "../hooks/useProjectDetail";
 import { useProjectMilestones, useAddMilestone, useUpdateMilestone } from "../hooks/useProjectDetail";
@@ -25,6 +25,8 @@ import { ClientAccessManagement } from "@/components/projects/ClientAccessManage
 import { OverviewTab } from "@/components/projects/OverviewTab";
 import { TasksTab } from "@/components/projects/TasksTab";
 import { IntegrationsTab } from "@/components/projects/IntegrationsTab";
+import { BillingTab } from "@/components/projects/BillingTab";
+import { ProjectsRestoreBackupDialog } from "@/components/projects/ProjectsRestoreBackupDialog";
 import type { ProjectTab } from "../types";
 
 const TAB_URL_MAPPINGS: Record<string, ProjectTab> = {
@@ -32,6 +34,7 @@ const TAB_URL_MAPPINGS: Record<string, ProjectTab> = {
   milestones: "milestones",
   members: "members",
   issues: "issues",
+  billing: "billing",
   client_portal: "client_portal",
   tasks: "tasks",
   integrations: "integrations",
@@ -44,6 +47,7 @@ const TAB_ORDER: ProjectTab[] = [
   "milestones",
   "members",
   "issues",
+  "billing",
   "integrations",
   "meetings",
   "client_portal",
@@ -117,6 +121,7 @@ export default function ProjectDetailPage() {
           <Button variant="outline" size="sm" onClick={() => navigate(`/projects/${slug}/edit`)}>
             <Pencil className="h-4 w-4 mr-1" />Edit
           </Button>
+          <ProjectsRestoreBackupDialog projectId={project.id} />
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
@@ -153,6 +158,7 @@ export default function ProjectDetailPage() {
               {tab === "milestones" && `Milestones (${milestones.length})`}
               {tab === "members" && `Members (${members.length})`}
               {tab === "issues" && `Risks (${risks.length})`}
+              {tab === "billing" && "Billing"}
               {tab === "integrations" && "Integrations"}
               {tab === "meetings" && `Meetings (${linkedMeetings.length})`}
               {tab === "client_portal" && "Client Portal"}
@@ -204,6 +210,12 @@ export default function ProjectDetailPage() {
               integrations={integrations}
               isLoading={integrationsLoading}
             />
+          </TabsContent>
+        )}
+
+        {visibleTabs.includes("billing") && (
+          <TabsContent value="billing" className="mt-4">
+            <BillingTab projectId={project.id} projectSlug={project.slug} />
           </TabsContent>
         )}
 
@@ -291,18 +303,44 @@ export default function ProjectDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="issues" className="mt-4">
+        <TabsContent value="issues" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Track project risks and optionally run an AI pass for potential blind spots.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="inline-flex items-center gap-2"
+              onClick={() => navigate(`/projects/${slug}/issues/ai/analyze`)}
+            >
+              <Brain className="h-4 w-4" />
+              AI issues analysis
+            </Button>
+          </div>
           {risks.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No risks identified.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No risks identified yet. Use the AI analysis flow to help surface potential issues.
+            </p>
           ) : (
             <div className="space-y-2">
               {risks.map((r) => (
                 <Card key={r.id}>
-                  <CardContent className="flex items-center gap-3 py-3 px-4">
-                    <AlertTriangle className={`h-5 w-5 ${r.severity === "critical" ? "text-red-500" : r.severity === "high" ? "text-orange-500" : "text-yellow-500"}`} />
+                  <CardContent className="flex items-center gap-3 px-4 py-3">
+                    <AlertTriangle
+                      className={`h-5 w-5 ${
+                        r.severity === "critical"
+                          ? "text-red-500"
+                          : r.severity === "high"
+                          ? "text-orange-500"
+                          : "text-yellow-500"
+                      }`}
+                    />
                     <div className="flex-1">
                       <p className="font-medium text-sm">{r.title}</p>
-                      {r.description && <p className="text-xs text-muted-foreground">{r.description}</p>}
+                      {r.description && (
+                        <p className="text-xs text-muted-foreground">{r.description}</p>
+                      )}
                     </div>
                     <Badge variant="outline">{r.severity}</Badge>
                     <Badge variant="secondary">{r.status}</Badge>
