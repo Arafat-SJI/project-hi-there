@@ -1,23 +1,27 @@
 # EOS — Module Blueprint
 
 ## Overview
-The Entrepreneurial Operating System (EOS) module implements strategic planning and execution tools. It includes the Vision/Traction Organizer (V/TO), OKRs (Objectives & Key Results, replacing legacy Rocks/Goals), Scorecard for metrics, Issues tracking with AI analysis, and the Accountability Chart with GWC assessments.
+
+The Entrepreneurial Operating System (EOS) module implements strategic planning and execution tools. It includes the Vision/Traction Organizer (V/TO), OKRs (Objectives & Key Results), Scorecard for metrics, Issues tracking with AI analysis, and the Accountability Chart with GWC assessments.
 
 ## Module Name
-`EOS` (in app_modules and navigation)
-Related module: `OKRs` (separate module permission)
+
+`EOS` (in `app_modules` and navigation)
+Related module: `OKRs` (separate sidebar entry, same module guard)
 
 ## Routes Owned
+
+From `src/modules/eos/routes.tsx`:
+
 ```
 /eos                           → EOS hub page
 /eos/vto                       → Vision/Traction Organizer
-/eos/rocks                     → Rocks (legacy, being replaced by OKRs)
 /eos/issues                    → Issues pod overview
 /eos/issues/all                → All issues
 /eos/issues/pod/:podId         → Issues by pod
 /eos/issues/anonymous          → Anonymous issues
 /eos/issues/ai                 → AI-powered issues
-/eos/issues/ai/analyze         → AI issue analysis
+/eos/issues/ai/analyze         → AI issue analysis wizard
 /eos/issues/solved             → Solved issues
 /eos/issues/archived           → Archived issues
 /eos/issues/:issueId           → Issue detail
@@ -25,265 +29,194 @@ Related module: `OKRs` (separate module permission)
 /eos/accountability            → Accountability chart
 /eos/my-accountability         → Personal accountability
 /okrs                          → OKRs management
+```
 
-Admin routes:
+Admin routes (from `src/modules/admin/routes.tsx`):
+
+```
 /admin/eos                     → Admin EOS hub
 /admin/eos/vto                 → VTO admin
-/admin/eos/accountability      → Accountability admin
 /admin/eos/scorecards          → Scorecard workspace
-/admin/eos/meetings            → EOS meetings config
-/admin/eos/system              → EOS system config
-/admin/eos/email-templates     → EOS email templates
-/admin/import-anonymous-issues → Import anonymous issues
+/admin/eos/accountability      → Accountability admin
 ```
+
+---
 
 ## File Inventory
 
-### Pages (24 files)
-- src/pages/EOS.tsx — Main EOS hub
-- src/pages/OKRs.tsx — OKRs management
-- src/pages/Vision.tsx — Vision page
-- src/pages/eos/VTO.tsx — Vision/Traction Organizer
-- src/pages/eos/EOSScorecard.tsx — Scorecard
-- src/pages/eos/EOSRocks.tsx — Rocks (legacy goals)
-- src/pages/eos/EOSAccountability.tsx — Accountability chart
-- src/pages/eos/MyAccountabilityChart.tsx — Personal accountability
-- src/pages/eos/EOSIssues.tsx — Issues main
-- src/pages/eos/EOSIssueDetail.tsx — Issue detail
-- src/pages/eos/EOSIssuesAll.tsx — All issues
-- src/pages/eos/EOSIssuesSolved.tsx — Solved issues
-- src/pages/eos/EOSIssuesArchived.tsx — Archived issues
-- src/pages/eos/EOSIssuesAnonymous.tsx — Anonymous issues
-- src/pages/eos/EOSIssuesAI.tsx — AI issues
-- src/pages/eos/EOSIssuesAIAnalyze.tsx — AI analysis
-- src/pages/eos/IssuesByPod.tsx — Issues by pod
-- src/pages/eos/IssuesPodOverview.tsx — Pod overview
-- src/pages/admin/AdminEOS.tsx — Admin hub
-- src/pages/admin/AdminEOSSystem.tsx — System config
-- src/pages/admin/AdminEOSAccountability.tsx — Admin accountability
-- src/pages/admin/ScorecardWorkspace.tsx — Scorecard admin
-- src/pages/admin/ImportAnonymousIssues.tsx — Import tool
-- src/pages/admin/eos/VTOAdmin.tsx — VTO admin
+### Pages (17 files in `src/modules/eos/pages/`)
 
-### Components — Issues (src/components/eos/issues/) — 14 files
-- IssueForm.tsx, IssueFormTypeSelector.tsx
-- IssuesTable.tsx, IssueStatsCards.tsx, IssueDetailDialog.tsx
-- IssuesTabNav.tsx, PodIssueCard.tsx, PodIssueSummary.tsx
-- SubmitterLink.tsx, TriageAssistantModal.tsx
-- PatternInsightsPanel.tsx, PodHealthAgentPanel.tsx
-- PodHealthHistoryModal.tsx, QuarterlyDigestView.tsx
+| File | Purpose | Route |
+|------|---------|-------|
+| `EOSHubPage.tsx` | EOS hub with section cards | `/eos` |
+| `VTOPage.tsx` | Vision/Traction Organizer | `/eos/vto` |
+| `OKRsPage.tsx` | OKRs with 5-tab view | `/okrs` |
+| `OKRDetailDialog.tsx` | OKR detail dialog (used by OKRsPage) | — |
+| `IssuesPage.tsx` | Issues pod overview | `/eos/issues` |
+| `IssueDetailPage.tsx` | Issue detail | `/eos/issues/:issueId` |
+| `IssuesAllPage.tsx` | All issues (no pre-filter) | `/eos/issues/all` |
+| `IssuesSolvedPage.tsx` | Pre-filtered solved issues | `/eos/issues/solved` |
+| `IssuesArchivedPage.tsx` | Pre-filtered archived issues | `/eos/issues/archived` |
+| `IssuesAnonymousPage.tsx` | Anonymous issues | `/eos/issues/anonymous` |
+| `IssuesAIPage.tsx` | AI-sourced issues + suggestions | `/eos/issues/ai` |
+| `EOSIssuesAIAnalyzePage.tsx` | Multi-step AI analysis wizard | `/eos/issues/ai/analyze` |
+| `IssuesPodOverviewPage.tsx` | Pod dashboard with stats | `/eos/issues` (default) |
+| `IssuesByPodPage.tsx` | Pod-scoped issues | `/eos/issues/pod/:podId` |
+| `ScorecardPage.tsx` | Scorecard metrics + trend chart | `/eos/scorecard` |
+| `AccountabilityPage.tsx` | Org chart with tree view | `/eos/accountability` |
+| `MyAccountabilityPage.tsx` | Personal accountability view | `/eos/my-accountability` |
 
-### Components — Issues AI Analyze (src/components/eos/issues/ai-analyze/) — 4 files
-- DataSourcesStep.tsx, AnalysisProgressStep.tsx, ResultsReviewStep.tsx, index.ts
+Admin pages (in `src/pages/admin/eos/`):
 
-### Components — Issues AI Suggestions (src/components/eos/issues/ai-suggestions/) — 6 files
-- AISuggestionCard.tsx, AISuggestionReviewDialog.tsx
-- AIReviewQueue.tsx, AIWeeklyDigest.tsx, AISuggestionStats.tsx, index.ts
+| File | Purpose | Route |
+|------|---------|-------|
+| `AdminEOS.tsx` | Admin EOS hub with section cards | `/admin/eos` |
+| `VTOAdmin.tsx` | VTO section management | `/admin/eos/vto` |
+| `ScorecardWorkspace.tsx` | Scorecard + metrics CRUD | `/admin/eos/scorecards` |
+| `AdminEOSAccountability.tsx` | Chart versions, role CRUD, GWC | `/admin/eos/accountability` |
 
-### Components — Accountability (src/components/accountability/) — 14 files
-- ChartForm.tsx, ChartHistoryTimeline.tsx, ChartVersionHistory.tsx
-- DepartmentAccordion.tsx, EmployeeAccountabilityModal.tsx, EmployeeCard.tsx
-- GWCAssessmentDialog.tsx, GWCComparisonCard.tsx, GWCIndicators.tsx
-- ManagerInfoCard.tsx, ResponsibilitiesEditor.tsx
-- ResponsibilityItem.tsx, ResponsibilityReviewItem.tsx, StatusBadge.tsx
+### Components (33 files in `src/modules/eos/components/`)
 
-### Components — OKRs (src/components/okrs/) — 16 files
-- AISuggestionsDialog.tsx, CheckInDialog.tsx, CloseOKRDialog.tsx
-- ClosedOKRsTable.tsx, CreateOKRDialog.tsx, KeyResultItem.tsx
-- KeyResultPerformanceCard.tsx, KeyResultProgressChart.tsx
-- KeyResultSparkline.tsx, KeyResultsByOwner.tsx
-- OKRCard.tsx, OKRDetailDialog.tsx, OKRHealthGrid.tsx
-- OverdueMembersIndicator.tsx, TeamOKRsByPod.tsx, TrendAlertBadge.tsx
+**OKR (`okr/`, 10 files):**
 
-### Components — Scorecard (src/components/scorecard/) — 2 files
-- MetricTrendChart.tsx, ScorecardMetricsTable.tsx
+| File | Purpose |
+|------|---------|
+| `OKRCard.tsx` | OKR card with key results and progress |
+| `CreateOKRDialog.tsx` | Create OKR dialog form |
+| `KeyResultProgress.tsx` | Key result progress bar |
+| `CheckInDialog.tsx` | Key result check-in dialog |
+| `CloseOKRDialog.tsx` | Close/complete OKR with status + notes |
+| `ClosedOKRsTable.tsx` | Table of completed/closed OKRs |
+| `KeyResultProgressChart.tsx` | Recharts LineChart for KR check-ins |
+| `KeyResultsByOwner.tsx` | KRs grouped by owner with progress bars |
+| `OKRHealthGrid.tsx` | OKR health cards sorted by urgency |
+| `TeamOKRsByPod.tsx` | OKRs grouped by pod with collapsible sections |
 
-### Components — Other
-- src/components/eos/ChartReviewModal.tsx
+**Issues (`issues/`, 8 files):**
 
-### Hooks (15 files)
-- useEOS.ts — Main EOS data
-- useEOSFilters.ts — Filter state
-- useEOSIssues.ts — Issues CRUD
-- useEOSIssueInsights.ts — Issue insights
-- useEOSIssuesByPod.ts — Issues grouped by pod
-- useAccountabilityCharts.ts — Chart data
-- useMyAccountabilityChart.ts — Personal chart
-- useEmployeesWithAccountability.ts — Employee accountability
-- useAIIssueSuggestions.ts — AI suggestions
-- usePromoteIssueToEOS.ts — Promote to EOS
-- useScorecard.ts — Scorecard data
-- useScorecardAdmin.ts — Admin scorecard
-- useVTOAdmin.ts — VTO admin
-- useOKRPermissions.ts — OKR permissions
-- useProjectAIIssues.ts — Project AI issues
+| File | Purpose |
+|------|---------|
+| `IssuesTable.tsx` | Issues data table with sorting/filtering |
+| `IssueStatsCards.tsx` | Summary stat cards (total, open, critical, etc.) |
+| `CreateIssueDialog.tsx` | Create issue dialog form |
+| `IssueFiltersBar.tsx` | Filter bar (status, priority, category, pod) |
+| `IssuesNavTabs.tsx` | Navigation tabs across issue sub-pages |
+| `PodIssueCard.tsx` | Pod card with colored border and mini stats |
+| `PodIssueSummary.tsx` | Pod health overview with totals |
 
-### Types (3 files)
-- src/types/accountability.ts — GWCAssessment, ResponsibilityWithGWC, ChartFormData
-- src/types/okr.ts — OKR types
-- src/types/ai-issue-suggestions.ts — AIIssueSuggestion, AIReviewStatus, ConfidenceLevel
+**Issues AI Suggestions (`issues/ai-suggestions/`, 5 files):**
 
-### Utilities
-- src/utils/okrHelpers.ts — OKR helper functions
+| File | Purpose | Status |
+|------|---------|--------|
+| `AISuggestionCard.tsx` | Suggestion card with confidence bar | Scaffolded |
+| `AISuggestionReviewDialog.tsx` | Full-detail review modal | Scaffolded |
+| `AIReviewQueue.tsx` | Pending suggestions queue | Scaffolded |
+| `AIWeeklyDigest.tsx` | Weekly summary with acceptance rate | Scaffolded |
+| `AISuggestionStats.tsx` | Stats panel with type breakdown | Scaffolded |
 
-### Edge Functions (12 functions)
-- supabase/functions/extract-meeting-issues/ — Extract issues from meetings
-- supabase/functions/extract-project-issues/ — Extract issues from projects
-- supabase/functions/import-pod-issues/ — Import pod issues
-- supabase/functions/import-anonymous-issues/ — Import anonymous issues
-- supabase/functions/suggest-okrs/ — OKR suggestion engine
-- supabase/functions/analyze-okr-progress/ — OKR progress analysis
-- supabase/functions/accountability-charts/ — Chart operations
-- supabase/functions/eos-triage-assistant/ — Issue triage
-- supabase/functions/eos-pod-health-analyzer/ — Pod health analysis
-- supabase/functions/eos-pattern-detective/ — Pattern detection
-- supabase/functions/eos-quarterly-digest/ — Quarterly reporting
-- supabase/functions/_shared/accountability-email.ts — Email template
+> Note: The 5 AI suggestion components are exported from `index.ts` but are not yet wired into any page. They are scaffolding for the planned `eos-triage-assistant` workflow.
 
-### API Endpoints (from config/api.ts)
-```
-EOS.GOALS: 'api-v1-eos/goals'
-EOS.ROCKS: 'api-v1-eos/rocks'
-EOS.ISSUES: 'api-v1-eos/issues'
-EOS.VTO: 'api-v1-eos/vto'
-EOS.SCORECARDS: 'api-v1-eos/scorecards'
-OKRS.BASE: 'api-v1-okrs'
-OKRS.KEY_RESULTS: 'api-v1-okrs/:id/key-results'
-OKRS.UPDATES: 'api-v1-okrs/:id/updates'
-OKRS.SUMMARY: 'api-v1-okrs/summary'
-```
+**Accountability (`accountability/`, 8 files):**
+
+| File | Purpose |
+|------|---------|
+| `GWCBadge.tsx` | Get/Want/Capacity badge indicator |
+| `OrgTree.tsx` | Org chart tree visualization |
+| `ChartForm.tsx` | Create/edit accountability chart form |
+| `ChartHistoryTimeline.tsx` | Vertical timeline of chart versions |
+| `ChartVersionHistory.tsx` | Table view with publish actions |
+| `ResponsibilitiesEditor.tsx` | Inline responsibility list editor |
+| `EmployeeAccountabilityModal.tsx` | Role detail modal with GWC display |
+| `GWCAssessmentDialog.tsx` | Toggle G/W/C assessment dialog |
+
+**Scorecard (`scorecard/`, 2 files):**
+
+| File | Purpose |
+|------|---------|
+| `ScorecardMetricsTable.tsx` | Scorecard metrics data table |
+| `MetricTrendChart.tsx` | Recharts LineChart for metric trends |
+
+**VTO (`vto/`, 1 file):**
+
+| File | Purpose |
+|------|---------|
+| `VTOSection.tsx` | VTO section renderer |
+
+### Hooks (11 files in `src/modules/eos/hooks/`)
+
+| Hook | Purpose | Tables Queried |
+|------|---------|----------------|
+| `useOKRs.ts` | OKR CRUD, key results, check-ins | `okrs`, `okr_key_results`, `okr_check_ins` |
+| `useEOSIssues.ts` | Issues CRUD with filters | `eos_issues` |
+| `useEOSIssuesByPod.ts` | Issues grouped by pod with stats | `eos_issues`, `eos_pods` |
+| `useEOSIssueInsights.ts` | Issue analytics (trends, by-status, by-pod) | `eos_issues`, `eos_issue_suggestions` |
+| `useAIIssueSuggestions.ts` | AI suggestion CRUD + stats | `eos_issue_suggestions` |
+| `useVTO.ts` | VTO query and update | `eos_vto` |
+| `useScorecard.ts` | Scorecard + metrics CRUD | `eos_scorecards`, `eos_scorecard_metrics` |
+| `useAccountability.ts` | Chart versions, responsibilities, GWC | `accountability_charts`, `accountability_responsibilities`, `gwc_assessments` |
+| `useEOSPods.ts` | Pod CRUD | `eos_pods` |
+| `useExtractMeetingIssues.ts` | AI extract issues from meeting transcripts | `eos_issues`, `eos_issue_suggestions` |
+| `usePromoteIssueToEOS.ts` | Convert project/meeting issue to EOS issue | `eos_issues` |
+
+### Edge Functions (3 implemented)
+
+| Function | Purpose | Called From |
+|----------|---------|-------------|
+| `extract-meeting-issues` | AI extraction of issues from transcripts | `useExtractMeetingIssues` |
+| `eos-triage-assistant` | Issue triage and categorization | Not yet wired to frontend |
+| `suggest-okrs` | AI OKR suggestions | Not yet wired to frontend |
+
+---
 
 ## Database Tables
-- `eos_goals` / `eos_rocks` — Strategic goals (legacy, being replaced by OKRs)
-- `okrs` — Objectives with key results
-- `okr_key_results` — Key results linked to OKRs
-- `okr_check_ins` — Check-in history
-- `eos_issues` — Issues tracking
-- `eos_issue_suggestions` — AI-generated suggestions
-- `eos_scorecards` — Scorecard definitions
-- `eos_scorecard_metrics` — Scorecard metric entries
-- `accountability_charts` — Organization charts
-- `accountability_responsibilities` — Role responsibilities
-- `gwc_assessments` — GWC (Get it, Want it, Capacity) assessments
-- `eos_vto` — V/TO content
+
+| Table | Purpose |
+|-------|---------|
+| `okrs` | Objectives with quarter, status, owner, pod |
+| `okr_key_results` | Key results linked to OKRs |
+| `okr_check_ins` | Check-in history with values and notes |
+| `eos_issues` | Issues with priority, category, pod, status |
+| `eos_issue_suggestions` | AI-generated issue suggestions |
+| `eos_scorecards` | Scorecard definitions |
+| `eos_scorecard_metrics` | Scorecard metric entries (weekly) |
+| `accountability_charts` | Org chart versions (draft/published/archived) |
+| `accountability_responsibilities` | Role definitions with parent hierarchy |
+| `gwc_assessments` | Get/Want/Capacity assessments per employee/role |
+| `eos_vto` | Vision/Traction Organizer content |
+| `eos_pods` | Pod/team definitions for issue organization |
 
 ## Cross-Module Dependencies
+
 **Depends on:** Platform Core (auth, layouts, UI)
-**Used by:** Admin (EOS admin pages)
-**Optional integrations:**
-- Meetings → extract-meeting-issues extracts issues from meeting transcripts
-- Projects → extract-project-issues extracts issues from projects
+**Used by:** Admin (4 EOS admin pages)
+**Cross-module hooks:**
+- `useExtractMeetingIssues` — Meetings → EOS: extracts issues from meeting transcripts (hook + edge function implemented, not yet wired to meeting UI)
+- `usePromoteIssueToEOS` — Any module → EOS: promotes an issue to EOS tracking (hook implemented, not yet wired)
 
 ## Implementation Status
 
-### Built (Sprint 1 — Admin Pages)
-- **AdminEOS** (`src/pages/admin/eos/AdminEOS.tsx`) — Hub page with section cards (VTO, Scorecard, Accountability, System Config, Import Issues)
-- **VTOAdmin** (`src/pages/admin/eos/VTOAdmin.tsx`) — VTO section table with edit title, reset to default template, content preview
-- **ScorecardWorkspace** (`src/pages/admin/eos/ScorecardWorkspace.tsx`) — Full CRUD for scorecards and metrics (type, target, unit, goal direction)
-- **AdminEOSAccountability** (`src/pages/admin/eos/AdminEOSAccountability.tsx`) — Chart version management (publish/archive), role CRUD with department and responsibilities
+| Component | Status |
+|-----------|--------|
+| EOS Hub page | Done |
+| VTO page + admin | Done |
+| OKRs page (5-tab view) | Done |
+| OKR CRUD + check-ins | Done |
+| Issues page (7 sub-pages) | Done |
+| Issue CRUD + filters | Done |
+| Issues pod overview | Done |
+| AI issues analysis wizard | Done |
+| AI suggestion components | Scaffolded (not wired) |
+| Scorecard + metrics | Done |
+| MetricTrendChart | Done |
+| Accountability chart + tree | Done |
+| Accountability admin (versions, roles, GWC) | Done |
+| Cross-module hooks | Done (not wired to UI) |
+| Edge functions (extract-meeting-issues) | Done |
+| Edge functions (eos-triage-assistant, suggest-okrs) | Implemented, not wired |
 
-### Admin Routes Registered
-- `/admin/eos` → AdminEOS hub
-- `/admin/eos/vto` → VTOAdmin
-- `/admin/eos/scorecards` → ScorecardWorkspace
-- `/admin/eos/accountability` → AdminEOSAccountability
+### Known Issues
 
-### Admin Navigation
-- Added EOS group to `navigationStructure.ts` adminNavigation with 4 items
-
-### Built (Sprint 2 — Issue Sub-Pages + AI Suggestions)
-
-**7 Issue Sub-Pages:**
-- **IssuesAllPage** (`src/modules/eos/pages/IssuesAllPage.tsx`) — All issues, no pre-filter
-- **IssuesSolvedPage** (`src/modules/eos/pages/IssuesSolvedPage.tsx`) — Pre-filtered `status: "solved"`
-- **IssuesArchivedPage** (`src/modules/eos/pages/IssuesArchivedPage.tsx`) — Pre-filtered `status: "archived"`
-- **IssuesAnonymousPage** (`src/modules/eos/pages/IssuesAnonymousPage.tsx`) — Client-side `is_anonymous` filter
-- **IssuesAIPage** (`src/modules/eos/pages/IssuesAIPage.tsx`) — AI-sourced issues + suggestion stats + review queue
-- **IssuesByPodPage** (`src/modules/eos/pages/IssuesByPodPage.tsx`) — Pod-scoped issues with `defaultPodId` on create
-- **IssuesPodOverviewPage** (`src/modules/eos/pages/IssuesPodOverviewPage.tsx`) — Pod dashboard with stats cards, navigation
-
-**3 New Hooks:**
-- **useEOSIssuesByPod** (`src/modules/eos/hooks/useEOSIssuesByPod.ts`) — Groups issues by pod with per-pod stats (total, open, in_progress, solved, critical). Also exports `usePodIssues(podId)`.
-- **useAIIssueSuggestions** (`src/modules/eos/hooks/useAIIssueSuggestions.ts`) — CRUD for AI suggestions with `useSuggestionStats()` and `useReviewSuggestion()` (accept/reject mutation)
-- **useEOSIssueInsights** (`src/modules/eos/hooks/useEOSIssueInsights.ts`) — Analytics: byStatus, byPriority, byCategory, byPod, bySource, avgResolutionDays, recentTrend (14-day), anonymousCount
-
-**5 AI Suggestion Components:**
-- **AISuggestionCard** — Card with type badge (color-coded), confidence bar, accept/reject buttons
-- **AISuggestionReviewDialog** — Full-detail review modal with accept/reject
-- **AIReviewQueue** — Pending suggestions queue
-- **AIWeeklyDigest** — Weekly summary with acceptance rate, type breakdown
-- **AISuggestionStats** — Stats panel with 4 stat cards + confidence bar + type breakdown
-
-### Sprint 2 Routes Registered
-- `/eos/issues/all` → IssuesAllPage
-- `/eos/issues/solved` → IssuesSolvedPage
-- `/eos/issues/archived` → IssuesArchivedPage
-- `/eos/issues/anonymous` → IssuesAnonymousPage
-- `/eos/issues/ai` → IssuesAIPage
-- `/eos/issues/pod-overview` → IssuesPodOverviewPage
-- `/eos/issues/pod/:podId` → IssuesByPodPage
-
-### Built (Sprint 3 — Accountability Admin Components + MetricTrendChart)
-
-**6 Accountability Admin Components** (in `src/modules/eos/components/accountability/`):
-- **ChartForm** — Create/edit accountability chart form
-- **ChartHistoryTimeline** — Vertical timeline of chart versions with colored dots
-- **ChartVersionHistory** — Table view with publish actions
-- **ResponsibilitiesEditor** — Inline responsibility list editor with add/edit/delete
-- **EmployeeAccountabilityModal** — Role detail modal with GWC display
-- **GWCAssessmentDialog** — Toggle G/W/C assessment dialog with notes
-
-**MetricTrendChart** (`src/modules/eos/components/scorecard/MetricTrendChart.tsx`):
-- Recharts LineChart visualizing scorecard metrics over time
-- Groups metrics by `week_of` date, one line per metric name
-- Dynamic chart config, optional target reference line
-- Wrapped in shadcn ChartContainer with ChartTooltip
-
-### Built (Sprint 4 — AI Features + OKR Polish + Cross-Module)
-
-**EOSIssuesAIAnalyzePage** (`src/modules/eos/pages/EOSIssuesAIAnalyzePage.tsx`):
-- Multi-step wizard: Select Sources → Analyze → Review Results
-- Route: `/eos/issues/ai/analyze`
-
-**6 OKR Advanced Components** (in `src/modules/eos/components/okr/`):
-- **CloseOKRDialog** — Close/complete OKR with status radio + notes
-- **ClosedOKRsTable** — Table of completed/closed OKRs sorted by date
-- **KeyResultProgressChart** — Recharts LineChart for KR check-ins over time with target reference line
-- **KeyResultsByOwner** — KRs grouped by owner with progress bars and status badges
-- **OKRHealthGrid** — Responsive grid of OKR health cards sorted by urgency
-- **TeamOKRsByPod** — OKRs grouped by pod with collapsible sections
-
-**2 Issue Pod Components** (in `src/modules/eos/components/issues/`):
-- **PodIssueCard** — Pod card with colored border, mini stats, recent issues
-- **PodIssueSummary** — Pod health overview with totals and health indicators
-
-**2 Cross-Module Hooks:**
-- **usePromoteIssueToEOS** — Convert project/meeting issue to EOS issue
-- **useExtractMeetingIssues** — AI extract issues from transcripts + batch create
-
-### Wired (Sprint 5 — Component Integration)
-
-**OKRsPage** now has 5-tab view:
-- Cards (original grid), Health Grid (urgency-sorted), By Pod (collapsible), By Owner (KRs grouped), Closed (table)
-- CloseOKRDialog wired for closing OKRs with status + notes
-- useEOSPods integration for TeamOKRsByPod
-
-**ScorecardPage** — MetricTrendChart rendered below ScorecardMetricsTable
-
-**IssuesPodOverviewPage** — Replaced inline cards with:
-- PodIssueCard (colored border, mini stats, recent issues)
-- PodIssueSummary (health overview with indicators) above pod grid
-
-**AdminEOSAccountability** — Added:
-- ChartHistoryTimeline visual timeline between versions table and roles
-- EmployeeAccountabilityModal opens on role name click
-- GWCAssessmentDialog opens via GWC button in role row actions
-- useSaveGWCAssessment mutation for persisting assessments
-
-## Implementation Notes
-- OKRs replace the legacy Rocks/Goals system
-- Issues have AI-powered triage, pattern detection, and suggestion features
-- Accountability uses GWC (Get it, Want it, Capacity) assessment framework
-- Pod-based issue organization (issues belong to pods/teams)
-- Scorecard tracks key metrics with trend visualization
-- V/TO stores the company's vision and traction strategy
+- 7 instances of `(supabase as any)` casts in hooks for tables not in generated types
+- `OKRDetailDialog.tsx` is in `pages/` directory but functions as a component (used by OKRsPage)
+- 5 AI suggestion components are scaffolded but not rendered in any page
+- `useExtractMeetingIssues` and `usePromoteIssueToEOS` exist but lack UI integration points

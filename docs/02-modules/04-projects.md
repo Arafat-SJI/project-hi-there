@@ -36,13 +36,23 @@ In this codebase the Projects module focuses on:
 
 ### Routes owned (framework)
 
+From `src/modules/projects/routes.tsx`:
+
 ```text
 /projects                              → Projects listing
 /projects/new                          → Create project
-/projects/:slug                        → Project detail (default: overview tab)
 /projects/:slug/edit                   → Edit project
+/projects/:slug/knowledge              → Project knowledge
+/projects/:slug/issues/ai/analyze      → Project AI issue analysis
 /projects/:slug/:tab                   → Project detail with specific tab
+/projects/:slug                        → Project detail (default: overview tab)
+```
+
+Public routes (from `App.tsx`, no auth required):
+
+```text
 /projects/:slug/client-portal/:token   → Public client portal (token + password)
+/client/project/:token                 → Legacy client project dashboard
 ```
 
 Admin:
@@ -53,54 +63,30 @@ Admin:
 
 ## File Inventory (Framework)
 
-### Pages
+### Pages (5 files in `src/modules/projects/pages/`)
 
-- `src/modules/projects/pages/ProjectsPage.tsx`  
-  **Listing with filters** (status, search, archived) using `useProjects`.
+| File | Purpose | Route |
+|------|---------|-------|
+| `ProjectsPage.tsx` | Project listing with filters (status, search, archived) | `/projects` |
+| `ProjectDetailPage.tsx` | Project detail with URL-driven tabs (overview, milestones, members, issues, integrations, tasks, client_portal) | `/projects/:slug`, `/projects/:slug/:tab` |
+| `ProjectFormPage.tsx` | Create/edit project form | `/projects/new`, `/projects/:slug/edit` |
+| `ProjectKnowledgePage.tsx` | Project knowledge — documents from `unified_documents` with `owner_type=project` | `/projects/:slug/knowledge` |
+| `ProjectIssuesAIAnalyzePage.tsx` | AI issue analysis wizard (placeholder) | `/projects/:slug/issues/ai/analyze` |
 
-- `src/modules/projects/pages/ProjectDetailPage.tsx`  
-  **Project detail** with URL-driven tabs:
-  - `overview`, `milestones`, `members`, `issues`, `client_portal`
-  - Tabs are driven by the `:tab` URL segment (`/projects/:slug/:tab`); `/projects/:slug` defaults to `overview`.
+Client portal page (in `src/pages/client/`):
 
-- `src/modules/projects/pages/ProjectFormPage.tsx`  
-  **Create / Edit project** used by `/projects/new` and `/projects/:slug/edit`.
+- `ClientPortalDashboard.tsx` — Public, token + password protected. Calls `client-dashboard-api` edge function for auth and dashboard data.
 
-- `src/pages/client/ClientPortalDashboard.tsx`  
-  **Client portal** page:
-  - Reads `slug` and `token` from `/projects/:slug/client-portal/:token`
-  - Handles password login (calling `client-dashboard-api` → `authenticate`)
-  - Calls `client-dashboard-api` → `get-dashboard` and renders a read-only dashboard.
+### Components (6 files in `src/components/projects/`)
 
-### Components
-
-**Projects module:**
-
-- `src/components/projects/ClientAccessManagement.tsx`
-  Client portal management inside Project Detail:
-  - Add client access (email, name)
-  - Generate access token + password via `create-client-access` Edge Function
-  - Copy portal URL and password
-  - Reset password, revoke/restore access
-
-- `src/components/projects/IntegrationsTab.tsx`
-  Project integration status panel:
-  - Shows all org integrations with provider logos (or `Plug` fallback icon)
-  - `ConnectionBadge` component (CheckCircle2/XCircle) per integration
-  - Slug label, `Clock` icon with last sync timestamp
-  - Connected count summary in CardDescription
-  - Empty state with admin redirect hint
-
-- `src/components/projects/TasksTab.tsx`
-  Project tasks panel:
-  - Priority badges with color coding (High=red, Med=amber, Low=green)
-  - Status badges (To do, In progress, Done) with variant mapping
-  - Assigned user display with `User` icon
-  - `Calendar` icon for due dates
-  - Completed/total counter in CardDescription
-  - Strikethrough styling for done tasks
-  - Source badge for external tasks (ActiveCollab, Jira)
-  - Empty state with sync guidance
+| File | Purpose | Used By |
+|------|---------|---------|
+| `ClientAccessManagement.tsx` | Client portal access management (create, revoke, reset) | ProjectDetailPage |
+| `OverviewTab.tsx` | Project overview with recent comments | ProjectDetailPage |
+| `TasksTab.tsx` | Project tasks with priority/status badges | ProjectDetailPage |
+| `IntegrationsTab.tsx` | Integration status panel with provider logos | ProjectDetailPage |
+| `ProjectsBackupStatus.tsx` | Backup status display | Not used (orphaned) |
+| `ProjectsRestoreBackupDialog.tsx` | Backup restore dialog | Not used (orphaned) |
 
 **Client portal (read-only dashboard):**
 
@@ -115,53 +101,32 @@ All of these are used by `ClientPortalDashboard`.
 
 ### Hooks
 
-- `src/modules/projects/hooks/useProjects.ts`  
-  - `useProjects(filters)` — list projects with filters and sorting  
-  - `useProject(slug)` — fetch project by slug  
-  - `useProjectStatuses()` — load `project_statuses`  
-  - `useCreateProject()`, `useUpdateProject()`, `useDeleteProject()` — CRUD with React Query invalidation.
+**Module hooks (4 files in `src/modules/projects/hooks/`):**
 
-- `src/modules/projects/hooks/useProjectDetail.ts`  
-  - `useProjectMembers(projectId)`  
-  - `useProjectMilestones(projectId)`, `useAddMilestone()`, `useUpdateMilestone()`  
-  - `useProjectComments(projectId)`, `useAddProjectComment()`  
-  - `useProjectRisks(projectId)`
+| Hook | Purpose | Tables Queried |
+|------|---------|----------------|
+| `useProjects.ts` | Project CRUD with filters and sorting | `projects`, `project_statuses` |
+| `useProjectDetail.ts` | Members, milestones, comments, risks | `project_members`, `project_milestones`, `project_comments`, `project_risks` |
+| `useProjectIntegrations.ts` | Integration status with provider data | `organization_integrations`, `integration_providers` |
+| `useProjectTasks.ts` | Project tasks via client_id lookup | `projects`, `tasks` |
 
-- `src/hooks/useClientAccess.ts`  
-  - `useProjectClientAccess(projectId)`  
-  - `useCreateClientAccess()`  
-  - `useResetClientPassword()`  
-  - `useRevokeClientAccess()`  
-  - `useRestoreClientAccess()`
+**Additional hooks (from `src/hooks/`):**
 
-- `src/hooks/useIntegrationSync.ts`
-  - `useSyncProjects(providerSlug)` — invokes `sync-projects-activecollab` or `sync-projects-jira` and invalidates `['projects']`.
+| Hook | Purpose | Tables Queried |
+|------|---------|----------------|
+| `useClientAccess.ts` | Client portal access CRUD | `project_client_access` (3 `supabase as any` casts) |
+| `useIntegrationSync.ts` | ActiveCollab/Jira project sync | Invokes edge functions |
+| `useProjectReports.ts` | Project reporting aggregates | `projects`, `project_statuses`, `project_milestones`, `project_risks`, `project_billing` |
+| `useProjectStatuses.ts` | Status CRUD + reorder | `project_statuses` |
+| `useProjectModuleSettings.ts` | Project tab toggles | `system_settings` |
 
-- `src/modules/projects/hooks/useProjectIntegrations.ts`
-  - `useProjectIntegrations(projectId)` — queries `organization_integrations` joined with `integration_providers` for name, slug, logo_url, connection_status. Returns `ProjectIntegration[]` with connected/enabled flags.
+### Admin Pages (3 files in `src/pages/admin/`)
 
-- `src/modules/projects/hooks/useProjectTasks.ts`
-  - `useProjectTasks(projectId)` — first fetches project's `client_id`, then queries `tasks` table filtered by that client. Returns `ProjectTask[]` with status normalization via `mapTaskStatus()` helper.
-
-- `src/hooks/useProjectReports.ts`
-  - `useProjectReports()` — real Supabase aggregates joining `projects` + `project_statuses` + `project_milestones` + `project_risks` + `project_billing`. Returns `ProjectReportRow[]` with budget utilization, milestone progress, open risk counts.
-
-- `src/hooks/useProjectStatuses.ts`
-  - `useProjectStatuses()` — query project_statuses ordered by sort_order
-  - `useCreateProjectStatus()`, `useUpdateProjectStatus()`, `useDeleteProjectStatus()` (validates no projects reference status before deleting)
-  - `useReorderProjectStatuses()` — batch sort_order updates
-
-### Routing & layout
-
-- `src/modules/projects/routes.tsx`  
-  - Wraps routes in `<ModuleRoute module="projects" />`  
-  - Declares `/projects`, `/projects/new`, `/projects/:slug/edit`, `/projects/:slug/:tab`, `/projects/:slug`.
-
-- `src/components/layout/AppSidebar.tsx`  
-  - Reads `mainNavigation` and filters by `item.module` using `useModuleAccess()` so Projects only appears when the `projects` module is enabled.
-
-- `src/components/routing/ModuleRoute.tsx`  
-  - Shared module guard that checks module access before rendering module routes.
+| File | Purpose | Route |
+|------|---------|-------|
+| `ProjectModules.tsx` | Toggle project detail tabs on/off | `/admin/settings/project-modules` |
+| `ProjectStatusSettings.tsx` | Project status CRUD + reorder | `/admin/settings/project-statuses` |
+| `ProjectReports.tsx` | Project metrics dashboard | `/admin/reports/projects` |
 
 ---
 
@@ -588,23 +553,27 @@ Admin routes:
 - `project_statuses`: Admin-configurable project lifecycle stages  
 - ActiveCollab credentials stored as integration secrets  
 
-#### Implementation Status (Framework Pages Built)
+#### Implementation Status (Framework)
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| ProjectDetailPage | Done | Tab-based layout with toggleable tabs |
-| IntegrationsTab | Done | ConnectionBadge, service logos, sync timestamps, empty state |
-| TasksTab | Done | Priority badges, assigned user, completion counter |
-| ProjectKnowledgePage | Done | Summary cards (total docs, embedded, chunks), searchable document table from `unified_documents`, file type badges, processing status |
-| ProjectReports (admin) | Done | 4 summary cards, Supabase aggregates |
-| ProjectStatusSettings (admin) | Done | Full CRUD, color picker, reorder |
-| WorkTypesSettings (admin) | Done | Full CRUD, category, billable flag, reorder |
-| ProjectModules (admin) | Done | Toggle tabs, system_settings persistence |
-| useProjectIntegrations | Done | Real Supabase query to `project_integrations` |
-| useProjectTasks | Done | Real Supabase query to `project_tasks` with filters |
-| useProjectReports | Done | Aggregate queries for project reporting |
-| useProjectStatuses | Done | CRUD + reorder for `project_statuses` table |
-| useProjectDocuments | Done | Query `unified_documents` with owner_type=project filter |
+| Component | Status |
+|-----------|--------|
+| Project listing + CRUD | Done |
+| Project detail (7 tabs) | Done |
+| ProjectKnowledgePage | Done |
+| ProjectIssuesAIAnalyzePage | Placeholder |
+| Client portal (auth + dashboard) | Done |
+| Admin: ProjectModules | Done |
+| Admin: ProjectStatusSettings | Done |
+| Admin: ProjectReports | Done |
+| All module hooks (4) | Done |
+| Edge functions (4) | Done |
+
+#### Known Issues
+
+- 3 instances of `(supabase as any)` casts in `useClientAccess.ts` for `project_client_access` table
+- 2 orphaned components (`ProjectsBackupStatus.tsx`, `ProjectsRestoreBackupDialog.tsx`) — not used by any page
+- `ProjectIssuesAIAnalyzePage` is a placeholder with no implementation
+- Client pages (`Clients.tsx`, `ClientForm.tsx`, `ClientDetail.tsx`) live in legacy `src/pages/` instead of module directory
 
 #### Pending
 - Billing/invoicing UI
