@@ -33,6 +33,9 @@ import { ParticipantsTab } from "../components/participants/ParticipantsTab";
 import { RelatedTasksTab } from "../components/RelatedTasksTab";
 import { SeriesHistoryTab } from "../components/series/SeriesHistoryTab";
 import { TranscriptTab } from "../components/transcript/TranscriptTab";
+import { useExtractMeetingTasks, useCreateTasksFromExtraction } from "../hooks/useExtractMeetingTasks";
+import type { ExtractedTask } from "../hooks/useExtractMeetingTasks";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { MeetingDetailTab } from "../types";
 
 export default function MeetingDetailV2Page() {
@@ -41,6 +44,10 @@ export default function MeetingDetailV2Page() {
   const [activeTab, setActiveTab] = useState<MeetingDetailTab>("details");
 
   const { data: meeting, isLoading } = useMeeting(id!);
+  const extractTasks = useExtractMeetingTasks();
+  const createTasksFromExtraction = useCreateTasksFromExtraction();
+  const [extractedTasks, setExtractedTasks] = useState<ExtractedTask[]>([]);
+  const [selectedExtracted, setSelectedExtracted] = useState<Set<number>>(new Set());
 
   if (isLoading) {
     return (
@@ -232,7 +239,94 @@ export default function MeetingDetailV2Page() {
         </TabsContent>
 
         {/* Related Tasks Tab */}
-        <TabsContent value="related-tasks" className="mt-4">
+        <TabsContent value="related-tasks" className="mt-4 space-y-4">
+          {/* Extract Tasks from Transcript */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              disabled={extractTasks.isPending}
+              onClick={() =>
+                extractTasks.mutate(
+                  { meetingId: id!, transcriptContent: "" },
+                  {
+                    onSuccess: (data) => {
+                      setExtractedTasks(data);
+                      setSelectedExtracted(new Set(data.map((_, i) => i)));
+                    },
+                  }
+                )
+              }
+            >
+              {extractTasks.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <ListChecks className="h-4 w-4 mr-2" />
+              )}
+              {extractTasks.isPending ? "Extracting..." : "Extract Tasks from Transcript"}
+            </Button>
+          </div>
+
+          {extractedTasks.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Extracted Tasks ({extractedTasks.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {extractedTasks.map((task, idx) => (
+                  <div key={idx} className="flex items-start gap-3 py-1">
+                    <Checkbox
+                      checked={selectedExtracted.has(idx)}
+                      onCheckedChange={(checked) => {
+                        setSelectedExtracted((prev) => {
+                          const next = new Set(prev);
+                          if (checked) {
+                            next.add(idx);
+                          } else {
+                            next.delete(idx);
+                          }
+                          return next;
+                        });
+                      }}
+                    />
+                    <span className="text-sm flex-1">{task.content}</span>
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      {Math.round(task.confidence * 100)}%
+                    </Badge>
+                  </div>
+                ))}
+                <div className="pt-2 border-t">
+                  <Button
+                    size="sm"
+                    disabled={selectedExtracted.size === 0 || createTasksFromExtraction.isPending}
+                    onClick={() => {
+                      const selected = extractedTasks.filter((_, i) =>
+                        selectedExtracted.has(i)
+                      );
+                      createTasksFromExtraction.mutate(
+                        { meetingId: id!, tasks: selected },
+                        {
+                          onSuccess: () => {
+                            setExtractedTasks([]);
+                            setSelectedExtracted(new Set());
+                          },
+                        }
+                      );
+                    }}
+                  >
+                    {createTasksFromExtraction.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <CheckSquare className="h-4 w-4 mr-2" />
+                    )}
+                    Create Selected Tasks ({selectedExtracted.size})
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <RelatedTasksTab meetingId={id!} />
         </TabsContent>
 
