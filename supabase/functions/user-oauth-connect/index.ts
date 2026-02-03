@@ -52,9 +52,11 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
     zoom: {
       authUrl: "https://zoom.us/oauth/authorize",
       scopes: [
-        "meeting:read",
-        "recording:read",
-        "user:read",
+        "meeting:read:meeting",
+        "meeting:write:meeting",
+        "meeting:write:open_app",
+        "meeting:write:registrant",
+        "user:read:user",
       ],
     },
     microsoft: {
