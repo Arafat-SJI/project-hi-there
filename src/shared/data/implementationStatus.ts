@@ -698,9 +698,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Admin Panel Extensions",
     phase: 8,
     owner: "Shahed",
-    summary: "30+ admin pages. Team management, knowledge admin, embeddings explorer, seed runner, Zoom integration, project settings, reports. EOS admin (VTO, Scorecard, Accountability).",
+    summary: "37 admin pages. Team management, knowledge admin, embeddings explorer, seed runner, Zoom integration, project settings, reports. EOS admin: VTO, Scorecard workspace, Accountability with timeline + employee modal + GWC dialog. Meeting analytics with efficiency scoring.",
     pipeline: {
-      development: { status: "in-progress", owner: "Shahed", notes: "Core admin done, data sync admin pages pending" },
+      development: { status: "done", owner: "Shahed", notes: "All admin pages built. Data sync dashboard deferred to post-MVP." },
       qa: { status: "not-started", owner: "Shahed", notes: "Test via Lovable QA module" },
       dataSeeding: { status: "done", owner: "Shahed", notes: "Covered by supabase/seed/00-platform-core.sql (system_settings, app_config, activity_logs)" },
       signOff: { status: "not-started", owner: "Jairaj" },
@@ -733,7 +733,7 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "AdminEOS — EOS admin hub with section cards", status: "done" },
       { name: "VTOAdmin — VTO section mgmt (edit title, reset template, preview)", status: "done" },
       { name: "ScorecardWorkspace — scorecard + metrics full CRUD", status: "done" },
-      { name: "AdminEOSAccountability — chart version mgmt + role CRUD", status: "done" },
+      { name: "AdminEOSAccountability — chart versions + role CRUD + timeline + employee modal + GWC dialog", status: "done" },
       { name: "All other admin pages (21 total)", status: "done" },
     ],
     hooks: [
