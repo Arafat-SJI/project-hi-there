@@ -477,7 +477,9 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "generate-embeddings — shared chunking + embedding", status: "done" },
       { name: "knowledge-base — admin CRUD API for categories/sources/files", status: "done" },
       { name: "api-v1-documents — REST API for unified_documents", status: "done" },
-      { name: "gemini-rag-query — Gemini RAG (stub, needs API key)", status: "planned" },
+      { name: "gemini-rag-query — RAG with vector search + AI answer generation", status: "done" },
+      { name: "google-drive-upload — upload files to Google Drive via OAuth", status: "done" },
+      { name: "user-knowledge-drive-sync — sync Drive folder to knowledge base", status: "done" },
     ],
     qaChecklist: [
       { description: "Navigate to /knowledge and see listing", tested: false },
@@ -824,7 +826,7 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "agent-conversation-chat — conversational AI with context", status: "done" },
       { name: "auto-embed — embedding pipeline (shared with Knowledge)", status: "done" },
       { name: "semantic-search — vector similarity search (shared with Knowledge)", status: "done" },
-      { name: "gemini-rag-query — RAG with Gemini (stub, needs API key)", status: "planned" },
+      { name: "gemini-rag-query — RAG with vector search + AI answer generation", status: "done" },
     ],
     qaChecklist: [
       { description: "Navigate /admin/ai-models and see provider list", tested: false },

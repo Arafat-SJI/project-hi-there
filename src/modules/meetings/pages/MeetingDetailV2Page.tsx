@@ -33,6 +33,8 @@ import { ParticipantsTab } from "../components/participants/ParticipantsTab";
 import { RelatedTasksTab } from "../components/RelatedTasksTab";
 import { SeriesHistoryTab } from "../components/series/SeriesHistoryTab";
 import { TranscriptTab } from "../components/transcript/TranscriptTab";
+import { MeetingParticipantSelector } from "../components/participants/MeetingParticipantSelector";
+import { PreviousAgendaViewer } from "../components/agenda/PreviousAgendaViewer";
 import { useExtractMeetingTasks, useCreateTasksFromExtraction } from "../hooks/useExtractMeetingTasks";
 import type { ExtractedTask } from "../hooks/useExtractMeetingTasks";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -203,6 +205,15 @@ export default function MeetingDetailV2Page() {
               </Card>
             )}
 
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Participants</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MeetingParticipantSelector meetingId={id!} editable={meeting.status !== "completed"} />
+              </CardContent>
+            </Card>
+
             {(meeting.metadata as any)?.summary && (
               <Card className="lg:col-span-2">
                 <CardHeader>
@@ -219,8 +230,14 @@ export default function MeetingDetailV2Page() {
         </TabsContent>
 
         {/* Agenda Tab */}
-        <TabsContent value="agenda" className="mt-4">
+        <TabsContent value="agenda" className="mt-4 space-y-4">
           <AgendaTab meetingId={id!} />
+          {(meeting as any).series_id && (
+            <PreviousAgendaViewer
+              seriesId={(meeting as any).series_id}
+              currentMeetingId={id!}
+            />
+          )}
         </TabsContent>
 
         {/* Takeaways Tab */}
