@@ -41,11 +41,18 @@ export function useProject(slug: string) {
     queryFn: async (): Promise<Project> => {
       const { data, error } = await supabase
         .from("projects")
-        .select("*")
+        .select("*, project_statuses(*)")
         .eq("slug", slug)
         .single();
       if (error) throw error;
-      return data as unknown as Project;
+      const row = data as Record<string, unknown>;
+      const projectStatuses = row.project_statuses as { name: string; color: string } | null;
+      return {
+        ...row,
+        status: projectStatuses ?? null,
+        owner: null, // Resolved separately via profiles in UI when owner_id is set
+        project_statuses: undefined,
+      } as unknown as Project;
     },
     enabled: !!slug,
   });
