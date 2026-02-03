@@ -132,3 +132,13 @@ verify_jwt = false
 # Admin management - requires manual authentication validation
 [functions.promote-to-admin]
 verify_jwt = false
+
+# Productivity (Path B) - requires authentication
+[functions.team-productivity-metrics]
+verify_jwt = true
+
+[functions.team-productivity-list]
+verify_jwt = true
+
+[functions.import-productivity-csv]
+verify_jwt = true
