@@ -119,6 +119,7 @@ export function useDeleteProjectStatus() {
 
 export function useReorderProjectStatuses() {
   const qc = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (orderedIds: string[]) => {
@@ -135,6 +136,10 @@ export function useReorderProjectStatuses() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEY });
+      toast({ title: "Order updated" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to reorder", description: err.message, variant: "destructive" });
     },
   });
 }

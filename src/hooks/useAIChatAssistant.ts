@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 export interface ChatMessage {
   id: string;
@@ -23,6 +23,7 @@ const DEFAULT_GREETING = "Hello! I'm your AI assistant. How can I help you today
 
 export function useAIChatAssistant(initialMessage?: string) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -108,7 +109,7 @@ export function useAIChatAssistant(initialMessage?: string) {
   const sendMessage = useCallback(
     async (content: string, options: ChatOptions = {}) => {
       if (!content.trim() || !user) {
-        toast.error("Please enter a message");
+        toast({ title: "Please enter a message", variant: "destructive" });
         return null;
       }
 
@@ -169,7 +170,7 @@ export function useAIChatAssistant(initialMessage?: string) {
         };
         setMessages((prev) => [...prev, errorMessage]);
 
-        toast.error("Failed to get AI response. Check deployment status.");
+        toast({ title: "Failed to get AI response", description: "Check deployment status.", variant: "destructive" });
         return null;
       } finally {
         setIsLoading(false);

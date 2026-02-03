@@ -4870,6 +4870,51 @@ export type Database = {
         }
         Relationships: []
       }
+      work_types: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          description: string | null
+          category: string
+          is_billable: boolean
+          default_rate: number | null
+          color: string | null
+          is_active: boolean
+          sort_order: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          description?: string | null
+          category?: string
+          is_billable?: boolean
+          default_rate?: number | null
+          color?: string | null
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          description?: string | null
+          category?: string
+          is_billable?: boolean
+          default_rate?: number | null
+          color?: string | null
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       vector_search_logs: {
         Row: {
           created_at: string | null
