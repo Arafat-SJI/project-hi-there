@@ -1,71 +1,88 @@
-# Plan: Add Zoom Cloud Recording Scopes to OAuth Connect
+
+
+# Plan: Fix CORS Error by Creating Edge Function Proxy for Zoom Meeting Creation
 
 ## Problem
-
-The `sync-zoom-files` function is failing with error:
-
-```
-Invalid access token, does not contain scopes:
-[cloud_recording:read:list_user_recordings, cloud_recording:read:list_user_recordings:admin]
+The `createZoomMeeting` function in `src/lib/zoomMeetingService.ts` is calling the Zoom API directly from the browser:
+```typescript
+const response = await fetch('https://api.zoom.us/v2/users/me/meetings', { ... });
 ```
 
-This happens because the `user-oauth-connect` edge function doesn't request cloud recording scopes during the OAuth authorization flow.
+This fails with a CORS error because Zoom's API is designed for server-to-server communication and doesn't include CORS headers for browser requests.
 
 ## Solution
+Create a new Edge Function `create-zoom-meeting` that acts as a proxy between the frontend and the Zoom API. This follows the same pattern as the existing `sync-zoom-files` function.
 
-Update the Zoom provider configuration in `supabase/functions/user-oauth-connect/index.ts` to include the cloud recording scopes that match your Zoom app.
+## Implementation
 
-### File to Modify
+### 1. Create Edge Function: `supabase/functions/create-zoom-meeting/index.ts`
 
-**`supabase/functions/user-oauth-connect/index.ts`** (lines 52-61)
+This function will:
+- Authenticate the user via JWT validation
+- Retrieve the user's Zoom OAuth token from the database
+- Handle token refresh if expired
+- Make the server-to-server request to Zoom API
+- Return the response with proper CORS headers
 
-### Change
-
-Update the Zoom scopes from:
-
-```typescript
-zoom: {
-  authUrl: "https://zoom.us/oauth/authorize",
-  scopes: [
-    "meeting:read:meeting",
-    "meeting:write:meeting",
-    "meeting:write:open_app",
-    "meeting:write:registrant",
-    "user:read:user",
-  ],
-},
+```text
+Request Flow:
+Browser → Edge Function → Zoom API
+                ↓
+         (CORS headers added)
+                ↓
+Browser ← Edge Function ← Zoom API Response
 ```
 
-To:
+### 2. Update `supabase/config.toml`
 
+Add the new function with `verify_jwt = false` to support ES256 token validation (as per project standards).
+
+### 3. Update `src/lib/zoomMeetingService.ts`
+
+Change from direct Zoom API call to calling the edge function:
 ```typescript
-zoom: {
-  authUrl: "https://zoom.us/oauth/authorize",
-  scopes: [
-    "meeting:read:meeting",
-    "meeting:write:meeting",
-    "meeting:write:open_app",
-    "meeting:write:registrant",
-    "user:read:user",
-    "cloud_recording:read:list_user_recordings",
-    "cloud_recording:read:list_recording_files",
-    "cloud_recording:read:list_recording_registrants",
-  ],
-},
+// Before (CORS error)
+const response = await fetch('https://api.zoom.us/v2/users/me/meetings', { ... });
+
+// After (works via proxy)
+const { data, error } = await supabase.functions.invoke('create-zoom-meeting', {
+  body: { topic, start_time, duration, timezone, agenda, settings, registrants }
+});
 ```
 
-## Technical Notes
+## Files to Create/Modify
 
-- The scopes must match what's configured in your Zoom Marketplace app (as shown in your screenshot)
-- After updating and deploying, **users must reconnect their Zoom account** to get a new token with the updated scopes
-- The edge function will be deployed automatically after the code change
+| File | Action |
+|------|--------|
+| `supabase/functions/create-zoom-meeting/index.ts` | **Create** - New edge function proxy |
+| `supabase/config.toml` | **Modify** - Add function config |
+| `src/lib/zoomMeetingService.ts` | **Modify** - Use edge function instead of direct API call |
+
+## Technical Details
+
+### Edge Function Implementation
+
+The edge function will:
+1. Handle CORS preflight (OPTIONS) requests
+2. Validate the user's JWT token manually (ES256 compatibility)
+3. Retrieve user's Zoom OAuth token from `user_oauth_tokens` table
+4. Refresh token if expired using org credentials from `organization_integrations`
+5. Make POST request to `https://api.zoom.us/v2/users/me/meetings`
+6. Return Zoom's response with CORS headers
+
+### Security Considerations
+
+- User authentication validated via JWT before any Zoom API calls
+- Zoom OAuth tokens retrieved server-side (never exposed to browser)
+- Token refresh handled automatically with proper credential management
+- CORS headers only added for authenticated responses
 
 ## Expected Result
 
-After this change:
+After implementation:
+1. User clicks "Create Zoom Meeting" in the app
+2. Frontend calls `create-zoom-meeting` edge function
+3. Edge function authenticates user, retrieves Zoom token, calls Zoom API
+4. Meeting is created successfully without CORS errors
+5. Response returned to frontend with meeting details
 
-1. Users who click "Connect with Zoom" will be prompted to authorize the cloud recording permissions
-2. The resulting access token will include the recording scopes
-3. The `sync-zoom-files` function will successfully fetch Zoom recordings
-
-**Important**: Existing connected users must **disconnect and reconnect** their Zoom account to get the new scopes.

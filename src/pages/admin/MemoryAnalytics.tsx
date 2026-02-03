@@ -7,13 +7,13 @@ import { Loader2, Activity, History } from "lucide-react";
 
 interface QueueHistoryRow {
   id: string;
-  job_type: string | null;
+  batch_type: string;
   status: string | null;
   started_at: string | null;
   completed_at: string | null;
   total_items: number | null;
-  processed_items: number | null;
-  error_message: string | null;
+  processed_count: number | null;
+  failed_count: number | null;
 }
 
 interface VectorSearchLog {
@@ -40,7 +40,7 @@ export default function MemoryAnalytics() {
         .order("started_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data || []) as QueueHistoryRow[];
+      return (data || []) as unknown as QueueHistoryRow[];
     },
   });
 
@@ -112,7 +112,7 @@ export default function MemoryAnalytics() {
                 {queueRuns.map((run) => (
                   <TableRow key={run.id}>
                     <TableCell className="text-sm">
-                      {run.job_type || "unknown"}
+                      {run.batch_type || "unknown"}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -128,7 +128,7 @@ export default function MemoryAnalytics() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {(run.processed_items ?? 0)}/{run.total_items ?? 0}
+                      {(run.processed_count ?? 0)}/{run.total_items ?? 0}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {run.started_at
@@ -141,9 +141,9 @@ export default function MemoryAnalytics() {
                         : "—"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-[260px]">
-                      {run.error_message ? (
-                        <span className="text-red-500 line-clamp-2">
-                          {run.error_message}
+                      {(run.failed_count ?? 0) > 0 ? (
+                        <span className="text-red-500">
+                          {run.failed_count} failed
                         </span>
                       ) : (
                         "—"

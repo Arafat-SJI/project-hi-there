@@ -5,6 +5,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +61,17 @@ export default function ProjectDetailPage() {
     tabParam && VALID_TAB_KEYS.has(tabParam) ? TAB_URL_MAPPINGS[tabParam] : "overview";
 
   const { data: project, isLoading } = useProject(slug!);
+  const { data: ownerProfile } = useQuery({
+    queryKey: ["profile", project?.owner_id],
+    queryFn: async () => {
+      if (!project?.owner_id) return null;
+      const { data, error } = await supabase.from("profiles").select("full_name, email").eq("id", project.owner_id).single();
+      if (error) return null;
+      return data as { full_name: string; email: string };
+    },
+    enabled: !!project?.owner_id,
+  });
+  const owner = ownerProfile ? { full_name: ownerProfile.full_name ?? "", email: ownerProfile.email ?? "" } : null;
   const { data: enabledModules = {} } = useEnabledProjectModules();
   const { data: members = [] } = useProjectMembers(project?.id || "");
   const { data: milestones = [] } = useProjectMilestones(project?.id || "");
@@ -113,7 +126,7 @@ export default function ProjectDetailPage() {
             {project.status && (
               <Badge style={{ backgroundColor: `${project.status.color}20`, color: project.status.color }} variant="outline">{project.status.name}</Badge>
             )}
-            {project.owner && <span className="text-sm text-muted-foreground">Owner: {project.owner.full_name}</span>}
+            {owner && <span className="text-sm text-muted-foreground">Owner: {owner.full_name}</span>}
           </div>
         </div>
         <div className="flex items-center gap-2">
