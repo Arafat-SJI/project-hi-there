@@ -21,7 +21,6 @@ interface PreviousMeeting {
   id: string;
   title: string;
   scheduled_at: string | null;
-  meeting_date: string | null;
 }
 
 export function PreviousAgendaViewer({
@@ -34,7 +33,7 @@ export function PreviousAgendaViewer({
       // Find the most recent previous meeting in this series
       const { data: meetings, error: meetingsError } = await supabase
         .from("meetings")
-        .select("id, title, scheduled_at, meeting_date")
+        .select("id, title, scheduled_at")
         .eq("series_id", seriesId)
         .neq("id", currentMeetingId)
         .order("created_at", { ascending: false })
@@ -93,7 +92,7 @@ export function PreviousAgendaViewer({
   }
 
   const { meeting, agendaItems } = data;
-  const meetingDate = meeting.meeting_date || meeting.scheduled_at;
+  const meetingDate = meeting.scheduled_at;
 
   return (
     <Card>

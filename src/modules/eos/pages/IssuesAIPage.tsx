@@ -19,6 +19,7 @@ import {
   useReviewSuggestion,
 } from "../hooks/useAIIssueSuggestions";
 import { IssuesTable } from "../components/issues/IssuesTable";
+import { IssuesNavTabs } from "../components/issues/IssuesNavTabs";
 import { CreateIssueDialog } from "../components/issues/CreateIssueDialog";
 import type { IssueFilters } from "../types";
 
@@ -64,6 +65,7 @@ export default function IssuesAIPage() {
           Report Issue
         </Button>
       </div>
+      <IssuesNavTabs />
 
       {/* Suggestion Stats */}
       {suggestionStats && (

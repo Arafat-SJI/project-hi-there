@@ -163,9 +163,8 @@ export function useUpdateDealStage() {
       await supabase.from("deal_activities").insert({
         deal_id: id,
         activity_type: "stage_change",
-        title: `Stage changed${fromStage ? ` from ${fromStage}` : ""} to ${stage}`,
-        description: stage === "won" ? "Deal closed as won" : stage === "lost" ? "Deal closed as lost" : null,
-        performed_by: user?.id || null,
+        content: `Stage changed${fromStage ? ` from ${fromStage}` : ""} to ${stage}${stage === "won" ? " - Deal closed as won" : stage === "lost" ? " - Deal closed as lost" : ""}`,
+        user_id: user?.id || null,
       });
     },
     onSuccess: (_, vars) => {

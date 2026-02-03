@@ -49,6 +49,7 @@ export default function IssuesPodOverviewPage() {
           Overview of issues across all pods
         </p>
       </div>
+      <IssuesNavTabs />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
