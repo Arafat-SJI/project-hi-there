@@ -1,158 +1,102 @@
 # Actions — Module Blueprint
 
 ## Overview
-The Actions module (formerly "Tasks V2" / "My Tasks") provides standalone task management independent of projects. It includes personal task views (Today, This Week, Overdue, Delegated, All), task detail with comments and subtasks, stream-based organization, and AI assistance for task management.
 
-**Naming:** In the new architecture, standalone tasks are called "Actions" to distinguish from project-scoped "Tasks" within the Projects module. The database table remains `tasks_v2` for backward compatibility.
+The Actions module provides standalone task management independent of projects. It includes task listing with view tabs (Today, This Week, Overdue, Delegated, All), task detail with comments and subtasks, and stream-based workspace organization.
+
+**Naming:** Standalone tasks are called "Actions" in the module system to distinguish from project-scoped tasks. The database table remains `tasks_v2`.
 
 ## Module Name
-`Actions` (in app_modules and navigation)
+
+`Actions` (in `app_modules` and navigation)
 
 ## Routes Owned
-```
-/tasks                    → Task listing (multiple views)
-/tasks/:idOrSlug          → Task detail
-/tasks/stream/:slug       → Tasks by stream
-/tasks/t/:slug            → Legacy slug redirect → /tasks/:slug
-/streams                  → Streams overview
 
-Legacy redirects:
-/actions                  → /tasks
-/actions/mytasks          → /tasks
-/actions/assigned-by-me   → /tasks
-/actions/completed        → /tasks
-/tasks-v2                 → /tasks
-/tasks-v2/stream/:slug    → /tasks/stream/:slug
-/tasks-v2/:id             → /tasks/:idOrSlug
+From `src/modules/actions/routes.tsx`:
 
-Admin routes:
-/admin/task-streams       → Stream management
-/admin/tasks/streams      → Stream settings
-/admin/settings/task-creation → Task creation settings
 ```
+/tasks                         → Task listing (view tabs)
+/tasks/new                     → Create task (legacy TaskForm)
+/tasks/streams                 → Streams overview
+/tasks/streams/:streamId       → Tasks by stream
+/tasks/:id                     → Task detail
+/tasks/:id/edit                → Edit task (legacy TaskForm)
+```
+
+---
 
 ## File Inventory
 
-### Pages (8 files)
-- src/pages/TasksV2.tsx — Main task listing (Today, This Week, Overdue, Delegated, All)
-- src/pages/TaskDetailV2.tsx — Task detail with full info, comments, contributors
-- src/pages/StreamsPage.tsx — Stream listing/management
-- src/pages/StreamTasksPage.tsx — Tasks filtered by stream
-- src/pages/ActiveCollabTasks.tsx — ActiveCollab task listing
-- src/pages/admin/TaskStreams.tsx — Admin stream management
-- src/pages/admin/settings/TaskCreationSettings.tsx — Task creation config
-- src/pages/admin/settings/TaskStreams.tsx — Stream settings
+### Pages (4 files in `src/modules/actions/pages/`)
 
-### Components — tasks-v2/ (22 files)
-Display:
-- TasksTable.tsx — Table view for tasks
-- TaskDetailsCard.tsx — Task detail card
-- TaskHeader.tsx — Page header
-- TasksPagination.tsx — Pagination
-- MyTasksViews.tsx — View switcher (Today, Week, Overdue, etc.)
+| File | Purpose | Route |
+|------|---------|-------|
+| `TasksPage.tsx` | Task listing with view tabs and filters | `/tasks` |
+| `TaskDetailPage.tsx` | Task detail with comments and subtasks | `/tasks/:id` |
+| `StreamsPage.tsx` | Streams overview with cards | `/tasks/streams` |
+| `StreamTasksPage.tsx` | Tasks filtered by stream | `/tasks/streams/:streamId` |
 
-Management:
-- CreateTaskDialog.tsx — Create task
-- EditTaskDialog.tsx — Edit task
-- MakeTaskPublicDialog.tsx — Make task public
+### Components (8 files in `src/modules/actions/components/`)
 
-Features:
-- SubTasksList.tsx — Subtask management
-- TaskAttachmentUpload.tsx — File attachments
-- TaskContributorsTab.tsx — Task contributors
-- TaskAIAssistant.tsx — AI assistant
-- AssigneePicker.tsx — Assignee selection
+| File | Location | Purpose |
+|------|----------|---------|
+| `TasksTable.tsx` | root | Task data table with sorting |
+| `SubTasksList.tsx` | root | Subtask list with create/toggle |
+| `TaskViewTabs.tsx` | root | View tabs (Today, This Week, etc.) |
+| `CreateTaskDialog.tsx` | root | Create task dialog form |
+| `TaskFiltersBar.tsx` | root | Filter bar (status, priority, stream) |
+| `CommentThread.tsx` | `comments/` | Threaded comment display and input |
+| `StreamCard.tsx` | `streams/` | Stream card for overview |
+| `CreateStreamDialog.tsx` | `streams/` | Create stream dialog |
 
-Comments:
-- comments/TaskCommentsSection.tsx — Comments wrapper
-- comments/TaskCommentItem.tsx — Individual comment
-- comments/TaskCommentThread.tsx — Comment threading
-- comments/TaskCommentHistoryDialog.tsx — Comment history
-- comments/index.ts — Comments barrel export
+### Hooks (4 files in `src/modules/actions/hooks/`)
 
-Streams:
-- StreamsGrid.tsx — Stream grid display
-- StreamCard.tsx — Stream card
-- StreamPeopleModal.tsx — Stream members
+| Hook | Purpose | Tables Queried |
+|------|---------|----------------|
+| `useTasksV2.ts` | Task CRUD with view-based filters | `tasks_v2` |
+| `useTaskComments.ts` | Comment CRUD with threading | `task_comments_v2` |
+| `useTaskStreams.ts` | Stream CRUD + membership | `task_streams`, `task_stream_members` |
+| `useTaskCategories.ts` | Category listing | `task_categories` |
 
-### Hooks (16 files)
-Core:
-- useTasksV2.ts — Main hook (useMyUnifiedTasksV2, useTodayTasks, useThisWeekTasks, useOverdueTasks, useDelegatedTasks, useTaskV2, useTaskBySlug, useDeleteTaskV2, useUpdateTaskStatusV2, useUpdateTaskV2, useParentTaskV2)
-- useTaskCommentsV2.ts — Comments CRUD
+### Edge Functions
 
-Streams:
-- useAccessibleStreams.ts — User's accessible streams
-- useStreamUsers.ts — Stream members
-- useStreamTaskCounts.ts — Task counts by stream
+No edge functions are invoked directly from the Actions module.
 
-Features:
-- useTaskDetails.ts — Detailed task info
-- useTaskCategories.ts — Category management
-- useTaskCategoryAccess.ts — Category access control
-- useTaskAI.ts — AI operations
-- useTaskViewPreference.ts — View preferences
-- useTaskContributors.ts — Contributor management
-- useTaskCreationTemplates.ts — Task templates
-
-Cross-module:
-- useConvertTakeawayToTask.ts — Convert meeting takeaway to task
-- useAutoFetchTaskComments.ts — Auto-fetch comments
-- useActiveCollabTasks.ts — ActiveCollab integration
-- useExtractMeetingTasks.ts — Extract tasks from meetings
-
-### Services
-- src/lib/api/tasksService.ts — Task API operations (fetchTasks, createTask, updateTask, deleteTask)
-
-### Edge Functions (8 core + 4 related)
-Core:
-- api-v1-tasks — RESTful task API
-- task-ai-assistant — AI assistant for tasks
-- task-ai-agent — AI agent for task ops
-- ai-suggest-tasks — AI task suggestions
-- assign-task-back — Reassign back
-- reassign-task — Task reassignment
-- convert-takeaway-to-task — Meeting→task conversion
-- create-action-item-with-ai — AI action item creation
-
-Related:
-- create-meeting-review-tasks — Create review tasks
-- parse-meeting-action-items — Parse meeting actions
-- sync-action-item-to-ac — Sync to ActiveCollab
-- sync-workboard-action-items — Workboard sync
-
-### API Endpoints
-```
-TASKS_V2.BASE: 'api-v1-tasks-v2'
-TASKS_V2.BY_ID: 'api-v1-tasks-v2/:id'
-TASKS_V2.BY_SLUG: 'api-v1-tasks-v2/by-slug/:slug'
-TASKS_V2.COMMENTS: 'api-v1-tasks-v2/:id/comments'
-TASKS_V2.SUB_TASKS: 'api-v1-tasks-v2/:id/subtasks'
-TASKS_V2.SUMMARY: 'api-v1-tasks-v2/summary'
-TASKS_V2.CATEGORIES: 'api-v1-tasks-v2/categories'
-```
+---
 
 ## Database Tables
-- `tasks_v2` — Task records (title, description, status, priority, assignee, due_date, stream_id, parent_id)
-- `task_comments_v2` — Task comments with threading
-- `task_streams` — Stream definitions (name, slug, description, members)
-- `task_stream_members` — Stream membership
-- `task_categories` — Task category definitions
-- `task_attachments` — File attachments
-- `task_contributors` — Task contributors/collaborators
+
+| Table | Purpose |
+|-------|---------|
+| `tasks_v2` | Task records (title, status, priority, assignee, stream, due date) |
+| `task_comments_v2` | Threaded comments on tasks |
+| `task_streams` | Stream (workspace) definitions |
+| `task_stream_members` | Stream membership |
+| `task_categories` | Task categories |
 
 ## Cross-Module Dependencies
-**Depends on:** Platform Core
-**Used by:** Admin (stream/task settings)
-**Optional integrations:**
-- Meetings → convert takeaways to tasks, extract tasks from meetings
-- ActiveCollab → sync tasks to/from ActiveCollab
 
-## Implementation Notes
-- Tasks use slug-based URLs (auto-generated from title)
-- Multiple views: Today, This Week, Overdue, Delegated, All Tasks
-- Streams organize tasks into categories/workspaces
-- AI assistant helps with task creation and management
-- Subtask hierarchy (parent_id) for task decomposition
-- Comment threading with edit history
-- Task creation templates for quick entry
-- Status workflow: open → in_progress → completed
+**Depends on:** Platform Core (auth, layouts, UI)
+**Future integrations:**
+- Meetings: convert takeaways to tasks
+- EOS: link EOS issues to action items
+
+## Implementation Status
+
+| Component | Status |
+|-----------|--------|
+| TasksPage with view tabs | Done |
+| TaskDetailPage with comments + subtasks | Done |
+| StreamsPage | Done |
+| StreamTasksPage | Done |
+| Task CRUD hooks | Done |
+| Comment threading | Done |
+| Stream CRUD | Done |
+| Category listing | Done |
+
+### Pending
+
+- Task AI assistant (edge function + hook)
+- Admin pages for stream management
+- Subtask creation UI improvements
+- Legacy `TaskForm.tsx` in `src/pages/` still used for create/edit routes

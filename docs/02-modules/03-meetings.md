@@ -1,242 +1,139 @@
 # Meetings — Module Blueprint
 
 ## Overview
-The Meetings module provides full meeting lifecycle management: scheduling, recurring series, agendas, takeaways, transcript processing, Zoom integration, AI-powered summaries, efficiency analysis, and participant management.
+
+The Meetings module provides meeting lifecycle management: scheduling, recurring series, agendas with takeaways, transcript viewing, AI-powered summaries and task extraction, efficiency analysis, and cross-module meeting linking to clients, deals, and projects.
 
 ## Module Name
-`Meetings` (in app_modules and navigation)
+
+`Meetings` (in `app_modules` and navigation)
 
 ## Routes Owned
-```
-/meetings/schedule              → Meeting list/calendar
-/meetings/schedule/:idOrSlug    → Meeting detail
-/meetings/transcripts           → Transcript list
-/meetings/transcripts/:slug     → Transcript detail
-/meetings/transcripts/ai-match  → AI match results
-/meetings/pending-assignments   → Pending meeting assignments
-/knowledge/meetings             → Knowledge-embedded meetings
 
-Legacy redirects:
-/meetings        → /meetings/transcripts
-/meetings/:id    → MeetingIdRedirect (resolves to schedule or transcript)
-/meetings-v2     → /meetings/schedule
-/meetings-v2/:id → /meetings/schedule/:id
+From `src/modules/meetings/routes.tsx`:
+
+```
+/meetings                      → Meetings schedule (3-tab: schedule, efficiency, action items)
+/meetings/series               → Meeting series management
+/meetings/transcripts          → Transcript browser
+/meetings/:id                  → Meeting detail (7-tab: details, agenda, takeaways, participants, transcript, related-tasks, series-history)
+/meetings/new                  → Create meeting (legacy MeetingForm)
+/meetings/:id/edit             → Edit meeting (legacy MeetingForm)
 ```
 
-Admin routes:
+Admin route (from `src/modules/admin/routes.tsx`):
+
 ```
-/admin/data-sync/meeting-rules  → Meeting categorization rules
+/admin/meeting-analytics       → Meeting analytics + efficiency scoring
 ```
+
+---
 
 ## File Inventory
 
-### Pages (7 files)
-- src/pages/MeetingsV2.tsx — Meeting list/calendar
-- src/pages/MeetingDetailV2.tsx — Meeting detail (tabs: details, agenda, takeaways, transcript, participants, series)
-- src/pages/MeetingTranscripts.tsx — Transcript list
-- src/pages/MeetingPendingAssignments.tsx — Pending assignments
-- src/pages/MeetingAiMatchResults.tsx — AI match results
-- src/pages/MeetingIdRedirect.tsx — ID-to-slug redirect
-- src/pages/admin/data-sync/MeetingRules.tsx — Admin meeting rules
+### Pages (4 files in `src/modules/meetings/pages/`)
 
-### Components — meetings-v2/ (30 files)
-Main meeting UI:
-- CreateMeetingDialog.tsx, EditMeetingDialog.tsx, DeleteMeetingDialog.tsx, CloseMeetingDialog.tsx
-- EditMeetingSeriesConfirmDialog.tsx, MeetingsCalendar.tsx
-- MeetingDetailsTab.tsx, DateTimePicker.tsx, ShareMeetingButton.tsx
-- MeetingParticipantSelector.tsx, ParticipantsTab.tsx
-- SeriesHistoryTab.tsx, PreviousAgendaViewer.tsx, RelatedTasksTab.tsx
+| File | Purpose | Route |
+|------|---------|-------|
+| `MeetingsSchedulePage.tsx` | Meeting list/calendar with 3 tabs | `/meetings` |
+| `MeetingDetailV2Page.tsx` | Meeting detail with 7 tabs | `/meetings/:id` |
+| `MeetingSeriesPage.tsx` | Recurring series management | `/meetings/series` |
+| `MeetingTranscriptsPage.tsx` | Transcript browser with search + status filter | `/meetings/transcripts` |
 
-Agenda:
-- AgendaTab.tsx, AgendaColumn.tsx, AgendaItemRow.tsx, AgendaItemTakeaways.tsx
-- AddAgendaItemDialog.tsx, AgendaTakeawaysPanel.tsx
+### Components (13 files in `src/modules/meetings/components/`)
 
-Takeaways:
-- TakeawaysTab.tsx, TakeawaysColumn.tsx, AddTakeawayDialog.tsx
-- GeneralTakeawaysSection.tsx, InlineTakeawayForm.tsx, UnassignedTakeaways.tsx
+| File | Location | Purpose |
+|------|----------|---------|
+| `MeetingsCalendar.tsx` | `calendar/` | Calendar view for meetings |
+| `MeetingEfficiencyDashboard.tsx` | root | Efficiency dashboard with score, stats, trend chart |
+| `ActionItemsPanel.tsx` | root | Pending action items with due date urgency |
+| `RelatedTasksTab.tsx` | root | Action items and linked tasks from takeaways |
+| `AgendaTab.tsx` | `agenda/` | Agenda management tab |
+| `PreviousAgendaViewer.tsx` | `agenda/` | Read-only agenda from previous meeting in series |
+| `ParticipantsTab.tsx` | `participants/` | Participant list and management |
+| `AddParticipantDialog.tsx` | `participants/` | Add participant dialog |
+| `MeetingParticipantSelector.tsx` | `participants/` | Inline participant selector with avatars |
+| `TakeawaysTab.tsx` | `takeaways/` | Takeaways/decisions tab |
+| `TranscriptTab.tsx` | `transcript/` | Transcript viewer with AI summary |
+| `SeriesCard.tsx` | `series/` | Series card for listing |
+| `SeriesHistoryTab.tsx` | `series/` | Timeline of meetings in a series |
 
-Transcripts:
-- TranscriptTab.tsx, TranscriptSummaryTab.tsx
+### Hooks (10 files in `src/modules/meetings/hooks/`)
 
-Zoom:
-- ZoomRecordingPanel.tsx
+| Hook | Purpose | Tables Queried |
+|------|---------|----------------|
+| `useMeetingAgenda.ts` | Agenda item CRUD | `meeting_agenda_items` |
+| `useMeetingParticipants.ts` | Participant management | `meeting_participants` |
+| `useMeetingTakeaways.ts` | Takeaway CRUD | `meeting_takeaways` |
+| `useRecurringMeetings.ts` | Series CRUD | `meeting_series`, `meetings` |
+| `useMeetingActionItems.ts` | Action items (per meeting + my items) | `meeting_takeaways` |
+| `useMeetingAssignment.ts` | Cross-entity meeting linking | `meeting_assignments` |
+| `useCrossModuleMeetings.ts` | Client/deal/project meetings | `meeting_assignments` |
+| `useMeetingEfficiency.ts` | Efficiency metrics + scoring | `meetings`, `meeting_agenda_items`, `meeting_takeaways`, `meeting_participants` |
+| `useExtractMeetingTasks.ts` | AI task extraction from transcripts | `meeting_transcripts`, `meeting_takeaways` |
+| `useGenerateMeetingSummary.ts` | AI summary generation | `meeting_transcripts` |
 
-Participants:
-- AddParticipantDialog.tsx
+### Types
 
-### Components — meeting/ (12 files)
-- AddManualTranscriptDialog.tsx, AISuggestionDialog.tsx, ActionItemsPanel.tsx
-- BulkOperationsBar.tsx, InlineMeetingAssignment.tsx, MeetingAssignmentEditor.tsx
-- MeetingCategorizationCard.tsx, PendingAssignmentTaskDialog.tsx
-- QuickClientMatcher.tsx, SearchableClientSelect.tsx, SearchableProjectSelect.tsx
-- ZoomSyncControls.tsx
+`src/modules/meetings/types/index.ts` — Complete type definitions:
+- `MeetingV2`, `MeetingSeries`, `MeetingAgendaItem`, `MeetingTakeaway`
+- `MeetingParticipant`, `MeetingTranscript`, `MeetingAssignment`
+- Enums: `MeetingStatus`, `MeetingProvider`, `TakeawayType`, `RSVPStatus`, `AssignmentEntityType`
 
-### Components — meetings/ (3 files)
-- MeetingProcessingDashboard.tsx, MeetingStatusBadge.tsx, ProjectSearchFilters.tsx
+### Edge Functions (2 invoked from frontend)
 
-### Components — meetingEfficiency/ (1 file)
-- MeetingEfficiencyDashboard.tsx
+| Function | Purpose | Called From |
+|----------|---------|-------------|
+| `extract-meeting-tasks` | AI extraction of tasks from transcripts | `useExtractMeetingTasks` |
+| `generate-meeting-summary` | AI summary generation | `useGenerateMeetingSummary` |
 
-### Components — AI
-- src/components/ai/MeetingIssueResults.tsx
+Additional meeting-related functions exist (`categorize-meeting`, `zoom-transcript-processing`, `sync-zoom-files`) but are called from platform-level hooks rather than the meetings module directly.
 
-### Hooks (30 files)
-Core:
-- useMeetingsV2.ts — Main meetings query
-- useMeetingAgenda.ts — Agenda CRUD
-- useMeetingTakeaways.ts — Takeaways CRUD
-- useMeetingParticipants.ts — Participant management
-- useMeetingPermissions.ts — Permission checks
-- useMeetingHost.ts — Host information
-- useMeetingZoomLink.ts — Zoom link
-- useMeetingFiles.ts — Meeting files
-- useMeetingFileSummary.ts — File summaries
-- useMeetingTranscriptSummary.ts — Transcript summary
-- useMeetingActionItems.ts — Action items
-- useMeetingAssignment.ts — Meeting assignment
-- useMeetingEfficiency.ts — Efficiency metrics
-- useRecurringMeetings.ts — Series management
-- useCalendarMeetings.ts — Calendar integration
-
-AI & Processing:
-- useGenerateMeetingSummary.ts — AI summary generation
-- useExtractMeetingTasks.ts — Extract tasks from meetings
-- useCategorizeMeetings.ts — Auto-categorization
-- useAutoEmbedMeetings.ts — Auto-embed for knowledge
-- useMeetingsWithCategorizations.ts — Meetings with categories
-
-Cross-module:
-- useClientMeetings.ts, useContactMeetings.ts, useContactMeetingSearch.ts
-- useDealMeetings.ts, useEntityMeetings.ts, useKnowledgeMeetings.ts
-- useManualMeetings.ts, useProjectMeetings.ts, useProjectMeetingSearch.ts
-
-Memory:
-- src/hooks/memory/useEntityMeetings.ts
-
-### AI Agent
-- src/lib/ai-agents/meeting-intelligence-agent.ts — Meeting intelligence
-
-### Types (1 file)
-- src/types/meetings.ts — MeetingV2, MeetingTakeaway, ParticipantProfile, etc.
-
-### Edge Functions (33 functions)
-Core:
-- ai-summarize-meeting, api-v1-meetings, api-v1-transcripts
-- apply-meeting-rules, categorize-meeting, smart-categorize-meetings
-- classify-zoom-meetings, compile-meeting-summary
-- convert-takeaway-to-task, create-meeting-review-tasks
-- discover-meeting-relationships, extract-meeting-issues
-- extract-meeting-tasks-for-ac, generate-meeting-summary
-- generate-meeting-summary-v2, generate-recurring-meetings
-- get-meeting-participants, match-meeting-to-project
-- meeting-efficiency-analyzer, meeting-issue-reporter
-- parse-meeting-action-items, process-pending-meetings
-- send-meeting-efficiency-report, send-meeting-notification
-- sync-meeting-participants, auto-embed-meetings, ai-match-meeting-client
-
-Zoom:
-- api-v1-zoom-files, check-zoom-sync-health, manage-zoom-account
-- sync-zoom-files, zoom-cron-sync
-
-Shared:
-- _shared/send-meeting-completion-email.ts
-- _shared/link-zoom-recording-to-meeting.ts
-
-### API Endpoints
-```
-MEETINGS.BASE: 'api-v1-meetings'
-MEETINGS.SYNC_ZOOM: 'sync-zoom-files'
-MEETINGS.GENERATE_SUMMARY: 'generate-meeting-summary'
-MEETINGS.CATEGORIZE: 'categorize-meeting'
-MEETINGS.EFFICIENCY_ANALYZER: 'meeting-efficiency-analyzer'
-ZOOM.SYNC_FILES: 'sync-zoom-files'
-ZOOM.MANAGE_ACCOUNT: 'manage-zoom-account'
-```
+---
 
 ## Database Tables
-- `meetings_v2` — Meeting records
-- `meeting_agenda_items` — Agenda items
-- `meeting_takeaways` — Takeaways/decisions
-- `meeting_participants` — Participant list
-- `meeting_transcripts` — Transcript content
-- `meeting_series` — Recurring meeting definitions
-- `meeting_categorizations` — Auto-categorizations
-- `meeting_files` — Attached files
-- `meeting_assignments` — Client/project assignments
+
+| Table | Purpose |
+|-------|---------|
+| `meetings` | Meeting records (title, date, status, provider, series_id) |
+| `meeting_agenda_items` | Agenda items with presenter and time allocation |
+| `meeting_takeaways` | Takeaways (decisions, action items, notes, follow-ups) |
+| `meeting_participants` | Participant list with RSVP and attendance |
+| `meeting_transcripts` | Transcript content with speaker segments |
+| `meeting_series` | Recurring meeting definitions |
+| `meeting_assignments` | Cross-entity linking (client, deal, project) |
 
 ## Cross-Module Dependencies
-**Depends on:** Platform Core
+
+**Depends on:** Platform Core (auth, layouts, UI)
 **Used by:**
-- Projects (project meetings tab, link meetings to projects)
-- Business Dev (deal meetings, client meetings)
-- EOS (extract issues from meetings)
-- Knowledge Base (embed meetings into knowledge)
-- Actions (convert takeaways to tasks)
+- Projects (`useProjectMeetings` from `useCrossModuleMeetings`)
+- Business Dev (`useClientMeetings`, `useDealMeetings` from `useCrossModuleMeetings`)
+- EOS (`useExtractMeetingIssues` extracts issues from transcripts)
+- Admin (MeetingAnalytics page uses `useMeetingEfficiency`)
 
 ## Implementation Status
 
-### Built (Sprint 1)
-- **MeetingTranscriptsPage** (`src/modules/meetings/pages/MeetingTranscriptsPage.tsx`) — Transcript browser with search, status filter, summary cards (total/with AI summary/processed), table with meeting name, date, source, speakers, status, summary preview, preview dialog
-- **useMeetingEfficiency** (`src/modules/meetings/hooks/useMeetingEfficiency.ts`) — Efficiency metrics: totalMeetings, avgDuration, avgParticipants, avgTakeaways, agendaRate, takeawayRate, avgEfficiencyScore (weighted composite: 25pts agenda + 25pts takeaways + 25pts duration + 25pts attendance), monthly trend
-- **MeetingAnalytics efficiency section** — Wired useMeetingEfficiency to admin MeetingAnalytics page with efficiency score card, breakdown (agenda rate, takeaway rate, avg participants, avg takeaways), monthly efficiency trend with progress bars
+| Component | Status |
+|-----------|--------|
+| MeetingsSchedulePage (3-tab: schedule, efficiency, action items) | Done |
+| MeetingDetailV2Page (7-tab layout) | Done |
+| MeetingSeriesPage | Done |
+| MeetingTranscriptsPage | Done |
+| Agenda CRUD | Done |
+| Takeaway CRUD | Done |
+| Participant management | Done |
+| Transcript viewer + AI summary | Done |
+| Action items panel | Done |
+| Series history timeline | Done |
+| Previous agenda viewer | Done |
+| Efficiency dashboard | Done |
+| Cross-module hooks (client/deal/project meetings) | Done |
+| AI task extraction | Done |
+| AI summary generation | Done |
+| MeetingAnalytics admin page | Done |
 
-### Routes Registered
-- `/meetings/transcripts` → MeetingTranscriptsPage
+### Known Issues
 
-### Built (Sprint 2 — Detail Page Enhancements)
-
-**5 New Components:**
-- **AddParticipantDialog** (`src/modules/meetings/components/participants/AddParticipantDialog.tsx`) — Dialog with name, email, role selector, calls `useAddParticipant()`
-- **MeetingParticipantSelector** (`src/modules/meetings/components/participants/MeetingParticipantSelector.tsx`) — Inline participant list with avatars, role badges, remove buttons
-- **PreviousAgendaViewer** (`src/modules/meetings/components/agenda/PreviousAgendaViewer.tsx`) — Read-only agenda from previous meeting in series
-- **SeriesHistoryTab** (`src/modules/meetings/components/series/SeriesHistoryTab.tsx`) — Timeline of all meetings in a series with status badges, clickable
-- **RelatedTasksTab** (`src/modules/meetings/components/RelatedTasksTab.tsx`) — Action items and linked tasks from meeting takeaways
-
-**MeetingDetailV2Page Enhanced:**
-- Added "Tasks" tab (always shown) → RelatedTasksTab
-- Added "Series" tab (conditional on `series_id`) → SeriesHistoryTab
-- MeetingDetailTab type updated: `"details" | "agenda" | "takeaways" | "participants" | "related-tasks" | "series-history"`
-
-### Built (Sprint 3 — Action Items, Transcripts, Assignments)
-
-**2 New Hooks:**
-- **useMeetingActionItems** (`src/modules/meetings/hooks/useMeetingActionItems.ts`) — `useMeetingActionItems(meetingId)`, `useMyActionItems()` (cross-meeting, user-scoped), `useActionItemStats()` (total/completed/overdue/upcoming)
-- **useMeetingAssignment** (`src/modules/meetings/hooks/useMeetingAssignment.ts`) — `useMeetingAssignments(meetingId)`, `useEntityMeetings(entityType, entityId)`, `useAssignMeeting()`, `useUnassignMeeting()`
-
-**2 New Components:**
-- **TranscriptTab** (`src/modules/meetings/components/transcript/TranscriptTab.tsx`) — Transcript viewer with AI summary, speaker segments, search within transcript, source badge
-- **ActionItemsPanel** (`src/modules/meetings/components/ActionItemsPanel.tsx`) — Pending action items panel with due date urgency badges (overdue/soon), completion toggle, meeting title links
-
-**MeetingDetailV2Page:**
-- Added "Transcript" tab (always shown) → TranscriptTab
-- MeetingDetailTab type now includes `"transcript"`
-
-### Built (Sprint 4 — AI Features + Cross-Module + Efficiency Dashboard)
-
-**2 AI Hooks:**
-- **useGenerateMeetingSummary** (`src/modules/meetings/hooks/useGenerateMeetingSummary.ts`) — Invoke `generate-meeting-summary` edge function, returns structured summary
-- **useExtractMeetingTasks** (`src/modules/meetings/hooks/useExtractMeetingTasks.ts`) — AI extract action items from transcript, `useCreateTasksFromExtraction()` for batch insert
-
-**3 Cross-Module Hooks:**
-- **useCrossModuleMeetings** (`src/modules/meetings/hooks/useCrossModuleMeetings.ts`) — `useClientMeetings(clientId)`, `useDealMeetings(dealId)`, `useProjectMeetings(projectId)` via meeting_assignments join
-
-**1 User-Facing Component:**
-- **MeetingEfficiencyDashboard** (`src/modules/meetings/components/MeetingEfficiencyDashboard.tsx`) — Self-contained dashboard with time range selector (30/60/90 days), efficiency score hero card, 4 stat cards, monthly trend BarChart, meeting quality breakdown
-
-## Implementation Notes
-- Meetings support both one-off and recurring series
-- Zoom integration syncs recordings, transcripts, and files
-- AI features: summarization, task extraction, issue extraction, categorization
-### Wired (Sprint 5 — Component Integration)
-
-**MeetingsSchedulePage** now has 3-tab view:
-- Schedule (original list/calendar with stats, filters, search)
-- Efficiency (MeetingEfficiencyDashboard — self-contained with time range selector, score card, trend chart, quality breakdown)
-- Action Items (ActionItemsPanel with showMeetingTitle=true — pending items with due date urgency, completion toggle)
-
-**Navigation** — Added "Transcripts" nav item under meetings module in sidebar
-
-## Implementation Notes
-- Takeaways can be converted to Actions (tasks) via edge function
-- Meeting assignments link meetings to clients and projects
-- Efficiency analyzer provides meeting quality metrics
+- 20 instances of `(supabase as any)` casts for complex join queries
+- Legacy `MeetingForm.tsx` in `src/pages/` still used for create/edit routes
