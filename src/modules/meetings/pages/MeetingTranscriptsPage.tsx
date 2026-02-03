@@ -77,11 +77,11 @@ function useMeetingTranscripts(search: string, statusFilter: string) {
       const meetingIds = [...new Set((data as any[]).map((t: any) => t.meeting_id))];
       const { data: meetings } = await (supabase as any)
         .from("meetings")
-        .select("id, title, meeting_date")
+        .select("id, title, scheduled_at")
         .in("id", meetingIds);
 
-      const meetingMap = new Map(
-        (meetings || []).map((m: any) => [m.id, { title: m.title, date: m.meeting_date }])
+      const meetingMap = new Map<string, { title: string; date: string | null }>(
+        (meetings || []).map((m: any) => [m.id, { title: m.title, date: m.scheduled_at }])
       );
 
       let rows: TranscriptRow[] = (data as any[]).map((t: any) => {
