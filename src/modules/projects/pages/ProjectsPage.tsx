@@ -3,7 +3,6 @@
  */
 
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,19 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, FolderKanban, Calendar, Loader2, Database } from "lucide-react";
+import { Plus, Search, FolderKanban, Calendar, Loader2 } from "lucide-react";
 import { useProjects, useProjectStatuses } from "../hooks/useProjects";
 import { useClients } from "@/hooks/useClients";
-import { GlobalProjectsRestoreDialog } from "@/components/projects/GlobalProjectsRestoreDialog";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const { data: statuses = [] } = useProjectStatuses();
   const { data: projects = [], isLoading } = useProjects({
@@ -41,35 +35,6 @@ export default function ProjectsPage() {
     [clients],
   );
 
-  const backupAll = useMutation({
-    mutationFn: async () => {
-      if (!projects.length) return;
-      const rows = projects.map((p) => ({
-        project_id: p.id,
-        backup_type: "manual",
-        status: "completed",
-        snapshot: p,
-        notes: "Manual backup created from Projects list (Backup all)",
-      }));
-      const { error } = await supabase.from("project_backups").insert(rows);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project-backups-summary"] });
-      toast({
-        title: "Backups created",
-        description: "Manual backups have been recorded for all projects on this page.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to create backups",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -77,26 +42,10 @@ export default function ProjectsPage() {
           <h1 className="text-2xl font-bold">Projects</h1>
           <p className="text-muted-foreground">Manage your projects</p>
         </div>
-        <div className="flex items-center gap-2">
-          <GlobalProjectsRestoreDialog />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => backupAll.mutate()}
-            disabled={backupAll.isPending || projects.length === 0}
-          >
-            {backupAll.isPending ? (
-              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-            ) : (
-              <Database className="mr-1 h-4 w-4" />
-            )}
-            Backup all
-          </Button>
-          <Button onClick={() => navigate("/projects/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
-        </div>
+        <Button onClick={() => navigate("/projects/new")}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Project
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
