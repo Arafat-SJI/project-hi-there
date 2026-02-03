@@ -1,212 +1,357 @@
 # Platform Core — Module Blueprint
 
 ## Overview
+
 The Platform Core module provides the application shell that all other modules plug into. It contains authentication, layouts, navigation, the UI component library, contexts, shared hooks, configuration, and the Supabase integration layer.
 
 ## Routes Owned
-From App.tsx:
+
+From `src/modules/platform/routes.tsx`:
+
+**Public (no auth required):**
+
 ```
-/                          → Redirect to /dashboard
+/                          → Landing page (Index.tsx)
 /login                     → Login page
-/auth/callback             → OAuth callback
-/access-denied             → Access denied page
-/api                       → Public API docs
-/ai-agent-guide            → AI agent guide
-/dashboard                 → Main dashboard (ProtectedRoute + DashboardLayout)
-/profile                   → User profile
-/account/sessions          → Session management
-/vision                    → Vision page (company overview)
-/analytics                 → Analytics page
-/feedback                  → User feedback
-/user-guide                → Help & guides
-/notifications             → Notifications
-/pod                       → Pod/team view
-/integrations/gmail/callback      → Gmail OAuth callback
-/integrations/google-drive/callback  → Google Drive OAuth callback
-/integrations/google-calendar/callback → Google Calendar OAuth callback
+/signup                    → Signup page
+/auth/callback             → Supabase OAuth callback
+/auth-callback             → Microsoft MSAL auth callback
 ```
+
+**Protected (authenticated users):**
+
+```
+/dashboard                 → Main dashboard
+/profile                   → User profile
+/settings                  → User settings
+/feedback                  → User feedback
+/notifications             → Notifications (feature flag: enableNotifications)
+/ai-agents                 → AI agent builder (feature flag: enableAIAgents)
+/ai-chat                   → AI chat assistant (feature flag: enableAIChat)
+/personal-knowledge        → Personal knowledge base
+*                          → 404 Not Found
+```
+
+**Public client portal (from App.tsx, no auth required):**
+
+```
+/projects/:slug/client-portal/:token → Client portal dashboard
+/client/project/:token               → Legacy client project dashboard
+```
+
+---
 
 ## File Inventory
 
-### Pages
-- src/pages/MyDashboard.tsx — Main user dashboard
-- src/pages/Dashboard.tsx — Alternative dashboard view
-- src/pages/Index.tsx — Index/home page
-- src/pages/NotFound.tsx — 404 page
-- src/pages/AccessDenied.tsx — 403 page
-- src/pages/Profile.tsx — User profile
-- src/pages/Vision.tsx — Company vision page
-- src/pages/Analytics.tsx — Analytics page
-- src/pages/Reports.tsx — Reports page
-- src/pages/Resources.tsx — Resources page
-- src/pages/Pod.tsx — Pod/team view
-- src/pages/PodManagement.tsx — Pod management
-- src/pages/Feedback.tsx — User feedback
-- src/pages/UserGuide.tsx — Help documentation
-- src/pages/AiAgentGuide.tsx — AI agent guide
-- src/pages/ApiDocs.tsx — API documentation
-- src/pages/PublicApiDocs.tsx — Public API docs
-- src/pages/CommunicationCoach.tsx — Communication coach
-- src/pages/TranscriptDetail.tsx — Transcript detail
-- src/pages/auth/Login.tsx — Login page
-- src/pages/auth/AuthCallback.tsx — OAuth callback handler
-- src/pages/auth/SessionManagement.tsx — Session management
-- src/pages/notifications/NotificationsPage.tsx — Notifications view
-- src/pages/settings/NotificationPreferences.tsx — Notification prefs
-- src/pages/integrations/GmailCallback.tsx — Gmail OAuth callback
-- src/pages/integrations/GoogleDriveCallback.tsx — Google Drive OAuth callback
-- src/pages/integrations/GoogleCalendarCallback.tsx — Google Calendar OAuth callback
+### Pages (Platform-owned in `src/pages/`)
 
-### Layout Components (src/components/layout/)
-- DashboardLayout.tsx — Main app layout with sidebar
-- AdminLayout.tsx — Admin panel layout
-- MainSidebar.tsx — Main sidebar navigation
-- AdminSidebar.tsx — Admin sidebar
-- AppSidebar.tsx — App-wide sidebar
-- TopNav.tsx — Top navigation bar
-- Breadcrumb.tsx — Breadcrumb navigation
+| File | Purpose | Route |
+|------|---------|-------|
+| `Index.tsx` | Landing page | `/` |
+| `Login.tsx` | Login form | `/login` |
+| `Signup.tsx` | Signup form | `/signup` |
+| `AuthCallback.tsx` | Supabase OAuth callback handler | `/auth/callback` |
+| `MicrosoftAuthCallback.tsx` | Microsoft MSAL auth callback | `/auth-callback` |
+| `Dashboard.tsx` | Main user dashboard | `/dashboard` |
+| `Profile.tsx` | User profile management | `/profile` |
+| `Settings.tsx` | User settings | `/settings` |
+| `Feedback.tsx` | User feedback submission | `/feedback` |
+| `Notifications.tsx` | Notifications view | `/notifications` |
+| `AIAgents.tsx` | AI agent builder and management | `/ai-agents` |
+| `AIChat.tsx` | AI chat assistant | `/ai-chat` |
+| `NotFound.tsx` | 404 page | `*` |
+| `DeploymentStatus.tsx` | Deployment monitoring | (admin route) |
 
-### Auth Components (src/components/auth/)
-- ProtectedRoute.tsx — Route protection HOC (checks auth)
-- AdminRoute.tsx — Admin-only route protection
-- ModuleRoute.tsx — Module-level access control
+**Legacy pages** (used by module routes but owned by `src/pages/`):
 
-### Error Handling
-- src/components/ErrorBoundary.tsx — Global error boundary
-- src/components/common/ErrorBoundary.tsx — Common error boundary
+| File | Purpose | Used by |
+|------|---------|---------|
+| `MeetingForm.tsx` | Create/edit meeting form | Meetings module routes |
+| `MeetingDetail.tsx` | Legacy meeting detail | Orphaned — superseded by `MeetingDetailV2Page` |
+| `Meetings.tsx` | Legacy meetings list | Orphaned — superseded by `MeetingsSchedulePage` |
+| `TaskForm.tsx` | Create/edit task form | Actions module routes |
+| `TaskDetail.tsx` | Legacy task detail | Orphaned — superseded by `TaskDetailPage` |
+| `Tasks.tsx` | Legacy tasks list | Orphaned — superseded by `TasksPage` |
+| `Clients.tsx` | Client listing | Business-dev module routes |
+| `ClientForm.tsx` | Create/edit client | Business-dev module routes |
+| `ClientDetail.tsx` | Client detail | Business-dev module routes |
+| `MCPServers.tsx` | MCP server management | Admin routes |
 
-### UI Component Library (src/components/ui/) — 45+ components
-shadcn/ui based. Key ones:
-- button.tsx, input.tsx, textarea.tsx, label.tsx, form.tsx
-- dialog.tsx, alert-dialog.tsx, sheet.tsx, drawer.tsx
-- table.tsx, card.tsx, badge.tsx, avatar.tsx
-- tabs.tsx, accordion.tsx, pagination.tsx
-- dropdown-menu.tsx, context-menu.tsx, navigation-menu.tsx
-- progress.tsx, skeleton.tsx, toast.tsx, sonner.tsx
-- tooltip.tsx, popover.tsx, hover-card.tsx
-- select.tsx, checkbox.tsx, radio-group.tsx, switch.tsx, toggle.tsx
-- calendar.tsx, slider.tsx, chart.tsx, command.tsx
-- sidebar.tsx, scroll-area.tsx, separator.tsx, resizable.tsx
-- carousel.tsx, collapsible.tsx, aspect-ratio.tsx
-- FormRichTextEditor.tsx, star-rating.tsx, WeekDisplay.tsx
+### Layout Components (`src/components/layout/`)
 
-### Common Components (src/components/common/)
-- EmployeeSelector.tsx, MultiEmployeeSelector.tsx
-- EmptyState.tsx, PageHeader.tsx, KPICard.tsx, StatCard.tsx
-- SearchBar.tsx, FilterToolbar.tsx, StatusBadge.tsx
-- MarkdownRenderer.tsx, PodSelector.tsx
-- DeprecationBanner.tsx, FeaturedAnnouncementBanner.tsx
-- UnifiedFilesSection.tsx
+| File | Purpose |
+|------|---------|
+| `DashboardLayout.tsx` | Main app layout with sidebar + top nav |
+| `AdminLayout.tsx` | Admin panel layout with admin sidebar |
+| `AppSidebar.tsx` | Main sidebar navigation (reads `navigationStructure.ts`) |
+| `AdminSidebar.tsx` | Admin sidebar navigation |
+| `TopNav.tsx` | Top navigation bar with user menu |
 
-### Global Components
-- src/components/GlobalSearch.tsx — Global search
-- src/components/NavLink.tsx — Navigation link
-- src/components/notifications/NotificationBell.tsx
-- src/components/notifications/NotificationItem.tsx
+### Auth & Routing Components
 
-### Vision Components (src/components/vision/)
-- VisionHero.tsx, TowerCard.tsx, ControlTowerEcosystem.tsx
-- ModuleOverviewGrid.tsx, AnnouncementCard.tsx
-- AiGuidePromo.tsx, AiSectionDivider.tsx, WhatsNewTimeline.tsx, index.ts
+| File | Location | Purpose |
+|------|----------|---------|
+| `ProtectedRoute.tsx` | `src/components/auth/` | Route protection — checks auth session |
+| `AdminRoute.tsx` | `src/components/auth/` | Admin-only route protection |
+| `ModuleRoute.tsx` | `src/components/routing/` | Module-level access control (checks `app_modules` + feature flags) |
 
-### Dashboard Components (src/components/dashboard/)
-- tabs/MyMeetingsTab.tsx, tabs/MyDealsTab.tsx
+### Common Components (`src/components/common/`)
 
-### Contexts (src/contexts/)
-- AuthContext.tsx — Authentication state (user, session, roles, sign in/out)
-- SearchContext.tsx — Global search state
-- ActivityTrackerContext.tsx — Activity tracking
+| File | Purpose |
+|------|---------|
+| `EmptyState.tsx` | Reusable empty state placeholder |
+| `LoadingSpinner.tsx` | Loading indicator |
 
-### Core Hooks (src/hooks/)
-Auth & Permissions:
-- useModuleAccess.ts — Check module access (calls get_user_modules RPC)
-- useUserRole.ts — Get user role
-- usePermissions.ts — Permission checks
-User Profile:
-- useUpdateProfile.ts, useEmployeeProfile.ts, useEmployeeFullProfile.ts
-Notifications:
-- useNotifications.ts, useNotificationsV2.ts, useNotificationPreferences.ts
-- useAnnouncements.ts, useUserNotifications.ts, useInactiveUserAlerts.ts
-Session:
-- useMemoryOnAuth.ts, useUserMemoryAtLogin.ts, useMemoryHierarchy.ts
-Utility:
-- use-toast.ts, use-mobile.tsx
-Settings:
-- useSettings.ts, useFeedback.ts
+### Other Components
 
-### Configuration (src/config/)
-- api.ts — API endpoint definitions (API_ENDPOINTS, buildApiUrl, getApiEndpoint)
-- storageConfig.ts — Storage bucket configuration
-- controlTowers.ts — Control tower definitions
+| File | Location | Purpose |
+|------|----------|---------|
+| `OnboardingWizard.tsx` | `src/components/` | First-run setup wizard (rendered in `DashboardLayout`) |
+| `FeatureGrid.tsx` | `src/components/landing/` | Landing page feature grid |
+| `HeroSection.tsx` | `src/components/landing/` | Landing page hero |
+| `PricingPreview.tsx` | `src/components/landing/` | Landing page pricing |
+| `ProblemSolution.tsx` | `src/components/landing/` | Landing page problem/solution |
+| `SocialProof.tsx` | `src/components/landing/` | Landing page social proof |
+| `ValueProps.tsx` | `src/components/landing/` | Landing page value propositions |
+| `FinalCTA.tsx` | `src/components/landing/` | Landing page call to action |
+| `Footer.tsx` | `src/components/landing/` | Landing page footer |
 
-### Data (src/data/)
-- navigationStructure.ts — Main and admin navigation definitions
-- documentationIndex.ts, agentDataSourceRegistry.ts, userGuideIndex.ts
-- feedbackModules.ts, urlAuditData.ts
+### UI Component Library (`src/components/ui/`)
 
-### Supabase Integration (src/integrations/supabase/)
-- client.ts — Supabase client initialization with custom auth storage
-- types.ts — Auto-generated database types (590KB)
+shadcn/ui based, 45+ primitives. Key categories:
 
-### Type Definitions (src/types/)
-- database.ts, database-custom.ts — Database schema types
-- integrations.ts, pods.ts, edge-functions.ts — Shared types
+- **Form:** button, input, textarea, label, form, select, checkbox, radio-group, switch, toggle, slider, calendar
+- **Layout:** card, table, tabs, accordion, separator, scroll-area, resizable, sidebar, aspect-ratio
+- **Overlay:** dialog, alert-dialog, sheet, drawer, popover, tooltip, hover-card, dropdown-menu, context-menu
+- **Feedback:** progress, skeleton, toast, sonner, badge, avatar
+- **Navigation:** navigation-menu, command, pagination, collapsible, carousel
+- **Custom:** chart (Recharts), FormRichTextEditor, star-rating, WeekDisplay
 
-### Utilities (src/lib/)
-- utils.ts — General utilities (cn, clsx)
-- auth-utils.ts — Auth helpers
-- validation.ts, type-guards.ts, cache.ts, performance.ts
-- supabase-helpers.ts, supabase-typed.ts
-- csv.ts, exportUtils.ts, slug.ts, sanitize.ts, toast-helpers.ts
-- edge-functions.ts, componentOptimization.ts
-- isoWeeks.ts
+### Contexts (`src/contexts/`)
 
-### Constants (src/constants/)
-- routes.ts — Route path constants
-- timezones.ts — Timezone constants
+| File | Purpose |
+|------|---------|
+| `AuthContext.tsx` | Authentication state — user, session, roles, sign in/out, profile management |
+| `BrandingContext.tsx` | Dynamic branding — reads `app_config.branding` for logo, colors |
 
-### Services (src/services/)
-- uploadService.ts — File upload service
+### Core Hooks (`src/hooks/`)
+
+**Platform configuration (5):**
+
+| Hook | Purpose |
+|------|---------|
+| `useAppConfig.ts` | Read/update `app_config` table — feature flags, branding, email, SSO |
+| `useFeatureFlags.ts` | Derived from `useAppConfig` — typed feature flag checks |
+| `useAuthConfig.ts` | SSO configuration — SAML, SCIM, SSO domains |
+| `usePreferences.ts` | User preferences from `profiles.metadata` |
+| `useOnboarding.ts` | Onboarding wizard state |
+
+**Shared module access (`src/shared/hooks/`):**
+
+| Hook | Purpose |
+|------|---------|
+| `useModuleAccess.ts` | Multi-layer module access: build-time → `app_modules` → feature flags |
+
+**Notifications, roles, dashboard (4):**
+
+| Hook | Purpose |
+|------|---------|
+| `useNotifications.ts` | Real-time notifications with Postgres subscriptions |
+| `useRoles.ts` | Role CRUD (`roles` table) |
+| `useDashboard.ts` | Dashboard stats — aggregate queries across modules |
+| `useUserInvites.ts` | User invite management |
+
+**AI & agent hooks (5):**
+
+| Hook | Purpose |
+|------|---------|
+| `useAIAgents.ts` | AI agent CRUD + run management |
+| `useAgentChatStream.ts` | Streaming agent chat via edge functions |
+| `useAgentConversations.ts` | Agent conversation history |
+| `useAgentMemory.ts` | Agent memory management |
+| `useAIChatAssistant.ts` | One-shot AI chat assistant |
+
+**Integration hooks (13):**
+
+| Hook | Purpose |
+|------|---------|
+| `useIntegrations.ts` | Integration provider management, API key validation |
+| `useIntegrationStatus.ts` | Connection status monitoring |
+| `useIntegrationSync.ts` | Project sync (ActiveCollab, Jira) |
+| `useUserIntegrations.ts` | Per-user OAuth connections (connect, disconnect, refresh) |
+| `useMicrosoftTeams.ts` | Microsoft Teams integration |
+| `useMicrosoftTeamsChannels.ts` | Teams channel listing |
+| `useMicrosoftTeamsMessages.ts` | Teams message retrieval |
+| `useMicrosoftCalendar.ts` | Microsoft Calendar integration |
+| `useCreateTeamsMeeting.ts` | Create Teams meetings |
+| `useGraphWebhookSubscription.ts` | Microsoft Graph webhook subscriptions |
+| `useSendTeamsChannelMessage.ts` | Send Teams channel messages |
+| `useSyncTeamsMeetings.ts` | Sync meetings from Teams |
+| `useModelSync.ts` | AI model sync from providers |
+
+**Meeting/file sync hooks (4):**
+
+| Hook | Purpose |
+|------|---------|
+| `useSyncZoom.ts` | Sync Zoom recordings and files |
+| `useZoomFiles.ts` | Zoom file management |
+| `useMeetingFiles.ts` | Meeting file management (transcripts, recordings) |
+| `useSyncMeetingProvider.ts` | Generic meeting provider sync |
+
+**Other shared hooks (5):**
+
+| Hook | Purpose |
+|------|---------|
+| `useMCPServers.ts` | MCP server CRUD |
+| `useSemanticSearch.ts` | Semantic search via edge function |
+| `use-toast.ts` | Toast notification hook (shadcn) |
+| `use-mobile.tsx` | Mobile viewport detection |
+| `useTasks.ts` | Legacy task CRUD (shared, used by actions module) |
+
+**Project-specific hooks in root (5):**
+
+| Hook | Purpose |
+|------|---------|
+| `useClientAccess.ts` | Client portal access management |
+| `useProjectReports.ts` | Project reporting aggregates |
+| `useProjectStatuses.ts` | Project status CRUD |
+| `useWorkTypes.ts` | Work type CRUD |
+| `useProjectModuleSettings.ts` | Project tab toggles |
+
+### Configuration (`src/shared/config/`)
+
+| File | Purpose |
+|------|---------|
+| `env.ts` | Environment variable abstraction |
+| `modules.ts` | Module registry with `isModuleEnabled()` |
+| `api.ts` | API endpoint definitions |
+| `index.ts` | Barrel export |
+
+### Data Files (`src/shared/data/`)
+
+| File | Purpose |
+|------|---------|
+| `navigationStructure.ts` | Main (20 items) and admin (28 items) navigation definitions |
+| `implementationStatus.ts` | PM overview — module/feature status tracking |
+
+### Supabase Integration (`src/integrations/supabase/`)
+
+| File | Purpose |
+|------|---------|
+| `client.ts` | Supabase client initialization with custom auth storage |
+| `types.ts` | Auto-generated database types |
+
+### Type Definitions (`src/types/`)
+
+| File | Purpose |
+|------|---------|
+| `knowledgeBase.ts` | Knowledge base types |
+
+### Utilities (`src/lib/`)
+
+| File | Purpose |
+|------|---------|
+| `utils.ts` | General utilities (`cn`, `clsx`) |
+| `cache.ts` | Centralized cache keys and invalidation helpers |
+| `validation.ts` | Input validation |
+| `sanitize.ts` | HTML/input sanitization |
+| `export-utils.ts` | Data export (CSV, etc.) |
+| `activity-logger.ts` | Fire-and-forget activity logging |
+| `env-validator.ts` | Environment variable validation |
+| `supabase.ts` | Supabase utility helpers |
+| `azureAuth.ts` | Azure AD authentication |
+| `msalConfig.ts` | MSAL configuration |
+| `msalAuthWindow.ts` | MSAL popup auth window |
+| `microsoftGraphClient.ts` | Microsoft Graph API client |
+| `microsoftGraphWebhooks.ts` | Microsoft Graph webhook management |
+| `microsoftTeamsService.ts` | Teams API service |
+| `microsoftTeamsMeetingService.ts` | Teams meeting service |
+| `microsoftTeamsNotificationService.ts` | Teams notification service |
+| `oauth-token-manager.ts` | OAuth token lifecycle (refresh, revoke) |
+| `integration-utils.ts` | Integration helper utilities |
+| `webhook-handlers.ts` | Incoming webhook handlers |
+| `zoom-sync.ts` | Zoom sync utilities |
+
+---
 
 ## Database Tables
-- `profiles` — User profiles
-- `app_modules` — Module definitions (name, page_route, is_active, category)
-- `user_module_permissions` — Per-user module access
-- `system_settings` — Key-value system configuration
-- `user_roles` — Role assignments
-- `announcements` — System announcements
-- `feedback` — User feedback
-- `sessions` — Active sessions
+
+| Table | Purpose |
+|-------|---------|
+| `profiles` | User profiles (extends Supabase `auth.users`) |
+| `roles` | Role definitions |
+| `app_config` | Global configuration (feature flags, branding, email, SSO) |
+| `app_modules` | Module registry (name, slug, is_active, category, sort_order) |
+| `user_module_permissions` | Per-user module access |
+| `system_settings` | Key-value system configuration |
+| `activity_logs` | User activity audit trail |
+| `feedback` | User feedback submissions |
+| `notifications` | User notifications |
 
 ## Key RPC Functions
-- `get_user_modules` — Returns module names accessible to current user
+
+- `get_user_modules` — Returns module names accessible to current user (or `*` for admin)
 
 ## Permission System
+
 1. `app_modules` table defines available modules
 2. `get_user_modules` RPC returns modules for current user (or `*` for admin)
-3. `useModuleAccess(moduleName)` hook checks access in components
-4. `MainSidebar` filters navigation items by `hasModule(moduleName)`
-5. `ModuleRoute` component guards routes
+3. `useModuleAccess(moduleName)` hook checks access in components (multi-layer: build-time → DB → feature flags)
+4. `AppSidebar` filters navigation items by `item.module` using `useModuleAccess()`
+5. `ModuleRoute` component guards routes at the routing level
 
 ## Environment Variables
+
 ```
 VITE_SUPABASE_PROJECT_ID=      # Supabase project ID
 VITE_SUPABASE_URL=             # Supabase URL
 VITE_SUPABASE_PUBLISHABLE_KEY= # Supabase anon key
 VITE_API_BASE_URL=             # Edge Functions base URL
+VITE_MICROSOFT_CLIENT_ID=      # Microsoft MSAL client ID (optional, enables Azure AD SSO)
 ```
 
 ## Build Configuration
-- vite.config.ts: Port 8080, SWC React plugin, path alias @/ → src/
-- tsconfig.json: @/* → ./src/*, strict: false, skipLibCheck: true
-- tailwind.config.ts: Tailwind CSS configuration
-- package.json: Dependencies and scripts
+
+- `vite.config.ts`: Port 8080, SWC React plugin, path alias `@/` → `src/`
+- `tsconfig.json`: `@/*` → `./src/*`, `strict: false`, `skipLibCheck: true`
+- `tailwind.config.ts`: Tailwind CSS configuration with shadcn/ui theme
+- `package.json`: Dependencies and scripts
 
 ## Implementation Notes
-- Auth uses Supabase Auth with custom "remember me" storage
+
+- Auth uses Supabase Auth with custom "remember me" storage (localStorage vs sessionStorage)
+- Optional Azure AD / MSAL SSO enabled via `VITE_MICROSOFT_CLIENT_ID` env var
 - Query caching uses TanStack React Query persist with localStorage
-- Cache version tracking (`CACHE_VERSION = 'v15'`) for invalidation
-- Stale time: 5 min, GC time: 30 min, persist: 4 hours
+- Cache version tracking (`CACHE_VERSION`) for invalidation on deploys
+- Stale time: 5–10 min per hook, GC time: 30 min
 - All protected routes wrap with `<ProtectedRoute>` + `<DashboardLayout>`
 - Admin routes additionally wrap with `<AdminRoute>` + `<AdminLayout>`
-- The navigation structure uses `moduleName` field for permission filtering
+- Navigation structure uses `module` field for permission filtering and `featureFlag` for granular control
+- `OnboardingWizard` renders in `DashboardLayout` for first-run setup
+
+## Implementation Status
+
+| Component | Status |
+|-----------|--------|
+| Auth (Supabase + MSAL) | Done |
+| Layouts (Dashboard + Admin) | Done |
+| Navigation (Main + Admin sidebars) | Done |
+| Module access system | Done |
+| Feature flag system | Done |
+| UI component library (shadcn/ui) | Done |
+| Config system (env, modules, api) | Done |
+| Onboarding wizard | Done |
+| Landing page | Done |
+| Dashboard | Done |
+| Profile / Settings | Done |
+| Notifications | Done |
+| Activity logging | Done |
+| AI Agents page | Done |
+| AI Chat page | Done |
+| Deployment monitoring | Done |
+
+### Known Issues
+
+- 4 legacy pages in `src/pages/` are orphaned (Meetings.tsx, MeetingDetail.tsx, Tasks.tsx, TaskDetail.tsx) — superseded by module-owned pages
+- `useAuthConfig.ts` uses `(supabase as any)` casts for SSO tables not in generated types
+- Some hooks use `error: any` instead of typed error handling
