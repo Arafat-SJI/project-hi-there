@@ -114,15 +114,11 @@ serve(async (req) => {
     // Handle error from provider
     if (error) {
       console.error("OAuth error:", error, errorDescription);
-      return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent(errorDescription || error)}`
-      );
+      return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent(errorDescription || error)}`);
     }
 
     if (!code || !state) {
-      return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent("Missing code or state parameter")}`
-      );
+      return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent("Missing code or state parameter")}`);
     }
 
     // Verify state and get stored data
@@ -133,9 +129,7 @@ serve(async (req) => {
       .single();
 
     if (stateError || !stateData) {
-      return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent("Invalid or expired state")}`
-      );
+      return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent("Invalid or expired state")}`);
     }
 
     // Check if state is expired
@@ -143,7 +137,7 @@ serve(async (req) => {
       // Delete expired state
       await supabase.from("oauth_states").delete().eq("state", state);
       return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent("OAuth session expired. Please try again.")}`
+        `${appUrl}/settings?error=${encodeURIComponent("OAuth session expired. Please try again.")}`,
       );
     }
 
@@ -158,9 +152,7 @@ serve(async (req) => {
       .single();
 
     if (orgError || !orgIntegration) {
-      return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent("Provider configuration not found")}`
-      );
+      return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent("Provider configuration not found")}`);
     }
 
     // Get credentials from config JSONB field (fallback to credentials for backward compatibility)
@@ -169,7 +161,7 @@ serve(async (req) => {
 
     if (!client_id || !client_secret) {
       return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent("Provider not properly configured. Please add Client ID and Client Secret in the integration settings.")}`
+        `${appUrl}/settings?error=${encodeURIComponent("Provider not properly configured. Please add Client ID and Client Secret in the integration settings.")}`,
       );
     }
 
@@ -194,9 +186,7 @@ serve(async (req) => {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error("Token exchange failed:", errorText);
-      return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent("Failed to exchange code for token")}`
-      );
+      return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent("Failed to exchange code for token")}`);
     }
 
     const tokens: TokenResponse = await tokenResponse.json();
@@ -208,9 +198,8 @@ serve(async (req) => {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
     // Store tokens in user_oauth_tokens
-    const { error: upsertError } = await supabase
-      .from("user_oauth_tokens")
-      .upsert({
+    const { error: upsertError } = await supabase.from("user_oauth_tokens").upsert(
+      {
         user_id,
         provider_slug: provider,
         access_token: tokens.access_token,
@@ -223,29 +212,35 @@ serve(async (req) => {
         is_active: true,
         error_message: null,
         updated_at: new Date().toISOString(),
-      }, {
+      },
+      {
         onConflict: "user_id,provider_slug",
-      });
+      },
+    );
 
     if (upsertError) {
       console.error("Failed to store tokens:", upsertError);
-      return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent("Failed to save connection")}`
-      );
+      return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent("Failed to save connection")}`);
     }
 
     // Delete the used state
     await supabase.from("oauth_states").delete().eq("state", state);
 
     // Redirect back to app with success
-    const finalRedirect = redirect_uri || `${appUrl}/settings`;
+    // For Zoom, redirect to the integration page; otherwise use redirect_uri or settings
+    let finalRedirect;
+    if (provider === "zoom") {
+      finalRedirect = `${appUrl}/admin/integrations/zoom`;
+    } else if (redirect_uri && !redirect_uri.includes("undefined")) {
+      finalRedirect = redirect_uri;
+    } else {
+      finalRedirect = `${appUrl}/settings`;
+    }
     return Response.redirect(`${finalRedirect}?connected=${provider}`);
   } catch (error: unknown) {
     console.error("User OAuth callback error:", error);
     const appUrl = Deno.env.get("APP_URL") || "http://localhost:5173";
     const message = error instanceof Error ? error.message : "Unknown error";
-    return Response.redirect(
-      `${appUrl}/settings?error=${encodeURIComponent(message)}`
-    );
+    return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent(message)}`);
   }
 });
