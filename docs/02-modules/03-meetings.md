@@ -227,6 +227,16 @@ ZOOM.MANAGE_ACCOUNT: 'manage-zoom-account'
 - Meetings support both one-off and recurring series
 - Zoom integration syncs recordings, transcripts, and files
 - AI features: summarization, task extraction, issue extraction, categorization
+### Wired (Sprint 5 — Component Integration)
+
+**MeetingsSchedulePage** now has 3-tab view:
+- Schedule (original list/calendar with stats, filters, search)
+- Efficiency (MeetingEfficiencyDashboard — self-contained with time range selector, score card, trend chart, quality breakdown)
+- Action Items (ActionItemsPanel with showMeetingTitle=true — pending items with due date urgency, completion toggle)
+
+**Navigation** — Added "Transcripts" nav item under meetings module in sidebar
+
+## Implementation Notes
 - Takeaways can be converted to Actions (tasks) via edge function
 - Meeting assignments link meetings to clients and projects
 - Efficiency analyzer provides meeting quality metrics

@@ -351,7 +351,7 @@ src/modules/eos/
 
 **Exit Criteria:** V/TO working, OKRs with key results and check-ins, issues with pod organization and AI triage, scorecard with metrics, accountability chart with GWC assessments.
 
-> **STATUS: COMPLETE (All UI Sprints)** — 17 user pages + 4 admin pages, 32 components, 11 hooks, 12 DB tables. Full issue lifecycle (sub-pages, AI suggestions, pod views, AI analyze wizard). 6 OKR advanced components (CloseOKRDialog, ClosedOKRsTable, KeyResultProgressChart, KeyResultsByOwner, OKRHealthGrid, TeamOKRsByPod). 2 pod issue components. 6 accountability admin components + MetricTrendChart. Cross-module: usePromoteIssueToEOS, useExtractMeetingIssues. **PENDING:** Edge functions (12).
+> **STATUS: COMPLETE (All UI Sprints + Wiring)** — 17 user pages + 4 admin pages, 32 components, 11 hooks, 12 DB tables. **Wired:** OKRsPage 5-tab view (cards/health/by-pod/by-owner/closed + CloseOKRDialog). ScorecardPage with MetricTrendChart. IssuesPodOverviewPage with PodIssueCard + PodIssueSummary. AdminEOSAccountability with ChartHistoryTimeline + EmployeeAccountabilityModal + GWCAssessmentDialog. Cross-module: usePromoteIssueToEOS, useExtractMeetingIssues. **PENDING:** Edge functions (12).
 
 ---
 
@@ -389,7 +389,7 @@ src/modules/meetings/
 
 **Exit Criteria:** Create/edit meetings, recurring series, agendas with takeaways, transcript processing, AI summaries, Zoom integration (optional).
 
-> **STATUS: COMPLETE (All UI Sprints)** — 4 pages, 13 components (+ MeetingEfficiencyDashboard), 10 hooks (+ useGenerateMeetingSummary, useExtractMeetingTasks, useCrossModuleMeetings), 7 DB tables. MeetingDetailV2Page with 7 tabs. AI hooks: summary generation, task extraction. Cross-module hooks: useClientMeetings, useDealMeetings, useProjectMeetings via meeting_assignments. MeetingEfficiencyDashboard user-facing component with trend chart. **PENDING:** Edge function deployment (AI summarization, categorization, task extraction).
+> **STATUS: COMPLETE (All UI Sprints + Wiring)** — 4 pages, 13 components, 10 hooks, 7 DB tables. **Wired:** MeetingsSchedulePage 3-tab view (schedule/efficiency/action-items). MeetingEfficiencyDashboard + ActionItemsPanel embedded. Transcripts nav item added. MeetingDetailV2Page with 7 tabs. AI hooks: summary generation, task extraction. Cross-module: useClientMeetings, useDealMeetings, useProjectMeetings. **PENDING:** Edge function deployment (AI summarization, categorization, task extraction).
 
 ---
 

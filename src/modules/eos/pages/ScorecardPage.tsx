@@ -16,6 +16,7 @@ import {
 import { Loader2, Plus } from "lucide-react";
 import { useScorecards, useScorecardMetrics } from "../hooks/useScorecard";
 import { ScorecardMetricsTable } from "../components/scorecard/ScorecardMetricsTable";
+import MetricTrendChart from "../components/scorecard/MetricTrendChart";
 
 export default function ScorecardPage() {
   const { data: scorecards, isLoading: scorecardsLoading } = useScorecards();
@@ -66,9 +67,12 @@ export default function ScorecardPage() {
           <p className="text-sm">Scorecards can be configured in the admin panel.</p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-card">
-          <ScorecardMetricsTable metrics={metrics || []} />
-        </div>
+        <>
+          <div className="rounded-lg border bg-card">
+            <ScorecardMetricsTable metrics={metrics || []} />
+          </div>
+          <MetricTrendChart metrics={metrics || []} />
+        </>
       )}
     </div>
   );

@@ -261,6 +261,25 @@ OKRS.SUMMARY: 'api-v1-okrs/summary'
 - **usePromoteIssueToEOS** — Convert project/meeting issue to EOS issue
 - **useExtractMeetingIssues** — AI extract issues from transcripts + batch create
 
+### Wired (Sprint 5 — Component Integration)
+
+**OKRsPage** now has 5-tab view:
+- Cards (original grid), Health Grid (urgency-sorted), By Pod (collapsible), By Owner (KRs grouped), Closed (table)
+- CloseOKRDialog wired for closing OKRs with status + notes
+- useEOSPods integration for TeamOKRsByPod
+
+**ScorecardPage** — MetricTrendChart rendered below ScorecardMetricsTable
+
+**IssuesPodOverviewPage** — Replaced inline cards with:
+- PodIssueCard (colored border, mini stats, recent issues)
+- PodIssueSummary (health overview with indicators) above pod grid
+
+**AdminEOSAccountability** — Added:
+- ChartHistoryTimeline visual timeline between versions table and roles
+- EmployeeAccountabilityModal opens on role name click
+- GWCAssessmentDialog opens via GWC button in role row actions
+- useSaveGWCAssessment mutation for persisting assessments
+
 ## Implementation Notes
 - OKRs replace the legacy Rocks/Goals system
 - Issues have AI-powered triage, pattern detection, and suggestion features
