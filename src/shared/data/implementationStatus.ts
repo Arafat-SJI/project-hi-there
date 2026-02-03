@@ -82,7 +82,7 @@ export const TEAM: TeamMember[] = [
 
 export const SIGN_OFF_OWNER = "Jairaj";
 
-// ─── Last updated: 2026-02-02 ─────────────────────────────────────────────────
+// ─── Last updated: 2026-02-03 ─────────────────────────────────────────────────
 
 export const implementationStatus: ModuleStatus[] = [
   // ── Phase 0: Foundation ──────────────────────────────────────────────────────
@@ -394,9 +394,9 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Projects",
     phase: 5,
     owner: "Zia",
-    summary: "Full CRUD with milestones, members, risks, billing. Client portal, ActiveCollab/Jira sync. IntegrationsTab + TasksTab wired to real data.",
+    summary: "Full CRUD with milestones, members, risks, billing. Client portal, ActiveCollab/Jira sync. IntegrationsTab, TasksTab, KnowledgePage all wired to real data.",
     pipeline: {
-      development: { status: "in-progress", owner: "Zia", notes: "Core done, client portal live, integrations + tasks wired to real Supabase, knowledge tab pending" },
+      development: { status: "done", owner: "Zia", notes: "Core done, client portal live, integrations + tasks wired to real Supabase, knowledge tab wired to unified_documents" },
       qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
       dataSeeding: { status: "done", owner: "Zia", notes: "supabase/seed/05-projects.sql — 5 statuses, 4 projects, members, milestones, comments, risks, billing, invoices" },
       signOff: { status: "not-started", owner: "Jairaj" },
@@ -412,7 +412,7 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "ProjectsPage — listing with status cards", status: "qa-ready" },
       { name: "ProjectFormPage — create + edit", status: "qa-ready" },
       { name: "ProjectDetailPage — tabbed (overview/milestones/members/risks/integrations/knowledge)", status: "qa-ready" },
-      { name: "ProjectKnowledgePage — project-scoped knowledge tab", status: "planned" },
+      { name: "ProjectKnowledgePage — project-scoped knowledge tab with unified_documents", status: "done" },
       { name: "ProjectIssuesAIAnalyzePage — AI issue analysis", status: "planned" },
       { name: "ClientPortalDashboard — client-facing project dashboard", status: "done" },
     ],
@@ -425,6 +425,7 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "useProjectReports — real Supabase aggregates from projects/milestones/risks/billing", status: "done" },
       { name: "useProjectIntegrations — real org_integrations + providers query", status: "done" },
       { name: "useProjectTasks — real tasks via project client_id lookup", status: "done" },
+      { name: "useProjectDocuments — unified_documents query with owner_type=project filter", status: "done" },
     ],
     components: [
       { name: "ClientAccessManagement — client portal credential management", status: "done" },
@@ -454,6 +455,7 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Sync projects from ActiveCollab", tested: false },
       { description: "View IntegrationsTab — see connection badges, logos, last sync times", tested: false },
       { description: "View TasksTab — see priority badges, status badges, assigned users", tested: false },
+      { description: "View ProjectKnowledgePage — see document list, search, file type badges, processing status", tested: false },
     ],
     nextSteps: [
       "Billing/invoicing UI",
@@ -466,7 +468,7 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Business Development (Deals, Contacts, Clients)",
     phase: 6,
     owner: "Zia",
-    summary: "Deals pipeline, contacts with lead follow-ups, legacy client management. Full CRUD for deals.",
+    summary: "Deals pipeline, contacts with lead follow-ups, legacy client management. Full CRUD for deals. Stage changes auto-log to deal_activities.",
     pipeline: {
       development: { status: "done", owner: "Zia" },
       qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
@@ -516,6 +518,7 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Create and update lead follow-up from detail sidebar", tested: false },
       { description: "Verify lead follow-up status badge renders on contacts", tested: false },
       { description: "Legacy: create/edit/view clients at /clients/*", tested: false },
+      { description: "Change deal stage and verify deal_activities entry logged with from/to stages", tested: false },
     ],
     nextSteps: [
       "HubSpot integration (edge function)",
@@ -528,7 +531,7 @@ export const implementationStatus: ModuleStatus[] = [
     name: "Productivity (Metrics, Employees, Process Docs)",
     phase: 7,
     owner: "Zia",
-    summary: "Department-level productivity dashboard, employee detail, process documentation library.",
+    summary: "Department + pod-level productivity dashboard, employee detail, process documentation library. Pod breakdown with utilization/efficiency/tasks.",
     pipeline: {
       development: { status: "done", owner: "Zia" },
       qa: { status: "not-started", owner: "Zia", notes: "Test via Lovable QA module" },
