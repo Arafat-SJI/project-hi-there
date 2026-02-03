@@ -174,9 +174,9 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "StreamCard, CreateStreamDialog", status: "done" },
     ],
     edgeFunctions: [
-      { name: "Task API (api-v1-tasks)", status: "not-started" },
+      { name: "Task API (api-v1-tasks) — full CRUD with filters, pagination", status: "done" },
       { name: "AI task assistant", status: "not-started" },
-      { name: "ActiveCollab sync", status: "not-started" },
+      { name: "ActiveCollab sync (sync-projects-activecollab)", status: "done" },
     ],
     qaChecklist: [
       { description: "Create a task from /tasks, verify it appears in the list", tested: false },
@@ -277,10 +277,10 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "PodIssueSummary — pod health overview with totals and health indicators", status: "done" },
     ],
     edgeFunctions: [
-      { name: "extract-meeting-issues", status: "not-started" },
-      { name: "suggest-okrs", status: "not-started" },
-      { name: "eos-triage-assistant", status: "not-started" },
-      { name: "quarterly-digest", status: "not-started" },
+      { name: "extract-meeting-issues — AI issue extraction from transcripts", status: "done" },
+      { name: "suggest-okrs — AI OKR suggestions based on issues/context", status: "done" },
+      { name: "eos-triage-assistant — AI issue triage (priority, category, pod)", status: "done" },
+      { name: "quarterly-digest — AI quarterly digest report", status: "done" },
     ],
     qaChecklist: [
       { description: "Navigate /eos hub and verify all section links work", tested: false },
@@ -325,7 +325,7 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "AdminEOSAccountability: click GWC button to open GWCAssessmentDialog", tested: false },
     ],
     nextSteps: [
-      "Deploy extract-meeting-issues edge function",
+      "Deploy edge functions to Supabase (needs API keys in secrets)",
       "OKR permissions (owner vs viewer)",
     ],
   },
@@ -382,9 +382,9 @@ export const implementationStatus: ModuleStatus[] = [
       { name: "MeetingEfficiencyDashboard — user-facing efficiency dashboard with trend chart", status: "done" },
     ],
     edgeFunctions: [
-      { name: "Meeting summarization AI", status: "not-started" },
-      { name: "Categorization engine", status: "not-started" },
-      { name: "Task extraction from transcripts", status: "not-started" },
+      { name: "Meeting summarization AI (generate-meeting-summary)", status: "done" },
+      { name: "Categorization engine (categorize-meeting)", status: "done" },
+      { name: "Task extraction from transcripts (extract-meeting-tasks)", status: "done" },
       { name: "Zoom integration — OAuth + meeting sync (admin pages built)", status: "done" },
     ],
     qaChecklist: [
@@ -419,7 +419,7 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Navigate to Transcripts from sidebar nav", tested: false },
     ],
     nextSteps: [
-      "Deploy generate-meeting-summary and extract-meeting-tasks edge functions",
+      "Deploy edge functions to Supabase production (set OPENAI_API_KEY in secrets)",
       "Zoom/Teams calendar sync",
     ],
   },

@@ -34,18 +34,18 @@ serve(async (req) => {
       );
     }
 
-    const { file_id, meeting_id } = requestBody;
+    const { file_id, meeting_id, transcript: providedTranscript } = requestBody;
 
-    if (!file_id && !meeting_id) {
+    if (!file_id && !meeting_id && !providedTranscript) {
       return new Response(
-        JSON.stringify({ error: 'file_id or meeting_id is required' }),
+        JSON.stringify({ error: 'file_id, meeting_id, or transcript is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
-    // Get meeting transcript
-    let transcript = ''
-    if (file_id) {
+    // Get meeting transcript — prefer provided transcript, then file, then meeting description
+    let transcript = providedTranscript || ''
+    if (!transcript && file_id) {
       const { data: file } = await supabaseClient
         .from('zoom_files')
         .select('transcript_text, meeting_topic')
@@ -53,14 +53,27 @@ serve(async (req) => {
         .single()
 
       transcript = file?.transcript_text || ''
-    } else {
-      const { data: meeting } = await supabaseClient
-        .from('meetings')
-        .select('description')
-        .eq('id', meeting_id)
-        .single()
+    }
+    if (!transcript && meeting_id) {
+      // Try meeting_transcripts table first
+      const { data: transcriptRow } = await supabaseClient
+        .from('meeting_transcripts')
+        .select('content')
+        .eq('meeting_id', meeting_id)
+        .maybeSingle()
 
-      transcript = meeting?.description || ''
+      transcript = transcriptRow?.content || ''
+
+      // Fallback to meeting description
+      if (!transcript) {
+        const { data: meeting } = await supabaseClient
+          .from('meetings')
+          .select('description')
+          .eq('id', meeting_id)
+          .single()
+
+        transcript = meeting?.description || ''
+      }
     }
 
     if (!transcript) {
