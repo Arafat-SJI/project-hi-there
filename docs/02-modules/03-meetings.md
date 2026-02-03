@@ -173,6 +173,16 @@ ZOOM.MANAGE_ACCOUNT: 'manage-zoom-account'
 - Knowledge Base (embed meetings into knowledge)
 - Actions (convert takeaways to tasks)
 
+## Implementation Status
+
+### Built (Sprint 1)
+- **MeetingTranscriptsPage** (`src/modules/meetings/pages/MeetingTranscriptsPage.tsx`) — Transcript browser with search, status filter, summary cards (total/with AI summary/processed), table with meeting name, date, source, speakers, status, summary preview, preview dialog
+- **useMeetingEfficiency** (`src/modules/meetings/hooks/useMeetingEfficiency.ts`) — Efficiency metrics: totalMeetings, avgDuration, avgParticipants, avgTakeaways, agendaRate, takeawayRate, avgEfficiencyScore (weighted composite: 25pts agenda + 25pts takeaways + 25pts duration + 25pts attendance), monthly trend
+- **MeetingAnalytics efficiency section** — Wired useMeetingEfficiency to admin MeetingAnalytics page with efficiency score card, breakdown (agenda rate, takeaway rate, avg participants, avg takeaways), monthly efficiency trend with progress bars
+
+### Routes Registered
+- `/meetings/transcripts` → MeetingTranscriptsPage
+
 ## Implementation Notes
 - Meetings support both one-off and recurring series
 - Zoom integration syncs recordings, transcripts, and files

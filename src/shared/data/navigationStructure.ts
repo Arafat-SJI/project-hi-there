@@ -211,6 +211,31 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    title: "EOS",
+    items: [
+      {
+        title: "EOS Admin",
+        href: "/admin/eos",
+        icon: "Target",
+      },
+      {
+        title: "VTO Config",
+        href: "/admin/eos/vto",
+        icon: "FileText",
+      },
+      {
+        title: "Scorecards",
+        href: "/admin/eos/scorecards",
+        icon: "BarChart3",
+      },
+      {
+        title: "Accountability",
+        href: "/admin/eos/accountability",
+        icon: "Network",
+      },
+    ],
+  },
+  {
     title: "KNOWLEDGE",
     items: [
       {

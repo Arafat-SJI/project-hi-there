@@ -351,7 +351,7 @@ src/modules/eos/
 
 **Exit Criteria:** V/TO working, OKRs with key results and check-ins, issues with pod organization and AI triage, scorecard with metrics, accountability chart with GWC assessments.
 
-> **STATUS: COMPLETE (UI)** — 9 pages, 12 components, 6 hooks, 12 DB tables. V/TO, OKRs, Issues, Scorecard, Accountability all functional. **PENDING:** Edge functions (12), AI triage/suggestions, admin EOS config pages.
+> **STATUS: COMPLETE (UI + Admin)** — 9 user pages + 4 admin pages (AdminEOS hub, VTOAdmin, ScorecardWorkspace, AdminEOSAccountability), 12 components, 6 hooks, 12 DB tables. V/TO, OKRs, Issues, Scorecard, Accountability all functional. Admin: VTO section mgmt, scorecard + metrics CRUD, chart version mgmt + role CRUD. **PENDING:** Edge functions (12), AI triage/suggestions.
 
 ---
 
@@ -389,7 +389,7 @@ src/modules/meetings/
 
 **Exit Criteria:** Create/edit meetings, recurring series, agendas with takeaways, transcript processing, AI summaries, Zoom integration (optional).
 
-> **STATUS: COMPLETE (UI + Zoom Integration)** — 3 new V2 pages, 5 components, 4 hooks, 7 new DB tables. Agenda, takeaways, participants, recurring series all functional. Zoom integration admin page (org-level config), sync-zoom-files and zoom-transcript-processing edge functions deployed. **PENDING:** Edge functions (AI summarization, categorization, task extraction), transcript upload UI.
+> **STATUS: COMPLETE (UI + Zoom + Transcripts + Efficiency)** — 4 pages (schedule, detail, series, transcripts), 5 components, 5 hooks (agenda, takeaways, participants, recurring, efficiency), 7 DB tables. Agenda, takeaways, participants, recurring series all functional. Zoom integration deployed. **MeetingTranscriptsPage** with search, status filter, preview dialog. **useMeetingEfficiency** wired to MeetingAnalytics (composite score, agenda/takeaway rates, monthly trend). **PENDING:** Edge functions (AI summarization, categorization, task extraction).
 
 ---
 
@@ -555,14 +555,16 @@ The Admin module is built incrementally. Each phase adds the admin pages for its
 
 ---
 
-> **STATUS: IN PROGRESS** — 30+ admin routes, 30+ admin pages. Key pages built and functional:
+> **STATUS: IN PROGRESS** — 30+ admin routes, 35+ admin pages. Key pages built and functional:
 > - **Team:** EmployeeManagement, DepartmentManagement, EmployeeProjection (summary cards, dept distribution, pods, employee roster)
 > - **Knowledge:** KnowledgeAnalytics, KnowledgeCategories, EmbeddingsExplorer
 > - **Integrations:** ZoomIntegration, ZoomMeetings
 > - **Settings:** ProjectStatusSettings (full CRUD + color picker + reorder), ProjectModules (system_settings persistence), WorkTypesSettings (full CRUD + category + billable flag + rates + reorder)
 > - **Reports:** ProjectReports (summary cards + real Supabase aggregates), ResourceUtilizationReports (dept bar chart, employee table, billable ratio, efficiency, filters)
-> - **System:** SeedRunner, ImplementationStatus dashboard
-> - **PENDING:** EOS admin config, data sync dashboards, notification management.
+> - **EOS Admin:** AdminEOS hub, VTOAdmin (section mgmt, edit/reset), ScorecardWorkspace (scorecard + metrics CRUD), AdminEOSAccountability (chart versions, role CRUD)
+> - **Meetings Admin:** MeetingAnalytics with efficiency scoring (useMeetingEfficiency wired — composite score, agenda/takeaway rates, monthly trend)
+> - **System:** SeedRunner, ImplementationStatus dashboard (PM Overview tab)
+> - **PENDING:** Data sync dashboards, notification management.
 
 ---
 

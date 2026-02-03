@@ -11,6 +11,7 @@ import { ModuleRoute } from "@/components/routing/ModuleRoute";
 import MeetingsSchedulePage from "./pages/MeetingsSchedulePage";
 import MeetingDetailV2Page from "./pages/MeetingDetailV2Page";
 import MeetingSeriesPage from "./pages/MeetingSeriesPage";
+import MeetingTranscriptsPage from "./pages/MeetingTranscriptsPage";
 
 // Legacy pages (still used for create/edit forms)
 import MeetingForm from "@/pages/MeetingForm";
@@ -20,6 +21,7 @@ export const meetingsRoutes = (
     {/* V2 routes */}
     <Route path="/meetings" element={<MeetingsSchedulePage />} />
     <Route path="/meetings/series" element={<MeetingSeriesPage />} />
+    <Route path="/meetings/transcripts" element={<MeetingTranscriptsPage />} />
     <Route path="/meetings/:id" element={<MeetingDetailV2Page />} />
 
     {/* Legacy create/edit forms */}

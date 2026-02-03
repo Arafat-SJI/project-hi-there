@@ -174,6 +174,23 @@ OKRS.SUMMARY: 'api-v1-okrs/summary'
 - Meetings → extract-meeting-issues extracts issues from meeting transcripts
 - Projects → extract-project-issues extracts issues from projects
 
+## Implementation Status
+
+### Built (Sprint 1 — Admin Pages)
+- **AdminEOS** (`src/pages/admin/eos/AdminEOS.tsx`) — Hub page with section cards (VTO, Scorecard, Accountability, System Config, Import Issues)
+- **VTOAdmin** (`src/pages/admin/eos/VTOAdmin.tsx`) — VTO section table with edit title, reset to default template, content preview
+- **ScorecardWorkspace** (`src/pages/admin/eos/ScorecardWorkspace.tsx`) — Full CRUD for scorecards and metrics (type, target, unit, goal direction)
+- **AdminEOSAccountability** (`src/pages/admin/eos/AdminEOSAccountability.tsx`) — Chart version management (publish/archive), role CRUD with department and responsibilities
+
+### Admin Routes Registered
+- `/admin/eos` → AdminEOS hub
+- `/admin/eos/vto` → VTOAdmin
+- `/admin/eos/scorecards` → ScorecardWorkspace
+- `/admin/eos/accountability` → AdminEOSAccountability
+
+### Admin Navigation
+- Added EOS group to `navigationStructure.ts` adminNavigation with 4 items
+
 ## Implementation Notes
 - OKRs replace the legacy Rocks/Goals system
 - Issues have AI-powered triage, pattern detection, and suggestion features
