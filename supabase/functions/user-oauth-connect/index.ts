@@ -35,6 +35,20 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
         prompt: "consent",
       },
     },
+    "google-meet": {
+      authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+      scopes: [
+        "openid",
+        "email",
+        "profile",
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/meetings.space.created",
+      ],
+      additionalParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
     zoom: {
       authUrl: "https://zoom.us/oauth/authorize",
       scopes: [
