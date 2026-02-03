@@ -8,9 +8,9 @@ import { Loader2, Database, Clock, Activity } from "lucide-react";
 interface GeminiCorpus {
   id: string;
   name: string;
-  description: string | null;
-  is_active: boolean;
-  last_synced_at: string | null;
+  display_name: string | null;
+  is_active: boolean | null;
+  updated_at: string | null;
   created_at: string | null;
 }
 
@@ -29,10 +29,10 @@ export default function GeminiRAGConfig() {
     queryFn: async (): Promise<GeminiCorpus[]> => {
       const { data, error } = await supabase
         .from("gemini_corpora")
-        .select("id, name, description, is_active, last_synced_at, created_at")
+        .select("id, name, display_name, is_active, updated_at, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data || []) as GeminiCorpus[];
+      return (data || []) as unknown as GeminiCorpus[];
     },
   });
 
@@ -99,9 +99,9 @@ export default function GeminiRAGConfig() {
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium">{c.name}</span>
-                        {c.description && (
+                        {c.display_name && (
                           <span className="text-xs text-muted-foreground line-clamp-1">
-                            {c.description}
+                            {c.display_name}
                           </span>
                         )}
                       </div>
@@ -112,8 +112,8 @@ export default function GeminiRAGConfig() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {c.last_synced_at
-                        ? new Date(c.last_synced_at).toLocaleString()
+                      {c.updated_at
+                        ? new Date(c.updated_at).toLocaleString()
                         : "Never"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
