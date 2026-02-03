@@ -26,7 +26,7 @@ import { OverviewTab } from "@/components/projects/OverviewTab";
 import { TasksTab } from "@/components/projects/TasksTab";
 import { IntegrationsTab } from "@/components/projects/IntegrationsTab";
 import { BillingTab } from "@/components/projects/BillingTab";
-import { ProjectsRestoreBackupDialog } from "@/components/projects/ProjectsRestoreBackupDialog";
+
 import type { ProjectTab } from "../types";
 
 const TAB_URL_MAPPINGS: Record<string, ProjectTab> = {
@@ -121,7 +121,7 @@ export default function ProjectDetailPage() {
           <Button variant="outline" size="sm" onClick={() => navigate(`/projects/${slug}/edit`)}>
             <Pencil className="h-4 w-4 mr-1" />Edit
           </Button>
-          <ProjectsRestoreBackupDialog projectId={project.id} />
+          
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">

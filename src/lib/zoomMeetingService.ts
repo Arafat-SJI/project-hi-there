@@ -212,7 +212,7 @@ export async function createZoomMeeting(
   // Add registrants if provided
   if (input.registrants && input.registrants.length > 0) {
     requestBody.settings = {
-      ...requestBody.settings,
+      ...(requestBody.settings as Record<string, unknown>),
       approval_type: 0, // Automatically approve
       registrants_confirmation_email: true,
     };
