@@ -6,10 +6,9 @@
  * and aggregate action item statistics (total, completed, overdue, upcoming).
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 import type { MeetingTakeaway } from "../types";
 
 const ACTION_ITEMS_KEY = "meeting-action-items";
@@ -106,90 +105,4 @@ export function useActionItemStats() {
     },
     enabled: !!user?.id,
   });
-}
-
-/**
- * Create a task from a meeting action item and link it back to the takeaway.
- */
-export function useCreateTaskFromActionItem() {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-
-  return useMutation({
-    mutationFn: async ({
-      actionItemId,
-      meetingId,
-      title,
-      assignedTo,
-      dueDate,
-      streamId,
-      categoryId,
-    }: {
-      actionItemId: string;
-      meetingId: string;
-      title: string;
-      assignedTo?: string | null;
-      dueDate?: string | null;
-      streamId?: string | null;
-      categoryId?: string | null;
-    }) => {
-      if (!user?.id) {
-        throw new Error("You must be signed in to create a task.");
-      }
-
-      const slug = generateSlug(title);
-      const { data: task, error: taskError } = await (supabase as any)
-        .from("tasks")
-        .insert({
-          title,
-          status: "todo",
-          priority: "medium",
-          assigned_to: assignedTo || null,
-          due_date: dueDate || null,
-          stream_id: streamId || null,
-          category_id: categoryId || null,
-          meeting_id: meetingId,
-          created_by: user.id,
-          slug,
-        })
-        .select()
-        .single();
-
-      if (taskError) throw taskError;
-
-      const { error: linkError } = await (supabase as any)
-        .from("meeting_takeaways")
-        .update({
-          task_id: task.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", actionItemId);
-
-      if (linkError) throw linkError;
-
-      return task;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [ACTION_ITEMS_KEY, vars.meetingId] });
-      queryClient.invalidateQueries({ queryKey: [ACTION_ITEMS_KEY] });
-      queryClient.invalidateQueries({ queryKey: ["meeting-takeaways", vars.meetingId] });
-      queryClient.invalidateQueries({ queryKey: ["actions-tasks"] });
-      toast.success("Task created from action item");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to create task", { description: error.message });
-    },
-  });
-}
-
-function generateSlug(title: string): string {
-  return (
-    title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 60) +
-    "-" +
-    Math.random().toString(36).slice(2, 6)
-  );
 }

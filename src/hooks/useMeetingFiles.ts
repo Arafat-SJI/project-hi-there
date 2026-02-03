@@ -5,8 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 export interface MeetingFile {
   id: string;
   meeting_id: string | null;
-  deal_id?: string | null;
-  deal_name?: string | null;
   provider: string;
   external_meeting_id: string | null;
   file_type: string;
