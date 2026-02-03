@@ -10,12 +10,14 @@ Ten architecture blueprint documents describe a mature monolithic application (t
 
 | Metric | Documented (Target) | Current Codebase | Gap |
 |--------|---------------------|------------------|-----|
-| Database tables | ~115 | ~80 | ~35 tables remaining |
-| Edge functions | ~225 (54 consolidated) | 54 | Consolidation complete |
-| Routes | ~300 | ~120 | ~180 routes remaining |
-| Pages | ~247 | ~100 | ~147 pages remaining |
-| Components | ~533 | ~200 | ~333 components remaining |
-| Hooks | ~296 | ~90 | ~206 hooks remaining |
+| Database tables | ~115 | 119 | Exceeded target |
+| Edge functions | ~225 (54 consolidated) | 64 | Consolidation complete + 10 new |
+| Routes | ~300 | ~130 | ~170 routes remaining (see note) |
+| Pages | ~247 | 111 | ~136 pages remaining |
+| Components | ~533 | 168 | ~365 components remaining |
+| Hooks | ~296 | 84 | ~212 hooks remaining |
+
+> **Note on gaps:** The "Documented (Target)" numbers came from the original Control Tower blueprints which described a much larger application. Many of those targets represent features that were descoped or consolidated. The actual scope for this framework is significantly smaller — the remaining gaps are primarily additional UI polish, sub-pages, and specialized components within already-built modules rather than missing core functionality.
 
 ### Current Codebase Strengths (Keep)
 
@@ -555,16 +557,17 @@ The Admin module is built incrementally. Each phase adds the admin pages for its
 
 ---
 
-> **STATUS: IN PROGRESS** — 30+ admin routes, 35+ admin pages. Key pages built and functional:
-> - **Team:** EmployeeManagement, DepartmentManagement, EmployeeProjection (summary cards, dept distribution, pods, employee roster)
+> **STATUS: COMPLETE** — 40 admin routes, 37 admin pages, 22 navigation items, 6 admin edge functions. All admin pages built and functional:
+> - **Core:** Admin Dashboard, UserManagement, RoleManagement, ActivityLogs, SystemSettings, FeedbackManagement, ProductRoadmap
+> - **Team:** EmployeeManagement, DepartmentManagement, EmployeeProjection
+> - **EOS Admin:** AdminEOS hub, VTOAdmin, ScorecardWorkspace, AdminEOSAccountability
+> - **Integrations:** Integrations hub, ZoomIntegration, ZoomMeetings, MicrosoftTeamsIntegration, TeamsMeetings, IntegrationAnalytics, OAuthCallback, ProviderDetail
 > - **Knowledge:** KnowledgeAnalytics, KnowledgeCategories, EmbeddingsExplorer
-> - **Integrations:** ZoomIntegration, ZoomMeetings
-> - **Settings:** ProjectStatusSettings (full CRUD + color picker + reorder), ProjectModules (system_settings persistence), WorkTypesSettings (full CRUD + category + billable flag + rates + reorder)
-> - **Reports:** ProjectReports (summary cards + real Supabase aggregates), ResourceUtilizationReports (dept bar chart, employee table, billable ratio, efficiency, filters)
-> - **EOS Admin:** AdminEOS hub, VTOAdmin (section mgmt, edit/reset), ScorecardWorkspace (scorecard + metrics CRUD), AdminEOSAccountability (chart versions, role CRUD)
-> - **Meetings Admin:** MeetingAnalytics with efficiency scoring (useMeetingEfficiency wired — composite score, agenda/takeaway rates, monthly trend)
-> - **System:** SeedRunner, ImplementationStatus dashboard (PM Overview tab)
-> - **PENDING:** Data sync dashboards, notification management.
+> - **AI:** AIModelManagement, AIUsageAnalytics, MCPServers
+> - **Settings:** ProjectStatusSettings, WorkTypesSettings, ProjectModules
+> - **Reports:** ProjectReports, ResourceUtilizationReports
+> - **System:** ImplementationStatus, DeploymentStatus, EnvironmentValidator, OnboardingWizard, DeploymentChecklist, SSOSettings, MeetingAnalytics, SeedRunner
+> - **DEFERRED to Post-MVP:** Data sync dashboards (HR, HubSpot, ActiveCollab), notification management admin page.
 
 ---
 
