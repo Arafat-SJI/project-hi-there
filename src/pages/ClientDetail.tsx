@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useClient, useDeleteClient } from "@/hooks/useClients";
+import { useClientMeetings } from "@/modules/meetings/hooks/useCrossModuleMeetings";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, Trash2, Mail, Phone, Building2, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Mail, Phone, Building2, Loader2, Calendar } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { useState } from "react";
 
@@ -30,6 +31,7 @@ export default function ClientDetail() {
 
   const { data: client, isLoading } = useClient(id || "");
   const deleteClient = useDeleteClient();
+  const { data: linkedMeetings = [] } = useClientMeetings(id);
 
   const handleDelete = async () => {
     if (id) {
@@ -190,7 +192,7 @@ export default function ClientDetail() {
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg border p-4">
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{linkedMeetings.length}</p>
               <p className="text-sm text-muted-foreground">Meetings</p>
             </div>
             <div className="rounded-lg border p-4">
@@ -202,6 +204,22 @@ export default function ClientDetail() {
               <p className="text-sm text-muted-foreground">AI Interactions</p>
             </div>
           </div>
+          {linkedMeetings.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-medium">Recent Meetings</p>
+              {linkedMeetings.slice(0, 5).map((item) => item.meeting && (
+                <div key={item.id} className="flex items-center justify-between rounded-md border p-3 cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/meetings/${item.meeting!.id}`)}>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{item.meeting.title}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {item.meeting.scheduled_at ? new Date(item.meeting.scheduled_at).toLocaleDateString() : "\u2014"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

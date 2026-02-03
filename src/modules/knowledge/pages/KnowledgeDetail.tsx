@@ -11,9 +11,9 @@ import {
   useIsBookmarked,
   useToggleBookmark,
   useIncrementViewCount,
-  useRelatedEntries,
   useTriggerEmbedding,
 } from "../hooks/useKnowledge";
+import { RelatedArticles } from "../components/RelatedArticles";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -68,8 +68,6 @@ export default function KnowledgeDetail() {
 
   const { data: entry, isLoading } = useKnowledgeEntry(id || "");
   const { data: isBookmarked = false } = useIsBookmarked(id || "");
-  const { data: relatedEntries = [] } = useRelatedEntries(id || "", 4);
-
   const deleteEntry = useDeleteKnowledgeEntry();
   const toggleBookmark = useToggleBookmark();
   const incrementView = useIncrementViewCount();
@@ -354,32 +352,7 @@ export default function KnowledgeDetail() {
           </Card>
 
           {/* Related Articles */}
-          {relatedEntries.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Related Articles</CardTitle>
-                <CardDescription>
-                  Similar content you might find useful
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {relatedEntries.map((related: any) => (
-                  <Link
-                    key={related.id}
-                    to={`/knowledge/${related.id}`}
-                    className="block rounded-lg border p-3 transition-all hover:bg-accent"
-                  >
-                    <div className="font-medium">{related.title}</div>
-                    {related.summary && (
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {related.summary}
-                      </p>
-                    )}
-                  </Link>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          <RelatedArticles entryId={id || ""} limit={4} />
         </div>
 
         {/* Sidebar */}

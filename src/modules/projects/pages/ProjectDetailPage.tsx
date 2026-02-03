@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Calendar, Users, AlertTriangle, Loader2, Plus, CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Users, AlertTriangle, Loader2, Plus, CheckCircle2, Pencil, Trash2, Video } from "lucide-react";
 import { useProject, useDeleteProject } from "../hooks/useProjects";
 import { useProjectMembers } from "../hooks/useProjectDetail";
 import { useProjectMilestones, useAddMilestone, useUpdateMilestone } from "../hooks/useProjectDetail";
@@ -20,6 +20,7 @@ import { useProjectRisks } from "../hooks/useProjectDetail";
 import { useProjectTasks } from "../hooks/useProjectTasks";
 import { useProjectIntegrations } from "../hooks/useProjectIntegrations";
 import { useEnabledProjectModules } from "@/hooks/useProjectModuleSettings";
+import { useProjectMeetings } from "@/modules/meetings/hooks/useCrossModuleMeetings";
 import { ClientAccessManagement } from "@/components/projects/ClientAccessManagement";
 import { OverviewTab } from "@/components/projects/OverviewTab";
 import { TasksTab } from "@/components/projects/TasksTab";
@@ -34,6 +35,7 @@ const TAB_URL_MAPPINGS: Record<string, ProjectTab> = {
   client_portal: "client_portal",
   tasks: "tasks",
   integrations: "integrations",
+  meetings: "meetings",
 };
 const VALID_TAB_KEYS = new Set(Object.keys(TAB_URL_MAPPINGS));
 const TAB_ORDER: ProjectTab[] = [
@@ -43,6 +45,7 @@ const TAB_ORDER: ProjectTab[] = [
   "members",
   "issues",
   "integrations",
+  "meetings",
   "client_portal",
 ];
 
@@ -60,6 +63,7 @@ export default function ProjectDetailPage() {
   const { data: risks = [] } = useProjectRisks(project?.id || "");
   const { data: tasks = [], isLoading: tasksLoading } = useProjectTasks(project?.id || "");
   const { data: integrations = [], isLoading: integrationsLoading } = useProjectIntegrations(project?.id || "");
+  const { data: linkedMeetings = [] } = useProjectMeetings(project?.id);
   const addComment = useAddProjectComment();
   const deleteProject = useDeleteProject();
   const addMilestone = useAddMilestone();
@@ -150,6 +154,7 @@ export default function ProjectDetailPage() {
               {tab === "members" && `Members (${members.length})`}
               {tab === "issues" && `Risks (${risks.length})`}
               {tab === "integrations" && "Integrations"}
+              {tab === "meetings" && `Meetings (${linkedMeetings.length})`}
               {tab === "client_portal" && "Client Portal"}
             </TabsTrigger>
           ))}
@@ -199,6 +204,43 @@ export default function ProjectDetailPage() {
               integrations={integrations}
               isLoading={integrationsLoading}
             />
+          </TabsContent>
+        )}
+
+        {visibleTabs.includes("meetings") && (
+          <TabsContent value="meetings" className="mt-4">
+            {linkedMeetings.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No meetings linked to this project.</p>
+            ) : (
+              <div className="space-y-2">
+                {linkedMeetings.map((item) =>
+                  item.meeting ? (
+                    <Card
+                      key={item.id}
+                      className="cursor-pointer hover:border-primary/40 transition-colors"
+                      onClick={() => navigate(`/meetings/${item.meeting!.id}`)}
+                    >
+                      <CardContent className="flex items-center gap-3 py-3 px-4">
+                        <Video className="h-5 w-5 text-primary" />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{item.meeting.title}</p>
+                          {item.meeting.scheduled_at && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(item.meeting.scheduled_at).toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+                        {item.meeting.duration_minutes && (
+                          <span className="text-xs text-muted-foreground">{item.meeting.duration_minutes} min</span>
+                        )}
+                        {item.meeting.status && <Badge variant="outline">{item.meeting.status}</Badge>}
+                      </CardContent>
+                    </Card>
+                  ) : null
+                )}
+              </div>
+            )}
           </TabsContent>
         )}
 

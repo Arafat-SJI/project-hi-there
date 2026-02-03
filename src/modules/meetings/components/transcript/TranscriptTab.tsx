@@ -17,8 +17,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FileText, Search, Sparkles, Clock, MessageSquare } from "lucide-react";
+import { FileText, Search, Sparkles, Clock, MessageSquare, Loader2 } from "lucide-react";
+import { useGenerateMeetingSummary } from "../../hooks/useGenerateMeetingSummary";
 import type { MeetingTranscript, TranscriptSpeaker } from "../../types";
 
 // ---------------------------------------------------------------------------
@@ -91,6 +93,14 @@ function highlightMatches(text: string, term: string): React.ReactNode[] {
 
 export function TranscriptTab({ meetingId }: TranscriptTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [generatedSummary, setGeneratedSummary] = useState<{
+    executive_summary: string;
+    key_decisions: string[];
+    action_items: string[];
+    follow_up_topics: string[];
+  } | null>(null);
+
+  const generateSummary = useGenerateMeetingSummary();
 
   // ---- Data fetching ----
 
@@ -198,7 +208,7 @@ export function TranscriptTab({ meetingId }: TranscriptTabProps) {
       </div>
 
       {/* AI Summary */}
-      {transcript.ai_summary && (
+      {transcript.ai_summary ? (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -212,6 +222,77 @@ export function TranscriptTab({ meetingId }: TranscriptTabProps) {
             </p>
           </CardContent>
         </Card>
+      ) : generatedSummary ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="h-4 w-4 text-yellow-500" />
+              AI Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="text-sm font-semibold mb-1">Executive Summary</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {generatedSummary.executive_summary}
+              </p>
+            </div>
+            {generatedSummary.key_decisions.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Key Decisions</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  {generatedSummary.key_decisions.map((item, i) => (
+                    <li key={i} className="text-sm text-muted-foreground">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {generatedSummary.action_items.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Action Items</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  {generatedSummary.action_items.map((item, i) => (
+                    <li key={i} className="text-sm text-muted-foreground">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {generatedSummary.follow_up_topics.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Follow-up Topics</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  {generatedSummary.follow_up_topics.map((item, i) => (
+                    <li key={i} className="text-sm text-muted-foreground">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Button
+          variant="outline"
+          disabled={generateSummary.isPending}
+          onClick={() =>
+            generateSummary.mutate(
+              { meetingId, transcriptContent: transcript.content },
+              { onSuccess: (data) => setGeneratedSummary(data) }
+            )
+          }
+        >
+          {generateSummary.isPending ? (
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4 mr-1.5" />
+          )}
+          {generateSummary.isPending ? "Generating..." : "Generate AI Summary"}
+        </Button>
       )}
 
       {/* Search */}
