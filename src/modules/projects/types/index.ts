@@ -34,8 +34,6 @@ export interface Project {
   created_at: string;
   updated_at: string;
   // Joined
-  status?: ProjectStatus | null;
-  owner?: { full_name: string; email: string } | null;
   members_count?: number;
   milestones_count?: number;
 }
