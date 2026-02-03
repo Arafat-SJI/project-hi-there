@@ -159,13 +159,16 @@ export function useUpdateDealStage() {
       const { error } = await supabase.from("deals").update(updates).eq("id", id);
       if (error) throw error;
 
-      // Log activity for the stage change
-      await supabase.from("deal_activities").insert({
+      // Activity logging is best-effort (client cannot run a single transaction across deals + deal_activities).
+      const { error: activityError } = await supabase.from("deal_activities").insert({
         deal_id: id,
         activity_type: "stage_change",
         content: `Stage changed${fromStage ? ` from ${fromStage}` : ""} to ${stage}${stage === "won" ? " - Deal closed as won" : stage === "lost" ? " - Deal closed as lost" : ""}`,
         user_id: user?.id || null,
       });
+      if (activityError) {
+        toast.error("Stage updated; activity log could not be saved.", { description: activityError.message });
+      }
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: [DEALS_KEY] });

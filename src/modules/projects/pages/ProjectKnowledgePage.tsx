@@ -62,11 +62,11 @@ function formatFileSize(bytes: number | null): string {
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   completed: { label: "Embedded", variant: "default" },
-  processed: { label: "Processed", variant: "default" },
   processing: { label: "Processing", variant: "secondary" },
   pending: { label: "Pending", variant: "outline" },
   error: { label: "Error", variant: "destructive" },
   failed: { label: "Failed", variant: "destructive" },
+  skipped: { label: "Skipped", variant: "outline" },
 };
 
 export default function ProjectKnowledgePage() {
@@ -87,9 +87,7 @@ export default function ProjectKnowledgePage() {
     );
   }, [documents, search]);
 
-  const embeddedCount = documents.filter(
-    (d) => d.processing_status === "completed" || d.processing_status === "processed"
-  ).length;
+  const embeddedCount = documents.filter((d) => d.processing_status === "completed").length;
 
   return (
     <div className="space-y-6">
