@@ -90,7 +90,7 @@ export function OKRDetailDialog({ open, onOpenChange, okrId }: OKRDetailDialogPr
                     {okr.key_results.map((kr) => (
                       <div key={kr.id} className="relative group">
                         <KeyResultProgress keyResult={kr} />
-                        <KeyResultProgressChart keyResult={kr} checkIns={kr.check_ins || []} />
+                        <KeyResultProgressChart keyResult={kr} checkIns={(kr as any).check_ins || []} />
                         <Button
                           size="sm"
                           variant="outline"
