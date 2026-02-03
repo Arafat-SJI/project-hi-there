@@ -239,6 +239,47 @@ OKRS.SUMMARY: 'api-v1-okrs/summary'
 - Dynamic chart config, optional target reference line
 - Wrapped in shadcn ChartContainer with ChartTooltip
 
+### Built (Sprint 4 — AI Features + OKR Polish + Cross-Module)
+
+**EOSIssuesAIAnalyzePage** (`src/modules/eos/pages/EOSIssuesAIAnalyzePage.tsx`):
+- Multi-step wizard: Select Sources → Analyze → Review Results
+- Route: `/eos/issues/ai/analyze`
+
+**6 OKR Advanced Components** (in `src/modules/eos/components/okr/`):
+- **CloseOKRDialog** — Close/complete OKR with status radio + notes
+- **ClosedOKRsTable** — Table of completed/closed OKRs sorted by date
+- **KeyResultProgressChart** — Recharts LineChart for KR check-ins over time with target reference line
+- **KeyResultsByOwner** — KRs grouped by owner with progress bars and status badges
+- **OKRHealthGrid** — Responsive grid of OKR health cards sorted by urgency
+- **TeamOKRsByPod** — OKRs grouped by pod with collapsible sections
+
+**2 Issue Pod Components** (in `src/modules/eos/components/issues/`):
+- **PodIssueCard** — Pod card with colored border, mini stats, recent issues
+- **PodIssueSummary** — Pod health overview with totals and health indicators
+
+**2 Cross-Module Hooks:**
+- **usePromoteIssueToEOS** — Convert project/meeting issue to EOS issue
+- **useExtractMeetingIssues** — AI extract issues from transcripts + batch create
+
+### Wired (Sprint 5 — Component Integration)
+
+**OKRsPage** now has 5-tab view:
+- Cards (original grid), Health Grid (urgency-sorted), By Pod (collapsible), By Owner (KRs grouped), Closed (table)
+- CloseOKRDialog wired for closing OKRs with status + notes
+- useEOSPods integration for TeamOKRsByPod
+
+**ScorecardPage** — MetricTrendChart rendered below ScorecardMetricsTable
+
+**IssuesPodOverviewPage** — Replaced inline cards with:
+- PodIssueCard (colored border, mini stats, recent issues)
+- PodIssueSummary (health overview with indicators) above pod grid
+
+**AdminEOSAccountability** — Added:
+- ChartHistoryTimeline visual timeline between versions table and roles
+- EmployeeAccountabilityModal opens on role name click
+- GWCAssessmentDialog opens via GWC button in role row actions
+- useSaveGWCAssessment mutation for persisting assessments
+
 ## Implementation Notes
 - OKRs replace the legacy Rocks/Goals system
 - Issues have AI-powered triage, pattern detection, and suggestion features

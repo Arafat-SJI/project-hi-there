@@ -8,13 +8,13 @@
  */
 
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, AlertCircle, Users, AlertTriangle, Inbox } from "lucide-react";
 import { useEOSIssuesByPod } from "../hooks/useEOSIssuesByPod";
 import { useUpdateIssue, useDeleteIssue } from "../hooks/useEOSIssues";
 import { IssuesTable } from "../components/issues/IssuesTable";
-import { IssuesNavTabs } from "../components/issues/IssuesNavTabs";
+import { PodIssueCard } from "../components/issues/PodIssueCard";
+import { PodIssueSummary } from "../components/issues/PodIssueSummary";
 
 export default function IssuesPodOverviewPage() {
   const navigate = useNavigate();
@@ -35,6 +35,11 @@ export default function IssuesPodOverviewPage() {
   const unassignedCount = data?.unassigned.length || 0;
   const criticalCount =
     data?.groups.reduce((sum, g) => sum + g.stats.critical, 0) || 0;
+
+  const pods = data?.groups.map((g) => g.pod) || [];
+  const issuesByPod = new Map(
+    data?.groups.map((g) => [g.pod.id, g.issues]) || []
+  );
 
   return (
     <div className="space-y-6">
@@ -86,53 +91,22 @@ export default function IssuesPodOverviewPage() {
         </Card>
       </div>
 
+      {/* Pod Health Summary */}
+      {pods.length > 0 && (
+        <PodIssueSummary pods={pods} issuesByPod={issuesByPod} />
+      )}
+
       {/* Pod Cards Grid */}
       <div>
         <h2 className="text-lg font-semibold mb-3">Pods</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {data?.groups.map((group) => (
-            <Card
+            <PodIssueCard
               key={group.pod.id}
-              className="cursor-pointer transition-colors hover:bg-accent/50"
+              pod={group.pod}
+              issues={group.issues}
               onClick={() => navigate(`/eos/issues/pod/${group.pod.id}`)}
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <span
-                    className="h-3 w-3 rounded-full shrink-0"
-                    style={{ backgroundColor: group.pod.color }}
-                  />
-                  {group.pod.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary">
-                    {group.stats.total} total
-                  </Badge>
-                  {group.stats.open > 0 && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                      {group.stats.open} open
-                    </Badge>
-                  )}
-                  {group.stats.in_progress > 0 && (
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                      {group.stats.in_progress} in progress
-                    </Badge>
-                  )}
-                  {group.stats.solved > 0 && (
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      {group.stats.solved} solved
-                    </Badge>
-                  )}
-                  {group.stats.critical > 0 && (
-                    <Badge variant="secondary" className="bg-red-100 text-red-800">
-                      {group.stats.critical} critical
-                    </Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            />
           ))}
         </div>
       </div>
