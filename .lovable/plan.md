@@ -1,33 +1,34 @@
 
-# Plan: Update Zoom OAuth Scopes in Edge Function
+
+# Plan: Add Zoom Cloud Recording Scopes to OAuth Connect
 
 ## Problem
-The "Invalid scope" error occurs because the `user-oauth-connect` edge function is requesting **outdated Zoom scopes**. Zoom has migrated to a new granular scope format.
+The `sync-zoom-files` function is failing with error:
+```
+Invalid access token, does not contain scopes:
+[cloud_recording:read:list_user_recordings, cloud_recording:read:list_user_recordings:admin]
+```
 
-## Current vs Required Scopes
-
-| Current (Invalid) | Required (New Format) |
-|-------------------|----------------------|
-| `meeting:read` | `meeting:read:meeting` |
-| `recording:read` | (removed - not in your Zoom app) |
-| `user:read` | `user:read:user` |
+This happens because the `user-oauth-connect` edge function doesn't request cloud recording scopes during the OAuth authorization flow.
 
 ## Solution
 
-Update the Zoom configuration in `supabase/functions/user-oauth-connect/index.ts` to use the scopes matching your Zoom app configuration.
+Update the Zoom provider configuration in `supabase/functions/user-oauth-connect/index.ts` to include the cloud recording scopes that match your Zoom app.
 
 ### File to Modify
-**`supabase/functions/user-oauth-connect/index.ts`** (lines 52-59)
+**`supabase/functions/user-oauth-connect/index.ts`** (lines 52-61)
 
 ### Change
-Replace the Zoom provider config from:
+Update the Zoom scopes from:
 ```typescript
 zoom: {
   authUrl: "https://zoom.us/oauth/authorize",
   scopes: [
-    "meeting:read",
-    "recording:read",
-    "user:read",
+    "meeting:read:meeting",
+    "meeting:write:meeting",
+    "meeting:write:open_app",
+    "meeting:write:registrant",
+    "user:read:user",
   ],
 },
 ```
@@ -42,17 +43,24 @@ zoom: {
     "meeting:write:open_app",
     "meeting:write:registrant",
     "user:read:user",
+    "cloud_recording:read:list_user_recordings",
+    "cloud_recording:read:list_recording_files",
+    "cloud_recording:read:list_recording_registrants",
   ],
 },
 ```
 
----
-
 ## Technical Notes
 
-- The scopes must **exactly match** what is configured in your Zoom Marketplace app
-- The new format uses a 3-part structure: `resource:permission:sub-resource`
-- After updating, the edge function will be deployed automatically
+- The scopes must match what's configured in your Zoom Marketplace app (as shown in your screenshot)
+- After updating and deploying, **users must reconnect their Zoom account** to get a new token with the updated scopes
+- The edge function will be deployed automatically after the code change
 
 ## Expected Result
-After this change, clicking "Connect with Zoom" will redirect to Zoom's authorization page without the "Invalid scope" error, allowing users to complete the OAuth flow.
+After this change:
+1. Users who click "Connect with Zoom" will be prompted to authorize the cloud recording permissions
+2. The resulting access token will include the recording scopes
+3. The `sync-zoom-files` function will successfully fetch Zoom recordings
+
+**Important**: Existing connected users must **disconnect and reconnect** their Zoom account to get the new scopes.
+
