@@ -1,71 +1,102 @@
-# Plan: Add Zoom Cloud Recording Scopes to OAuth Connect
 
-## Problem
 
-The `sync-zoom-files` function is failing with error:
+# Plan: Fix Build Errors in Multiple Files
 
-```
-Invalid access token, does not contain scopes:
-[cloud_recording:read:list_user_recordings, cloud_recording:read:list_user_recordings:admin]
-```
+## Overview
+There are 4 distinct issues causing 16+ build errors. The fixes involve either correcting table/column references or adding proper type handling.
 
-This happens because the `user-oauth-connect` edge function doesn't request cloud recording scopes during the OAuth authorization flow.
+## Issues and Fixes
 
-## Solution
+### 1. Project Backups Files (table doesn't exist)
 
-Update the Zoom provider configuration in `supabase/functions/user-oauth-connect/index.ts` to include the cloud recording scopes that match your Zoom app.
+**Files:**
+- `src/components/projects/ProjectsBackupStatus.tsx`
+- `src/components/projects/ProjectsRestoreBackupDialog.tsx`
 
-### File to Modify
+**Problem:** These files query a `project_backups` table that doesn't exist in the database schema.
 
-**`supabase/functions/user-oauth-connect/index.ts`** (lines 52-61)
+**Solution:** Delete both files since they reference non-existent infrastructure. If backup functionality is needed later, it should be rebuilt with proper database tables.
 
-### Change
+---
 
-Update the Zoom scopes from:
+### 2. GeminiRAGConfig.tsx (wrong column names)
 
+**File:** `src/pages/admin/GeminiRAGConfig.tsx`
+
+**Problem:** The interface expects columns that don't exist:
+- Expects: `description`, `last_synced_at`
+- Actual: `display_name`, `updated_at`
+
+**Solution:** Update the interface and query to match actual schema:
 ```typescript
-zoom: {
-  authUrl: "https://zoom.us/oauth/authorize",
-  scopes: [
-    "meeting:read:meeting",
-    "meeting:write:meeting",
-    "meeting:write:open_app",
-    "meeting:write:registrant",
-    "user:read:user",
-  ],
-},
+interface GeminiCorpus {
+  id: string;
+  name: string;
+  display_name: string | null;  // Changed from description
+  is_active: boolean | null;
+  updated_at: string | null;    // Changed from last_synced_at
+  created_at: string | null;
+}
 ```
+Update the select query and UI to use `display_name` instead of `description`.
 
-To:
+---
 
+### 3. MemoryAnalytics.tsx (wrong column names)
+
+**File:** `src/pages/admin/MemoryAnalytics.tsx`
+
+**Problem:** The interface uses old column names:
+- `job_type` should be `batch_type`
+- `processed_items` should be `processed_count`
+- `error_message` doesn't exist (needs `failed_count` + `metadata` instead)
+
+**Solution:** Update interface to match actual schema:
 ```typescript
-zoom: {
-  authUrl: "https://zoom.us/oauth/authorize",
-  scopes: [
-    "meeting:read:meeting",
-    "meeting:write:meeting",
-    "meeting:write:open_app",
-    "meeting:write:registrant",
-    "user:read:user",
-    "cloud_recording:read:list_user_recordings",
-    "cloud_recording:read:list_recording_files",
-    "cloud_recording:read:list_recording_registrants",
-  ],
-},
+interface QueueHistoryRow {
+  id: string;
+  batch_type: string;           // Changed from job_type
+  status: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  total_items: number | null;
+  processed_count: number | null; // Changed from processed_items
+  failed_count: number | null;    // Added (replacing error_message)
+}
 ```
+
+---
+
+### 4. ZoomMeetingService.ts (spread type issue)
+
+**File:** `src/lib/zoomMeetingService.ts` (line 215)
+
+**Problem:** `requestBody.settings` is `unknown` type, cannot spread.
+
+**Solution:** Add type assertion or properly type the settings object:
+```typescript
+requestBody.settings = {
+  ...(requestBody.settings as Record<string, unknown>),
+  approval_type: 0,
+  registrants_confirmation_email: true,
+};
+```
+
+---
+
+## Summary of Changes
+
+| File | Action |
+|------|--------|
+| `ProjectsBackupStatus.tsx` | Delete |
+| `ProjectsRestoreBackupDialog.tsx` | Delete |
+| `GeminiRAGConfig.tsx` | Update interface and query |
+| `MemoryAnalytics.tsx` | Update interface and query |
+| `zoomMeetingService.ts` | Add type assertion |
 
 ## Technical Notes
 
-- The scopes must match what's configured in your Zoom Marketplace app (as shown in your screenshot)
-- After updating and deploying, **users must reconnect their Zoom account** to get a new token with the updated scopes
-- The edge function will be deployed automatically after the code change
+- The deleted backup components may need to be removed from imports/routes elsewhere
+- After these fixes, the Zoom OAuth flow will work with the newly added recording scopes
+- Users should still disconnect and reconnect Zoom after deployment to get new tokens with recording permissions
 
-## Expected Result
-
-After this change:
-
-1. Users who click "Connect with Zoom" will be prompted to authorize the cloud recording permissions
-2. The resulting access token will include the recording scopes
-3. The `sync-zoom-files` function will successfully fetch Zoom recordings
-
-**Important**: Existing connected users must **disconnect and reconnect** their Zoom account to get the new scopes.
