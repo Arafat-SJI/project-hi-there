@@ -14,7 +14,7 @@ import ActivityLogs from "@/pages/admin/ActivityLogs";
 import SystemSettings from "@/pages/admin/SystemSettings";
 import ProjectStatusSettings from "@/pages/admin/ProjectStatusSettings";
 import ProjectModules from "@/pages/admin/ProjectModules";
-import WorkTypesSettings from "@/pages/admin/WorkTypesSettings";
+
 import Integrations from "@/pages/admin/Integrations";
 import ProviderDetail from "@/pages/admin/ProviderDetail";
 import OAuthCallback from "@/pages/admin/OAuthCallback";
@@ -70,7 +70,7 @@ export const adminRoutes = (
     <Route path="/admin/settings" element={<SystemSettings />} />
     <Route path="/admin/settings/project-statuses" element={<ProjectStatusSettings />} />
     <Route path="/admin/settings/project-modules" element={<ProjectModules />} />
-    <Route path="/admin/settings/work-types" element={<WorkTypesSettings />} />
+    
     <Route path="/admin/integrations" element={<Integrations />} />
     <Route path="/admin/integrations/oauth/callback" element={<OAuthCallback />} />
     <Route path="/admin/integrations/analytics" element={<IntegrationAnalytics />} />
