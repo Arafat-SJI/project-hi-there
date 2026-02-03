@@ -1,28 +1,18 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import {
   useProjectModuleSettings,
-  type ProjectModuleSetting,
+  useToggleProjectModule,
 } from "@/hooks/useProjectModuleSettings";
 
-/**
- * Project Modules (skeleton)
- *
- * Placeholder for `/admin/settings/project-modules` from sj-control-main.
- * Lets Admins see which detail tabs exist and conceptually toggle them.
- * Currently backed by static config; no persistence yet.
- */
 export default function ProjectModules() {
   const { data: modules, isLoading } = useProjectModuleSettings();
-  const [localState, setLocalState] = useState<Record<string, boolean>>({});
+  const toggleMutation = useToggleProjectModule();
 
-  const handleToggle = (module: ProjectModuleSetting, enabled: boolean) => {
-    setLocalState((prev) => ({ ...prev, [module.key]: enabled }));
-  };
+  const enabledCount = modules?.filter((m) => m.enabled).length ?? 0;
 
   if (isLoading) {
     return (
@@ -37,55 +27,46 @@ export default function ProjectModules() {
       <Card>
         <CardHeader>
           <CardTitle>Project Modules</CardTitle>
+          <CardDescription>
+            {enabledCount} of {modules?.length ?? 0} tabs enabled on project detail pages.
+            Changes are saved to <code className="text-xs">system_settings</code> and take
+            effect immediately.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
-            <AlertDescription>
-              This page shows the potential tabs for <code>ProjectDetailPage</code> (tasks,
-              integrations, client portal, etc.). In this framework it is a read-only
-              configuration preview; wire it to <code>system_settings</code> if you want
-              to persist these toggles.
-            </AlertDescription>
-          </Alert>
-
-          <div className="space-y-3">
-            {modules?.map((module) => {
-              const checked = localState[module.key] ?? module.enabled;
-              return (
-                <div
-                  key={module.key}
-                  className="flex items-center justify-between rounded-md border px-3 py-2"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{module.label}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({module.key})
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {module.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={module.key} className="text-xs">
-                      Enabled
-                    </Label>
-                    <Switch
-                      id={module.key}
-                      checked={checked}
-                      onCheckedChange={(value) =>
-                        handleToggle(module, Boolean(value))
-                      }
-                    />
-                  </div>
+        <CardContent className="space-y-3">
+          {modules?.map((module) => (
+            <div
+              key={module.key}
+              className="flex items-center justify-between rounded-md border px-4 py-3"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">{module.label}</span>
+                  <Badge variant="outline" className="text-xs font-mono">
+                    {module.key}
+                  </Badge>
                 </div>
-              );
-            })}
-          </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {module.description}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 ml-4">
+                <Label htmlFor={module.key} className="text-xs">
+                  {module.enabled ? "Enabled" : "Disabled"}
+                </Label>
+                <Switch
+                  id={module.key}
+                  checked={module.enabled}
+                  disabled={toggleMutation.isPending}
+                  onCheckedChange={(enabled) =>
+                    toggleMutation.mutate({ key: module.key, enabled: Boolean(enabled) })
+                  }
+                />
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>
   );
 }
-

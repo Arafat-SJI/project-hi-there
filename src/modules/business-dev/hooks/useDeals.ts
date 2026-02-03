@@ -151,14 +151,28 @@ export function useDeleteDeal() {
 
 export function useUpdateDealStage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ id, stage }: { id: string; stage: DealStage }) => {
+    mutationFn: async ({ id, stage, fromStage }: { id: string; stage: DealStage; fromStage?: string }) => {
       const updates: Record<string, unknown> = { stage };
       if (stage === "won" || stage === "lost") updates.closed_at = new Date().toISOString();
       const { error } = await supabase.from("deals").update(updates).eq("id", id);
       if (error) throw error;
+
+      // Log activity for the stage change
+      await supabase.from("deal_activities").insert({
+        deal_id: id,
+        activity_type: "stage_change",
+        title: `Stage changed${fromStage ? ` from ${fromStage}` : ""} to ${stage}`,
+        description: stage === "won" ? "Deal closed as won" : stage === "lost" ? "Deal closed as lost" : null,
+        performed_by: user?.id || null,
+      });
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [DEALS_KEY] }); toast.success("Stage updated"); },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: [DEALS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [DEALS_KEY, vars.id, "activities"] });
+      toast.success("Stage updated");
+    },
     onError: (error: Error) => toast.error("Failed to update stage", { description: error.message }),
   });
 }

@@ -1,17 +1,19 @@
 /**
- * Project Module Settings (skeleton)
+ * Project Module Settings
  *
- * Simplified version of sj-control-main's useProjectModuleSettings.
- * In this framework it provides:
- * - PROJECT_MODULES: static list of potential detail tabs
- * - useProjectModuleSettings(): returns all modules marked enabled (no DB yet)
- * - useEnabledProjectModules(): returns a map of enabled modules for ProjectDetail
+ * Admin-configurable project detail tabs stored in `system_settings`
+ * (category = 'project_modules'). Each module key maps to a toggle
+ * controlling whether the corresponding tab appears in ProjectDetailPage.
  *
- * You can later wire this to `system_settings` (category = 'project_modules')
- * if you want Admin-configurable tabs.
+ * Provides:
+ * - useProjectModuleSettings() — admin view: all modules with enabled state
+ * - useEnabledProjectModules() — detail view: map of enabled module keys
+ * - useToggleProjectModule() — mutation to persist toggle changes
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface ProjectModule {
   key: string;
@@ -24,7 +26,7 @@ export interface ProjectModuleSetting extends ProjectModule {
   enabled: boolean;
 }
 
-// Static module definitions - mirrors sj-control-main, but you can trim/extend
+// Static module definitions
 export const PROJECT_MODULES: ProjectModule[] = [
   { key: "tasks", label: "Tasks", description: "Task management and external PM sync", icon: "CheckSquare" },
   { key: "integrations", label: "Integrations", description: "External service connections", icon: "Network" },
@@ -35,43 +37,85 @@ export const PROJECT_MODULES: ProjectModule[] = [
   { key: "finance", label: "Billing", description: "Invoices, payments, and billing info", icon: "DollarSign" },
 ];
 
-// Admin view - currently returns all modules as enabled from static config.
+const SETTINGS_KEY = ["project-module-settings"];
+const ENABLED_KEY = ["enabled-project-modules"];
+const CATEGORY = "project_modules";
+
+async function fetchModuleToggles(): Promise<Record<string, boolean>> {
+  const { data, error } = await supabase
+    .from("system_settings")
+    .select("key, value")
+    .eq("category", CATEGORY);
+  if (error) throw error;
+
+  const toggles: Record<string, boolean> = {};
+  (data || []).forEach((row) => {
+    toggles[row.key] = row.value === true || row.value === "true";
+  });
+  return toggles;
+}
+
+// Admin view — all modules with their enabled state from system_settings
 export function useProjectModuleSettings() {
   return useQuery({
-    queryKey: ["project-module-settings"],
+    queryKey: SETTINGS_KEY,
     queryFn: async (): Promise<ProjectModuleSetting[]> => {
-      // In a future iteration, replace this with a SELECT from system_settings.
-      return PROJECT_MODULES.map((module) => ({
-        ...module,
-        enabled: true,
+      const toggles = await fetchModuleToggles();
+      return PROJECT_MODULES.map((mod) => ({
+        ...mod,
+        // Default to enabled if no row exists yet
+        enabled: mod.key in toggles ? toggles[mod.key] : true,
       }));
     },
     staleTime: 1000 * 60 * 5,
   });
 }
 
-// Detail view - simple enabled/disabled map for tabs.
+// Detail view — enabled/disabled map for tabs
 export function useEnabledProjectModules() {
   return useQuery({
-    queryKey: ["enabled-project-modules"],
+    queryKey: ENABLED_KEY,
     queryFn: async (): Promise<Record<string, boolean>> => {
-      // Default all known modules to enabled; overview is always on.
-      const enabledModules: Record<string, boolean> = {
-        overview: true,
-        tasks: true,
-        integrations: true,
-        client_portal: true,
-        checklist: true,
-        risks: true,
-        files: true,
-        finance: true,
-      };
-
-      // Hook left here for future system_settings integration; for now we just
-      // return the static map.
-      return enabledModules;
+      const toggles = await fetchModuleToggles();
+      const result: Record<string, boolean> = { overview: true };
+      PROJECT_MODULES.forEach((mod) => {
+        result[mod.key] = mod.key in toggles ? toggles[mod.key] : true;
+      });
+      return result;
     },
     staleTime: 1000 * 60 * 5,
   });
 }
 
+// Mutation to toggle a module on/off — upserts into system_settings
+export function useToggleProjectModule() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ key, enabled }: { key: string; enabled: boolean }) => {
+      const { error } = await supabase
+        .from("system_settings")
+        .upsert(
+          {
+            category: CATEGORY,
+            key,
+            value: enabled as unknown as null, // JSON column accepts boolean
+            description: `Toggle for project detail tab: ${key}`,
+          },
+          { onConflict: "category,key" }
+        );
+      if (error) throw error;
+    },
+    onSuccess: (_data, { key, enabled }) => {
+      queryClient.invalidateQueries({ queryKey: SETTINGS_KEY });
+      queryClient.invalidateQueries({ queryKey: ENABLED_KEY });
+      toast({
+        title: `${key} tab ${enabled ? "enabled" : "disabled"}`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to save", description: err.message, variant: "destructive" });
+    },
+  });
+}

@@ -297,6 +297,68 @@ System:
 **Depends on:** Platform Core
 **Imports admin settings for:** ALL other modules (EOS, Projects, Knowledge Base, etc.)
 
+## Implementation Status (Framework Pages Built)
+
+The following admin pages have been fully built and wired to real Supabase data:
+
+### Team & Resources
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| EmployeeManagement | `/admin/team/employees` | QA-ready | Employee list with search/filter |
+| DepartmentManagement | `/admin/data-sync/departments` | QA-ready | Department overview |
+
+### Integrations
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| ZoomIntegration | `/admin/integrations/zoom` | Done | Zoom OAuth setup + user connection |
+| ZoomMeetings | `/admin/integrations/zoom/meetings` | Done | Synced Zoom meetings list |
+
+### Knowledge & AI
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| KnowledgeAnalytics | `/admin/knowledge/analytics` | QA-ready | Knowledge stats |
+| KnowledgeCategories | `/admin/knowledge/categories` | QA-ready | Category management |
+| EmbeddingsExplorer | `/admin/knowledge/embeddings` | Done | Embedding coverage, queue, search logs |
+| AIModelManagement | `/admin/ai-models` | Done | Provider/model config |
+| AIUsageAnalytics | `/admin/ai-usage` | Done | Usage dashboard + cost tracking |
+| MCPServers | `/admin/mcp-servers` | Done | MCP server management |
+
+### Settings
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| ProjectStatusSettings | `/admin/settings/project-statuses` | Done | Full CRUD with color picker, reorder, active/default toggle, delete validation |
+| WorkTypesSettings | `/admin/settings/work-types` | Done | Full CRUD with category (5 types), billable flag, default rate, color picker, reorder |
+| ProjectModules | `/admin/settings/project-modules` | Done | Toggle project detail tabs, persisted to `system_settings` with useToggleProjectModule mutation |
+
+### Reports
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| ProjectReports | `/admin/reports/projects` | Done | 4 summary cards (Active Projects, Milestones, Open Risks, Budget Utilization), real Supabase aggregates from projects + statuses + milestones + risks + billing |
+| ResourceUtilizationReports | `/admin/reports/resource-utilization` | Done | Summary cards (Employees, Avg Utilization, Billable Ratio, Efficiency), department utilization bar chart (recharts), employee table with billable hours/%, utilization Progress + High/Med/Low badges. Filters: department, week |
+
+### System
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| SeedRunner | `/admin/roadmap/seed` | Done | Admin seed SQL execution UI |
+| ImplementationStatus | `/admin/implementation-status` | Done | Full module tracker with progress bars, pipeline phases, QA checklist |
+
+### Admin-Specific Hooks
+| Hook | File | Status | Notes |
+|------|------|--------|-------|
+| useProjectStatuses | `src/hooks/useProjectStatuses.ts` | Done | CRUD + reorder for `project_statuses` table with delete validation |
+| useWorkTypes | `src/hooks/useWorkTypes.ts` | Done | CRUD + reorder for `work_types` table (uses `(supabase as any)` cast since table not in auto-generated types) |
+| useProjectModuleSettings | `src/hooks/useProjectModuleSettings.ts` | Done | system_settings persistence + useToggleProjectModule upsert mutation |
+
+### Team & Resources (continued)
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| EmployeeProjection | `/admin/team/employee_projection` | Done | Summary cards (employees, FT count, departments, pod allocation rate), dept distribution bars, pods/teams panel, filterable employee roster table |
+
+### Pending Admin Pages
+- EOS admin pages (VTO config, scorecard settings)
+- Data sync dashboard (HR, HubSpot, ActiveCollab)
+- Notification management admin page
+
 ## Implementation Notes
 - All admin routes wrap with `<ProtectedRoute><AdminRoute><AdminLayout>...</AdminLayout></AdminRoute></ProtectedRoute>`
 - AdminRoute checks for admin role via AuthContext
@@ -307,3 +369,6 @@ System:
 - The Admin module is the "configuration brain" of the platform
 - System settings use a key-value pattern (category, key, value)
 - Data sync operations are queue-based with progress monitoring
+- New tables not in auto-generated Supabase types use `(supabase as any)` cast pattern
+- CRUD pages follow pattern: hook file with useQuery + useMutation hooks → page with table + dialog form + delete confirmation
+- Reorder uses arrow-based up/down buttons with batch sort_order updates

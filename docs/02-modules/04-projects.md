@@ -13,11 +13,12 @@ In this codebase the Projects module focuses on:
   - `milestones` — simple milestone list and completion status
   - `members` — project team members
   - `issues` — risk list
+  - `integrations` — live integration status from `organization_integrations` + `integration_providers`
+  - `tasks` — project tasks via `client_id` lookup against `tasks` table
   - `client_portal` — client access management
 - **Client portal** — public, token + password protected dashboard for clients
 - **Project sync** from **ActiveCollab** and **Jira** into the local `projects` table
-
-It does **not** include the full set of features from `sj-control-main` (tasks tab, meetings tab, billing UI, files tab, backup/restore, resource projection, etc.), but the schema and patterns are compatible so those can be added later.
+- **Admin pages** for project status management, work types, project module toggles, project reports, and resource utilization
 
 **Module name:** `projects` (in `app_modules` and sidebar).
 
@@ -75,12 +76,31 @@ Admin:
 
 **Projects module:**
 
-- `src/components/projects/ClientAccessManagement.tsx`  
+- `src/components/projects/ClientAccessManagement.tsx`
   Client portal management inside Project Detail:
   - Add client access (email, name)
   - Generate access token + password via `create-client-access` Edge Function
   - Copy portal URL and password
   - Reset password, revoke/restore access
+
+- `src/components/projects/IntegrationsTab.tsx`
+  Project integration status panel:
+  - Shows all org integrations with provider logos (or `Plug` fallback icon)
+  - `ConnectionBadge` component (CheckCircle2/XCircle) per integration
+  - Slug label, `Clock` icon with last sync timestamp
+  - Connected count summary in CardDescription
+  - Empty state with admin redirect hint
+
+- `src/components/projects/TasksTab.tsx`
+  Project tasks panel:
+  - Priority badges with color coding (High=red, Med=amber, Low=green)
+  - Status badges (To do, In progress, Done) with variant mapping
+  - Assigned user display with `User` icon
+  - `Calendar` icon for due dates
+  - Completed/total counter in CardDescription
+  - Strikethrough styling for done tasks
+  - Source badge for external tasks (ActiveCollab, Jira)
+  - Empty state with sync guidance
 
 **Client portal (read-only dashboard):**
 
@@ -114,8 +134,22 @@ All of these are used by `ClientPortalDashboard`.
   - `useRevokeClientAccess()`  
   - `useRestoreClientAccess()`
 
-- `src/hooks/useIntegrationSync.ts`  
+- `src/hooks/useIntegrationSync.ts`
   - `useSyncProjects(providerSlug)` — invokes `sync-projects-activecollab` or `sync-projects-jira` and invalidates `['projects']`.
+
+- `src/modules/projects/hooks/useProjectIntegrations.ts`
+  - `useProjectIntegrations(projectId)` — queries `organization_integrations` joined with `integration_providers` for name, slug, logo_url, connection_status. Returns `ProjectIntegration[]` with connected/enabled flags.
+
+- `src/modules/projects/hooks/useProjectTasks.ts`
+  - `useProjectTasks(projectId)` — first fetches project's `client_id`, then queries `tasks` table filtered by that client. Returns `ProjectTask[]` with status normalization via `mapTaskStatus()` helper.
+
+- `src/hooks/useProjectReports.ts`
+  - `useProjectReports()` — real Supabase aggregates joining `projects` + `project_statuses` + `project_milestones` + `project_risks` + `project_billing`. Returns `ProjectReportRow[]` with budget utilization, milestone progress, open risk counts.
+
+- `src/hooks/useProjectStatuses.ts`
+  - `useProjectStatuses()` — query project_statuses ordered by sort_order
+  - `useCreateProjectStatus()`, `useUpdateProjectStatus()`, `useDeleteProjectStatus()` (validates no projects reference status before deleting)
+  - `useReorderProjectStatuses()` — batch sort_order updates
 
 ### Routing & layout
 
@@ -554,12 +588,36 @@ Admin routes:
 - `project_statuses`: Admin-configurable project lifecycle stages  
 - ActiveCollab credentials stored as integration secrets  
 
+#### Implementation Status (Framework Pages Built)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| ProjectDetailPage | Done | Tab-based layout with toggleable tabs |
+| IntegrationsTab | Done | ConnectionBadge, service logos, sync timestamps, empty state |
+| TasksTab | Done | Priority badges, assigned user, completion counter |
+| ProjectKnowledgePage | Done | Summary cards (total docs, embedded, chunks), searchable document table from `unified_documents`, file type badges, processing status |
+| ProjectReports (admin) | Done | 4 summary cards, Supabase aggregates |
+| ProjectStatusSettings (admin) | Done | Full CRUD, color picker, reorder |
+| WorkTypesSettings (admin) | Done | Full CRUD, category, billable flag, reorder |
+| ProjectModules (admin) | Done | Toggle tabs, system_settings persistence |
+| useProjectIntegrations | Done | Real Supabase query to `project_integrations` |
+| useProjectTasks | Done | Real Supabase query to `project_tasks` with filters |
+| useProjectReports | Done | Aggregate queries for project reporting |
+| useProjectStatuses | Done | CRUD + reorder for `project_statuses` table |
+| useProjectDocuments | Done | Query `unified_documents` with owner_type=project filter |
+
+#### Pending
+- Billing/invoicing UI
+- ActiveCollab task sync wiring
+- Resource projection weekly allocation table
+- Project backup/restore
+
 #### Implementation Notes (full)
 
-- Project detail uses tab-based navigation (overview, tasks, meetings, billing, files, integrations, issues, client portal)  
-- Tabs are toggleable via system_settings → project_modules  
-- ActiveCollab integration syncs tasks, time records, expenses, budgets  
-- Resource projection provides capacity planning with weekly allocation table  
-- Client portal uses token-based access (no auth required)  
+- Project detail uses tab-based navigation (overview, tasks, meetings, billing, files, integrations, issues, client portal)
+- Tabs are toggleable via system_settings → project_modules
+- ActiveCollab integration syncs tasks, time records, expenses, budgets
+- Resource projection provides capacity planning with weekly allocation table
+- Client portal uses token-based access (no auth required)
 - Backup/restore creates full project snapshots  
 

@@ -1,55 +1,70 @@
 /**
- * Project Tasks (mock)
+ * Project Tasks — real Supabase queries
  *
- * Returns dummy task list for a project until real task tables/ActiveCollab sync exist.
- * Replace queryFn with Supabase or Edge Function when ready.
+ * Fetches tasks associated with the same client as the project.
+ * Tasks link to projects indirectly via client_id, and can also
+ * be identified by the project's external_id for synced sources.
  */
 
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ProjectTask {
   id: string;
   project_id: string;
   title: string;
   status: "todo" | "in_progress" | "done";
+  priority: string;
   due_date: string | null;
-  source?: "internal" | "activecollab" | "jira";
-  external_id?: string | null;
+  assigned_to: string | null;
+  source: "internal" | "activecollab" | "jira";
+  external_id: string | null;
+  created_at: string;
 }
 
-const MOCK_TASKS: ProjectTask[] = [
-  {
-    id: "mock-task-1",
-    project_id: "",
-    title: "Kickoff meeting and scope confirmation",
-    status: "done",
-    due_date: null,
-    source: "internal",
-  },
-  {
-    id: "mock-task-2",
-    project_id: "",
-    title: "Design review and sign-off",
-    status: "in_progress",
-    due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    source: "internal",
-  },
-  {
-    id: "mock-task-3",
-    project_id: "",
-    title: "Sprint 1 development",
-    status: "todo",
-    due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    source: "activecollab",
-  },
-];
+function mapTaskStatus(status: string): "todo" | "in_progress" | "done" {
+  if (status === "completed" || status === "done") return "done";
+  if (status === "in_progress") return "in_progress";
+  return "todo";
+}
 
 export function useProjectTasks(projectId: string) {
   return useQuery({
     queryKey: ["project-tasks", projectId],
     queryFn: async (): Promise<ProjectTask[]> => {
-      // Replace with: supabase.from('project_tasks').select('*').eq('project_id', projectId)
-      return MOCK_TASKS.map((t) => ({ ...t, project_id: projectId }));
+      // Get the project to find its client_id
+      const { data: project, error: projError } = await supabase
+        .from("projects")
+        .select("id, client_id, external_id, external_provider")
+        .eq("id", projectId)
+        .single();
+
+      if (projError) throw projError;
+      if (!project?.client_id) return [];
+
+      // Fetch tasks linked to the same client
+      const { data: tasks, error: taskError } = await supabase
+        .from("tasks")
+        .select("id, title, status, priority, due_date, assigned_to, metadata, created_at")
+        .eq("client_id", project.client_id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (taskError) throw taskError;
+      if (!tasks) return [];
+
+      return tasks.map((t) => ({
+        id: t.id,
+        project_id: projectId,
+        title: t.title,
+        status: mapTaskStatus(t.status),
+        priority: t.priority || "medium",
+        due_date: t.due_date,
+        assigned_to: t.assigned_to,
+        source: "internal" as const,
+        external_id: null,
+        created_at: t.created_at,
+      }));
     },
     enabled: !!projectId,
     staleTime: 60 * 1000,

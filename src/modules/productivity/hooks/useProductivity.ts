@@ -100,6 +100,72 @@ export function useDepartments() {
   });
 }
 
+export interface PodProductivitySummary {
+  pod_id: string;
+  pod_name: string;
+  department_name: string;
+  member_count: number;
+  avg_utilization: number;
+  avg_efficiency: number;
+  total_tasks: number;
+}
+
+export function usePodProductivity(weekStart?: string) {
+  return useQuery({
+    queryKey: [PRODUCTIVITY_KEY, "pods", weekStart],
+    queryFn: async (): Promise<PodProductivitySummary[]> => {
+      const [podRes, memberRes, profileRes, recordsRes] = await Promise.all([
+        supabase.from("pods").select("id, name, department_id, is_active").eq("is_active", true),
+        supabase.from("pod_members").select("pod_id, user_id"),
+        supabase.from("employee_profiles").select("user_id, email"),
+        (() => {
+          let q = supabase.from("productivity_records").select("employee_email, utilization_pct, efficiency_score, tasks_completed");
+          if (weekStart) q = q.eq("week_start", weekStart);
+          return q;
+        })(),
+      ]);
+
+      const pods = podRes.data || [];
+      const members = memberRes.data || [];
+      const profiles = profileRes.data || [];
+      const records = recordsRes.data || [];
+
+      const { data: depts } = await supabase.from("departments").select("id, name");
+      const deptMap = new Map((depts || []).map((d: any) => [d.id, d.name]));
+      const userEmailMap = new Map(profiles.map((p: any) => [p.user_id, p.email]));
+
+      const recordMap = new Map<string, { util: number; eff: number; tasks: number }>();
+      (records as any[]).forEach((r) => {
+        recordMap.set(r.employee_email, {
+          util: Number(r.utilization_pct) || 0,
+          eff: Number(r.efficiency_score) || 0,
+          tasks: r.tasks_completed || 0,
+        });
+      });
+
+      return pods.map((pod: any) => {
+        const podMembers = members.filter((m: any) => m.pod_id === pod.id);
+        let sumUtil = 0, sumEff = 0, sumTasks = 0, matched = 0;
+        podMembers.forEach((m: any) => {
+          const email = userEmailMap.get(m.user_id);
+          if (email) {
+            const rec = recordMap.get(email);
+            if (rec) { sumUtil += rec.util; sumEff += rec.eff; sumTasks += rec.tasks; matched++; }
+          }
+        });
+        return {
+          pod_id: pod.id, pod_name: pod.name,
+          department_name: deptMap.get(pod.department_id) || "Unassigned",
+          member_count: podMembers.length,
+          avg_utilization: matched ? Math.round(sumUtil / matched) : 0,
+          avg_efficiency: matched ? Math.round(sumEff / matched) : 0,
+          total_tasks: sumTasks,
+        };
+      }).sort((a: PodProductivitySummary, b: PodProductivitySummary) => b.avg_utilization - a.avg_utilization);
+    },
+  });
+}
+
 export function useAvailableWeeks() {
   return useQuery({
     queryKey: [PRODUCTIVITY_KEY, "weeks"],
