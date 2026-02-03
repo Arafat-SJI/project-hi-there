@@ -3513,6 +3513,47 @@ export type Database = {
           },
         ]
       }
+      project_backups: {
+        Row: {
+          backup_type: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          snapshot: Json | null
+          status: string | null
+        }
+        Insert: {
+          backup_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          snapshot?: Json | null
+          status?: string | null
+        }
+        Update: {
+          backup_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          snapshot?: Json | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_backups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_billing: {
         Row: {
           billing_type: string | null

@@ -16,6 +16,7 @@ import { useProjects, useProjectStatuses } from "../hooks/useProjects";
 import { useClients } from "@/hooks/useClients";
 import { GlobalProjectsRestoreDialog } from "@/modules/projects/components/GlobalProjectsRestoreDialog";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProjectsPage() {
@@ -64,7 +65,7 @@ export default function ProjectsPage() {
         project_id: p.id,
         backup_type: "manual",
         status: "completed",
-        snapshot: p,
+        snapshot: p as unknown as Json,
         notes: "Manual backup created from Projects list (Backup all)",
       }));
       const { error } = await supabase.from("project_backups").insert(rows);
