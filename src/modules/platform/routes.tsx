@@ -14,6 +14,8 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import AuthCallback from "@/pages/AuthCallback";
 import MicrosoftAuthCallback from "@/pages/MicrosoftAuthCallback";
+import TermsAndConditions from "@/pages/TermsAndConditions";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import NotFound from "@/pages/NotFound";
 
 // Core protected pages (always available)
@@ -36,6 +38,8 @@ export const publicRoutes = (
     <Route path="/signup" element={<Signup />} />
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/auth-callback" element={<MicrosoftAuthCallback />} />
+    <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
   </>
 );
 

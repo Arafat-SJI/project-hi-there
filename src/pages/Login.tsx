@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Brain } from "lucide-react";
 
@@ -12,12 +13,23 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [validationError, setValidationError] = useState("");
   const { signIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setValidationError("");
+
+    // Validate checkboxes
+    if (!termsAccepted || !privacyAccepted) {
+      setValidationError("Please accept both Terms and Conditions and Privacy Policy to continue.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -32,6 +44,12 @@ export default function Login() {
   };
 
   const handleGoogleSignIn = async () => {
+    // Validate checkboxes for Google sign in too
+    if (!termsAccepted || !privacyAccepted) {
+      setValidationError("Please accept both Terms and Conditions and Privacy Policy to continue.");
+      return;
+    }
+
     setLoading(true);
     try {
       await signInWithGoogle();
@@ -41,6 +59,8 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  const isFormValid = termsAccepted && privacyAccepted;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -65,6 +85,12 @@ export default function Login() {
               {error && (
                 <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
                   {error}
+                </div>
+              )}
+              
+              {validationError && (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+                  {validationError}
                 </div>
               )}
               
@@ -130,9 +156,67 @@ export default function Login() {
                   className="h-10"
                 />
               </div>
+
+              {/* Terms and Privacy Checkboxes */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) => {
+                      setTermsAccepted(checked === true);
+                      setValidationError("");
+                    }}
+                    disabled={loading}
+                    className="mt-0.5"
+                  />
+                  <Label
+                    htmlFor="terms"
+                    className="text-sm font-normal leading-relaxed cursor-pointer"
+                  >
+                    I agree to the{" "}
+                    <Link
+                      to="/terms-and-conditions"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline hover:text-primary/80"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Terms and Conditions
+                    </Link>
+                  </Label>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="privacy"
+                    checked={privacyAccepted}
+                    onCheckedChange={(checked) => {
+                      setPrivacyAccepted(checked === true);
+                      setValidationError("");
+                    }}
+                    disabled={loading}
+                    className="mt-0.5"
+                  />
+                  <Label
+                    htmlFor="privacy"
+                    className="text-sm font-normal leading-relaxed cursor-pointer"
+                  >
+                    I agree to the{" "}
+                    <Link
+                      to="/privacy-policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline hover:text-primary/80"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Privacy Policy
+                    </Link>
+                  </Label>
+                </div>
+              </div>
             </CardContent>
             <CardFooter className="flex-col space-y-4 pt-2">
-              <Button type="submit" className="h-10 w-full font-medium" disabled={loading}>
+              <Button type="submit" className="h-10 w-full font-medium" disabled={loading || !isFormValid}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -157,7 +241,7 @@ export default function Login() {
                 variant="outline"
                 className="h-10 w-full font-medium"
                 onClick={handleGoogleSignIn}
-                disabled={loading}
+                disabled={loading || !isFormValid}
               >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
