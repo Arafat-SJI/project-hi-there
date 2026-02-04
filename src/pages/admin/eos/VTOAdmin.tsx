@@ -80,10 +80,10 @@ function useResetVTOSection() {
   return useMutation({
     mutationFn: async ({ section }: { section: string }) => {
       const template = DEFAULT_TEMPLATES[section] || {};
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("eos_vto")
         .update({
-          content: template,
+          content: template as any,
           updated_by: user!.id,
           updated_at: new Date().toISOString(),
         })

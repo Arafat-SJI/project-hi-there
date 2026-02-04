@@ -35,25 +35,25 @@ export function useMeetingEfficiency(days: number = 90) {
       fromDate.setDate(fromDate.getDate() - days);
 
       const [meetingsRes, agendaRes, takeawaysRes, participantsRes] = await Promise.all([
-        supabase
+        (supabase as any)
           .from("meetings")
-          .select("id, title, duration_minutes, meeting_date, created_at, metadata")
+          .select("id, title, duration_minutes, created_at, metadata")
           .gte("created_at", fromDate.toISOString()),
-        supabase
+        (supabase as any)
           .from("meeting_agenda_items")
           .select("id, meeting_id, is_completed"),
-        supabase
+        (supabase as any)
           .from("meeting_takeaways")
-          .select("id, meeting_id, type"),
-        supabase
+          .select("id, meeting_id"),
+        (supabase as any)
           .from("meeting_participants")
           .select("id, meeting_id, attended"),
       ]);
 
-      const meetings = meetingsRes.data || [];
-      const agendaItems = agendaRes.data || [];
-      const takeaways = takeawaysRes.data || [];
-      const participants = participantsRes.data || [];
+      const meetings = (meetingsRes.data || []) as any[];
+      const agendaItems = (agendaRes.data || []) as any[];
+      const takeaways = (takeawaysRes.data || []) as any[];
+      const participants = (participantsRes.data || []) as any[];
 
       if (meetings.length === 0) {
         return {
@@ -134,7 +134,7 @@ export function useMeetingEfficiency(days: number = 90) {
         totalEfficiency += efficiency;
 
         // Monthly aggregation
-        const dateStr = meeting.meeting_date || meeting.created_at;
+        const dateStr = meeting.created_at;
         const month = new Date(dateStr).toLocaleString("default", { month: "short", year: "2-digit" });
         const entry = monthMap.get(month) || { meetings: 0, totalDuration: 0, totalEfficiency: 0 };
         entry.meetings++;

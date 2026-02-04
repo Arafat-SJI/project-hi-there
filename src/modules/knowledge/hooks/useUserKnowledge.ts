@@ -66,7 +66,7 @@ export function useUserKnowledgeSources() {
   return useQuery({
     queryKey: ['user-knowledge-sources', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_knowledge_sources')
         .select('*')
         .eq('user_id', user!.id)
@@ -213,7 +213,7 @@ export function useCreateUserKnowledgeSource() {
 
   return useMutation({
     mutationFn: async (sourceData: Partial<UserKnowledgeSource>) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_knowledge_sources')
         .insert({ ...sourceData, user_id: user!.id })
         .select()

@@ -146,10 +146,10 @@ function useSaveGWCAssessment() {
       has_capacity: boolean;
       notes?: string;
     }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("gwc_assessments")
         .upsert(
-          { ...data, assessed_at: new Date().toISOString() },
+          { ...data, assessment_date: new Date().toISOString() },
           { onConflict: "responsibility_id" }
         );
 
