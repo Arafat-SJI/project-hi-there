@@ -29,6 +29,7 @@ interface UserInfo {
 const getTokenEndpoint = (provider: string): string => {
   const endpoints: Record<string, string> = {
     google: "https://oauth2.googleapis.com/token",
+    "google-meet": "https://oauth2.googleapis.com/token",
     zoom: "https://zoom.us/oauth/token",
     microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
   };
@@ -43,6 +44,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
 
   switch (provider) {
     case "google":
+    case "google-meet":
       url = "https://www.googleapis.com/oauth2/v2/userinfo";
       break;
     case "zoom":
@@ -67,6 +69,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
     // Normalize the response
     switch (provider) {
       case "google":
+      case "google-meet":
         return {
           email: data.email,
           name: data.name,
@@ -227,10 +230,12 @@ serve(async (req) => {
     await supabase.from("oauth_states").delete().eq("state", state);
 
     // Redirect back to app with success
-    // For Zoom, redirect to the integration page; otherwise use redirect_uri or settings
+    // For Zoom/Google Meet, redirect to the integration page; otherwise use redirect_uri or settings
     let finalRedirect;
     if (provider === "zoom") {
       finalRedirect = `${appUrl}/admin/integrations/zoom`;
+    } else if (provider === "google-meet") {
+      finalRedirect = `${appUrl}/admin/integrations/google-meet`;
     } else if (redirect_uri && !redirect_uri.includes("undefined")) {
       finalRedirect = redirect_uri;
     } else {
