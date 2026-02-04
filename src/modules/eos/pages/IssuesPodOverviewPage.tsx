@@ -15,6 +15,7 @@ import { useUpdateIssue, useDeleteIssue } from "../hooks/useEOSIssues";
 import { IssuesTable } from "../components/issues/IssuesTable";
 import { PodIssueCard } from "../components/issues/PodIssueCard";
 import { PodIssueSummary } from "../components/issues/PodIssueSummary";
+import { IssuesNavTabs } from "../components/issues/IssuesNavTabs";
 
 export default function IssuesPodOverviewPage() {
   const navigate = useNavigate();

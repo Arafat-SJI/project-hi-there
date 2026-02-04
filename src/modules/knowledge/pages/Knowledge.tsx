@@ -54,7 +54,6 @@ export default function Knowledge() {
 
   const { data: categories = [] } = useKnowledgeCategories();
   const { data: allEntries = [], isLoading } = useKnowledgeEntries({});
-  const { data: recentEntries = [] } = useKnowledgeEntries({});
   const { data: filteredEntries = [] } = useKnowledgeEntries({
     search,
     category_id: selectedCategory || undefined,

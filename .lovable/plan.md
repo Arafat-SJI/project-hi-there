@@ -1,132 +1,88 @@
 
-# Plan: Create Missing OAuth Tables and Fix Callback Edge Function
 
-## Current Problem
+# Plan: Fix CORS Error by Creating Edge Function Proxy for Zoom Meeting Creation
 
-When you click "Connect with Zoom", the OAuth flow initiates but the connection status never displays anything. This is because **two essential database tables are missing** that the OAuth flow requires:
+## Problem
+The `createZoomMeeting` function in `src/lib/zoomMeetingService.ts` is calling the Zoom API directly from the browser:
+```typescript
+const response = await fetch('https://api.zoom.us/v2/users/me/meetings', { ... });
+```
 
-1. **`oauth_states`** - Stores temporary state tokens for CSRF protection during OAuth authorization
-2. **`user_oauth_tokens`** - Stores user OAuth credentials after successful authorization
+This fails with a CORS error because Zoom's API is designed for server-to-server communication and doesn't include CORS headers for browser requests.
 
-Additionally, there's a column name mismatch in the callback edge function that needs correction.
+## Solution
+Create a new Edge Function `create-zoom-meeting` that acts as a proxy between the frontend and the Zoom API. This follows the same pattern as the existing `sync-zoom-files` function.
 
-## Solution Overview
+## Implementation
 
-1. Create the `oauth_states` table with appropriate columns and RLS policies
-2. Create the `user_oauth_tokens` table with appropriate columns and RLS policies  
-3. Fix the `user-oauth-callback` edge function to use the correct column name (`enabled` instead of `is_enabled`)
+### 1. Create Edge Function: `supabase/functions/create-zoom-meeting/index.ts`
 
----
+This function will:
+- Authenticate the user via JWT validation
+- Retrieve the user's Zoom OAuth token from the database
+- Handle token refresh if expired
+- Make the server-to-server request to Zoom API
+- Return the response with proper CORS headers
 
-## Implementation Details
+```text
+Request Flow:
+Browser → Edge Function → Zoom API
+                ↓
+         (CORS headers added)
+                ↓
+Browser ← Edge Function ← Zoom API Response
+```
 
-### Step 1: Database Migration
+### 2. Update `supabase/config.toml`
 
-Create the two required tables:
+Add the new function with `verify_jwt = false` to support ES256 token validation (as per project standards).
 
-**`oauth_states` table:**
-- `id` - UUID primary key
-- `state` - Unique state token (used for CSRF protection)
-- `user_id` - Reference to the user initiating OAuth
-- `provider` - Provider slug (e.g., 'zoom', 'google')
-- `redirect_uri` - Where to redirect after completion
-- `expires_at` - Expiration timestamp (typically 10 minutes)
-- `created_at` - Creation timestamp
+### 3. Update `src/lib/zoomMeetingService.ts`
 
-**`user_oauth_tokens` table:**
-- `id` - UUID primary key
-- `user_id` - Reference to the user
-- `provider_slug` - Provider identifier (e.g., 'zoom')
-- `access_token` - Encrypted OAuth access token
-- `refresh_token` - Encrypted OAuth refresh token (optional)
-- `token_type` - Token type (e.g., 'Bearer')
-- `expires_at` - Token expiration timestamp
-- `scopes` - Array of granted scopes
-- `account_email` - Connected account email
-- `account_name` - Connected account name
-- `account_id` - Connected account ID
-- `account_avatar_url` - Connected account avatar
-- `is_active` - Whether the connection is active
-- `last_used_at` - Last usage timestamp
-- `last_refreshed_at` - Last token refresh timestamp
-- `error_message` - Any error message
-- `error_at` - Error timestamp
-- `metadata` - Additional metadata (JSONB)
-- `created_at` / `updated_at` - Timestamps
+Change from direct Zoom API call to calling the edge function:
+```typescript
+// Before (CORS error)
+const response = await fetch('https://api.zoom.us/v2/users/me/meetings', { ... });
 
-**RLS Policies:**
-- Users can only read/manage their own tokens
-- Service role can access all tokens (for edge functions)
+// After (works via proxy)
+const { data, error } = await supabase.functions.invoke('create-zoom-meeting', {
+  body: { topic, start_time, duration, timezone, agenda, settings, registrants }
+});
+```
 
-### Step 2: Fix Edge Function
+## Files to Create/Modify
 
-Update `supabase/functions/user-oauth-callback/index.ts`:
-- Change `.eq("is_enabled", true)` to `.eq("enabled", true)` to match the actual column name
-
----
-
-## Files to Modify
-
-| File | Change |
+| File | Action |
 |------|--------|
-| Database migration (new) | Create `oauth_states` and `user_oauth_tokens` tables with RLS |
-| `supabase/functions/user-oauth-callback/index.ts` | Fix column name from `is_enabled` to `enabled` |
-
-## Expected Outcome
-
-After these changes:
-1. Admin saves Zoom Client ID and Client Secret (already working)
-2. User clicks "Connect with Zoom" → State is stored in `oauth_states`
-3. User authorizes on Zoom → Redirected back to callback
-4. Callback exchanges code for tokens → Tokens stored in `user_oauth_tokens`
-5. User sees "Connected" status with their Zoom account info
-
----
+| `supabase/functions/create-zoom-meeting/index.ts` | **Create** - New edge function proxy |
+| `supabase/config.toml` | **Modify** - Add function config |
+| `src/lib/zoomMeetingService.ts` | **Modify** - Use edge function instead of direct API call |
 
 ## Technical Details
 
-### Database Schema (SQL Preview)
+### Edge Function Implementation
 
-```text
-oauth_states
-├── id (uuid, PK)
-├── state (text, unique)
-├── user_id (uuid, FK → auth.users)
-├── provider (text)
-├── redirect_uri (text)
-├── expires_at (timestamptz)
-└── created_at (timestamptz)
+The edge function will:
+1. Handle CORS preflight (OPTIONS) requests
+2. Validate the user's JWT token manually (ES256 compatibility)
+3. Retrieve user's Zoom OAuth token from `user_oauth_tokens` table
+4. Refresh token if expired using org credentials from `organization_integrations`
+5. Make POST request to `https://api.zoom.us/v2/users/me/meetings`
+6. Return Zoom's response with CORS headers
 
-user_oauth_tokens
-├── id (uuid, PK)
-├── user_id (uuid, FK → auth.users)
-├── provider_slug (text)
-├── access_token (text, encrypted)
-├── refresh_token (text, nullable)
-├── token_type (text, default 'Bearer')
-├── expires_at (timestamptz, nullable)
-├── scopes (text[], default '{}')
-├── account_email (text, nullable)
-├── account_name (text, nullable)
-├── account_id (text, nullable)
-├── account_avatar_url (text, nullable)
-├── is_active (boolean, default true)
-├── last_used_at (timestamptz, nullable)
-├── last_refreshed_at (timestamptz, nullable)
-├── error_message (text, nullable)
-├── error_at (timestamptz, nullable)
-├── metadata (jsonb, default '{}')
-├── created_at (timestamptz)
-├── updated_at (timestamptz)
-└── UNIQUE(user_id, provider_slug)
-```
+### Security Considerations
 
-### Edge Function Fix
+- User authentication validated via JWT before any Zoom API calls
+- Zoom OAuth tokens retrieved server-side (never exposed to browser)
+- Token refresh handled automatically with proper credential management
+- CORS headers only added for authenticated responses
 
-```text
-// Before (line 157)
-.eq("is_enabled", true)
+## Expected Result
 
-// After
-.eq("enabled", true)
-```
+After implementation:
+1. User clicks "Create Zoom Meeting" in the app
+2. Frontend calls `create-zoom-meeting` edge function
+3. Edge function authenticates user, retrieves Zoom token, calls Zoom API
+4. Meeting is created successfully without CORS errors
+5. Response returned to frontend with meeting details
+

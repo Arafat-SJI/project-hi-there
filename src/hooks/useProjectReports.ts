@@ -39,7 +39,7 @@ export function useProjectReports() {
 
       const projectIds = projects.map((p) => p.id);
 
-      // Fetch milestones, risks, billing in parallel
+      // Fetch milestones, risks, billing in parallel; use empty data for any failed query so we still return project list
       const [milestonesRes, risksRes, billingRes] = await Promise.all([
         supabase
           .from("project_milestones")
@@ -55,13 +55,13 @@ export function useProjectReports() {
           .in("project_id", projectIds),
       ]);
 
-      if (milestonesRes.error) throw milestonesRes.error;
-      if (risksRes.error) throw risksRes.error;
-      if (billingRes.error) throw billingRes.error;
+      const milestonesData = milestonesRes.error ? [] : milestonesRes.data || [];
+      const risksData = risksRes.error ? [] : risksRes.data || [];
+      const billingData = billingRes.error ? [] : billingRes.data || [];
 
       // Build lookup maps
       const milestonesByProject = new Map<string, { total: number; done: number }>();
-      for (const m of milestonesRes.data || []) {
+      for (const m of milestonesData) {
         const entry = milestonesByProject.get(m.project_id) || { total: 0, done: 0 };
         entry.total++;
         if (m.status === "completed" || m.status === "done") entry.done++;
@@ -69,14 +69,14 @@ export function useProjectReports() {
       }
 
       const risksByProject = new Map<string, number>();
-      for (const r of risksRes.data || []) {
+      for (const r of risksData) {
         if (r.status === "open" || r.status === "active" || !r.status) {
           risksByProject.set(r.project_id, (risksByProject.get(r.project_id) || 0) + 1);
         }
       }
 
       const billingByProject = new Map<string, { budget: number; invoiced: number }>();
-      for (const b of billingRes.data || []) {
+      for (const b of billingData) {
         const entry = billingByProject.get(b.project_id) || { budget: 0, invoiced: 0 };
         entry.budget += b.total_budget || 0;
         entry.invoiced += b.invoiced_amount || 0;

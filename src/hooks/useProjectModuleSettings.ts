@@ -81,6 +81,11 @@ export function useEnabledProjectModules() {
       PROJECT_MODULES.forEach((mod) => {
         result[mod.key] = mod.key in toggles ? toggles[mod.key] : true;
       });
+      // Alias finance -> billing so the ProjectDetailPage \"billing\" tab
+      // respects the same toggle as the Finance/Billing module key.
+      if ("finance" in result && !("billing" in result)) {
+        result.billing = result.finance;
+      }
       return result;
     },
     staleTime: 1000 * 60 * 5,

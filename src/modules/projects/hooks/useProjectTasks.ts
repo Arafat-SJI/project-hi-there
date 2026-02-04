@@ -53,18 +53,26 @@ export function useProjectTasks(projectId: string) {
       if (taskError) throw taskError;
       if (!tasks) return [];
 
-      return tasks.map((t) => ({
-        id: t.id,
-        project_id: projectId,
-        title: t.title,
-        status: mapTaskStatus(t.status),
-        priority: t.priority || "medium",
-        due_date: t.due_date,
-        assigned_to: t.assigned_to,
-        source: "internal" as const,
-        external_id: null,
-        created_at: t.created_at,
-      }));
+      return tasks.map((t) => {
+        const meta = (t as any).metadata || {};
+        const rawSource = (meta.source as string) || "internal";
+        const source: ProjectTask["source"] =
+          rawSource === "activecollab" || rawSource === "jira" ? rawSource : "internal";
+        const externalId = (meta.external_id as string) || null;
+
+        return {
+          id: t.id,
+          project_id: projectId,
+          title: t.title,
+          status: mapTaskStatus(t.status),
+          priority: t.priority || "medium",
+          due_date: t.due_date,
+          assigned_to: t.assigned_to,
+          source,
+          external_id: externalId,
+          created_at: t.created_at,
+        };
+      });
     },
     enabled: !!projectId,
     staleTime: 60 * 1000,

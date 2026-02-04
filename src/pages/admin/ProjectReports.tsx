@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, FolderKanban, Milestone, ShieldAlert, DollarSign } from "lucide-react";
 import { useProjectReports } from "@/hooks/useProjectReports";
 
+
 function StatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
     "Planning": "bg-violet-100 text-violet-800 border-violet-200",

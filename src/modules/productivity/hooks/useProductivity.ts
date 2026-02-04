@@ -1,11 +1,14 @@
 /**
  * Productivity Hook - Core productivity data queries
+ *
+ * Employee detail and list are keyed by employee_email. Ensure productivity
+ * data uses unique emails per person (e.g. from HR/CSV import) for correct aggregation.
  */
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { ProductivityRecord, ProductivityFilters, ProductivitySummary, Department } from "../types";
+import type { ProductivityRecord, ProductivityFilters, ProductivitySummary, Department, AIProductivityInsight } from "../types";
 
 const PRODUCTIVITY_KEY = "productivity";
 
@@ -180,3 +183,28 @@ export function useAvailableWeeks() {
     },
   });
 }
+
+export function useAIProductivityInsights(scope?: { department?: string; week_start?: string }) {
+  return useQuery({
+    queryKey: [PRODUCTIVITY_KEY, "ai-insights", scope],
+    queryFn: async (): Promise<AIProductivityInsight[]> => {
+      let query = supabase
+        .from("ai_productivity_insights")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (scope?.department) {
+        query = query.eq("department", scope.department);
+      }
+      if (scope?.week_start) {
+        query = query.eq("week_start", scope.week_start);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as AIProductivityInsight[];
+    },
+  });
+}
+

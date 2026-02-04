@@ -31,6 +31,7 @@ import {
   Calendar,
   BarChart3,
   FolderOpen,
+  Upload,
   type LucideIcon,
 } from "lucide-react";
 
@@ -54,6 +55,7 @@ const iconMap: Record<string, LucideIcon> = {
   Calendar,
   BarChart3,
   FolderOpen,
+  Upload,
 };
 
 function resolveIcon(iconName: string): LucideIcon {

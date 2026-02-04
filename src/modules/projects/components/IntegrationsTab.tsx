@@ -1,8 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Clock, Plug } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Plug, Loader2, RefreshCw } from "lucide-react";
 import type { ProjectIntegration } from "@/modules/projects/hooks/useProjectIntegrations";
+import { useSyncProjects } from "@/hooks/useIntegrationSync";
 
 interface IntegrationsTabProps {
   projectId: string;
@@ -25,6 +26,46 @@ function ConnectionBadge({ connected, status }: { connected: boolean; status: st
       <XCircle className="h-3 w-3" />
       {status || "Not connected"}
     </Badge>
+  );
+}
+
+function ProviderSyncButton({
+  slug,
+  connected,
+}: {
+  slug: string;
+  connected: boolean;
+}) {
+  const isProjectProvider = slug === "activecollab" || slug === "jira";
+  const { mutate, isPending } = useSyncProjects(slug);
+
+  if (!isProjectProvider) {
+    return null;
+  }
+
+  if (!connected) {
+    return (
+      <Button variant="outline" size="sm" disabled>
+        Connect
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => mutate()}
+      disabled={isPending}
+      className="inline-flex items-center gap-1"
+    >
+      {isPending ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <RefreshCw className="h-3 w-3" />
+      )}
+      <span>Sync projects</span>
+    </Button>
   );
 }
 
@@ -82,11 +123,7 @@ export function IntegrationsTab({
                       </span>
                     )}
                     <ConnectionBadge connected={i.connected} status={i.connection_status} />
-                    {!i.connected && (
-                      <Button variant="outline" size="sm" disabled>
-                        Connect
-                      </Button>
-                    )}
+                    <ProviderSyncButton slug={i.slug} connected={i.connected} />
                   </div>
                 </li>
               ))}

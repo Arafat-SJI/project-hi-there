@@ -87,4 +87,11 @@ export const API = {
   CLIENTS: {
     BASE: "api-v1-clients",
   },
+
+  // Productivity (Path B)
+  PRODUCTIVITY: {
+    TEAM_METRICS: "team-productivity-metrics",
+    TEAM_LIST: "team-productivity-list",
+    IMPORT_CSV: "import-productivity-csv",
+  },
 } as const;

@@ -12,8 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { Progress } from "@/components/ui/progress";
-import { Search, Users, TrendingUp, Clock, CheckSquare, Loader2, BarChart3, Boxes } from "lucide-react";
-import { useProductivityRecords, useProductivitySummary, useDepartments, useAvailableWeeks, usePodProductivity } from "../hooks/useProductivity";
+import { Search, Users, TrendingUp, Clock, CheckSquare, Loader2, BarChart3, Boxes, AlertTriangle } from "lucide-react";
+import { useProductivityRecords, useProductivitySummary, useDepartments, useAvailableWeeks, usePodProductivity, useAIProductivityInsights } from "../hooks/useProductivity";
 
 const ATTENDANCE_COLORS: Record<string, string> = {
   present: "#22c55e",
@@ -48,6 +48,10 @@ export default function ProductivityPage() {
     week_start: weekStart,
   });
   const { data: podStats = [] } = usePodProductivity(weekStart);
+  const { data: insights = [] } = useAIProductivityInsights({
+    department: department !== "all" ? department : undefined,
+    week_start: weekStart,
+  });
 
   return (
     <div className="space-y-6">
@@ -84,6 +88,66 @@ export default function ProductivityPage() {
           </Card>
         </div>
       )}
+
+      {/* AI Insights */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            AI productivity insights
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {insights.length > 0 ? (
+            <div className="space-y-2">
+              {insights.slice(0, 6).map((insight) => (
+                <div
+                  key={insight.id}
+                  className="rounded-md border px-3 py-2 text-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">
+                      {insight.title}
+                    </p>
+                    {insight.confidence_score != null && (
+                      <Badge variant="outline" className="text-xs">
+                        Confidence {Math.round(insight.confidence_score * 100)}%
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {insight.content}
+                  </p>
+                  {insight.recommendations && insight.recommendations.length > 0 && (
+                    <ul className="mt-1 list-disc list-inside text-xs text-muted-foreground">
+                      {insight.recommendations.slice(0, 3).map((rec, idx) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                    {insight.employee_email && (
+                      <span>Employee: {insight.employee_email}</span>
+                    )}
+                    {insight.department && (
+                      <span>Dept: {insight.department}</span>
+                    )}
+                    {insight.week_start && (
+                      <span>
+                        Week: {new Date(insight.week_start).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No AI insights for this period yet. Insights are generated from productivity data; try adjusting filters or importing more data.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {summary && summary.departments.length > 0 && (
         <Card>
@@ -139,6 +203,32 @@ export default function ProductivityPage() {
                     <div className="text-center w-16">
                       <p className="text-xs text-muted-foreground">Tasks</p>
                       <p className="font-medium">{pod.total_tasks}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs">
+                      <AlertTriangle
+                        className={
+                          pod.avg_utilization >= 80
+                            ? "h-3 w-3 text-green-500"
+                            : pod.avg_utilization >= 60
+                            ? "h-3 w-3 text-yellow-500"
+                            : "h-3 w-3 text-red-500"
+                        }
+                      />
+                      <span
+                        className={
+                          pod.avg_utilization >= 80
+                            ? "text-green-600"
+                            : pod.avg_utilization >= 60
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                        }
+                      >
+                        {pod.avg_utilization >= 80
+                          ? "Healthy"
+                          : pod.avg_utilization >= 60
+                          ? "Watch"
+                          : "At risk"}
+                      </span>
                     </div>
                   </div>
                 </div>

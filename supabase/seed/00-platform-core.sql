@@ -11,6 +11,12 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- 0.5 Grant admin role to designated admin email (if user exists in auth.users)
+-- Create this user in Supabase Dashboard → Authentication → Users → Add user, then run seeds.
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'admin'::app_role FROM auth.users WHERE email = 'zia.khan@sjinnovation.com'
+ON CONFLICT (user_id, role) DO NOTHING;
+
 -- 1. Clients (5 already exist from test-data migration; add 3 more)
 -- Guard: clients table has no UNIQUE on email, so use conditional inserts
 DO $$ BEGIN

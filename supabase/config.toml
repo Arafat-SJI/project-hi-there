@@ -14,7 +14,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.sync-zoom-files]
-verify_jwt = true
+verify_jwt = false
 
 # API endpoints - require authentication
 [functions.api-v1-clients]
@@ -32,6 +32,10 @@ verify_jwt = true
 
 [functions.generate-business-doc]
 verify_jwt = true
+
+# Zoom meeting creation - disable JWT for ES256 compatibility
+[functions.create-zoom-meeting]
+verify_jwt = false
 
 # Background/service functions - disable JWT (use service role internally)
 [functions.unified-knowledge-search]
@@ -132,3 +136,13 @@ verify_jwt = false
 # Admin management - requires manual authentication validation
 [functions.promote-to-admin]
 verify_jwt = false
+
+# Productivity (Path B) - requires authentication
+[functions.team-productivity-metrics]
+verify_jwt = true
+
+[functions.team-productivity-list]
+verify_jwt = true
+
+[functions.import-productivity-csv]
+verify_jwt = true

@@ -10,6 +10,10 @@
  *
  * This file handles layer 1 (build-time). Layers 2 & 3 are handled by
  * the useModuleAccess() hook.
+ *
+ * Feature-flag policy: Some modules (meetings, knowledge, actions, business-dev)
+ * also use requiresFeatureFlag for runtime toggling via app_config. Projects and
+ * productivity are module-only (no feature flag); enable/disable via module registry.
  */
 
 import { env } from "./env";

@@ -1,5 +1,8 @@
 /**
  * Employee Detail Page - Individual productivity view
+ *
+ * Route: /productivity/employee/:email (email is URL-encoded).
+ * Employee is identified by email; productivity data should use unique emails per person.
  */
 
 import { useParams, useNavigate } from "react-router-dom";

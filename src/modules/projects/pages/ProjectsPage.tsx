@@ -2,7 +2,8 @@
  * Projects Listing Page
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,18 +11,80 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, FolderKanban, Calendar, Loader2 } from "lucide-react";
+import { Plus, Search, FolderKanban, Calendar, Loader2, Database } from "lucide-react";
 import { useProjects, useProjectStatuses } from "../hooks/useProjects";
+import { useClients } from "@/hooks/useClients";
+import { GlobalProjectsRestoreDialog } from "@/modules/projects/components/GlobalProjectsRestoreDialog";
+import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: statuses = [] } = useProjectStatuses();
   const { data: projects = [], isLoading } = useProjects({
     search: search || undefined,
     status_id: statusFilter !== "all" ? statusFilter : undefined,
+  });
+  const { data: clients = [] } = useClients();
+
+  const ownerIds = useMemo(() => [...new Set((projects || []).map((p) => p.owner_id).filter(Boolean))] as string[], [projects]);
+  const { data: ownerProfiles = [] } = useQuery({
+    queryKey: ["profiles", ownerIds],
+    queryFn: async () => {
+      if (ownerIds.length === 0) return [];
+      const { data, error } = await supabase.from("profiles").select("id, full_name, email").in("id", ownerIds);
+      if (error) throw error;
+      return (data || []) as { id: string; full_name: string | null; email: string | null }[];
+    },
+    enabled: ownerIds.length > 0,
+  });
+
+  const statusById = useMemo(
+    () => Object.fromEntries(statuses.map((s) => [s.id, s])),
+    [statuses],
+  );
+  const clientById = useMemo(
+    () => Object.fromEntries(clients.map((c) => [c.id, c])),
+    [clients],
+  );
+  const ownerById = useMemo(
+    () => Object.fromEntries(ownerProfiles.map((p) => [p.id, p])),
+    [ownerProfiles],
+  );
+
+  const backupAll = useMutation({
+    mutationFn: async () => {
+      if (!projects.length) return;
+      const rows = projects.map((p) => ({
+        project_id: p.id,
+        backup_type: "manual",
+        status: "completed",
+        snapshot: p as unknown as Json,
+        notes: "Manual backup created from Projects list (Backup all)",
+      }));
+      const { error } = await supabase.from("project_backups").insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project-backups-summary"] });
+      toast({
+        title: "Backups created",
+        description: "Manual backups have been recorded for all projects on this page.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create backups",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -31,10 +94,26 @@ export default function ProjectsPage() {
           <h1 className="text-2xl font-bold">Projects</h1>
           <p className="text-muted-foreground">Manage your projects</p>
         </div>
-        <Button onClick={() => navigate("/projects/new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
+        <div className="flex items-center gap-2">
+          <GlobalProjectsRestoreDialog />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => backupAll.mutate()}
+            disabled={backupAll.isPending || projects.length === 0}
+          >
+            {backupAll.isPending ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Database className="mr-1 h-4 w-4" />
+            )}
+            Backup all
+          </Button>
+          <Button onClick={() => navigate("/projects/new")}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -85,29 +164,68 @@ export default function ProjectsPage() {
               <TableRow>
                 <TableHead>Project</TableHead>
                 <TableHead className="w-[120px]">Status</TableHead>
-                <TableHead className="w-[150px]">Owner</TableHead>
+                <TableHead className="w-[170px]">Client / Owner</TableHead>
                 <TableHead className="w-[150px]">Dates</TableHead>
+                <TableHead className="w-[160px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {projects.map((project) => (
-                <TableRow key={project.id} className="cursor-pointer" onClick={() => navigate(`/projects/${project.slug}`)}>
+                <TableRow
+                  key={project.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/projects/${project.slug}`)}
+                >
                   <TableCell>
                     <p className="font-medium">{project.name}</p>
                     {project.description && <p className="text-xs text-muted-foreground line-clamp-1">{project.description}</p>}
                   </TableCell>
                   <TableCell>
-                    {project.status ? (
-                      <Badge style={{ backgroundColor: `${project.status.color}20`, color: project.status.color, borderColor: project.status.color }} variant="outline">
-                        {project.status.name}
+                    {project.status_id && statusById[project.status_id] ? (
+                      <Badge
+                        style={{
+                          backgroundColor: `${statusById[project.status_id].color}20`,
+                          color: statusById[project.status_id].color,
+                          borderColor: statusById[project.status_id].color,
+                        }}
+                        variant="outline"
+                      >
+                        {statusById[project.status_id].name}
                       </Badge>
-                    ) : <Badge variant="outline">No status</Badge>}
+                    ) : (
+                      <Badge variant="outline">No status</Badge>
+                    )}
                   </TableCell>
-                  <TableCell><span className="text-sm">{project.owner?.full_name || "-"}</span></TableCell>
+                  <TableCell>
+                    <div className="flex flex-col text-sm">
+                      <span className="font-medium">
+                        {project.client_id && clientById[project.client_id]
+                          ? clientById[project.client_id].name
+                          : "No client"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Owner: {project.owner_id && ownerById[project.owner_id]?.full_name ? ownerById[project.owner_id].full_name : "—"}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {project.start_date ? (
                       <span className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(project.start_date).toLocaleDateString()}</span>
                     ) : <span className="text-xs text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/projects/${project.slug}/edit`);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

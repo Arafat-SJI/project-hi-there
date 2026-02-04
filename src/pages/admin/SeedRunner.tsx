@@ -6,7 +6,7 @@
  * sends them to the run-seed edge function for execution.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,10 @@ import {
   AlertTriangle,
   Copy,
   Check,
+  Zap,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -49,8 +52,11 @@ import seed02 from "../../../supabase/seed/02-eos.sql?raw";
 import seed03 from "../../../supabase/seed/03-meetings.sql?raw";
 import seed04 from "../../../supabase/seed/04-knowledge.sql?raw";
 import seed05 from "../../../supabase/seed/05-projects.sql?raw";
+import seed05b from "../../../supabase/seed/05b-project-client-access.sql?raw";
+import seed05c from "../../../supabase/seed/05c-project-module-settings.sql?raw";
 import seed06 from "../../../supabase/seed/06-business-dev.sql?raw";
 import seed07 from "../../../supabase/seed/07-productivity.sql?raw";
+import seed07b from "../../../supabase/seed/07b-productivity-base.sql?raw";
 import seed08 from "../../../supabase/seed/08-ai-agents.sql?raw";
 
 // ── Seed file metadata ────────────────────────────────────────────────────────
@@ -121,6 +127,24 @@ const SEED_FILES: SeedFile[] = [
     dependencies: ["00"],
   },
   {
+    id: "05b",
+    name: "Project Client Access",
+    fileName: "05b-project-client-access.sql",
+    description: "Client portal demo access for Acme Corp — Platform Rollout",
+    module: "projects",
+    sql: seed05b,
+    dependencies: ["05"],
+  },
+  {
+    id: "05c",
+    name: "Project Module Settings",
+    fileName: "05c-project-module-settings.sql",
+    description: "Project detail tab toggles: tasks, integrations, client portal, checklist, risks, files, finance",
+    module: "projects",
+    sql: seed05c,
+    dependencies: ["05"],
+  },
+  {
     id: "06",
     name: "Business Dev",
     fileName: "06-business-dev.sql",
@@ -136,6 +160,15 @@ const SEED_FILES: SeedFile[] = [
     description: "Departments, pods, employees, productivity records, leave events, process docs, alerts",
     module: "productivity",
     sql: seed07,
+    dependencies: ["00"],
+  },
+  {
+    id: "07b",
+    name: "Productivity Base (Path B)",
+    fileName: "07b-productivity-base.sql",
+    description: "Employee, ActionItem, EmployeeProductivity for base-project parity (CSV import)",
+    module: "productivity",
+    sql: seed07b,
     dependencies: ["00"],
   },
   {
@@ -165,22 +198,46 @@ async function executeSeed(
   sql: string,
   fileName: string,
 ): Promise<{ success: boolean; durationMs: number; error?: string }> {
+  // Ensure we have a valid session and pass JWT explicitly (avoids 401 Invalid JWT from expired/missing token)
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return {
+      success: false,
+      durationMs: 0,
+      error: "Not signed in. Log in on this app (e.g. with demo or admin credentials) and retry.",
+    };
+  }
+  // Refresh session so the access_token is not expired (client autoRefreshToken may not have run yet)
+  const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+  const token = refreshed?.access_token ?? session.access_token;
+
   const { data, error } = await supabase.functions.invoke("run-seed", {
     body: { sql, fileName },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 
+  // On 500/non-2xx, Supabase sets error; response body may still be in data
   if (error) {
-    return { success: false, durationMs: 0, error: error.message };
+    let message =
+      (data && typeof data === "object" && "error" in data && String((data as { error?: unknown }).error)) ||
+      error.message;
+    if (message.includes("Invalid JWT") || message.includes("401"))
+      message = `${message} Log in again on this app so your token matches this project (demo/admin user must exist in this project’s Auth).`;
+    return { success: false, durationMs: (data as { durationMs?: number })?.durationMs ?? 0, error: message };
   }
 
   return {
-    success: data.success,
-    durationMs: data.durationMs ?? 0,
-    error: data.error,
+    success: Boolean(data?.success),
+    durationMs: (data?.durationMs ?? 0) as number,
+    error: data?.error != null ? String(data.error) : undefined,
   };
 }
 
 // ── Seed File Card Component ──────────────────────────────────────────────────
+
+const DEFAULT_STATE: SeedRunState = { status: "idle" };
 
 function SeedFileCard({
   seed,
@@ -190,11 +247,12 @@ function SeedFileCard({
   onToggle,
 }: {
   seed: SeedFile;
-  state: SeedRunState;
+  state: SeedRunState | undefined;
   onRun: () => void;
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const safeState = state ?? DEFAULT_STATE;
   const [copied, setCopied] = useState(false);
   const lineCount = seed.sql.split("\n").length;
 
@@ -209,14 +267,14 @@ function SeedFileCard({
     running: <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />,
     success: <CheckCircle2 className="h-5 w-5 text-green-500" />,
     error: <XCircle className="h-5 w-5 text-red-500" />,
-  }[state.status];
+  }[safeState.status];
 
   const borderColor = {
     idle: "",
     running: "border-l-blue-500",
     success: "border-l-green-500",
     error: "border-l-red-500",
-  }[state.status];
+  }[safeState.status];
 
   return (
     <Card className={`border-l-4 ${borderColor || "border-l-muted"}`}>
@@ -240,35 +298,35 @@ function SeedFileCard({
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {state.durationMs !== undefined && state.status !== "idle" && (
+            {safeState.durationMs !== undefined && safeState.status !== "idle" && (
               <Badge variant="secondary" className="text-[10px]">
                 <Clock className="h-3 w-3 mr-1" />
-                {state.durationMs}ms
+                {safeState.durationMs}ms
               </Badge>
             )}
             <Button
               size="sm"
               variant="outline"
               onClick={onRun}
-              disabled={state.status === "running"}
+              disabled={safeState.status === "running"}
             >
-              {state.status === "running" ? (
+              {safeState.status === "running" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Play className="h-4 w-4" />
               )}
-              <span className="ml-1">{state.status === "running" ? "Running" : "Run"}</span>
+              <span className="ml-1">{safeState.status === "running" ? "Running" : "Run"}</span>
             </Button>
           </div>
         </div>
 
         {/* Error display */}
-        {state.status === "error" && state.error && (
+        {safeState.status === "error" && safeState.error && (
           <div className="mt-3 rounded-md border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 p-3">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
               <pre className="text-xs text-red-700 dark:text-red-400 whitespace-pre-wrap font-mono break-all">
-                {state.error}
+                {safeState.error}
               </pre>
             </div>
           </div>
@@ -309,6 +367,8 @@ function SeedFileCard({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+const AUTO_RUN_KEY = "SeedRunner.autoRun";
+
 export default function SeedRunner() {
   const { toast } = useToast();
   const [states, setStates] = useState<Record<string, SeedRunState>>(() =>
@@ -316,6 +376,15 @@ export default function SeedRunner() {
   );
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isRunningAll, setIsRunningAll] = useState(false);
+  const [autoRun, setAutoRun] = useState(() => {
+    try {
+      const stored = localStorage.getItem(AUTO_RUN_KEY);
+      return stored === null ? true : stored === "true";
+    } catch {
+      return true;
+    }
+  });
+  const hasAutoRunThisSession = useRef(false);
 
   const updateState = (id: string, update: Partial<SeedRunState>) => {
     setStates((prev) => ({ ...prev, [id]: { ...prev[id], ...update } }));
@@ -374,10 +443,27 @@ export default function SeedRunner() {
     }
 
     if (!failed) {
-      toast({ title: "All seeds completed", description: "All 9 seed files executed successfully." });
+      toast({ title: "All seeds completed", description: `All ${SEED_FILES.length} seed files executed successfully.` });
     }
     setIsRunningAll(false);
   }, [runSeed, toast]);
+
+  // Automatic run on page load when "Run automatically" is enabled
+  useEffect(() => {
+    if (!autoRun || hasAutoRunThisSession.current) return;
+    hasAutoRunThisSession.current = true;
+    const timer = setTimeout(() => runAll(), 800);
+    return () => clearTimeout(timer);
+  }, [autoRun, runAll]);
+
+  const handleAutoRunChange = useCallback((checked: boolean) => {
+    setAutoRun(checked);
+    try {
+      localStorage.setItem(AUTO_RUN_KEY, String(checked));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   // Summary counts
   const successCount = Object.values(states).filter((s) => s.status === "success").length;
@@ -403,6 +489,17 @@ export default function SeedRunner() {
             Execute seed SQL files to populate the database with demo data.
             Files run in order (00 first). Each seed is idempotent — safe to re-run.
           </p>
+          <div className="flex items-center gap-2 pt-2">
+            <Switch
+              id="seed-auto-run"
+              checked={autoRun}
+              onCheckedChange={handleAutoRunChange}
+            />
+            <Label htmlFor="seed-auto-run" className="text-sm font-normal cursor-pointer flex items-center gap-1.5">
+              <Zap className="h-4 w-4 text-amber-500" />
+              Run all seeds automatically when I open this page
+            </Label>
+          </div>
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -417,9 +514,9 @@ export default function SeedRunner() {
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Run all 9 seed files?</AlertDialogTitle>
+              <AlertDialogTitle>Run all {SEED_FILES.length} seed files?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will execute all seed SQL files in order (00 through 08).
+                This will execute all seed SQL files in order (00 through 08, including 05b and 05c).
                 Seeds are idempotent and use ON CONFLICT / guard checks, so
                 re-running is safe. If any seed fails, remaining seeds will be skipped.
               </AlertDialogDescription>
@@ -468,6 +565,7 @@ export default function SeedRunner() {
                 <li>Run the <code>admin_exec_sql</code> migration before first use</li>
                 <li>The <code>run-seed</code> edge function must be deployed</li>
                 <li>Always run <strong>00-platform-core</strong> first — other seeds depend on it</li>
+                <li><strong>Demo login:</strong> Log in on <em>this</em> app with a user that exists in this project (e.g. admin@…). Use an admin account so <code>run-seed</code> can verify your role. If you see &quot;Invalid JWT&quot;, log out and log back in here to get a token for this project.</li>
               </ul>
             </div>
           </div>

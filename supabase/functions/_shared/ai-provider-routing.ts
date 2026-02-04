@@ -407,7 +407,7 @@ export async function generateEmbedding(
 export async function logUsage(
   supabase: SupabaseClient,
   userId: string | null,
-  modelId: string,
+  modelId: string | null,
   functionName: string,
   inputTokens: number,
   outputTokens: number,

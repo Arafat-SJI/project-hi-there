@@ -35,24 +35,41 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
         prompt: "consent",
       },
     },
-    zoom: {
-      authUrl: "https://zoom.us/oauth/authorize",
-      scopes: [
-        "meeting:read",
-        "recording:read",
-        "user:read",
-      ],
-    },
-    microsoft: {
-      authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+    "google-meet": {
+      authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       scopes: [
         "openid",
         "email",
         "profile",
-        "offline_access",
-        "Calendars.Read",
-        "OnlineMeetings.Read",
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/meetings.space.created",
       ],
+      additionalParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
+    zoom: {
+      authUrl: "https://zoom.us/oauth/authorize",
+      scopes: [
+        "meeting:read:meeting",
+        "meeting:write:meeting",
+        "meeting:write:open_app",
+        "meeting:write:registrant",
+        "user:read:user",
+        "cloud_recording:read:list_user_recordings",
+        "cloud_recording:read:list_recording_files",
+        "cloud_recording:read:list_recording_registrants",
+        "meeting:read:meeting:admin",
+        "meeting:write:meeting:admin",
+        "meeting:write:registrant:admin",
+        "user:read:user:admin",
+        "user:read:email:admin",
+      ],
+    },
+    microsoft: {
+      authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+      scopes: ["openid", "email", "profile", "offline_access", "Calendars.Read", "OnlineMeetings.Read"],
       additionalParams: {
         response_mode: "query",
       },
@@ -75,49 +92,52 @@ serve(async (req) => {
     // Get the authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Extract token and validate with ES256 compatibility
     const token = authHeader.replace("Bearer ", "");
-    
+
     // Create client with user's auth context for validation
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    
+
     // Validate JWT by passing token explicitly (required for ES256/Lovable Cloud)
-    const { data: { user }, error: userError } = await userClient.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error: userError,
+    } = await userClient.auth.getUser(token);
+
     // Create admin client for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const { provider, redirect_uri, additional_scopes } = await req.json();
 
     if (!provider) {
-      return new Response(
-        JSON.stringify({ error: "Provider is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Provider is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Get provider configuration
     const providerConfig = getProviderConfig(provider);
     if (!providerConfig) {
-      return new Response(
-        JSON.stringify({ error: `Unsupported provider: ${provider}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: `Unsupported provider: ${provider}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // First get the provider ID from slug
@@ -128,10 +148,10 @@ serve(async (req) => {
       .single();
 
     if (providerError || !providerData) {
-      return new Response(
-        JSON.stringify({ error: `Unknown provider: ${provider}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: `Unknown provider: ${provider}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Check if organization has this provider enabled
@@ -145,10 +165,10 @@ serve(async (req) => {
 
     if (orgError || !orgIntegration) {
       console.log("Org integration check failed:", { orgError, provider, providerId: providerData.id });
-      return new Response(
-        JSON.stringify({ error: `Provider ${provider} is not enabled for this organization` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: `Provider ${provider} is not enabled for this organization` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Get client credentials from organization integration
@@ -156,8 +176,10 @@ serve(async (req) => {
     const clientId = orgIntegration.config?.client_id || orgIntegration.credentials?.client_id;
     if (!clientId) {
       return new Response(
-        JSON.stringify({ error: `Provider ${provider} is not properly configured. Please add Client ID in the integration settings.` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: `Provider ${provider} is not properly configured. Please add Client ID in the integration settings.`,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -165,11 +187,12 @@ serve(async (req) => {
     const state = crypto.randomUUID();
 
     // Store state in database for verification
+    const defaultAppUrl = Deno.env.get("APP_URL") || "http://localhost:5173";
     await supabase.from("oauth_states").insert({
       state,
       user_id: user.id,
       provider,
-      redirect_uri: redirect_uri || `${Deno.env.get("APP_URL")}/settings`,
+      redirect_uri: redirect_uri || `${defaultAppUrl}/settings`,
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minutes
     });
 
@@ -196,14 +219,14 @@ serve(async (req) => {
         authorization_url: authorizationUrl,
         state,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
     console.error("User OAuth connect error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

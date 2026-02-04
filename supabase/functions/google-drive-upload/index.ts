@@ -19,9 +19,12 @@ const corsHeaders = {
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink,createdTime'
 
+// deno-lint-ignore no-explicit-any
+type AnySupabase = ReturnType<typeof createClient<any, any, any>>
+
 /** Refresh an expired Google OAuth token */
 async function refreshGoogleToken(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AnySupabase,
   tokenRow: { id: string; refresh_token: string }
 ): Promise<string> {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
@@ -65,12 +68,20 @@ async function refreshGoogleToken(
   return tokens.access_token
 }
 
+interface TokenRow {
+  id: string
+  access_token: string
+  refresh_token: string
+  expires_at: string | null
+  is_active: boolean
+}
+
 /** Get a valid Google access token for the user */
 async function getValidAccessToken(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AnySupabase,
   userId: string
 ): Promise<string> {
-  const { data: tokenRow, error } = await supabase
+  const { data, error } = await supabase
     .from('user_oauth_tokens')
     .select('id, access_token, refresh_token, expires_at, is_active')
     .eq('user_id', userId)
@@ -78,16 +89,18 @@ async function getValidAccessToken(
     .eq('is_active', true)
     .single()
 
-  if (error || !tokenRow) {
+  if (error || !data) {
     throw new Error('No Google OAuth token found. Please connect your Google account first.')
   }
+
+  const tokenRow = data as TokenRow
 
   // Check if token is expired (with 5-min buffer)
   const expiresAt = tokenRow.expires_at ? new Date(tokenRow.expires_at) : null
   const isExpired = !expiresAt || expiresAt.getTime() < Date.now() + 5 * 60 * 1000
 
   if (isExpired && tokenRow.refresh_token) {
-    return await refreshGoogleToken(supabase, tokenRow)
+    return await refreshGoogleToken(supabase, { id: tokenRow.id, refresh_token: tokenRow.refresh_token })
   }
 
   return tokenRow.access_token

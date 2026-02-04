@@ -211,6 +211,11 @@ export const adminNavigation: NavGroup[] = [
         icon: "Building2",
       },
       {
+        title: "Productivity Import",
+        href: "/admin/productivity-import",
+        icon: "Upload",
+      },
+      {
         title: "Meeting Analytics",
         href: "/admin/meeting-analytics",
         icon: "Calendar",

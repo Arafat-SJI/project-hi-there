@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS public.app_config (
 -- Enable RLS
 ALTER TABLE public.app_config ENABLE ROW LEVEL SECURITY;
 
--- Only admins can read/write config
+-- Only admins can read/write config (idempotent: drop if exists then create)
+DROP POLICY IF EXISTS "Admins can manage config" ON public.app_config;
 CREATE POLICY "Admins can manage config"
   ON public.app_config
   FOR ALL
@@ -24,13 +25,15 @@ CREATE POLICY "Admins can manage config"
   USING (public.has_role(auth.uid(), 'admin'));
 
 -- All authenticated users can read non-sensitive config
+DROP POLICY IF EXISTS "Users can read non-sensitive config" ON public.app_config;
 CREATE POLICY "Users can read non-sensitive config"
   ON public.app_config
   FOR SELECT
   TO authenticated
   USING (is_sensitive = false);
 
--- Trigger for updated_at
+-- Trigger for updated_at (idempotent)
+DROP TRIGGER IF EXISTS update_app_config_updated_at ON public.app_config;
 CREATE TRIGGER update_app_config_updated_at
   BEFORE UPDATE ON public.app_config
   FOR EACH ROW

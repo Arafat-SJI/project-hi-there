@@ -24,13 +24,7 @@ CREATE POLICY "Authenticated users can read work types"
 CREATE POLICY "Admin users can manage work types"
   ON work_types FOR ALL
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_roles
-      WHERE user_roles.user_id = auth.uid()
-      AND user_roles.role IN ('admin', 'super_admin')
-    )
-  );
+  USING (public.has_role(auth.uid(), 'admin'::app_role));
 
 -- Seed default work types
 INSERT INTO work_types (name, slug, category, is_billable, default_rate, color, sort_order)

@@ -4,7 +4,7 @@ import { MeetingProvider } from "../_shared/meeting-providers.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
 }
 
 serve(async (req) => {
@@ -13,14 +13,37 @@ serve(async (req) => {
   }
 
   try {
-    const ZOOM_CLIENT_ID = Deno.env.get('ZOOM_CLIENT_ID')
-    const ZOOM_CLIENT_SECRET = Deno.env.get('ZOOM_CLIENT_SECRET')
-    const ZOOM_ACCOUNT_ID = Deno.env.get('ZOOM_ACCOUNT_ID')
-
-    if (!ZOOM_CLIENT_ID || !ZOOM_CLIENT_SECRET || !ZOOM_ACCOUNT_ID) {
-      throw new Error('Zoom credentials not configured')
+    // Manual JWT validation for ES256 compatibility
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Create client with auth header for RLS
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+
+    // Validate the JWT
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
+    if (authError || !user) {
+      console.error('JWT validation failed:', authError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('[sync-zoom-files] Authenticated user:', user.id)
+
+    // Use service role for database operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -33,22 +56,72 @@ serve(async (req) => {
       throw new Error(`Unsupported provider: ${meetingProvider}`)
     }
 
-    // Get Zoom OAuth token
-    const tokenResponse = await fetch(
-      `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${ZOOM_ACCOUNT_ID}`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${btoa(`${ZOOM_CLIENT_ID}:${ZOOM_CLIENT_SECRET}`)}`,
-        },
-      }
-    )
+    // Get user's OAuth token from database
+    const { data: tokenData, error: tokenError } = await supabaseClient
+      .from('user_oauth_tokens')
+      .select('access_token, refresh_token, expires_at')
+      .eq('user_id', user.id)
+      .eq('provider_slug', 'zoom')
+      .eq('is_active', true)
+      .single()
 
-    if (!tokenResponse.ok) {
-      throw new Error('Failed to get Zoom access token')
+    if (tokenError || !tokenData) {
+      console.error('[sync-zoom-files] No Zoom token found:', tokenError)
+      throw new Error('Zoom account not connected. Please connect your Zoom account first.')
     }
 
-    const { access_token } = await tokenResponse.json()
+    let access_token = tokenData.access_token
+
+    // Check if token is expired and refresh if needed
+    const expiresAt = new Date(tokenData.expires_at)
+    const now = new Date()
+    if (expiresAt <= now && tokenData.refresh_token) {
+      console.log('[sync-zoom-files] Token expired, refreshing...')
+      
+      // Get org credentials for refresh
+      const { data: orgIntegration } = await supabaseClient
+        .from('organization_integrations')
+        .select('config')
+        .eq('user_id', user.id)
+        .eq('provider_id', 'b8b53f6f-de8a-42bb-89dd-2606061c7997') // Zoom provider ID
+        .single()
+
+      if (orgIntegration?.config?.client_id && orgIntegration?.config?.client_secret) {
+        const refreshResponse = await fetch('https://zoom.us/oauth/token', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${btoa(`${orgIntegration.config.client_id}:${orgIntegration.config.client_secret}`)}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: tokenData.refresh_token,
+          }),
+        })
+
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json()
+          access_token = refreshData.access_token
+
+          // Update token in database
+          await supabaseClient
+            .from('user_oauth_tokens')
+            .update({
+              access_token: refreshData.access_token,
+              refresh_token: refreshData.refresh_token || tokenData.refresh_token,
+              expires_at: new Date(Date.now() + (refreshData.expires_in * 1000)).toISOString(),
+              last_refreshed_at: new Date().toISOString(),
+            })
+            .eq('user_id', user.id)
+            .eq('provider_slug', 'zoom')
+
+          console.log('[sync-zoom-files] Token refreshed successfully')
+        } else {
+          console.error('[sync-zoom-files] Token refresh failed')
+          throw new Error('Zoom token expired. Please reconnect your Zoom account.')
+        }
+      }
+    }
 
     // Get recordings from Zoom
     const fromDate = date_from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -64,7 +137,9 @@ serve(async (req) => {
     )
 
     if (!recordingsResponse.ok) {
-      throw new Error('Failed to fetch Zoom recordings')
+      const errorText = await recordingsResponse.text()
+      console.error('[sync-zoom-files] Zoom API error:', recordingsResponse.status, errorText)
+      throw new Error(`Failed to fetch Zoom recordings: ${recordingsResponse.status} - ${errorText}`)
     }
 
     const recordingsData = await recordingsResponse.json()

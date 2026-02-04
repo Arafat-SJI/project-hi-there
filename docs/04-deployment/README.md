@@ -58,7 +58,7 @@ vercel env add VITE_SUPABASE_PUBLISHABLE_KEY
 ## Pre-Deployment Checklist
 
 ### Database
-- [ ] All migrations applied
+- [ ] All migrations applied (run `npm run migrations:run` or `./scripts/run-migrations.sh`)
 - [ ] RLS policies configured
 - [ ] Test data removed from production
 
@@ -86,6 +86,27 @@ vercel env add VITE_SUPABASE_PUBLISHABLE_KEY
 - [ ] Error tracking setup (optional)
 - [ ] Analytics configured (optional)
 - [ ] Logging enabled
+
+---
+
+## Running Migrations
+
+When you add or change files in `supabase/migrations/`, apply them to your linked Supabase project:
+
+```bash
+npm run migrations:run
+```
+
+- **Success:** script prints "Migrations applied successfully" and exits 0.
+- **Failure:** script prints the error output and troubleshooting hints, exits non-zero.
+
+To run migrations automatically when you commit migration files, install the pre-commit hook once:
+
+```bash
+npm run migrations:hook
+```
+
+Requires the [Supabase CLI](https://supabase.com/docs/guides/cli) and a linked project (`supabase link`).
 
 ---
 

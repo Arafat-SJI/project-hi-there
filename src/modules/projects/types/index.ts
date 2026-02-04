@@ -33,7 +33,7 @@ export interface Project {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  // Joined
+  // Joined (when fetched with select join, e.g. in useProject for detail)
   status?: ProjectStatus | null;
   owner?: { full_name: string; email: string } | null;
   members_count?: number;
