@@ -54,6 +54,8 @@ import VTOAdmin from "@/pages/admin/eos/VTOAdmin";
 import ScorecardWorkspace from "@/pages/admin/eos/ScorecardWorkspace";
 import AdminEOSAccountability from "@/pages/admin/eos/AdminEOSAccountability";
 import ProductivityImport from "@/pages/admin/ProductivityImport";
+import OAuthClients from "@/pages/admin/OAuthClients";
+import ApiKeys from "@/pages/admin/ApiKeys";
 
 /**
  * Admin routes - require admin role
@@ -126,6 +128,10 @@ export const adminRoutes = (
     <Route path="/admin/onboarding" element={<OnboardingWizard />} />
     <Route path="/admin/checklist" element={<DeploymentChecklist />} />
     <Route path="/admin/sso-settings" element={<SSOSettings />} />
+
+    {/* OAuth & API Access */}
+    <Route path="/admin/oauth-clients" element={<OAuthClients />} />
+    <Route path="/admin/api-keys" element={<ApiKeys />} />
     <Route path="/admin/meeting-analytics" element={<MeetingAnalytics />} />
     <Route path="/admin/roadmap" element={<ProductRoadmap />} />
     <Route path="/admin/roadmap/seed" element={<SeedRunner />} />
