@@ -25,6 +25,12 @@ export interface CreatedGoogleMeetMeeting {
   calendar_synced: boolean;
 }
 
+// Type for organization integration config
+interface OrgIntegrationConfig {
+  client_id?: string;
+  client_secret?: string;
+}
+
 /**
  * Get user's Google OAuth access token
  * @param userId - User ID to get token for
@@ -60,7 +66,8 @@ async function getGoogleAccessToken(userId: string): Promise<string> {
       .eq('provider_id', '550e8400-e29b-41d4-a716-446655440001') // Google Meet provider ID
       .single();
 
-    if (orgIntegration?.config?.client_id && orgIntegration?.config?.client_secret) {
+    const config = orgIntegration?.config as OrgIntegrationConfig | null;
+    if (config?.client_id && config?.client_secret) {
       const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -69,8 +76,8 @@ async function getGoogleAccessToken(userId: string): Promise<string> {
         body: new URLSearchParams({
           grant_type: 'refresh_token',
           refresh_token: tokenData.refresh_token,
-          client_id: orgIntegration.config.client_id,
-          client_secret: orgIntegration.config.client_secret,
+          client_id: config.client_id,
+          client_secret: config.client_secret,
         }),
       });
 
