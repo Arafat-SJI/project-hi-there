@@ -36,7 +36,7 @@ export function useClientMeetings(clientId: string | undefined) {
   return useQuery({
     queryKey: [CROSS_MEETINGS_KEY, "client", clientId],
     queryFn: async (): Promise<MeetingAssignmentWithMeeting[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("meeting_assignments")
         .select(
           "*, meeting:meeting_id(id, title, scheduled_at, status, duration_minutes)"
@@ -59,7 +59,7 @@ export function useDealMeetings(dealId: string | undefined) {
   return useQuery({
     queryKey: [CROSS_MEETINGS_KEY, "deal", dealId],
     queryFn: async (): Promise<MeetingAssignmentWithMeeting[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("meeting_assignments")
         .select(
           "*, meeting:meeting_id(id, title, scheduled_at, status, duration_minutes)"
@@ -82,7 +82,7 @@ export function useProjectMeetings(projectId: string | undefined) {
   return useQuery({
     queryKey: [CROSS_MEETINGS_KEY, "project", projectId],
     queryFn: async (): Promise<MeetingAssignmentWithMeeting[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("meeting_assignments")
         .select(
           "*, meeting:meeting_id(id, title, scheduled_at, status, duration_minutes)"

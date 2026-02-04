@@ -107,7 +107,7 @@ export function TranscriptTab({ meetingId }: TranscriptTabProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["meeting-transcript", meetingId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("meeting_transcripts")
         .select("*")
         .eq("meeting_id", meetingId)

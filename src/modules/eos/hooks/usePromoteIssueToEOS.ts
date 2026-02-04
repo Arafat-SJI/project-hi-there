@@ -7,7 +7,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -30,7 +30,7 @@ export function usePromoteIssueToEOS() {
 
   return useMutation({
     mutationFn: async (params: PromoteIssueParams) => {
-      const { data: issue, error } = await (supabase as any)
+      const { data: issue, error } = await supabase
         .from("eos_issues")
         .insert({
           title: params.title,

@@ -7,7 +7,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -109,7 +109,7 @@ export function useCreateIssuesFromExtraction() {
       );
 
       if (suggestionRows.length > 0) {
-        const { error: suggestionsError } = await (supabase as any)
+        const { error: suggestionsError } = await supabase
           .from("eos_issue_suggestions")
           .insert(suggestionRows);
 

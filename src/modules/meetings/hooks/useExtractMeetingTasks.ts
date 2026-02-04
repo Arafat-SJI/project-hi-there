@@ -85,7 +85,7 @@ export function useCreateTasksFromExtraction() {
         created_by: user?.id || null,
       }));
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("meeting_takeaways")
         .insert(rows)
         .select();

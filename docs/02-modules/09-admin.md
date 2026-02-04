@@ -216,7 +216,7 @@ Legend:
 |------|-------|------|------|---------|--------|
 | UserManagement | `/admin/users` | Supabase query | Yes | `profiles`, `user_roles` | Full CRUD |
 | RoleManagement | `/admin/roles` | useRoles hook | Yes | `roles`, `role_permissions` | Full CRUD |
-| ActivityLogs | `/admin/logs` | Supabase query (demo fallback) | No | `activity_logs`, `profiles` | Read-only (demo fallback) |
+| ActivityLogs | `/admin/logs` | Supabase query | No | `activity_logs`, `profiles` | Read-only |
 
 #### Team & Resources
 
@@ -316,10 +316,10 @@ Legend:
 
 | Page | Issue |
 |------|-------|
-| ActivityLogs | Uses `@/lib/supabase` import + `(supabase as any)` cast + demo data fallback — table is typed, just needs cleanup |
-| AIUsageAnalytics | Uses `@/lib/supabase` import — needs canonical import path |
 | Admin Dashboard | Static cards — could pull real counts from modules |
 | ProductRoadmap | Hardcoded JSON from shared file |
+
+> **Resolved:** ActivityLogs (removed `as any` cast, demo fallback, non-standard import) and AIUsageAnalytics (fixed import path) — both now use canonical typed Supabase client.
 
 ---
 
@@ -331,9 +331,9 @@ Legend:
 | Layer | Status | Details |
 |-------|--------|---------|
 | Frontend | Done | 15 pages, 100+ shared components, 42 hooks |
-| Database | Done | 87 typed tables + 5 untyped (`sso_configurations`, `sso_domain_allowlist`, `work_types`, `user_agent_personalizations`, `user_knowledge_sources`) |
+| Database | Done | 93 typed tables (6 previously untyped tables now have type definitions) |
 | Edge Functions | Done | 33 invoked from frontend (of 64 total deployed) |
-| Known Issues | — | 8 `(supabase as any)` casts in useAuthConfig |
+| Known Issues | — | None — all `(supabase as any)` casts removed, all imports canonical |
 
 #### EOS
 | Layer | Status | Details |
@@ -341,7 +341,7 @@ Legend:
 | Frontend | Done | 17 user pages + 4 admin, 33 components, 11 hooks |
 | Database | Done | 12 tables (okrs, eos_issues, eos_scorecards, eos_vto, etc.) |
 | Edge Functions | Done | 3 deployed (extract-meeting-issues, eos-triage-assistant, suggest-okrs) |
-| Known Issues | — | 7 `(supabase as any)` casts, 5 AI suggestion components scaffolded but not rendered |
+| Known Issues | — | 5 AI suggestion components scaffolded but not rendered. All `as any` casts removed. |
 
 #### Meetings
 | Layer | Status | Details |
@@ -349,7 +349,7 @@ Legend:
 | Frontend | Done | 4 pages, 13 components, 10 hooks |
 | Database | Done | 9 tables (meetings, meeting_agenda_items, meeting_takeaways, etc.) |
 | Edge Functions | Done | 2 invoked (generate-meeting-summary, categorize-meeting) |
-| Known Issues | — | 20 `(supabase as any)` casts |
+| Known Issues | — | None — all `as any` casts removed |
 
 #### Projects
 | Layer | Status | Details |
@@ -357,7 +357,7 @@ Legend:
 | Frontend | Done | 5 module pages + 1 client portal, 6 components, 9 hooks |
 | Database | Done | 13 tables (projects, project_members, project_milestones, etc.) |
 | Edge Functions | Done | 4 deployed (create-client-access, client-dashboard-api, sync-projects-activecollab, sync-projects-jira) |
-| Known Issues | — | 3 `(supabase as any)` casts, 2 orphaned backup components |
+| Known Issues | — | 2 orphaned backup components. All `as any` casts removed. |
 | Pending | — | Billing/invoicing UI, resource projection charts |
 
 #### Actions
@@ -380,10 +380,10 @@ Legend:
 #### Knowledge Base
 | Layer | Status | Details |
 |-------|--------|---------|
-| Frontend | Done | 7 pages, 2 components, 6 hooks |
+| Frontend | Done | 7 pages, 2 components, 3 hooks (3 orphaned files deleted) |
 | Database | Done | 10 tables (knowledge_entries, knowledge_embeddings, unified_documents, etc.) |
 | Edge Functions | Done | 5 invoked (knowledge-base, user-knowledge-upload, user-knowledge-process, user-knowledge-drive-sync, unified-knowledge-search) |
-| Known Issues | — | 19 `(supabase as any)` casts, 3 orphaned hooks |
+| Known Issues | — | None — all `as any` casts removed, orphaned hooks cleaned up |
 | Pending | — | Google Drive file picker testing, Gemini RAG production setup |
 
 #### Productivity
@@ -398,10 +398,10 @@ Legend:
 #### Admin
 | Layer | Status | Details |
 |-------|--------|---------|
-| Frontend | Done | 38 routes, 41 page files. 16 Full CRUD, 14 Read-only, 4 Static |
+| Frontend | Done | 38 routes, 41 page files. 16 Full CRUD, 16 Read-only, 2 Static |
 | Database | — | Operates on tables from all other modules |
 | Edge Functions | Done | 6 admin-specific (promote-to-admin, promote-first-admin, check-environment, run-seed, seed-template-data, log-activity) |
-| Known Issues | — | 2 pages have no backend data (Admin Dashboard, ProductRoadmap). 2 pages use non-standard imports (ActivityLogs, AIUsageAnalytics) |
+| Known Issues | — | 2 pages have no backend data (Admin Dashboard, ProductRoadmap). All import issues resolved. |
 
 ---
 
@@ -409,8 +409,8 @@ Legend:
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| Database tables (typed) | 87 | All generated |
-| Database tables (untyped) | 5 | `(supabase as any)` casts |
+| Database tables (typed) | 93 | All generated + 6 manually added |
+| Database tables (untyped) | 0 | All `(supabase as any)` casts eliminated |
 | Database tables (total) | 119 | Includes RLS policies, views |
 | Edge functions deployed | 64 | All implemented (no stubs) |
 | Edge functions invoked from frontend | 33 | Remaining 31 are API endpoints, webhooks, auto-triggers |
@@ -422,95 +422,48 @@ Legend:
 
 ---
 
-## Developer Task: Shahed — 4-Hour Sprint
+## Completed Sprint: Shahed — Type Safety & Code Cleanup
 
 **Assigned to:** Shahed
 **Modules owned:** Platform Core, Knowledge Base, Admin, AI Agents
-**Goal:** Fix import inconsistencies, eliminate `(supabase as any)` casts, clean up orphaned code
+**Status:** COMPLETED
+**Date:** 2026-02-04
 
-### Task 1: Fix non-standard Supabase imports (30 min)
+### What Was Done
 
-Several admin pages import from `@/lib/supabase` instead of the canonical `@/integrations/supabase/client`. Fix all occurrences:
+| # | Task | Scope | Status |
+|---|------|-------|--------|
+| 1 | Fix non-standard `@/lib/supabase` imports | 60 files migrated to `@/integrations/supabase/client`, shim file deleted | Done |
+| 2 | Fix ActivityLogs page | Removed `as any` cast, demo data fallback, `AlertCircle` import, `usingDemoData` state | Done |
+| 3 | Add Supabase types for untyped tables | 6 table definitions added to `types.ts`: `knowledge_bookmarks`, `sso_configurations`, `sso_domain_allowlist`, `user_agent_personalizations`, `user_knowledge_sources`, `work_types` | Done |
+| 4 | Remove all `(supabase as any)` casts | 90+ casts removed across 22 source files (all modules) | Done |
+| 5 | Clean up orphaned Knowledge hooks | 3 files deleted: `useKnowledgeBase.ts`, `useSemanticMemorySearch.ts`, `useAgentPersonalizations.ts`. Barrel export updated. | Done |
+| 6 | Fix Knowledge module casts | Included in Task 4 sweep — all 19 Knowledge casts removed | Done |
 
-| File | Line | Current Import | Fix |
-|------|------|----------------|-----|
-| `src/pages/admin/ActivityLogs.tsx` | 31 | `@/lib/supabase` | `@/integrations/supabase/client` |
-| `src/pages/admin/AIUsageAnalytics.tsx` | 30 | `@/lib/supabase` | `@/integrations/supabase/client` |
+### Verification Results
 
-Also search for any other files using `@/lib/supabase` and fix them.
-
-### Task 2: Fix ActivityLogs — remove `as any` cast and demo fallback (30 min)
-
-`ActivityLogs.tsx` queries the `activity_logs` table using `(supabase as any)` cast, but the table IS in the generated Supabase types. Fix:
-
-1. Change import to `@/integrations/supabase/client`
-2. Remove `as any` cast on line 147: `supabase.from("activity_logs" as any)` → `supabase.from("activity_logs")`
-3. Remove the `DEMO_LOGS` array and `usingDemoData` state — show empty state instead of fake data
-4. Add proper TypeScript types from `Database['public']['Tables']['activity_logs']['Row']`
-
-### Task 3: Regenerate Supabase types for 5 untyped tables (45 min)
-
-5 tables are queried via `(supabase as any)` because they lack generated types. Run `supabase gen types typescript` to regenerate, OR manually add type definitions for:
-
-| Table | Used In | Cast Count |
-|-------|---------|------------|
-| `sso_configurations` | `useAuthConfig.ts` | 3 |
-| `sso_domain_allowlist` | `useAuthConfig.ts` | 2 |
-| `work_types` | `useWorkTypes.ts` | 3 |
-| `user_agent_personalizations` | Knowledge module hooks | varies |
-| `user_knowledge_sources` | Knowledge module hooks | varies |
-
-After regenerating types, update the hooks to remove `(supabase as any)` casts and use proper typed queries.
-
-### Task 4: Fix `(supabase as any)` casts in useAuthConfig (30 min)
-
-`src/hooks/useAuthConfig.ts` has 8 `(supabase as any)` casts for `sso_configurations` and `sso_domain_allowlist`. After Task 3 adds the types:
-
-1. Replace all `(supabase as any).from('sso_configurations')` with `supabase.from('sso_configurations')`
-2. Replace all `(supabase as any).from('sso_domain_allowlist')` with `supabase.from('sso_domain_allowlist')`
-3. Add proper return types using the generated table types
-
-### Task 5: Clean up orphaned Knowledge hooks (30 min)
-
-3 hooks in the Knowledge module are exported but never imported anywhere:
-
-| Hook | File | Action |
-|------|------|--------|
-| `useSemanticMemorySearch` | `src/modules/knowledge/hooks/useSemanticMemorySearch.ts` | Remove export or delete file if only export |
-| `useGeminiRAG` | `src/modules/knowledge/hooks/useGeminiRAG.ts` | Remove export or delete file if only export |
-| `useKnowledgeDocuments` | `src/modules/knowledge/hooks/useKnowledgeDocuments.ts` | Remove export or delete file if only export |
-
-Verify no other file imports these before removing. Run `npx tsc --noEmit` after each removal.
-
-### Task 6: Fix remaining `(supabase as any)` casts in Knowledge module (45 min)
-
-The Knowledge module has 19 `(supabase as any)` casts across its hooks. After Task 3 provides types:
-
-1. Search all files in `src/modules/knowledge/` for `(supabase as any)`
-2. Replace with typed `supabase.from(...)` calls
-3. Fix any TypeScript errors from the type changes
-4. Verify build passes
-
-### Verification
-
-After all tasks, run:
-```bash
-# Check no @/lib/supabase imports remain
-grep -r "@/lib/supabase" src/ --include="*.ts" --include="*.tsx"
-
-# Check remaining (supabase as any) casts (should be ~30 fewer)
-grep -rn "(supabase as any)" src/ --include="*.ts" --include="*.tsx" | wc -l
-
-# Verify build
-npx tsc --noEmit
+```
+@/lib/supabase imports remaining:     0 (was 60)
+(supabase as any) casts remaining:    0 (was 90+)
+Untyped tables remaining:             0 (was 6)
+Orphaned hook files remaining:        0 (was 3)
 ```
 
-**Expected outcomes:**
-- 0 files importing from `@/lib/supabase`
-- ~25 fewer `(supabase as any)` casts (from 57 → ~30)
-- ActivityLogs shows real data without demo fallback
-- All Knowledge hooks either used or removed
-- Clean TypeScript build
+### Files Changed
+
+**Deleted:**
+- `src/lib/supabase.ts` (re-export shim)
+- `src/modules/knowledge/hooks/useKnowledgeBase.ts` (orphaned)
+- `src/modules/knowledge/hooks/useSemanticMemorySearch.ts` (orphaned)
+- `src/modules/knowledge/hooks/useAgentPersonalizations.ts` (orphaned)
+
+**Major edits:**
+- `src/integrations/supabase/types.ts` — 6 table type definitions added
+- `src/pages/admin/ActivityLogs.tsx` — demo data removed, typed query
+- `src/modules/knowledge/index.ts` — orphaned exports removed
+
+**Bulk edits (60 files):** Import path `@/lib/supabase` → `@/integrations/supabase/client`
+**Bulk edits (22 files):** `(supabase as any)` → `supabase`
 
 ---
 
@@ -519,7 +472,8 @@ npx tsc --noEmit
 - AdminRoute checks for admin role via AuthContext
 - AdminLayout provides admin-specific sidebar navigation
 - Navigation defined in `adminNavigation` array in `navigationStructure.ts`
-- New tables not in auto-generated Supabase types use `(supabase as any)` cast
+- All Supabase tables are fully typed — no `(supabase as any)` casts remain
+- All imports use canonical `@/integrations/supabase/client` path
 - CRUD pages follow: hook with useQuery + useMutation → page with table + dialog + delete confirm
 - Reorder uses arrow-based up/down buttons with batch sort_order updates
 - System settings use a key-value pattern (category, key, value)

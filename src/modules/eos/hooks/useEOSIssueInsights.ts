@@ -6,7 +6,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { IssueStatus, IssuePriority, IssueCategory } from "../types";
 
@@ -40,7 +40,7 @@ export function useEOSIssueInsights(days: number = 90) {
           .from("eos_pods")
           .select("id, name")
           .eq("is_active", true),
-        (supabase as any)
+        supabase
           .from("eos_issue_suggestions")
           .select("id"),
       ]);

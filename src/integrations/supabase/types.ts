@@ -1999,6 +1999,27 @@ export type Database = {
           },
         ]
       }
+      knowledge_bookmarks: {
+        Row: {
+          id: string
+          user_id: string
+          entry_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          entry_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          entry_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       knowledge_categories: {
         Row: {
           color: string | null
@@ -4161,6 +4182,78 @@ export type Database = {
           },
         ]
       }
+      sso_configurations: {
+        Row: {
+          id: string
+          provider_type: string
+          display_name: string
+          is_enabled: boolean
+          is_primary: boolean
+          client_id: string | null
+          tenant_id: string | null
+          domain_restrictions: string[]
+          auto_provision_role: string
+          auto_create_users: boolean
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          provider_type: string
+          display_name: string
+          is_enabled?: boolean
+          is_primary?: boolean
+          client_id?: string | null
+          tenant_id?: string | null
+          domain_restrictions?: string[]
+          auto_provision_role?: string
+          auto_create_users?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          provider_type?: string
+          display_name?: string
+          is_enabled?: boolean
+          is_primary?: boolean
+          client_id?: string | null
+          tenant_id?: string | null
+          domain_restrictions?: string[]
+          auto_provision_role?: string
+          auto_create_users?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sso_domain_allowlist: {
+        Row: {
+          id: string
+          domain: string
+          sso_config_id: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          domain: string
+          sso_config_id: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          domain?: string
+          sso_config_id?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           category: string
@@ -4569,6 +4662,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_agent_personalizations: {
+        Row: {
+          id: string
+          user_id: string
+          agent_id: string
+          is_enabled: boolean
+          additional_prompt: string | null
+          attached_knowledge_files: string[]
+          attached_unified_document_ids: string[]
+          use_all_knowledge: boolean
+          max_context_files: number
+          relevance_threshold: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          agent_id: string
+          is_enabled?: boolean
+          additional_prompt?: string | null
+          attached_knowledge_files?: string[]
+          attached_unified_document_ids?: string[]
+          use_all_knowledge?: boolean
+          max_context_files?: number
+          relevance_threshold?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          agent_id?: string
+          is_enabled?: boolean
+          additional_prompt?: string | null
+          attached_knowledge_files?: string[]
+          attached_unified_document_ids?: string[]
+          use_all_knowledge?: boolean
+          max_context_files?: number
+          relevance_threshold?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_invites: {
         Row: {
           created_at: string | null
@@ -4652,6 +4790,66 @@ export type Database = {
           title?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_knowledge_sources: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          source_type: string
+          source_identifier: string | null
+          source_url: string | null
+          sync_enabled: boolean
+          sync_frequency: string
+          last_synced_at: string | null
+          sync_status: string
+          file_count: number
+          total_size: number
+          credentials: Json
+          sync_config: Json
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          source_type: string
+          source_identifier?: string | null
+          source_url?: string | null
+          sync_enabled?: boolean
+          sync_frequency?: string
+          last_synced_at?: string | null
+          sync_status?: string
+          file_count?: number
+          total_size?: number
+          credentials?: Json
+          sync_config?: Json
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          source_type?: string
+          source_identifier?: string | null
+          source_url?: string | null
+          sync_enabled?: boolean
+          sync_frequency?: string
+          last_synced_at?: string | null
+          sync_status?: string
+          file_count?: number
+          total_size?: number
+          credentials?: Json
+          sync_config?: Json
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4903,6 +5101,51 @@ export type Database = {
           search_type?: string | null
           top_score?: number | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      work_types: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          description: string | null
+          category: string
+          is_billable: boolean
+          default_rate: number | null
+          color: string
+          is_active: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          description?: string | null
+          category?: string
+          is_billable?: boolean
+          default_rate?: number | null
+          color?: string
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          description?: string | null
+          category?: string
+          is_billable?: boolean
+          default_rate?: number | null
+          color?: string
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

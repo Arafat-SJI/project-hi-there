@@ -6,7 +6,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { EOSIssueSuggestion } from "../types";
@@ -37,7 +37,7 @@ export function useAIIssueSuggestions(filters?: SuggestionFilters) {
   return useQuery({
     queryKey: [SUGGESTIONS_KEY, filters],
     queryFn: async (): Promise<EOSIssueSuggestion[]> => {
-      let query = (supabase as any)
+      let query = supabase
         .from("eos_issue_suggestions")
         .select("*")
         .order("created_at", { ascending: false });
@@ -69,7 +69,7 @@ export function useSuggestionStats() {
   return useQuery({
     queryKey: [SUGGESTIONS_KEY, "stats"],
     queryFn: async (): Promise<SuggestionStats> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("eos_issue_suggestions")
         .select("status, suggestion_type, confidence");
 
@@ -114,7 +114,7 @@ export function useReviewSuggestion() {
       id: string;
       status: "accepted" | "rejected";
     }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("eos_issue_suggestions")
         .update({
           status,

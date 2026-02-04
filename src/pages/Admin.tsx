@@ -14,7 +14,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Admin() {
   const [pendingFeedbackCount, setPendingFeedbackCount] = useState(0);

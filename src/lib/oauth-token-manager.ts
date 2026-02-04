@@ -4,7 +4,7 @@
  * NOTE: These are placeholder implementations - tables don't exist yet
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface OAuthTokens {
   access_token: string;

@@ -57,7 +57,7 @@ import {
   useUpdateMetric,
 } from "@/modules/eos/hooks/useScorecard";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { EOSScorecard, EOSScorecardMetric } from "@/modules/eos/types";
 
@@ -69,7 +69,7 @@ function useUpdateScorecard() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<EOSScorecard> }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("eos_scorecards")
         .update({ ...data, updated_at: new Date().toISOString() })
         .eq("id", id);
@@ -88,8 +88,8 @@ function useDeleteScorecard() {
   return useMutation({
     mutationFn: async (id: string) => {
       // Delete metrics first, then scorecard
-      await (supabase as any).from("eos_scorecard_metrics").delete().eq("scorecard_id", id);
-      const { error } = await (supabase as any).from("eos_scorecards").delete().eq("id", id);
+      await supabase.from("eos_scorecard_metrics").delete().eq("scorecard_id", id);
+      const { error } = await supabase.from("eos_scorecards").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -104,7 +104,7 @@ function useDeleteMetric() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("eos_scorecard_metrics").delete().eq("id", id);
+      const { error } = await supabase.from("eos_scorecard_metrics").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

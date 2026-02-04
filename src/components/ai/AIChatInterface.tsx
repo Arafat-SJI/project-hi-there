@@ -15,7 +15,7 @@ import {
 import { Send, Bot, Loader2, DollarSign } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getInitials } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ChatMessage {
   id: string;

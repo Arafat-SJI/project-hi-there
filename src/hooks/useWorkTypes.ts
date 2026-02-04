@@ -41,7 +41,7 @@ export function useWorkTypes() {
     queryKey: QUERY_KEY,
     queryFn: async (): Promise<WorkType[]> => {
       // work_types may not be in auto-generated types yet
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("work_types")
         .select("*")
         .order("sort_order", { ascending: true });
@@ -67,7 +67,7 @@ export function useCreateWorkType() {
       color: string;
       sort_order: number;
     }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("work_types")
         .insert(input)
         .select()
@@ -91,7 +91,7 @@ export function useUpdateWorkType() {
 
   return useMutation({
     mutationFn: async ({ id, ...fields }: Partial<WorkType> & { id: string }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("work_types")
         .update({ ...fields, updated_at: new Date().toISOString() })
         .eq("id", id)
@@ -116,7 +116,7 @@ export function useDeleteWorkType() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("work_types")
         .delete()
         .eq("id", id);
@@ -138,7 +138,7 @@ export function useReorderWorkTypes() {
   return useMutation({
     mutationFn: async (orderedIds: string[]) => {
       const updates = orderedIds.map((id, index) =>
-        (supabase as any)
+        supabase
           .from("work_types")
           .update({ sort_order: index })
           .eq("id", id)

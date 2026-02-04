@@ -44,7 +44,7 @@ import {
 import { Loader2, Pencil, RotateCcw, Eye, FileText } from "lucide-react";
 import { useVTO, useUpdateVTO } from "@/modules/eos/hooks/useVTO";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { VTOSection } from "@/modules/eos/types";
@@ -80,7 +80,7 @@ function useResetVTOSection() {
   return useMutation({
     mutationFn: async ({ section }: { section: string }) => {
       const template = DEFAULT_TEMPLATES[section] || {};
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("eos_vto")
         .update({
           content: template,
@@ -106,7 +106,7 @@ function useUpdateVTOTitle() {
 
   return useMutation({
     mutationFn: async ({ id, title }: { id: string; title: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("eos_vto")
         .update({ title, updated_at: new Date().toISOString() })
         .eq("id", id);

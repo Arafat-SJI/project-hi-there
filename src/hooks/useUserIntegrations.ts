@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -71,7 +71,7 @@ export function useUserOAuthTokens() {
     queryFn: async (): Promise<UserOAuthToken[]> => {
       if (!user) return [];
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('user_oauth_tokens')
         .select(SAFE_TOKEN_COLUMNS)
         .eq('user_id', user.id)
@@ -93,7 +93,7 @@ export function useUserOAuthToken(providerSlug: string) {
     queryFn: async (): Promise<UserOAuthToken | null> => {
       if (!user) return null;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('user_oauth_tokens')
         .select(SAFE_TOKEN_COLUMNS)
         .eq('user_id', user.id)
