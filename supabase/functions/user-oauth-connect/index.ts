@@ -41,7 +41,7 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
         "openid",
         "email",
         "profile",
-        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/calendar.events",
         "https://www.googleapis.com/auth/meetings.space.created",
       ],
       additionalParams: {
