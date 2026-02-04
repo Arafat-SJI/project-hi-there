@@ -83,6 +83,9 @@ verify_jwt = false
 [functions.user-knowledge-process]
 verify_jwt = false
 
+[functions.sync-google-meet]
+verify_jwt = false
+
 [functions.google-drive-sync]
 verify_jwt = false
 
