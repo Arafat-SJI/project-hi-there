@@ -105,7 +105,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const appUrl = Deno.env.get("APP_URL") || "http://localhost:5173";
+    const appUrl = Deno.env.get("APP_URL") || "https://controltower.collabai.software";
 
     // Get callback parameters
     const url = new URL(req.url);
@@ -244,7 +244,7 @@ serve(async (req) => {
     return Response.redirect(`${finalRedirect}?connected=${provider}`);
   } catch (error: unknown) {
     console.error("User OAuth callback error:", error);
-    const appUrl = Deno.env.get("APP_URL") || "http://localhost:5173";
+    const appUrl = Deno.env.get("APP_URL") || "https://controltower.collabai.software";
     const message = error instanceof Error ? error.message : "Unknown error";
     return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent(message)}`);
   }
