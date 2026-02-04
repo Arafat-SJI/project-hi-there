@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { isModuleBundled, type ModuleId, MODULE_REGISTRY } from "@/shared/config/modules";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";

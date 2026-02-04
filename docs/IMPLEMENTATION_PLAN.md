@@ -12,10 +12,10 @@ Ten architecture blueprint documents describe a mature monolithic application (t
 |--------|---------------------|------------------|-----|
 | Database tables | ~115 | 119 | Exceeded target |
 | Edge functions | ~225 (54 consolidated) | 64 | Consolidation complete + 10 new |
-| Routes | ~300 | ~130 | ~170 routes remaining (see note) |
-| Pages | ~247 | 111 | ~136 pages remaining |
-| Components | ~533 | 168 | ~365 components remaining |
-| Hooks | ~296 | 84 | ~212 hooks remaining |
+| Routes | ~300 | ~130 | ~170 routes gap (see note) |
+| Pages | ~247 | 46 | Targets from aspirational blueprints |
+| Components | ~533 | 52 | Targets from aspirational blueprints |
+| Hooks | ~296 | 49 | Targets from aspirational blueprints |
 
 > **Note on gaps:** The "Documented (Target)" numbers came from the original Control Tower blueprints which described a much larger application. Many of those targets represent features that were descoped or consolidated. The actual scope for this framework is significantly smaller — the remaining gaps are primarily additional UI polish, sub-pages, and specialized components within already-built modules rather than missing core functionality.
 
@@ -307,7 +307,7 @@ src/modules/actions/
 
 **Exit Criteria:** Users can create/edit/complete tasks, organize by streams, view Today/Week/Overdue/Delegated, add comments and subtasks.
 
-> **STATUS: COMPLETE (UI)** — 4 pages, 8 components, 3 hooks, 6 DB tables. All CRUD functional. **PENDING:** Edge functions (task API, AI assistant, ActiveCollab sync), task categories UI, subtask creation UI.
+> **STATUS: COMPLETE (UI)** — 4 pages, 8 components, 4 hooks, 6 DB tables. All CRUD functional. No edge functions invoked. **PENDING:** Edge functions (task API, AI assistant, ActiveCollab sync), task categories UI, subtask creation UI.
 
 ---
 
@@ -353,7 +353,7 @@ src/modules/eos/
 
 **Exit Criteria:** V/TO working, OKRs with key results and check-ins, issues with pod organization and AI triage, scorecard with metrics, accountability chart with GWC assessments.
 
-> **STATUS: COMPLETE (All UI Sprints + Wiring)** — 17 user pages + 4 admin pages, 32 components, 11 hooks, 12 DB tables. **Wired:** OKRsPage 5-tab view (cards/health/by-pod/by-owner/closed + CloseOKRDialog). ScorecardPage with MetricTrendChart. IssuesPodOverviewPage with PodIssueCard + PodIssueSummary. AdminEOSAccountability with ChartHistoryTimeline + EmployeeAccountabilityModal + GWCAssessmentDialog. Cross-module: usePromoteIssueToEOS, useExtractMeetingIssues. **PENDING:** Edge functions (12).
+> **STATUS: COMPLETE (All UI Sprints + Wiring)** — 17 user pages + 4 admin pages, 33 components, 11 hooks, 12 DB tables. 3 edge functions deployed (extract-meeting-issues, eos-triage-assistant, suggest-okrs). **Wired:** OKRsPage 5-tab view (cards/health/by-pod/by-owner/closed + CloseOKRDialog). ScorecardPage with MetricTrendChart. IssuesPodOverviewPage with PodIssueCard + PodIssueSummary. AdminEOSAccountability with ChartHistoryTimeline + EmployeeAccountabilityModal + GWCAssessmentDialog. Cross-module: usePromoteIssueToEOS, useExtractMeetingIssues. **Known issues:** 7 `(supabase as any)` casts, 5 AI suggestion components scaffolded but not rendered.
 
 ---
 
@@ -391,7 +391,7 @@ src/modules/meetings/
 
 **Exit Criteria:** Create/edit meetings, recurring series, agendas with takeaways, transcript processing, AI summaries, Zoom integration (optional).
 
-> **STATUS: COMPLETE (All UI Sprints + Wiring)** — 4 pages, 13 components, 10 hooks, 7 DB tables. **Wired:** MeetingsSchedulePage 3-tab view (schedule/efficiency/action-items). MeetingEfficiencyDashboard + ActionItemsPanel embedded. Transcripts nav item added. MeetingDetailV2Page with 7 tabs. AI hooks: summary generation, task extraction. Cross-module: useClientMeetings, useDealMeetings, useProjectMeetings. **PENDING:** Edge function deployment (AI summarization, categorization, task extraction).
+> **STATUS: COMPLETE (All UI Sprints + Wiring)** — 4 pages, 13 components, 10 hooks, 7 DB tables. 2 edge functions invoked (generate-meeting-summary, categorize-meeting). **Wired:** MeetingsSchedulePage 3-tab view (schedule/efficiency/action-items). MeetingEfficiencyDashboard + ActionItemsPanel embedded. Transcripts nav item added. MeetingDetailV2Page with 7 tabs. Cross-module: useClientMeetings, useDealMeetings, useProjectMeetings. **Known issues:** 20 `(supabase as any)` casts across hooks.
 
 ---
 
@@ -424,7 +424,7 @@ src/modules/knowledge/
 
 **Exit Criteria:** Upload/manage knowledge files, categories, vector embeddings for semantic search, RAG queries, personal knowledge, Google Drive integration (optional).
 
-> **STATUS: COMPLETE** — 10 DB tables, 20+ hooks, 7 pages (list, upload, detail, category, personal, semantic search, form), Semantic Search page with vector/text toggle, Embeddings Explorer admin page, 10+ edge functions (knowledge-base, api-v1-documents, user-knowledge-upload/process/drive-sync, semantic-search, unified-knowledge-search, generate-embeddings, auto-embed-*, gemini-rag-query). Personal Knowledge wired to real Supabase queries. **PENDING:** Google Drive file picker integration testing, Gemini RAG production setup.
+> **STATUS: COMPLETE** — 7 pages, 2 components, 6 hooks, 10 DB tables. 5 edge functions invoked from frontend (knowledge-base, user-knowledge-upload, user-knowledge-process, user-knowledge-drive-sync, unified-knowledge-search). Semantic Search page with vector/text toggle, Embeddings Explorer admin page. Personal Knowledge wired to real Supabase queries. **Known issues:** 19 `(supabase as any)` casts, 3 orphaned hooks (useSemanticMemorySearch, useGeminiRAG, useKnowledgeDocuments — exported but unused). **PENDING:** Google Drive file picker integration testing, Gemini RAG production setup.
 
 ---
 
@@ -465,7 +465,7 @@ src/modules/projects/
 
 **Exit Criteria:** Project CRUD with tab-based detail, milestones, billing, file management, resource projection, client portal.
 
-> **STATUS: COMPLETE (UI + Integrations + Real Data)** — 4 pages (list, form, detail, client portal), 8 hooks all wired to real Supabase, 13 DB tables. Full CRUD with create/edit/delete, milestones, members, risks, comments. Client portal with PBKDF2 auth (ClientPortalDashboard, 6 components). ActiveCollab and Jira sync edge functions deployed. **IntegrationsTab** wired to real `organization_integrations` + `integration_providers` (connection badges, logos, sync times). **TasksTab** wired to real `tasks` via project→client_id lookup (priority badges, assigned users). **ProjectKnowledgePage** wired to `unified_documents` (owner_type=project) with summary cards, searchable table, file type badges, processing status. Admin pages: ProjectModules, WorkTypes, EmployeeProjection, ProjectReports, ResourceUtilization. **PENDING:** File upload, billing/invoicing UI, resource projection charts.
+> **STATUS: COMPLETE (UI + Integrations + Real Data)** — 5 module pages + 1 client portal page, 6 components (4 wired + 2 orphaned backup), 9 hooks (4 module + 5 shared), 13 DB tables. 1 edge function invoked from module (create-client-access), plus ActiveCollab/Jira sync and client-dashboard-api. Full CRUD with create/edit/delete, milestones, members, risks, comments. Client portal with PBKDF2 auth. Admin pages: ProjectModules, ProjectStatusSettings, ProjectReports. **Known issues:** 3 `(supabase as any)` casts in useClientAccess.ts, 2 orphaned backup components. **PENDING:** File upload, billing/invoicing UI, resource projection charts.
 
 ---
 
@@ -501,7 +501,7 @@ src/modules/business-dev/
 
 **Exit Criteria:** Deal pipeline (Lead→Won/Lost), client management, contacts, lead follow-up, email integration, HubSpot sync (optional).
 
-> **STATUS: COMPLETE (UI + Activity Logging)** — 4 pages (pipeline, form, detail, contacts), 2 hooks (deals CRUD + contacts CRUD), 7 DB tables. Full deal CRUD with pipeline view, stage transitions, edit/delete. Contact creation + listing. Legacy client pages routed. **useUpdateDealStage** now logs `deal_activities` entries on stage changes (from/to stages, won/lost descriptions). **PENDING:** Contact detail/edit page, HubSpot sync, email automation, lead scoring AI.
+> **STATUS: COMPLETE (UI + Activity Logging)** — 8 pages (5 module + 3 legacy client pages), 0 components (inline UI), 2 hooks (17 exported functions), 6 DB tables. No edge functions. Full deal CRUD with pipeline view, stage transitions, edit/delete. Contact CRUD + lead follow-up. Legacy client pages routed. Cross-module: useDealMeetings, useClientMeetings from Meetings. Clean module — no `(supabase as any)` casts. **PENDING:** HubSpot sync, email automation, deal scoring AI.
 
 ---
 
@@ -535,7 +535,7 @@ src/modules/productivity/
 
 **Exit Criteria:** Productivity dashboard with department/pod views, employee detail, process documentation, CSV import, AI insights.
 
-> **STATUS: COMPLETE (UI + Real Data + Pod Breakdown)** — 3 pages (dashboard, employee detail, process docs), 5 hooks (records, summary, departments, weeks, podProductivity), 10 DB tables + 6 seeded process categories. Dashboard has summary cards, department overview grid, **Pod Breakdown** panel (per-pod utilization bars, efficiency, tasks via 4-table join), department utilization bar chart, attendance donut chart, filterable employee table. Process docs: index + category + detail views, create/edit forms (QA-ready). **PENDING:** CSV import, employee detail historical trends, edge functions (HR sync, AI insights, weekly digest).
+> **STATUS: COMPLETE (UI + Real Data + Pod Breakdown)** — 4 pages (dashboard, employee detail, process docs, process form), 0 components (inline UI), 3 hooks (14 exported functions), 7 DB tables. No edge functions. Dashboard has summary cards, department overview grid, Pod Breakdown panel, department utilization bar chart, attendance donut chart, filterable employee table. Process docs: index + category + detail views, create/edit forms. **Known issues:** useEmployeeProfiles exported but unused. **PENDING:** CSV import, employee detail historical trends, edge functions (HR sync, AI insights, weekly digest).
 
 ---
 
@@ -726,9 +726,37 @@ Before v1.0 release:
 
 ---
 
+## Code Review Summary (All Modules)
+
+Comprehensive code review completed across all 9 modules. Module blueprint docs rewritten to match actual codebase.
+
+### Actual Inventory (verified)
+
+| Module | Pages | Components | Hooks | Edge Fns | `as any` Casts |
+|--------|-------|------------|-------|----------|----------------|
+| Platform Core | 15 | 100+ shared | 42 | 33 invoked | 8 (AuthConfig) |
+| EOS | 17+4 admin | 33 | 11 | 3 | 7 |
+| Meetings | 4 | 13 | 10 | 2 | 20 |
+| Knowledge | 7 | 2 | 6 | 5 | 19 |
+| Projects | 5+1 portal | 6 | 9 | 1 | 3 |
+| Actions | 4 | 8 | 4 | 0 | 0 |
+| Business Dev | 5+3 legacy | 0 | 2 | 0 | 0 |
+| Productivity | 4 | 0 | 3 | 0 | 0 |
+| Admin | 37 | — | — | 6 | — |
+
+### Cross-Cutting Issues
+
+1. **`(supabase as any)` casts** — 57 total across modules. Used for tables not in generated Supabase types. Fix: regenerate types from database.
+2. **Orphaned files** — 2 backup components (Projects), 3 unused hooks (Knowledge), 1 unused hook (Productivity). 4 legacy pages already deleted.
+3. **Import consistency** — 2 files fixed (Meetings) that used `@/lib/supabase` instead of `@/integrations/supabase/client`.
+4. **Legacy page locations** — Business Dev client pages and some Projects components still in `src/pages/` and `src/components/` instead of module directories.
+5. **Documentation inflation** — All 8 module docs were rewritten. Most severe: Business Dev claimed 42 pages/134 components (actual: 8/0).
+
+---
+
 ## Summary
 
-**Total estimated scope:** 8 phases covering 9 modules, ~97 database tables, ~30 edge functions (consolidated), and ~300 routes.
+**Total estimated scope:** 8 phases covering 9 modules, 119 database tables (built), 64 edge functions (built), ~130 routes (built).
 
 **Recommended build order:**
 1. Phase 0 — Foundation restructure (no new features, validates architecture)

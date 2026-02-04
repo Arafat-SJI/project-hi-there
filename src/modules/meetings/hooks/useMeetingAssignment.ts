@@ -25,7 +25,7 @@ export function useMeetingAssignments(meetingId: string) {
   return useQuery({
     queryKey: [ASSIGNMENTS_KEY, meetingId],
     queryFn: async (): Promise<MeetingAssignment[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("meeting_assignments")
         .select("*")
         .eq("meeting_id", meetingId)
@@ -45,7 +45,7 @@ export function useEntityMeetings(entityType: AssignmentEntityType, entityId: st
   return useQuery({
     queryKey: [ASSIGNMENTS_KEY, "entity", entityType, entityId],
     queryFn: async (): Promise<AssignmentWithMeeting[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("meeting_assignments")
         .select("*, meeting:meetings(id, title, scheduled_at)")
         .eq("entity_type", entityType)
@@ -76,7 +76,7 @@ export function useAssignMeeting() {
       entityType: AssignmentEntityType;
       entityId: string;
     }) => {
-      const { data: assignment, error } = await (supabase as any)
+      const { data: assignment, error } = await supabase
         .from("meeting_assignments")
         .insert({
           meeting_id: meetingId,
@@ -121,7 +121,7 @@ export function useUnassignMeeting() {
       entityType?: AssignmentEntityType;
       entityId?: string;
     }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("meeting_assignments")
         .delete()
         .eq("id", id);

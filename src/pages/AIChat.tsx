@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Brain, MessageSquare, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AIAgent {
   id: string;

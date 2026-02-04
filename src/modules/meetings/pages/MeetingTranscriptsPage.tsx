@@ -65,7 +65,7 @@ function useMeetingTranscripts(search: string, statusFilter: string) {
     queryKey: ["meeting-transcripts", search, statusFilter],
     queryFn: async (): Promise<TranscriptRow[]> => {
       // Fetch transcripts joined with meeting title
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("meeting_transcripts")
         .select("id, meeting_id, content, summary, speakers, source, processing_status, created_at")
         .order("created_at", { ascending: false });
@@ -75,7 +75,7 @@ function useMeetingTranscripts(search: string, statusFilter: string) {
 
       // Get meeting IDs and fetch titles
       const meetingIds = [...new Set((data as any[]).map((t: any) => t.meeting_id))];
-      const { data: meetings } = await (supabase as any)
+      const { data: meetings } = await supabase
         .from("meetings")
         .select("id, title, scheduled_at")
         .in("id", meetingIds);

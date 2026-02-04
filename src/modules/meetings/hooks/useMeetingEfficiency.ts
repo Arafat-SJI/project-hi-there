@@ -35,17 +35,17 @@ export function useMeetingEfficiency(days: number = 90) {
       fromDate.setDate(fromDate.getDate() - days);
 
       const [meetingsRes, agendaRes, takeawaysRes, participantsRes] = await Promise.all([
-        (supabase as any)
+        supabase
           .from("meetings")
           .select("id, title, duration_minutes, meeting_date, created_at, metadata")
           .gte("created_at", fromDate.toISOString()),
-        (supabase as any)
+        supabase
           .from("meeting_agenda_items")
           .select("id, meeting_id, is_completed"),
-        (supabase as any)
+        supabase
           .from("meeting_takeaways")
           .select("id, meeting_id, type"),
-        (supabase as any)
+        supabase
           .from("meeting_participants")
           .select("id, meeting_id, attended"),
       ]);

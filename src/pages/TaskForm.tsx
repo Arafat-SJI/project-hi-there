@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTask, useCreateTask, useUpdateTask } from "@/hooks/useTasks";
 import { useClients } from "@/hooks/useClients";
 import { useMeetings } from "@/hooks/useMeetings";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { taskSchema, TaskFormData } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

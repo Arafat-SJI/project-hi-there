@@ -24,11 +24,10 @@ import {
   LogIn,
   LogOut,
   Shield,
-  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ActivityLog {
   id: string;
@@ -36,7 +35,7 @@ interface ActivityLog {
   action: string;
   resource_type: string | null;
   resource_id: string | null;
-  details: Record<string, unknown>;
+  details: unknown;
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;
@@ -63,75 +62,10 @@ const ACTION_COLORS: Record<string, "default" | "secondary" | "destructive" | "o
   access: "outline",
 };
 
-// Demo data for when the activity_logs table doesn't exist yet
-const DEMO_LOGS: ActivityLog[] = [
-  {
-    id: "1",
-    user_id: "demo-1",
-    action: "login",
-    resource_type: null,
-    resource_id: null,
-    details: { method: "email" },
-    ip_address: "192.168.1.1",
-    user_agent: "Mozilla/5.0",
-    created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    user_email: "admin@example.com",
-  },
-  {
-    id: "2",
-    user_id: "demo-1",
-    action: "create",
-    resource_type: "client",
-    resource_id: "client-1",
-    details: { name: "Acme Corp" },
-    ip_address: "192.168.1.1",
-    user_agent: "Mozilla/5.0",
-    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    user_email: "admin@example.com",
-  },
-  {
-    id: "3",
-    user_id: "demo-2",
-    action: "update",
-    resource_type: "meeting",
-    resource_id: "meeting-1",
-    details: { title: "Weekly Standup" },
-    ip_address: "192.168.1.2",
-    user_agent: "Mozilla/5.0",
-    created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    user_email: "user@example.com",
-  },
-  {
-    id: "4",
-    user_id: "demo-1",
-    action: "view",
-    resource_type: "knowledge",
-    resource_id: "knowledge-1",
-    details: { title: "Product Documentation" },
-    ip_address: "192.168.1.1",
-    user_agent: "Mozilla/5.0",
-    created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    user_email: "admin@example.com",
-  },
-  {
-    id: "5",
-    user_id: "demo-3",
-    action: "delete",
-    resource_type: "task",
-    resource_id: "task-1",
-    details: { reason: "Completed" },
-    ip_address: "192.168.1.3",
-    user_agent: "Mozilla/5.0",
-    created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    user_email: "manager@example.com",
-  },
-];
-
 export default function ActivityLogs() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [usingDemoData, setUsingDemoData] = useState(false);
 
   useEffect(() => {
     fetchActivityLogs();
@@ -141,41 +75,25 @@ export default function ActivityLogs() {
     try {
       setLoading(true);
 
-      // Try to fetch from activity_logs table
-      // Note: This table may not exist yet until the migration is applied
       const { data, error } = await supabase
-        .from("activity_logs" as any)
-        .select(`
-          id,
-          user_id,
-          action,
-          resource_type,
-          resource_id,
-          details,
-          ip_address,
-          user_agent,
-          created_at
-        `)
+        .from("activity_logs")
+        .select("id, user_id, action, resource_type, resource_id, details, ip_address, user_agent, created_at")
         .order("created_at", { ascending: false })
         .limit(100);
 
       if (error) {
-        console.warn("Activity logs table not available:", error.message);
-        setUsingDemoData(true);
-        setLogs(DEMO_LOGS);
+        console.error("Error fetching activity logs:", error.message);
+        setLogs([]);
         return;
       }
 
-      // Table exists - use real data (even if empty)
-      setUsingDemoData(false);
-      
       if (!data || data.length === 0) {
         setLogs([]);
         return;
       }
 
       // Fetch user emails from profiles table
-      const userIds = [...new Set(data.map((log: any) => log.user_id) || [])];
+      const userIds = [...new Set(data.map((log) => log.user_id))];
       const { data: profilesData } = await supabase
         .from("profiles")
         .select("id, email")
@@ -185,17 +103,15 @@ export default function ActivityLogs() {
         profilesData?.map((profile) => [profile.id, profile.email]) || []
       );
 
-      const logsWithEmails = data.map((log: any) => ({
+      const logsWithEmails = data.map((log) => ({
         ...log,
         user_email: userEmailMap.get(log.user_id) || "Unknown",
       }));
 
-      setUsingDemoData(false);
       setLogs(logsWithEmails);
     } catch (error) {
       console.error("Error fetching activity logs:", error);
-      setUsingDemoData(true);
-      setLogs(DEMO_LOGS);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -257,26 +173,6 @@ export default function ActivityLogs() {
           Export Logs
         </Button>
       </div>
-
-      {usingDemoData && (
-        <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-          <CardContent className="flex items-center gap-3 py-4">
-            <AlertCircle className="h-5 w-5 text-amber-600" />
-            <div>
-              <p className="font-medium text-amber-800 dark:text-amber-200">
-                Showing Demo Data
-              </p>
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                The activity_logs table hasn't been created yet. Run the migration at{" "}
-                <code className="rounded bg-amber-200 dark:bg-amber-900 px-1">
-                  supabase/migrations/20260101_activity_logs.sql
-                </code>{" "}
-                to enable real activity tracking.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

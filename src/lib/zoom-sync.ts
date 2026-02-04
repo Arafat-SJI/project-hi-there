@@ -4,7 +4,7 @@
  * NOTE: These are placeholder implementations - some tables don't exist yet
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { getValidAccessToken } from '@/lib/oauth-token-manager';
 
 // ============================================

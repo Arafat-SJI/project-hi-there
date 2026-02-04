@@ -11,7 +11,7 @@ Edge Functions run serverless TypeScript code close to your users. They handle:
 - Email and notifications
 - Business logic that requires secrets
 
-**Total Functions:** 54
+**Total Functions:** 64
 
 ## Quick Reference
 
@@ -19,7 +19,9 @@ Use this table to quickly find functions by category:
 
 | Category | Count | Key Dependencies |
 |----------|-------|------------------|
-| AI & Machine Learning | 12 | `OPENAI_API_KEY` |
+| AI & Machine Learning | 13 | `OPENAI_API_KEY` |
+| EOS AI | 3 | `OPENAI_API_KEY` |
+| Meeting AI | 2 | `OPENAI_API_KEY` |
 | Authentication & Security | 6 | Various OAuth credentials |
 | Google Integration | 2 | `GOOGLE_CLIENT_*` |
 | Microsoft Integration | 1 | `MICROSOFT_CLIENT_ID` |
@@ -28,15 +30,30 @@ Use this table to quickly find functions by category:
 | User Knowledge | 3 | Varies |
 | Client Portal | 3 | None |
 | Project Integration | 2 | Provider-specific |
-| OAuth Flows | 6 | Provider-specific |
+| OAuth Flows | 7 | Provider-specific |
 | Notifications & Email | 3 | `SENDGRID_API_KEY` |
-| API Endpoints | 3 | None |
+| API Endpoints | 4 | None |
 | MCP (Model Context Protocol) | 2 | Varies |
-| System & Utilities | 4 | Varies |
+| System & Utilities | 6 | Varies |
 
 ---
 
 ## AI & Machine Learning
+
+### `ai-chat`
+**Purpose:** Simple one-shot AI chat completion — accepts messages, returns AI response
+
+**Required Secrets:**
+- `OPENAI_API_KEY`
+
+**Endpoints:**
+- `POST /ai-chat`
+
+**Use Cases:**
+- One-shot chat completions
+- Quick AI queries without conversation context
+
+---
 
 ### `ai-chat-assistant`
 **Purpose:** Main AI chat endpoint for conversational interactions
@@ -281,6 +298,93 @@ Use this table to quickly find functions by category:
 - Alternative RAG backend to OpenAI
 - Gemini-powered knowledge queries
 - Cross-model knowledge retrieval
+
+---
+
+## EOS AI
+
+### `eos-triage-assistant`
+**Purpose:** AI-powered issue triage — suggests priority, category, pod assignment, and related issues
+
+**Required Secrets:**
+- `OPENAI_API_KEY`
+
+**Features Enabled:**
+- `enableEOS`
+
+**Endpoints:**
+- `POST /eos-triage-assistant`
+
+**Related Files:**
+- `src/modules/eos/hooks/useEOSAI.ts`
+
+---
+
+### `extract-meeting-issues`
+**Purpose:** Extract EOS-style issues from meeting transcripts using AI
+
+**Required Secrets:**
+- `OPENAI_API_KEY`
+
+**Features Enabled:**
+- `enableEOS`
+- `enableMeetings`
+
+**Endpoints:**
+- `POST /extract-meeting-issues`
+
+**Related Files:**
+- `src/modules/eos/hooks/useExtractMeetingIssues.ts`
+
+---
+
+### `suggest-okrs`
+**Purpose:** AI-suggested OKRs based on company context (issues, meetings, existing goals)
+
+**Required Secrets:**
+- `OPENAI_API_KEY`
+
+**Features Enabled:**
+- `enableEOS`
+
+**Endpoints:**
+- `POST /suggest-okrs`
+
+**Related Files:**
+- `src/modules/eos/hooks/useEOSAI.ts`
+
+---
+
+## Meeting AI
+
+### `extract-meeting-tasks`
+**Purpose:** Extract action items from meeting transcripts using AI
+
+**Required Secrets:**
+- `OPENAI_API_KEY`
+
+**Features Enabled:**
+- `enableMeetings`
+
+**Endpoints:**
+- `POST /extract-meeting-tasks`
+
+**Related Files:**
+- `src/modules/meetings/hooks/useExtractMeetingTasks.ts`
+
+---
+
+### `quarterly-digest`
+**Purpose:** Generate comprehensive quarterly digest report aggregating EOS, OKR, meeting, and scorecard data
+
+**Required Secrets:**
+- `OPENAI_API_KEY`
+
+**Features Enabled:**
+- `enableEOS`
+
+**Endpoints:**
+- `POST /quarterly-digest`
 
 ---
 
@@ -772,6 +876,21 @@ Use this table to quickly find functions by category:
 
 ---
 
+### `oauth-revoke-token`
+**Purpose:** Revoke an OAuth access token at the provider's revocation endpoint
+
+**Required Secrets:**
+- Provider-specific
+
+**Endpoints:**
+- `POST /oauth-revoke-token`
+
+**Use Cases:**
+- Token cleanup on disconnection
+- Security revocation of compromised tokens
+
+---
+
 ## Notifications & Email
 
 ### `send-email`
@@ -856,6 +975,25 @@ Use this table to quickly find functions by category:
 - `POST /api-v1-meetings`
 - `PUT /api-v1-meetings/:id`
 - `DELETE /api-v1-meetings/:id`
+
+**Authentication:** API key or Supabase JWT
+
+---
+
+### `api-v1-tasks`
+**Purpose:** RESTful API for task/action item management
+
+**Required Secrets:**
+- None
+
+**Features Enabled:**
+- `enableActions`
+
+**Endpoints:**
+- `GET /api-v1-tasks`
+- `POST /api-v1-tasks`
+- `PATCH /api-v1-tasks/:id`
+- `DELETE /api-v1-tasks/:id`
 
 **Authentication:** API key or Supabase JWT
 
@@ -998,6 +1136,22 @@ Use this table to quickly find functions by category:
 - Security auditing
 - Compliance requirements
 - User activity tracking
+
+---
+
+### `log-activity`
+**Purpose:** Record user actions to the activity_logs table for auditing (fire-and-forget)
+
+**Required Secrets:**
+- None
+
+**Endpoints:**
+- `POST /log-activity`
+
+**Use Cases:**
+- User activity audit trail
+- Action logging for compliance
+- Usage analytics
 
 ---
 

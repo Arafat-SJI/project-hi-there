@@ -48,7 +48,7 @@ import {
   useAddResponsibility,
 } from "@/modules/eos/hooks/useAccountability";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { AccountabilityChart, AccountabilityResponsibility, GWCAssessment } from "@/modules/eos/types";
@@ -67,13 +67,13 @@ function usePublishChart() {
   return useMutation({
     mutationFn: async (chartId: string) => {
       // Unset all current charts
-      await (supabase as any)
+      await supabase
         .from("accountability_charts")
         .update({ is_current: false })
         .eq("is_current", true);
 
       // Set the selected chart as current
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("accountability_charts")
         .update({
           is_current: true,
@@ -97,12 +97,12 @@ function useDeleteResponsibility() {
   return useMutation({
     mutationFn: async (id: string) => {
       // Also remove references
-      await (supabase as any)
+      await supabase
         .from("accountability_responsibilities")
         .update({ reports_to: null })
         .eq("reports_to", id);
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("accountability_responsibilities")
         .delete()
         .eq("id", id);
@@ -121,7 +121,7 @@ function useUpdateResponsibility() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<AccountabilityResponsibility> }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("accountability_responsibilities")
         .update({ ...data, updated_at: new Date().toISOString() })
         .eq("id", id);
@@ -146,7 +146,7 @@ function useSaveGWCAssessment() {
       has_capacity: boolean;
       notes?: string;
     }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("gwc_assessments")
         .upsert(
           { ...data, assessed_at: new Date().toISOString() },

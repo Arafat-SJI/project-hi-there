@@ -68,7 +68,7 @@ function useActionItems(userId?: string) {
   return useQuery({
     queryKey: ["meeting-action-items", "panel", targetUserId],
     queryFn: async () => {
-      const query = (supabase as any)
+      const query = supabase
         .from("meeting_takeaways")
         .select("*, meeting:meetings(id, title, scheduled_at)")
         .eq("takeaway_type", "action_item")
@@ -96,7 +96,7 @@ function useToggleActionItem() {
 
   return useMutation({
     mutationFn: async ({ id, is_completed }: { id: string; is_completed: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("meeting_takeaways")
         .update({ is_completed, updated_at: new Date().toISOString() })
         .eq("id", id);
