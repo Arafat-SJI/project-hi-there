@@ -1,90 +1,67 @@
 
-# Plan: Fix Google Meet OAuth Scopes and TypeScript Errors
+# Plan: Fix Google Meet Insufficient Scopes & TypeScript Errors
 
 ## Problems Identified
 
-### Problem 1: Insufficient OAuth Scopes (403 Error)
+### Problem 1: 403 Insufficient OAuth Scopes
+The Google Meet OAuth configuration requests `calendar.readonly` (line 44), but creating calendar events with `Events.Insert` requires **write access**.
 
-The error message indicates:
-```
-"message": "Request had insufficient authentication scopes."
-"reason": "ACCESS_TOKEN_SCOPE_INSUFFICIENT"
-"method": "calendar.v3.Events.Insert"
-```
-
-**Root Cause**: The `user-oauth-connect` edge function requests `calendar.readonly` scope for Google Meet (line 44), but creating calendar events with Google Meet links requires **write access** to the calendar.
-
-Current scopes in `user-oauth-connect/index.ts` (lines 40-46):
+**Current scopes** (line 40-45):
 ```typescript
-"google-meet": {
-  scopes: [
-    "openid",
-    "email", 
-    "profile",
-    "https://www.googleapis.com/auth/calendar.readonly",  // READ-ONLY - WRONG!
-    "https://www.googleapis.com/auth/meetings.space.created",
-  ],
-}
+scopes: [
+  "openid",
+  "email", 
+  "profile",
+  "https://www.googleapis.com/auth/calendar.readonly",  // READ-ONLY!
+  "https://www.googleapis.com/auth/meetings.space.created",
+],
 ```
-
-**Fix**: Change `calendar.readonly` to `calendar.events` (or `calendar`) to allow creating events:
-- `https://www.googleapis.com/auth/calendar.events` - Allows creating/editing events
-- `https://www.googleapis.com/auth/calendar` - Full calendar access (includes events)
 
 ### Problem 2: TypeScript Build Errors
+The `googleMeetMeetingService.ts` file has TypeScript errors at lines 63 and 72-73 because `orgIntegration.config` is typed as `Json` (which is a union type), but the code directly accesses `.client_id` and `.client_secret` properties.
 
-The `googleMeetMeetingService.ts` file has TypeScript errors because `orgIntegration.config` is typed as `Json` (which could be string, number, array, etc.), but the code accesses `client_id` and `client_secret` properties directly.
+## Solution
 
-**Fix**: Cast the `config` to the expected type or use type assertion.
+### File 1: `supabase/functions/user-oauth-connect/index.ts`
 
-## Implementation
+**Change**: Update Google Meet scope from `calendar.readonly` to `calendar.events`
 
-### File 1: `supabase/functions/user-oauth-connect/index.ts` (MODIFY)
+| Line | Before | After |
+|------|--------|-------|
+| 44 | `https://www.googleapis.com/auth/calendar.readonly` | `https://www.googleapis.com/auth/calendar.events` |
 
-Update Google Meet scopes to include write access:
+This grants permission to create, edit, and delete calendar events with Google Meet links.
 
-| Line | Change |
-|------|--------|
-| 44 | Change `calendar.readonly` to `calendar.events` |
+### File 2: `src/lib/googleMeetMeetingService.ts`
 
-```typescript
-"google-meet": {
-  authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-  scopes: [
-    "openid",
-    "email",
-    "profile",
-    "https://www.googleapis.com/auth/calendar.events",  // WRITE access for creating meetings
-    "https://www.googleapis.com/auth/meetings.space.created",
-  ],
-  additionalParams: {
-    access_type: "offline",
-    prompt: "consent",
-  },
-},
-```
+**Change**: Add type interface and cast the config object properly
 
-### File 2: `src/lib/googleMeetMeetingService.ts` (MODIFY)
-
-Fix TypeScript errors by properly typing the config object:
-
-| Lines | Change |
-|-------|--------|
-| 55-61 | Add interface for config type |
-| 63-73 | Cast config to proper type |
+1. Add an interface for the config structure (around line 27)
+2. Cast the config object before accessing properties (line 62-63)
 
 ```typescript
-// Define the expected config structure
+// Add interface for org integration config
 interface OrgIntegrationConfig {
   client_id?: string;
   client_secret?: string;
 }
 
-// Cast config to the expected type
+// Cast config when accessing (replace line 62-74)
 const config = orgIntegration?.config as OrgIntegrationConfig | null;
-
 if (config?.client_id && config?.client_secret) {
-  // Use config.client_id and config.client_secret
+  const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: tokenData.refresh_token,
+      client_id: config.client_id,
+      client_secret: config.client_secret,
+    }),
+  });
+  // ... rest of refresh logic
 }
 ```
 
@@ -92,18 +69,19 @@ if (config?.client_id && config?.client_secret) {
 
 | File | Action | Description |
 |------|--------|-------------|
-| `supabase/functions/user-oauth-connect/index.ts` | MODIFY | Update Google Meet scopes from `calendar.readonly` to `calendar.events` |
-| `src/lib/googleMeetMeetingService.ts` | MODIFY | Fix TypeScript errors by adding proper type casting for config object |
+| `supabase/functions/user-oauth-connect/index.ts` | MODIFY | Change `calendar.readonly` to `calendar.events` on line 44 |
+| `src/lib/googleMeetMeetingService.ts` | MODIFY | Add `OrgIntegrationConfig` interface and cast config object |
 
 ## User Action Required
 
-After this fix is deployed, users who have already connected their Google account will need to **disconnect and reconnect** their Google account to grant the new calendar write permissions. The existing token only has read-only access.
+After deployment, users must **disconnect and reconnect** their Google account to get the new calendar write permissions. Existing tokens only have read-only access.
 
-## Technical Notes
+## Testing Steps
 
-1. **Scope Options**:
-   - `calendar.events` - Create/edit/delete events (recommended, minimal permissions)
-   - `calendar` - Full calendar access (more than needed)
-   - `calendar.readonly` - Read only (current, insufficient)
-
-2. **Token Refresh**: When users reconnect, they'll go through the consent screen again which will include the new scope. Their refresh token will then have the correct permissions.
+1. Deploy changes
+2. Navigate to `/admin/integrations/google-meet`
+3. Disconnect Google account (if connected)
+4. Reconnect Google account
+5. Verify consent screen shows Calendar access (not just read-only)
+6. Try creating a Google Meet meeting
+7. Confirm meeting is created successfully
