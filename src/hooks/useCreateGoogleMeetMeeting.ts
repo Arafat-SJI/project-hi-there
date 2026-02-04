@@ -66,8 +66,6 @@ export function useCreateGoogleMeetMeeting() {
           external_meeting_id: googleMeetMeeting.google_meet_id,
           external_id: googleMeetMeeting.google_meet_id,
           external_uuid: googleMeetMeeting.google_meet_id,
-          google_meet_id: googleMeetMeeting.google_meet_id,
-          google_meet_link: googleMeetMeeting.join_url,
           meeting_type: 'google-meet',
           status: 'scheduled',
           organizer_id: user.id,
