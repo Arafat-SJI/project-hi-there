@@ -308,6 +308,7 @@ const features: Feature[] = [
   { id: "sso", name: "Enterprise SSO", description: "Microsoft Azure AD and Google Workspace single sign-on", status: "completed", category: "Security", icon: <Shield className="h-5 w-5" />, completedDate: "Jan 2026" },
   { id: "teams", name: "Microsoft Teams Integration", description: "Teams meetings, calendar sync, channel messaging", status: "completed", category: "Integrations", icon: <Globe className="h-5 w-5" />, completedDate: "Jan 2026" },
   { id: "oauth", name: "User OAuth Connections", description: "Personal account connections for Google, Zoom, Microsoft", status: "completed", category: "Integrations", icon: <Plug className="h-5 w-5" />, completedDate: "Jan 2026" },
+  { id: "google-meet", name: "Google Meet Integration", description: "Meeting creation, calendar sync, OAuth integration", status: "completed", category: "Integrations", icon: <Video className="h-5 w-5" />, completedDate: "Feb 2026" },
   { id: "knowledge", name: "Knowledge Base", description: "Articles, categories, file uploads, full-text search, vector embedding tables ready", status: "completed", category: "Content", icon: <FileText className="h-5 w-5" />, completedDate: "Jan 2026" },
 
   // In-Progress

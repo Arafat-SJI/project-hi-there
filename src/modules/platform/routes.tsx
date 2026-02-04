@@ -33,7 +33,8 @@ import PersonalKnowledge from "@/modules/knowledge/pages/PersonalKnowledge";
  */
 export const publicRoutes = (
   <>
-    <Route path="/" element={<Index />} />
+    <Route path="/" element={<Login />} />
+    <Route path="/home" element={<Index />} />
     <Route path="/login" element={<Login />} />
     <Route path="/signup" element={<Signup />} />
     <Route path="/auth/callback" element={<AuthCallback />} />

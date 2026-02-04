@@ -11,7 +11,7 @@ Connect CollabAi to external services for enhanced functionality.
 |----------|----------|--------|
 | [Zoom](./providers/zoom.md) | Meeting sync, transcripts | ✅ Available |
 | [Microsoft Teams](./providers/microsoft/) | Teams, Calendar, OneDrive | ✅ Available |
-| [Google Meet](./providers/google/google-meet.md) | Meeting integration | 🔜 Coming Soon |
+| [Google Meet](./providers/google/google-meet.md) | Meeting creation, sync | ✅ Available |
 
 ### Productivity
 | Provider | Features | Status |
@@ -212,5 +212,5 @@ Check integration status in your app:
 
 ---
 
-**Last Updated:** January 28, 2026  
-**Version:** 1.1.0
+**Last Updated:** February 4, 2026
+**Version:** 1.2.0
