@@ -185,7 +185,7 @@ serve(async (req) => {
       const { data: existingMeeting } = await supabaseClient
         .from('meetings')
         .select('id')
-        .or(`external_id.eq.${eventId},google_meet_id.eq.${eventId}`)
+        .eq('external_id', eventId)
         .single()
 
       let meetingId = existingMeeting?.id
@@ -202,8 +202,7 @@ serve(async (req) => {
         external_meeting_id: eventId,
         join_url: meetLink,
         host_url: meetLink,
-        google_meet_id: eventId,
-        google_meet_link: meetLink,
+        organizer_id: user.id,
       }
 
       if (!meetingId) {
