@@ -1,103 +1,108 @@
 
-# Plan: Fix Google Meet OAuth Callback - Missing Provider Mapping
+# Plan: Create Missing `sync-google-meet` Edge Function
 
-## Problem Identified
+## Problem Analysis
 
-When users click "Connect with Google" on the Google Meet integration page, the OAuth flow redirects to Google successfully, but after granting permissions, users are redirected to:
-```
-http://localhost:5173/settings?error=Invalid%20URL%3A%20%27%27
-```
+The CORS error is occurring because the `sync-google-meet` edge function **does not exist**. When a user clicks "Sync Meetings" on the Google Meet integration page:
 
-### Root Cause
-
-The `user-oauth-callback` edge function is missing the `google-meet` provider in two critical mappings:
-
-1. **Token Endpoint Mapping (line 29-35)**: Returns empty string for `google-meet`
-2. **User Info Endpoint (line 38-56)**: Returns empty object for `google-meet`
-
-When the callback receives `provider: "google-meet"` from the oauth_states table, it attempts to fetch tokens from an empty URL, causing the `"Invalid URL: ''"` error.
+1. The frontend calls `supabase.functions.invoke('sync-google-meet', ...)`
+2. Supabase returns an error (function not found) without CORS headers
+3. The browser blocks the response with: `Response to preflight request doesn't pass access control check`
 
 ## Solution
 
-Update the `user-oauth-callback` edge function to handle the `google-meet` provider by mapping it to Google's OAuth endpoints (since Google Meet uses the same Google OAuth infrastructure as regular Google).
+Create the `sync-google-meet` edge function following the same pattern as the existing `sync-zoom-files` function, but adapted for Google Calendar/Meet APIs.
 
 ## Implementation
 
-### File: supabase/functions/user-oauth-callback/index.ts
+### File 1: `supabase/functions/sync-google-meet/index.ts` (CREATE)
 
-**Change 1: Add `google-meet` to token endpoint mapping (lines 29-36)**
+New edge function that:
+- Handles CORS preflight requests properly
+- Validates JWT authentication manually (ES256 compatibility)
+- Fetches user's OAuth token from `user_oauth_tokens` table
+- Refreshes expired tokens using Google's OAuth endpoint
+- Calls Google Calendar API to fetch events with Meet links
+- Syncs meeting data to the `meetings` and `meeting_files` tables
+- Returns sync results with proper CORS headers
 
-```typescript
-const getTokenEndpoint = (provider: string): string => {
-  const endpoints: Record<string, string> = {
-    google: "https://oauth2.googleapis.com/token",
-    "google-meet": "https://oauth2.googleapis.com/token",  // ADD THIS LINE
-    zoom: "https://zoom.us/oauth/token",
-    microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-  };
-  return endpoints[provider] || "";
-};
+Key structure:
+```text
++------------------------+
+|  CORS Headers Setup    |
++------------------------+
+         |
+         v
++------------------------+
+|  OPTIONS Handler       |
++------------------------+
+         |
+         v
++------------------------+
+|  JWT Validation        |
++------------------------+
+         |
+         v
++------------------------+
+|  Get OAuth Token       |
++------------------------+
+         |
+         v
++------------------------+
+|  Refresh if Expired    |
++------------------------+
+         |
+         v
++------------------------+
+|  Fetch Google Calendar |
+|  Events with Meet Link |
++------------------------+
+         |
+         v
++------------------------+
+|  Sync to Database      |
++------------------------+
+         |
+         v
++------------------------+
+|  Return Results        |
++------------------------+
 ```
 
-**Change 2: Add `google-meet` case to getUserInfo function (lines 44-56)**
+### File 2: `supabase/config.toml` (MODIFY)
 
-```typescript
-switch (provider) {
-  case "google":
-  case "google-meet":  // ADD THIS CASE
-    url = "https://www.googleapis.com/oauth2/v2/userinfo";
-    break;
-  // ... rest of cases
-}
+Add configuration for the new function:
+```toml
+[functions.sync-google-meet]
+verify_jwt = false
 ```
 
-**Change 3: Add `google-meet` case to user info normalization (lines 68-75)**
-
-```typescript
-switch (provider) {
-  case "google":
-  case "google-meet":  // ADD THIS CASE
-    return {
-      email: data.email,
-      name: data.name,
-      picture: data.picture,
-    };
-  // ... rest of cases
-}
-```
-
-**Change 4: Update redirect logic for Google Meet success (lines 231-239)**
-
-```typescript
-let finalRedirect;
-if (provider === "zoom") {
-  finalRedirect = `${appUrl}/admin/integrations/zoom`;
-} else if (provider === "google-meet") {  // ADD THIS CONDITION
-  finalRedirect = `${appUrl}/admin/integrations/google-meet`;
-} else if (redirect_uri && !redirect_uri.includes("undefined")) {
-  finalRedirect = redirect_uri;
-} else {
-  finalRedirect = `${appUrl}/settings`;
-}
-```
+This disables gateway JWT verification (required for ES256 token compatibility) - authentication is handled manually in code.
 
 ## Files Changed
 
 | File | Action | Description |
 |------|--------|-------------|
-| `supabase/functions/user-oauth-callback/index.ts` | MODIFY | Add google-meet provider support in token endpoint, user info fetch, and redirect logic |
+| `supabase/functions/sync-google-meet/index.ts` | CREATE | New edge function for syncing Google Meet meetings |
+| `supabase/config.toml` | MODIFY | Add function configuration with `verify_jwt = false` |
 
-## Testing Steps
+## Google Calendar API Integration
 
-After deployment:
-1. Navigate to `/admin/integrations/google-meet`
-2. Click "Connect with Google"
-3. Complete Google OAuth consent flow
-4. Verify redirect to `/admin/integrations/google-meet?connected=google-meet`
-5. Verify user's Google account shows as connected
+The function will use these Google APIs:
+- **Token Endpoint**: `https://oauth2.googleapis.com/token` (for refreshing tokens)
+- **Calendar Events**: `https://www.googleapis.com/calendar/v3/calendars/primary/events` (for fetching meetings)
+
+Filter criteria for Google Meet events:
+- Events with `conferenceData.conferenceSolution.key.type === 'hangoutsMeet'`
+- Date range: last 30 days by default
 
 ## Technical Notes
 
-- Google Meet uses the same Google OAuth2 infrastructure as regular Google services
-- The token exchange and user info endpoints are identical
-- Only the scopes differ (calendar + meet vs drive), which are already correctly configured in `user-oauth-connect`
+1. **CORS Headers**: Include all required headers per project standards:
+   - `authorization`, `x-client-info`, `apikey`, `content-type`, `x-supabase-client-platform`
+
+2. **OAuth Token Refresh**: Uses org-level credentials from `organization_integrations` table with `provider_id` for Google Meet
+
+3. **Dual-Write Pattern**: Following the existing pattern from `sync-zoom-files`, the function writes to both provider-specific and generic meeting tables for backward compatibility
+
+4. **Error Handling**: All responses (including errors) include CORS headers to prevent browser blocking
