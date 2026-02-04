@@ -35,6 +35,7 @@ import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeeti
 import { SendTeamsMessageDialog } from "@/components/integrations/SendTeamsMessageDialog";
 import { ChannelMessagesSection } from "@/components/integrations/ChannelMessagesSection";
 import { cn } from "@/lib/utils";
+import { integrationKeys } from "@/hooks/useIntegrations";
 
 interface GraphTestResult {
   success: boolean;
@@ -145,6 +146,31 @@ export default function MicrosoftTeamsIntegration() {
               setIsConnected(true);
               setHasValidToken(true);
               localStorage.setItem('isAzureADUser', 'true');
+              
+              // Update organization_integrations table
+              const { data: microsoftTeamsProvider } = await supabase
+                .from('integration_providers')
+                .select('id')
+                .eq('slug', 'microsoft-teams')
+                .single();
+              
+              if (microsoftTeamsProvider && user) {
+                await supabase
+                  .from('organization_integrations')
+                  .upsert({
+                    user_id: user.id,
+                    provider_id: microsoftTeamsProvider.id,
+                    enabled: true,
+                    connection_status: 'connected',
+                    last_tested_at: new Date().toISOString(),
+                  }, {
+                    onConflict: 'user_id,provider_id',
+                  });
+                
+                // Invalidate queries to refresh the UI
+                queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
+              }
+              
               toast({
                 title: "Connected successfully!",
                 description: "Your Microsoft account has been connected.",
@@ -160,6 +186,41 @@ export default function MicrosoftTeamsIntegration() {
         
         const isAzureADUser = localStorage.getItem('isAzureADUser') === 'true';
         setIsConnected(isAzureADUser);
+        
+        // Also check and update org integration if connected via localStorage
+        if (isAzureADUser && user) {
+          const { data: microsoftTeamsProvider } = await supabase
+            .from('integration_providers')
+            .select('id')
+            .eq('slug', 'microsoft-teams')
+            .single();
+          
+          if (microsoftTeamsProvider) {
+            const { data: existingIntegration } = await supabase
+              .from('organization_integrations')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('provider_id', microsoftTeamsProvider.id)
+              .maybeSingle();
+            
+            // Only update if not already connected
+            if (!existingIntegration || existingIntegration.connection_status !== 'connected') {
+              await supabase
+                .from('organization_integrations')
+                .upsert({
+                  user_id: user.id,
+                  provider_id: microsoftTeamsProvider.id,
+                  enabled: true,
+                  connection_status: 'connected',
+                  last_tested_at: new Date().toISOString(),
+                }, {
+                  onConflict: 'user_id,provider_id',
+                });
+              
+              queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
+            }
+          }
+        }
       } catch (error) {
         console.error('Error checking connection status:', error);
       } finally {
@@ -168,7 +229,7 @@ export default function MicrosoftTeamsIntegration() {
     };
 
     checkConnectionAndHandleRedirect();
-  }, [user, toast]);
+  }, [user, toast, queryClient]);
 
   const handleRefreshConnection = async () => {
     setRefreshingToken(true);
@@ -213,6 +274,32 @@ export default function MicrosoftTeamsIntegration() {
         const result = await completeAzureLoginFromRedirect();
         if (result?.user) {
           setIsConnected(true);
+          localStorage.setItem('isAzureADUser', 'true');
+          
+          // Update organization_integrations table
+          const { data: microsoftTeamsProvider } = await supabase
+            .from('integration_providers')
+            .select('id')
+            .eq('slug', 'microsoft-teams')
+            .single();
+          
+          if (microsoftTeamsProvider && user) {
+            await supabase
+              .from('organization_integrations')
+              .upsert({
+                user_id: user.id,
+                provider_id: microsoftTeamsProvider.id,
+                enabled: true,
+                connection_status: 'connected',
+                last_tested_at: new Date().toISOString(),
+              }, {
+                onConflict: 'user_id,provider_id',
+              });
+            
+            // Invalidate queries to refresh the UI
+            queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
+          }
+          
           toast({
             title: "Connected successfully!",
             description: "Your Microsoft account has been connected.",
