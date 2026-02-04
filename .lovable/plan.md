@@ -1,88 +1,84 @@
 
+# Plan: Fix Missing Google Meet Integration Fields in Database
 
-# Plan: Fix CORS Error by Creating Edge Function Proxy for Zoom Meeting Creation
+## Problem Identified
 
-## Problem
-The `createZoomMeeting` function in `src/lib/zoomMeetingService.ts` is calling the Zoom API directly from the browser:
-```typescript
-const response = await fetch('https://api.zoom.us/v2/users/me/meetings', { ... });
-```
+The Google Meet integration page shows "Loading configuration fields..." because **no rows exist in the `integration_fields` table** for the Google Meet provider.
 
-This fails with a CORS error because Zoom's API is designed for server-to-server communication and doesn't include CORS headers for browser requests.
+**Root Cause Analysis:**
+- The query `SELECT * FROM integration_fields WHERE provider_id = '815ebb95-78cd-4fcf-a90e-7087006b3ea7'` returns an empty array `[]`
+- The component checks `integrationFields && integrationFields.length > 0` (line 316), which fails since the array is empty
+- This causes the fallback message "Loading configuration fields..." to display instead of the actual form fields
+
+**Database Evidence:**
+- Google Meet provider exists with ID: `815ebb95-78cd-4fcf-a90e-7087006b3ea7`
+- Zoom provider has fields configured: `client_id` (text) and `client_secret` (password)
+- Google Meet has no corresponding field entries
 
 ## Solution
-Create a new Edge Function `create-zoom-meeting` that acts as a proxy between the frontend and the Zoom API. This follows the same pattern as the existing `sync-zoom-files` function.
+
+Insert the missing `integration_fields` rows for Google Meet, matching the same pattern as Zoom since both use OAuth2 with client ID and client secret.
 
 ## Implementation
 
-### 1. Create Edge Function: `supabase/functions/create-zoom-meeting/index.ts`
+### Database Migration
 
-This function will:
-- Authenticate the user via JWT validation
-- Retrieve the user's Zoom OAuth token from the database
-- Handle token refresh if expired
-- Make the server-to-server request to Zoom API
-- Return the response with proper CORS headers
+Execute an SQL migration to insert the missing fields:
 
-```text
-Request Flow:
-Browser → Edge Function → Zoom API
-                ↓
-         (CORS headers added)
-                ↓
-Browser ← Edge Function ← Zoom API Response
+```sql
+-- Insert Google Meet integration fields (client_id and client_secret)
+INSERT INTO integration_fields (
+  provider_id,
+  field_key,
+  label,
+  field_type,
+  is_required,
+  display_order,
+  placeholder,
+  help_text
+)
+VALUES
+  (
+    '815ebb95-78cd-4fcf-a90e-7087006b3ea7',
+    'client_id',
+    'Client ID',
+    'text',
+    true,
+    1,
+    'Enter your Google OAuth Client ID',
+    'Get this from the Google Cloud Console under APIs & Services > Credentials'
+  ),
+  (
+    '815ebb95-78cd-4fcf-a90e-7087006b3ea7',
+    'client_secret',
+    'Client Secret',
+    'password',
+    true,
+    2,
+    'Enter your Google OAuth Client Secret',
+    'Get this from the Google Cloud Console under APIs & Services > Credentials'
+  );
 ```
 
-### 2. Update `supabase/config.toml`
+## Result After Fix
 
-Add the new function with `verify_jwt = false` to support ES256 token validation (as per project standards).
+After executing this migration:
+1. The Google Meet integration page will display two input fields:
+   - **Client ID** - Text input for the OAuth client ID
+   - **Client Secret** - Password input (masked) for the OAuth client secret
+2. The "Loading configuration fields..." message will be replaced with the actual form
+3. Users can save their Google OAuth credentials and connect their Google accounts
 
-### 3. Update `src/lib/zoomMeetingService.ts`
-
-Change from direct Zoom API call to calling the edge function:
-```typescript
-// Before (CORS error)
-const response = await fetch('https://api.zoom.us/v2/users/me/meetings', { ... });
-
-// After (works via proxy)
-const { data, error } = await supabase.functions.invoke('create-zoom-meeting', {
-  body: { topic, start_time, duration, timezone, agenda, settings, registrants }
-});
-```
-
-## Files to Create/Modify
+## Files Changed
 
 | File | Action |
 |------|--------|
-| `supabase/functions/create-zoom-meeting/index.ts` | **Create** - New edge function proxy |
-| `supabase/config.toml` | **Modify** - Add function config |
-| `src/lib/zoomMeetingService.ts` | **Modify** - Use edge function instead of direct API call |
+| Database migration | **CREATE** - Insert missing `integration_fields` rows |
 
-## Technical Details
+No frontend code changes required - the existing component already handles displaying fields dynamically.
 
-### Edge Function Implementation
+## Technical Notes
 
-The edge function will:
-1. Handle CORS preflight (OPTIONS) requests
-2. Validate the user's JWT token manually (ES256 compatibility)
-3. Retrieve user's Zoom OAuth token from `user_oauth_tokens` table
-4. Refresh token if expired using org credentials from `organization_integrations`
-5. Make POST request to `https://api.zoom.us/v2/users/me/meetings`
-6. Return Zoom's response with CORS headers
-
-### Security Considerations
-
-- User authentication validated via JWT before any Zoom API calls
-- Zoom OAuth tokens retrieved server-side (never exposed to browser)
-- Token refresh handled automatically with proper credential management
-- CORS headers only added for authenticated responses
-
-## Expected Result
-
-After implementation:
-1. User clicks "Create Zoom Meeting" in the app
-2. Frontend calls `create-zoom-meeting` edge function
-3. Edge function authenticates user, retrieves Zoom token, calls Zoom API
-4. Meeting is created successfully without CORS errors
-5. Response returned to frontend with meeting details
-
+- The field structure matches Zoom's OAuth configuration pattern
+- `field_type: 'password'` ensures the client secret is masked in the UI
+- The `DynamicFormField` component already handles both `text` and `password` field types correctly
