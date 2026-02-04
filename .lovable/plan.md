@@ -1,84 +1,103 @@
 
-# Plan: Fix Missing Google Meet Integration Fields in Database
+# Plan: Fix Google Meet OAuth Callback - Missing Provider Mapping
 
 ## Problem Identified
 
-The Google Meet integration page shows "Loading configuration fields..." because **no rows exist in the `integration_fields` table** for the Google Meet provider.
+When users click "Connect with Google" on the Google Meet integration page, the OAuth flow redirects to Google successfully, but after granting permissions, users are redirected to:
+```
+http://localhost:5173/settings?error=Invalid%20URL%3A%20%27%27
+```
 
-**Root Cause Analysis:**
-- The query `SELECT * FROM integration_fields WHERE provider_id = '815ebb95-78cd-4fcf-a90e-7087006b3ea7'` returns an empty array `[]`
-- The component checks `integrationFields && integrationFields.length > 0` (line 316), which fails since the array is empty
-- This causes the fallback message "Loading configuration fields..." to display instead of the actual form fields
+### Root Cause
 
-**Database Evidence:**
-- Google Meet provider exists with ID: `815ebb95-78cd-4fcf-a90e-7087006b3ea7`
-- Zoom provider has fields configured: `client_id` (text) and `client_secret` (password)
-- Google Meet has no corresponding field entries
+The `user-oauth-callback` edge function is missing the `google-meet` provider in two critical mappings:
+
+1. **Token Endpoint Mapping (line 29-35)**: Returns empty string for `google-meet`
+2. **User Info Endpoint (line 38-56)**: Returns empty object for `google-meet`
+
+When the callback receives `provider: "google-meet"` from the oauth_states table, it attempts to fetch tokens from an empty URL, causing the `"Invalid URL: ''"` error.
 
 ## Solution
 
-Insert the missing `integration_fields` rows for Google Meet, matching the same pattern as Zoom since both use OAuth2 with client ID and client secret.
+Update the `user-oauth-callback` edge function to handle the `google-meet` provider by mapping it to Google's OAuth endpoints (since Google Meet uses the same Google OAuth infrastructure as regular Google).
 
 ## Implementation
 
-### Database Migration
+### File: supabase/functions/user-oauth-callback/index.ts
 
-Execute an SQL migration to insert the missing fields:
+**Change 1: Add `google-meet` to token endpoint mapping (lines 29-36)**
 
-```sql
--- Insert Google Meet integration fields (client_id and client_secret)
-INSERT INTO integration_fields (
-  provider_id,
-  field_key,
-  label,
-  field_type,
-  is_required,
-  display_order,
-  placeholder,
-  help_text
-)
-VALUES
-  (
-    '815ebb95-78cd-4fcf-a90e-7087006b3ea7',
-    'client_id',
-    'Client ID',
-    'text',
-    true,
-    1,
-    'Enter your Google OAuth Client ID',
-    'Get this from the Google Cloud Console under APIs & Services > Credentials'
-  ),
-  (
-    '815ebb95-78cd-4fcf-a90e-7087006b3ea7',
-    'client_secret',
-    'Client Secret',
-    'password',
-    true,
-    2,
-    'Enter your Google OAuth Client Secret',
-    'Get this from the Google Cloud Console under APIs & Services > Credentials'
-  );
+```typescript
+const getTokenEndpoint = (provider: string): string => {
+  const endpoints: Record<string, string> = {
+    google: "https://oauth2.googleapis.com/token",
+    "google-meet": "https://oauth2.googleapis.com/token",  // ADD THIS LINE
+    zoom: "https://zoom.us/oauth/token",
+    microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+  };
+  return endpoints[provider] || "";
+};
 ```
 
-## Result After Fix
+**Change 2: Add `google-meet` case to getUserInfo function (lines 44-56)**
 
-After executing this migration:
-1. The Google Meet integration page will display two input fields:
-   - **Client ID** - Text input for the OAuth client ID
-   - **Client Secret** - Password input (masked) for the OAuth client secret
-2. The "Loading configuration fields..." message will be replaced with the actual form
-3. Users can save their Google OAuth credentials and connect their Google accounts
+```typescript
+switch (provider) {
+  case "google":
+  case "google-meet":  // ADD THIS CASE
+    url = "https://www.googleapis.com/oauth2/v2/userinfo";
+    break;
+  // ... rest of cases
+}
+```
+
+**Change 3: Add `google-meet` case to user info normalization (lines 68-75)**
+
+```typescript
+switch (provider) {
+  case "google":
+  case "google-meet":  // ADD THIS CASE
+    return {
+      email: data.email,
+      name: data.name,
+      picture: data.picture,
+    };
+  // ... rest of cases
+}
+```
+
+**Change 4: Update redirect logic for Google Meet success (lines 231-239)**
+
+```typescript
+let finalRedirect;
+if (provider === "zoom") {
+  finalRedirect = `${appUrl}/admin/integrations/zoom`;
+} else if (provider === "google-meet") {  // ADD THIS CONDITION
+  finalRedirect = `${appUrl}/admin/integrations/google-meet`;
+} else if (redirect_uri && !redirect_uri.includes("undefined")) {
+  finalRedirect = redirect_uri;
+} else {
+  finalRedirect = `${appUrl}/settings`;
+}
+```
 
 ## Files Changed
 
-| File | Action |
-|------|--------|
-| Database migration | **CREATE** - Insert missing `integration_fields` rows |
+| File | Action | Description |
+|------|--------|-------------|
+| `supabase/functions/user-oauth-callback/index.ts` | MODIFY | Add google-meet provider support in token endpoint, user info fetch, and redirect logic |
 
-No frontend code changes required - the existing component already handles displaying fields dynamically.
+## Testing Steps
+
+After deployment:
+1. Navigate to `/admin/integrations/google-meet`
+2. Click "Connect with Google"
+3. Complete Google OAuth consent flow
+4. Verify redirect to `/admin/integrations/google-meet?connected=google-meet`
+5. Verify user's Google account shows as connected
 
 ## Technical Notes
 
-- The field structure matches Zoom's OAuth configuration pattern
-- `field_type: 'password'` ensures the client secret is masked in the UI
-- The `DynamicFormField` component already handles both `text` and `password` field types correctly
+- Google Meet uses the same Google OAuth2 infrastructure as regular Google services
+- The token exchange and user info endpoints are identical
+- Only the scopes differ (calendar + meet vs drive), which are already correctly configured in `user-oauth-connect`
