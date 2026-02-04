@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Video, CheckCircle2, AlertCircle, Loader2, RefreshCw, Eye, Calendar, Settings, Copy, ExternalLink, Save } from "lucide-react";
+import { Video, CheckCircle2, AlertCircle, Loader2, RefreshCw, Eye, Calendar, Settings, Copy, ExternalLink, Save, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSyncGoogleMeet } from "@/hooks/useSyncGoogleMeet";
@@ -23,6 +23,7 @@ import {
   useUpdateIntegration 
 } from "@/hooks/useIntegrations";
 import { DynamicFormField } from "@/components/integrations/DynamicFormField";
+import { CreateGoogleMeetMeetingDialog } from "@/components/meetings/CreateGoogleMeetMeetingDialog";
 
 export default function GoogleMeetIntegration() {
   const { user } = useAuth();
@@ -572,6 +573,42 @@ export default function GoogleMeetIntegration() {
                 <strong>Note:</strong> Requires Google OAuth permissions for calendar.readonly. 
                 If you see a permission error, disconnect and reconnect your Google account.
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Create Google Meet Meeting Card */}
+        {isConnected && hasValidToken && (
+          <Card className="border-2 hover:border-primary/50 transition-colors">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30">
+                  <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                Create Google Meet Meeting
+              </CardTitle>
+              <CardDescription>
+                Schedule a new Google Meet meeting directly from the app
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <CreateGoogleMeetMeetingDialog 
+                trigger={
+                  <Button size="lg" className="w-full sm:w-auto">
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Google Meet Meeting
+                  </Button>
+                }
+              />
+              
+              <div className="rounded-lg bg-muted/50 p-3 border border-muted">
+                <p className="text-sm text-muted-foreground flex items-start gap-2">
+                  <Video className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Create meetings with title, time, description, and optional attendees. The meeting will be saved locally and added to your Google Calendar. Attendees will receive email invites.
+                  </span>
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
