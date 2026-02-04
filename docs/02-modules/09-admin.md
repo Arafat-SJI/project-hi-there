@@ -216,7 +216,7 @@ Legend:
 |------|-------|------|------|---------|--------|
 | UserManagement | `/admin/users` | Supabase query | Yes | `profiles`, `user_roles` | Full CRUD |
 | RoleManagement | `/admin/roles` | useRoles hook | Yes | `roles`, `role_permissions` | Full CRUD |
-| ActivityLogs | `/admin/logs` | None | No | — | Static UI (placeholder) |
+| ActivityLogs | `/admin/logs` | Supabase query (demo fallback) | No | `activity_logs`, `profiles` | Read-only (demo fallback) |
 
 #### Team & Resources
 
@@ -271,7 +271,7 @@ Legend:
 | Page | Route | Data | CRUD | Backend | Status |
 |------|-------|------|------|---------|--------|
 | AIModelManagement | `/admin/ai-models` | Supabase query | Yes | `ai_models`, `ai_providers` | Full CRUD |
-| AIUsageAnalytics | `/admin/ai-usage` | None | No | — | Static UI (placeholder) |
+| AIUsageAnalytics | `/admin/ai-usage` | Supabase query | No | `ai_usage_logs`, `ai_models`, `profiles` | Read-only |
 | MCPServers | `/admin/mcp-servers` | Supabase query | Yes | `mcp_servers` + `execute-mcp-tool`, `verify-mcp-server` edge fns | Full CRUD |
 
 #### Content & Feedback
@@ -309,17 +309,17 @@ Legend:
 | Total admin page files | 41 |
 | Pages with Full CRUD | 16 |
 | Pages with Read + Action | 4 |
-| Pages Read-only | 14 |
-| Pages Static UI / Placeholder | 4 |
+| Pages Read-only | 16 |
+| Pages Static UI / Placeholder | 2 |
 
-### Pages Needing Backend Work
+### Pages Needing Fixes
 
-| Page | What's Missing |
-|------|----------------|
-| ActivityLogs | No data queries — needs `activity_logs` table query |
-| AIUsageAnalytics | No data queries — needs `ai_usage_logs` table aggregation |
+| Page | Issue |
+|------|-------|
+| ActivityLogs | Uses `@/lib/supabase` import + `(supabase as any)` cast + demo data fallback — table is typed, just needs cleanup |
+| AIUsageAnalytics | Uses `@/lib/supabase` import — needs canonical import path |
 | Admin Dashboard | Static cards — could pull real counts from modules |
-| ProductRoadmap | Hardcoded — could pull from `app_modules` + real status |
+| ProductRoadmap | Hardcoded JSON from shared file |
 
 ---
 
@@ -401,7 +401,7 @@ Legend:
 | Frontend | Done | 38 routes, 41 page files. 16 Full CRUD, 14 Read-only, 4 Static |
 | Database | — | Operates on tables from all other modules |
 | Edge Functions | Done | 6 admin-specific (promote-to-admin, promote-first-admin, check-environment, run-seed, seed-template-data, log-activity) |
-| Known Issues | — | 4 pages have no backend data (ActivityLogs, AIUsageAnalytics, Admin Dashboard, ProductRoadmap) |
+| Known Issues | — | 2 pages have no backend data (Admin Dashboard, ProductRoadmap). 2 pages use non-standard imports (ActivityLogs, AIUsageAnalytics) |
 
 ---
 
@@ -418,9 +418,101 @@ Legend:
 ### Deferred to Post-MVP
 - Data sync dashboards (HR, HubSpot, ActiveCollab)
 - Notification management admin page
-- ActivityLogs backend wiring
-- AIUsageAnalytics backend wiring
-- Admin Dashboard real data widgets
+- Admin Dashboard real data widgets (replace static cards with live counts)
+
+---
+
+## Developer Task: Shahed — 4-Hour Sprint
+
+**Assigned to:** Shahed
+**Modules owned:** Platform Core, Knowledge Base, Admin, AI Agents
+**Goal:** Fix import inconsistencies, eliminate `(supabase as any)` casts, clean up orphaned code
+
+### Task 1: Fix non-standard Supabase imports (30 min)
+
+Several admin pages import from `@/lib/supabase` instead of the canonical `@/integrations/supabase/client`. Fix all occurrences:
+
+| File | Line | Current Import | Fix |
+|------|------|----------------|-----|
+| `src/pages/admin/ActivityLogs.tsx` | 31 | `@/lib/supabase` | `@/integrations/supabase/client` |
+| `src/pages/admin/AIUsageAnalytics.tsx` | 30 | `@/lib/supabase` | `@/integrations/supabase/client` |
+
+Also search for any other files using `@/lib/supabase` and fix them.
+
+### Task 2: Fix ActivityLogs — remove `as any` cast and demo fallback (30 min)
+
+`ActivityLogs.tsx` queries the `activity_logs` table using `(supabase as any)` cast, but the table IS in the generated Supabase types. Fix:
+
+1. Change import to `@/integrations/supabase/client`
+2. Remove `as any` cast on line 147: `supabase.from("activity_logs" as any)` → `supabase.from("activity_logs")`
+3. Remove the `DEMO_LOGS` array and `usingDemoData` state — show empty state instead of fake data
+4. Add proper TypeScript types from `Database['public']['Tables']['activity_logs']['Row']`
+
+### Task 3: Regenerate Supabase types for 5 untyped tables (45 min)
+
+5 tables are queried via `(supabase as any)` because they lack generated types. Run `supabase gen types typescript` to regenerate, OR manually add type definitions for:
+
+| Table | Used In | Cast Count |
+|-------|---------|------------|
+| `sso_configurations` | `useAuthConfig.ts` | 3 |
+| `sso_domain_allowlist` | `useAuthConfig.ts` | 2 |
+| `work_types` | `useWorkTypes.ts` | 3 |
+| `user_agent_personalizations` | Knowledge module hooks | varies |
+| `user_knowledge_sources` | Knowledge module hooks | varies |
+
+After regenerating types, update the hooks to remove `(supabase as any)` casts and use proper typed queries.
+
+### Task 4: Fix `(supabase as any)` casts in useAuthConfig (30 min)
+
+`src/hooks/useAuthConfig.ts` has 8 `(supabase as any)` casts for `sso_configurations` and `sso_domain_allowlist`. After Task 3 adds the types:
+
+1. Replace all `(supabase as any).from('sso_configurations')` with `supabase.from('sso_configurations')`
+2. Replace all `(supabase as any).from('sso_domain_allowlist')` with `supabase.from('sso_domain_allowlist')`
+3. Add proper return types using the generated table types
+
+### Task 5: Clean up orphaned Knowledge hooks (30 min)
+
+3 hooks in the Knowledge module are exported but never imported anywhere:
+
+| Hook | File | Action |
+|------|------|--------|
+| `useSemanticMemorySearch` | `src/modules/knowledge/hooks/useSemanticMemorySearch.ts` | Remove export or delete file if only export |
+| `useGeminiRAG` | `src/modules/knowledge/hooks/useGeminiRAG.ts` | Remove export or delete file if only export |
+| `useKnowledgeDocuments` | `src/modules/knowledge/hooks/useKnowledgeDocuments.ts` | Remove export or delete file if only export |
+
+Verify no other file imports these before removing. Run `npx tsc --noEmit` after each removal.
+
+### Task 6: Fix remaining `(supabase as any)` casts in Knowledge module (45 min)
+
+The Knowledge module has 19 `(supabase as any)` casts across its hooks. After Task 3 provides types:
+
+1. Search all files in `src/modules/knowledge/` for `(supabase as any)`
+2. Replace with typed `supabase.from(...)` calls
+3. Fix any TypeScript errors from the type changes
+4. Verify build passes
+
+### Verification
+
+After all tasks, run:
+```bash
+# Check no @/lib/supabase imports remain
+grep -r "@/lib/supabase" src/ --include="*.ts" --include="*.tsx"
+
+# Check remaining (supabase as any) casts (should be ~30 fewer)
+grep -rn "(supabase as any)" src/ --include="*.ts" --include="*.tsx" | wc -l
+
+# Verify build
+npx tsc --noEmit
+```
+
+**Expected outcomes:**
+- 0 files importing from `@/lib/supabase`
+- ~25 fewer `(supabase as any)` casts (from 57 → ~30)
+- ActivityLogs shows real data without demo fallback
+- All Knowledge hooks either used or removed
+- Clean TypeScript build
+
+---
 
 ## Implementation Notes
 - All admin routes wrap with `<ProtectedRoute><AdminRoute><AdminLayout>...</AdminLayout></AdminRoute></ProtectedRoute>`
