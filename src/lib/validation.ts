@@ -209,3 +209,63 @@ export const createZoomMeetingSchema = z.object({
 });
 
 export type CreateZoomMeetingInput = z.infer<typeof createZoomMeetingSchema>;
+
+// Google Meet meeting creation schema with production-safe validation
+export const createGoogleMeetMeetingSchema = z.object({
+  title: z.string()
+    .min(1, "Title is required")
+    .max(200, "Title must be less than 200 characters")
+    .trim(),
+  
+  startDateTime: z.string()
+    .min(1, "Start time is required")
+    .refine((val) => {
+      const date = new Date(val);
+      return !isNaN(date.getTime());
+    }, "Invalid start date/time")
+    .refine((val) => {
+      const date = new Date(val);
+      // Allow 1 minute buffer for form submission
+      return date.getTime() > Date.now() - 60000;
+    }, "Start time must be in the future"),
+  
+  endDateTime: z.string()
+    .min(1, "End time is required")
+    .refine((val) => {
+      const date = new Date(val);
+      return !isNaN(date.getTime());
+    }, "Invalid end date/time"),
+  
+  attendees: z.array(
+    z.string().email("Invalid email address").trim().toLowerCase()
+  ).optional().default([]),
+  
+  description: z.string().optional(),
+}).refine((data) => {
+  const start = new Date(data.startDateTime);
+  const end = new Date(data.endDateTime);
+  return end > start;
+}, {
+  message: "End time must be after start time",
+  path: ["endDateTime"],
+}).refine((data) => {
+  const start = new Date(data.startDateTime);
+  const end = new Date(data.endDateTime);
+  const durationMs = end.getTime() - start.getTime();
+  const maxDuration = 24 * 60 * 60 * 1000; // 24 hours
+  return durationMs <= maxDuration;
+}, {
+  message: "Meeting cannot be longer than 24 hours",
+  path: ["endDateTime"],
+}).refine((data) => {
+  const start = new Date(data.startDateTime);
+  const end = new Date(data.endDateTime);
+  const durationMs = end.getTime() - start.getTime();
+  const minDuration = 5 * 60 * 1000; // 5 minutes
+  return durationMs >= minDuration;
+}, {
+  message: "Meeting must be at least 5 minutes",
+  path: ["endDateTime"],
+});
+
+export type CreateGoogleMeetMeetingInput = z.infer<typeof createGoogleMeetMeetingSchema>;
