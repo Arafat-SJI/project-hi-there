@@ -316,7 +316,7 @@ export function useToggleBookmark() {
       if (!user) throw new Error("User not authenticated");
 
       // Check if already bookmarked
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from("knowledge_bookmarks")
         .select("id")
         .eq("user_id", user.id)
@@ -324,14 +324,14 @@ export function useToggleBookmark() {
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("knowledge_bookmarks")
           .delete()
           .eq("id", existing.id);
         if (error) throw error;
         return { bookmarked: false };
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("knowledge_bookmarks")
           .insert({ user_id: user.id, entry_id: entryId });
         if (error) throw error;
@@ -368,7 +368,7 @@ export function useBookmarkedEntries() {
   return useQuery({
     queryKey: ["knowledge-bookmarks", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("knowledge_bookmarks")
         .select("*, knowledge_entries(*, knowledge_categories(*))")
         .eq("user_id", user!.id)
@@ -390,7 +390,7 @@ export function useIsBookmarked(entryId: string) {
   return useQuery({
     queryKey: ["knowledge-bookmark-status", entryId, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("knowledge_bookmarks")
         .select("id")
         .eq("user_id", user!.id)
