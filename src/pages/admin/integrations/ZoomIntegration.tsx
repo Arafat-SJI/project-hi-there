@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Video, CheckCircle2, AlertCircle, Loader2, RefreshCw, Eye, Calendar, Settings, Copy, ExternalLink, Save, Plus } from "lucide-react";
+import { Video, CheckCircle2, AlertCircle, Loader2, RefreshCw, Eye, Calendar, Settings, Copy, ExternalLink, Save, Plus, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSyncZoom } from "@/hooks/useSyncZoom";
@@ -194,16 +194,29 @@ export default function ZoomIntegration() {
   return (
     <div className="container mx-auto p-6 max-w-5xl">
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+              <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Zoom Integration</h1>
+              <p className="text-muted-foreground mt-1.5">
+                Connect your Zoom account to sync meetings, recordings, and transcripts
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Zoom Integration</h1>
-            <p className="text-muted-foreground mt-1.5">
-              Connect your Zoom account to sync meetings, recordings, and transcripts
-            </p>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="flex items-center gap-2"
+          >
+            <Link to="/admin/integrations/zoom/documentation">
+              <BookOpen className="h-4 w-4" />
+              Documentation
+            </Link>
+          </Button>
         </div>
       </div>
 
