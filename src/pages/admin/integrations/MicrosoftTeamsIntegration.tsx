@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus, MessageSquare, Eye, CalendarDays } from "lucide-react";
+import { Building2, CheckCircle2, AlertCircle, Loader2, Play, User, Clock, Key, Users, RefreshCw, ChevronDown, ChevronRight, Hash, Lock, Share2, Calendar, Video, Plus, MessageSquare, Eye, CalendarDays, ArrowLeft, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MicrosoftCalendarView } from "@/components/integrations/MicrosoftCalendarView";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -449,100 +449,128 @@ export default function MicrosoftTeamsIntegration() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-5xl">
+    <div className="container mx-auto p-6 max-w-6xl">
+      {/* Header Section */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Microsoft Teams Integration</h1>
-            <p className="text-muted-foreground mt-1.5">
-              Connect your Microsoft account to enable Teams integration and Single Sign-On (SSO)
-            </p>
+        <Link 
+          to="/admin/integrations" 
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Integrations
+        </Link>
+        
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 shadow-lg">
+              <Building2 className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent">
+                Microsoft Teams Integration
+              </h1>
+              <p className="text-muted-foreground mt-1.5 text-base">
+                Connect your Microsoft account to enable Teams integration and Single Sign-On (SSO)
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="grid gap-6">
         {/* Connection Status Card */}
-        <Card className="border-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-primary/10">
-                <Building2 className="h-5 w-5 text-primary" />
+        <Card className="border-2 shadow-lg overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 pb-4">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-500/10 dark:bg-blue-400/10">
+                <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              Connection Status
+              <span>Connection Status</span>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Current Microsoft account connection status
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {isConnected ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/50">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/50 dark:via-emerald-950/30 dark:to-teal-950/30 border-2 border-green-200 dark:border-green-800 p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-full bg-green-500 dark:bg-green-600 shadow-md">
+                        <CheckCircle2 className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg text-green-900 dark:text-green-100">Connected</p>
+                        <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
+                          {user?.email || 'Microsoft user'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-green-900 dark:text-green-100">Connected</p>
-                      <p className="text-sm text-green-700 dark:text-green-300">
-                        {user?.email || 'Microsoft user'}
-                      </p>
-                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={handleDisconnect}
+                      disabled={loading}
+                      className="border-red-300 hover:bg-red-50 hover:border-red-400 dark:border-red-800 dark:hover:bg-red-950/50 text-red-600 dark:text-red-400 font-medium"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Disconnecting...
+                        </>
+                      ) : (
+                        'Disconnect'
+                      )}
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={handleDisconnect}
-                    disabled={loading}
-                    className="border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30"
-                  >
-                    Disconnect
-                  </Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-muted">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-muted">
-                      <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                <div className="rounded-xl bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-900/50 dark:to-gray-900/50 border-2 border-slate-200 dark:border-slate-800 p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-full bg-slate-200 dark:bg-slate-800">
+                        <AlertCircle className="h-6 w-6 text-slate-500 dark:text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Not connected</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          Connect to enable Teams features
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold">Not connected</p>
-                      <p className="text-sm text-muted-foreground">
-                        Connect to enable Teams features
-                      </p>
-                    </div>
+                    <Button
+                      onClick={handleConnect}
+                      disabled={loading}
+                      size="lg"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md font-medium"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        <>
+                          <Building2 className="mr-2 h-4 w-4" />
+                          Connect with Microsoft
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <Button
-                    onClick={handleConnect}
-                    disabled={loading}
-                    size="lg"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Connecting...
-                      </>
-                    ) : (
-                      <>
-                        <Building2 className="mr-2 h-4 w-4" />
-                        Connect with Microsoft
-                      </>
-                    )}
-                  </Button>
                 </div>
               </div>
             )}
             
             {error && (
-              <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-                  <p className="text-destructive">{error}</p>
+              <div className="mt-4 rounded-lg border-2 border-destructive/30 bg-destructive/10 dark:bg-destructive/5 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-destructive mb-1">Connection Error</p>
+                    <p className="text-sm text-destructive/90">{error}</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -551,24 +579,25 @@ export default function MicrosoftTeamsIntegration() {
 
         {/* Graph API Test Card */}
         {isConnected && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-1.5 rounded-md bg-cyan-100 dark:bg-cyan-900/30">
+          <Card className="border-2 shadow-md">
+            <CardHeader className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30 pb-4">
+              <CardTitle className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-cyan-500/10 dark:bg-cyan-400/10">
                   <Play className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
                 Test Graph API
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Validate your Microsoft Graph API connection by calling GET /me
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="pt-6 space-y-4">
               <Button
                 onClick={handleTestGraphAPI}
                 disabled={testingGraph}
                 variant="secondary"
                 size="lg"
+                className="w-full sm:w-auto font-medium"
               >
                 {testingGraph ? (
                   <>
@@ -658,23 +687,24 @@ export default function MicrosoftTeamsIntegration() {
 
         {/* Microsoft Calendar View Card */}
         {isConnected && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-900/30">
+          <Card className="border-2 shadow-md">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 pb-4">
+              <CardTitle className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-indigo-500/10 dark:bg-indigo-400/10">
                   <CalendarDays className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 Microsoft Calendar
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 View your Outlook calendar events in a weekly view
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="pt-6 space-y-4">
               <Button
                 onClick={() => setShowCalendar(!showCalendar)}
                 variant={showCalendar ? "secondary" : "default"}
                 size="lg"
+                className="w-full sm:w-auto font-medium"
               >
                 <CalendarDays className="mr-2 h-4 w-4" />
                 {showCalendar ? 'Hide Calendar' : 'View Calendar'}
@@ -696,19 +726,19 @@ export default function MicrosoftTeamsIntegration() {
 
         {/* Sync Teams Meetings Card */}
         {isConnected && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/30">
+          <Card className="border-2 shadow-md">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 pb-4">
+              <CardTitle className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-500/10 dark:bg-purple-400/10">
                   <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 Sync Teams Meetings
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Import your Microsoft Teams online meetings to the app
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="pt-6 space-y-4">
               {/* Token expired warning */}
               {hasValidToken === false && (
                 <div className="flex items-center justify-between p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
@@ -749,6 +779,7 @@ export default function MicrosoftTeamsIntegration() {
                 disabled={syncTeamsMeetings.isPending || hasValidToken === false}
                 variant="secondary"
                 size="lg"
+                className="w-full sm:w-auto font-medium"
               >
                 {syncTeamsMeetings.isPending ? (
                   <>
@@ -806,22 +837,22 @@ export default function MicrosoftTeamsIntegration() {
 
         {/* Create Teams Meeting Card */}
         {isConnected && (
-          <Card className="border-2 hover:border-primary/50 transition-colors">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30">
+          <Card className="border-2 shadow-md hover:shadow-lg transition-all hover:border-blue-300 dark:hover:border-blue-700">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 pb-4">
+              <CardTitle className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/10 dark:bg-blue-400/10">
                   <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 Create Teams Meeting
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Schedule a new Microsoft Teams meeting directly from the app
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="pt-6 space-y-4">
               <CreateTeamsMeetingDialog 
                 trigger={
-                  <Button size="lg" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md font-medium">
                     <Plus className="mr-2 h-4 w-4" />
                     New Teams Meeting
                   </Button>
@@ -850,20 +881,20 @@ export default function MicrosoftTeamsIntegration() {
 
         {/* Your Teams Card */}
         {isConnected && (
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-900/30">
+          <Card className="border-2 shadow-md">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex-1">
+                  <CardTitle className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-lg bg-indigo-500/10 dark:bg-indigo-400/10">
                       <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     Your Teams
                   </CardTitle>
-                  <CardDescription className="mt-1">
+                  <CardDescription className="text-sm">
                     Teams you're a member of in Microsoft Teams
                     {lastSynced && (
-                      <span className="ml-2 text-xs">
+                      <span className="ml-2 text-xs text-muted-foreground">
                         · Last synced: {new Date(lastSynced).toLocaleString()}
                       </span>
                     )}
@@ -874,6 +905,7 @@ export default function MicrosoftTeamsIntegration() {
                   disabled={isSyncing}
                   variant="secondary"
                   size="sm"
+                  className="font-medium"
                 >
                   {isSyncing ? (
                     <>
@@ -1007,88 +1039,120 @@ export default function MicrosoftTeamsIntegration() {
         )}
 
         {/* Features Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Features</CardTitle>
-            <CardDescription>
+        <Card className="border-2 shadow-md">
+          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 pb-4">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/10 dark:bg-emerald-400/10">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              Features
+            </CardTitle>
+            <CardDescription className="text-sm">
               What you'll get with Microsoft Teams integration
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 mt-0.5">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                </div>
                 <div>
-                  <p className="font-medium">Single Sign-On (SSO)</p>
+                  <p className="font-semibold mb-1">Single Sign-On (SSO)</p>
                   <p className="text-sm text-muted-foreground">
                     Sign in once with your Microsoft account and access all integrated services
                   </p>
                 </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 mt-0.5">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                </div>
                 <div>
-                  <p className="font-medium">Teams Channel Access</p>
+                  <p className="font-semibold mb-1">Teams Channel Access</p>
                   <p className="text-sm text-muted-foreground">
                     Access and manage Teams channels and messages directly from Control Tower
                   </p>
                 </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 mt-0.5">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                </div>
                 <div>
-                  <p className="font-medium">Meeting Management</p>
+                  <p className="font-semibold mb-1">Meeting Management</p>
                   <p className="text-sm text-muted-foreground">
                     Schedule and manage Teams meetings, sync calendar events
                   </p>
                 </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 mt-0.5">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                </div>
                 <div>
-                  <p className="font-medium">File Sharing</p>
+                  <p className="font-semibold mb-1">File Sharing</p>
                   <p className="text-sm text-muted-foreground">
                     Share and access files from OneDrive and SharePoint
                   </p>
                 </div>
-              </li>
-            </ul>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Configuration Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Configuration</CardTitle>
-            <CardDescription>
+        <Card className="border-2 shadow-md">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 pb-4">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/10 dark:bg-amber-400/10">
+                <Settings className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              Configuration
+            </CardTitle>
+            <CardDescription className="text-sm">
               Required environment variables for Microsoft integration
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between p-2 rounded bg-muted">
-                <span className="font-mono text-xs">VITE_MICROSOFT_CLIENT_ID</span>
-                <span className={import.meta.env.VITE_MICROSOFT_CLIENT_ID ? "text-green-600" : "text-destructive"}>
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div className={`flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${
+                import.meta.env.VITE_MICROSOFT_CLIENT_ID 
+                  ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                  : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
+              }`}>
+                <span className="font-mono text-sm font-medium">VITE_MICROSOFT_CLIENT_ID</span>
+                <span className={`font-semibold ${import.meta.env.VITE_MICROSOFT_CLIENT_ID ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                   {import.meta.env.VITE_MICROSOFT_CLIENT_ID ? "✓ Set" : "✗ Missing"}
                 </span>
               </div>
-              <div className="flex items-center justify-between p-2 rounded bg-muted">
-                <span className="font-mono text-xs">VITE_MICROSOFT_DIRECTORY_ID</span>
-                <span className={import.meta.env.VITE_MICROSOFT_DIRECTORY_ID ? "text-green-600" : "text-destructive"}>
+              <div className={`flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${
+                import.meta.env.VITE_MICROSOFT_DIRECTORY_ID 
+                  ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                  : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
+              }`}>
+                <span className="font-mono text-sm font-medium">VITE_MICROSOFT_DIRECTORY_ID</span>
+                <span className={`font-semibold ${import.meta.env.VITE_MICROSOFT_DIRECTORY_ID ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                   {import.meta.env.VITE_MICROSOFT_DIRECTORY_ID ? "✓ Set" : "✗ Missing"}
                 </span>
               </div>
-              <div className="flex items-center justify-between p-2 rounded bg-muted">
-                <span className="font-mono text-xs">VITE_MICROSOFT_REDIRECT_URI</span>
-                <span className={import.meta.env.VITE_MICROSOFT_REDIRECT_URI ? "text-green-600" : "text-destructive"}>
+              <div className={`flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${
+                import.meta.env.VITE_MICROSOFT_REDIRECT_URI 
+                  ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                  : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
+              }`}>
+                <span className="font-mono text-sm font-medium">VITE_MICROSOFT_REDIRECT_URI</span>
+                <span className={`font-semibold ${import.meta.env.VITE_MICROSOFT_REDIRECT_URI ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                   {import.meta.env.VITE_MICROSOFT_REDIRECT_URI ? "✓ Set" : "✗ Missing"}
                 </span>
               </div>
             </div>
             {!import.meta.env.VITE_MICROSOFT_CLIENT_ID && (
-              <p className="mt-4 text-sm text-muted-foreground">
-                Please configure the required environment variables to enable Microsoft integration.
-              </p>
+              <div className="mt-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                  ⚠️ Please configure the required environment variables to enable Microsoft integration.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
