@@ -149,3 +149,83 @@ verify_jwt = true
 
 [functions.import-productivity-csv]
 verify_jwt = true
+
+# Auto-added functions - run scripts/sync-config-functions.sh to sync
+[functions.agent-chat-stream]
+verify_jwt = false
+
+[functions.agent-conversation-chat]
+verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.api-v1-documents]
+verify_jwt = false
+
+[functions.api-v1-tasks]
+verify_jwt = false
+
+[functions.client-dashboard-api]
+verify_jwt = false
+
+[functions.client-documents]
+verify_jwt = false
+
+[functions.create-client-access]
+verify_jwt = false
+
+[functions.eos-triage-assistant]
+verify_jwt = false
+
+[functions.execute-mcp-tool]
+verify_jwt = false
+
+[functions.extract-agent-memories]
+verify_jwt = false
+
+[functions.extract-meeting-issues]
+verify_jwt = false
+
+[functions.extract-meeting-tasks]
+verify_jwt = false
+
+[functions.gemini-rag-query]
+verify_jwt = false
+
+[functions.knowledge-base]
+verify_jwt = false
+
+[functions.log-activity]
+verify_jwt = false
+
+[functions.oauth-authorize]
+verify_jwt = false
+
+[functions.oauth-revoke-token]
+verify_jwt = false
+
+[functions.oauth-token]
+verify_jwt = false
+
+[functions.oauth-userinfo]
+verify_jwt = false
+
+[functions.promote-first-admin]
+verify_jwt = false
+
+[functions.quarterly-digest]
+verify_jwt = false
+
+[functions.run-seed]
+verify_jwt = false
+
+[functions.suggest-okrs]
+verify_jwt = false
+
+[functions.sync-projects-activecollab]
+verify_jwt = false
+
+[functions.sync-projects-jira]
+verify_jwt = false
+
