@@ -51,14 +51,18 @@ export function useAddParticipant() {
       name?: string;
       role?: ParticipantRole;
     }) => {
+      const row = {
+        meeting_id: meetingId,
+        user_id: user_id || null,
+        email: email || null,
+        name: name || null,
+        role: role || "attendee",
+      };
       const { data: participant, error } = await supabase
         .from("meeting_participants")
-        .insert({
-          meeting_id: meetingId,
-          user_id: user_id || null,
-          email: email || null,
-          name: name || null,
-          role: role || "attendee",
+        .upsert(row, {
+          onConflict: "meeting_id,user_id",
+          ignoreDuplicates: false,
         })
         .select()
         .single();

@@ -22,12 +22,14 @@ CREATE INDEX IF NOT EXISTS idx_project_backups_created_at ON project_backups(cre
 
 ALTER TABLE project_backups ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can view project backups" ON project_backups;
 CREATE POLICY "Authenticated users can view project backups"
   ON project_backups
   FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can manage project backups" ON project_backups;
 CREATE POLICY "Authenticated users can manage project backups"
   ON project_backups
   FOR ALL
