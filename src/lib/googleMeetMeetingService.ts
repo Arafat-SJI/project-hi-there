@@ -182,14 +182,18 @@ export async function createGoogleMeetMeeting(
     requestBody.attendees = input.attendees.map(email => ({
       email: email,
     }));
-    // Send notifications to attendees
-    requestBody.sendUpdates = 'all';
   }
 
   console.log('[GoogleMeet] Creating calendar event with Google Meet:', title);
 
   try {
-    const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1', {
+    // Build URL with sendUpdates query parameter if attendees are present
+    let apiUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1';
+    if (input.attendees && input.attendees.length > 0) {
+      apiUrl += '&sendUpdates=all';
+    }
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
