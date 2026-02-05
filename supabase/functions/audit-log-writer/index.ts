@@ -34,8 +34,17 @@ serve(async (req) => {
       action,
       resource_type,
       resource_id,
-      details
+      details,
+      ping
     } = requestBody;
+
+    // Health check / deployment test - no DB write
+    if (ping === true) {
+      return new Response(
+        JSON.stringify({ success: true, message: 'ok' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
 
     // Validate required fields
     if (!action) {

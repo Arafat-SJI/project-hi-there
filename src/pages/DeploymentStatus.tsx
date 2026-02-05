@@ -26,7 +26,7 @@ interface FunctionStatus {
 
 const EDGE_FUNCTIONS: EdgeFunction[] = [
   // Foundation (4)
-  { name: "validate-api-key", category: "Foundation", description: "API key validation", required: true, requiresAuth: true },
+  { name: "validate-api-key", category: "Foundation", description: "API key validation", required: true },
   { name: "audit-log-writer", category: "Foundation", description: "Activity logging", required: true },
   { name: "send-email", category: "Foundation", description: "Email sending", required: false, envVars: ["SENDGRID_API_KEY"] },
   { name: "send-notification", category: "Foundation", description: "Notifications", required: true },
@@ -133,8 +133,20 @@ export default function DeploymentStatus() {
 
     // Prepare test payloads for specific functions
     const testPayloads: Record<string, object> = {
-      'validate-api-key': { apiKey: 'test-key', service: 'openai' },
-      'ai-chat-assistant': { message: 'test', user_id: session?.user?.id || 'test' },
+      'validate-api-key': { ping: true },
+      'audit-log-writer': { ping: true },
+      'send-email': { ping: true },
+      'send-notification': { ping: true },
+      'ai-chat-assistant': { ping: true },
+      'run-ai-agent': { ping: true },
+      'generate-embeddings': {
+        entity_type: 'test',
+        entity_id: 'deployment_status_health_check',
+        content: 'Test embedding content for deployment status health check.',
+        metadata: { source: 'deployment-status', type: 'health-check' },
+      },
+      'generate-meeting-summary': { ping: true },
+      'generate-business-doc': { ping: true },
       'semantic-search': { query: 'test', limit: 1 },
       'unified-knowledge-search': { query: 'test', limit: 1 },
     };

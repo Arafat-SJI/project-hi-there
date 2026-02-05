@@ -8,7 +8,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.validate-api-key]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-ai-models]
 verify_jwt = false

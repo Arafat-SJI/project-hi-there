@@ -11,17 +11,20 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured')
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  // Lightweight health check
+  if (req.method === 'GET') {
+    const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        configured: hasKey,
+        message: hasKey ? 'OPENAI_API_KEY is configured' : 'OPENAI_API_KEY is not configured',
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
+  }
 
+  try {
     // Parse and validate request body
     let requestBody;
     try {
@@ -34,7 +37,30 @@ serve(async (req) => {
       );
     }
 
-    const { file_id, meeting_id, transcript: providedTranscript } = requestBody;
+    const { file_id, meeting_id, transcript: providedTranscript, ping } = requestBody || {};
+
+    // Health check via POST ping
+    if (ping === true) {
+      const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          configured: hasKey,
+          message: hasKey ? 'OPENAI_API_KEY is configured' : 'OPENAI_API_KEY is not configured',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured')
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
 
     if (!file_id && !meeting_id && !providedTranscript) {
       return new Response(

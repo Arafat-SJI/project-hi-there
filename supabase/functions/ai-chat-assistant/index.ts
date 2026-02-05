@@ -12,7 +12,35 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // GET or ping = health check (no OpenAI call)
+  if (req.method === 'GET') {
+    const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+    return new Response(
+      JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'OpenAI configured' : 'OPENAI_API_KEY not set' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    )
+  }
+
   try {
+    let body: Record<string, unknown> = {}
+    try {
+      const parsed = await req.json()
+      body = parsed != null && typeof parsed === 'object' ? parsed : {}
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    if (body.ping === true) {
+      const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+      return new Response(
+        JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'OpenAI configured' : 'OPENAI_API_KEY not set' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -26,7 +54,7 @@ serve(async (req) => {
       include_history = true,
       max_tokens,
       temperature,
-    } = await req.json()
+    } = body
 
     if (!message || !session_id) {
       return new Response(

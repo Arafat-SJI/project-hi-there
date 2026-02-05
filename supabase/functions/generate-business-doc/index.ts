@@ -10,13 +10,49 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Lightweight health check
+  if (req.method === 'GET') {
+    const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        configured: hasKey,
+        message: hasKey ? 'OPENAI_API_KEY is configured' : 'OPENAI_API_KEY is not configured',
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    )
+  }
+
   try {
+    let body;
+    try {
+      body = await req.json()
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    const { doc_type, context, ping } = body || {};
+
+    // Health check via POST ping
+    if (ping === true) {
+      const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          configured: hasKey,
+          message: hasKey ? 'OPENAI_API_KEY is configured' : 'OPENAI_API_KEY is not configured',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY is not configured')
     }
-
-    const { doc_type, context } = await req.json()
 
     if (!doc_type || !context) {
       return new Response(
