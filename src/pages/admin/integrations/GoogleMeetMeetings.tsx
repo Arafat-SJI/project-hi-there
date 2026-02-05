@@ -3,9 +3,10 @@
  * Displays all Google Meet-synced meetings
  */
 
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, Calendar, RefreshCw, Video, ExternalLink, Loader2, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, RefreshCw, Video, ExternalLink, Loader2, Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,12 +18,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useMeetings } from "@/hooks/useMeetings";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useMeetings, useDeleteMeeting } from "@/hooks/useMeetings";
 import { useSyncGoogleMeet } from "@/hooks/useSyncGoogleMeet";
 
 export default function GoogleMeetMeetings() {
   const { data: meetings, isLoading } = useMeetings({ meetingType: "google-meet" });
   const syncGoogleMeet = useSyncGoogleMeet();
+  const deleteMeeting = useDeleteMeeting();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [meetingToDelete, setMeetingToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const getStatusBadge = (status: string | null) => {
     switch (status) {
@@ -34,6 +48,22 @@ export default function GoogleMeetMeetings() {
         return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Cancelled</Badge>;
       default:
         return <Badge variant="secondary">{status || "Unknown"}</Badge>;
+    }
+  };
+
+  const handleDeleteClick = (meeting: { id: string; title: string }) => {
+    setMeetingToDelete(meeting);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (meetingToDelete) {
+      deleteMeeting.mutate(meetingToDelete.id, {
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          setMeetingToDelete(null);
+        },
+      });
     }
   };
 
@@ -158,6 +188,14 @@ export default function GoogleMeetMeetings() {
                               View
                             </Link>
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick({ id: meeting.id, title: meeting.title })}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -194,6 +232,38 @@ export default function GoogleMeetMeetings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Meeting</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{meetingToDelete?.title}"? This action cannot be undone and will permanently remove the meeting from your system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMeetingToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleteMeeting.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMeeting.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
