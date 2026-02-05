@@ -187,8 +187,8 @@ export default function ZoomIntegration() {
   // Calculate statistics
   const meetingsCount = meetings?.length || 0;
   const upcomingMeetings = meetings?.filter((m) => {
-    if (!m.start_time) return false;
-    return new Date(m.start_time) > new Date();
+    if (!m.scheduled_at) return false;
+    return new Date(m.scheduled_at) > new Date();
   }).length || 0;
   const completedMeetings = meetings?.filter((m) => m.status === 'completed').length || 0;
 

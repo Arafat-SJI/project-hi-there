@@ -33,7 +33,9 @@ serve(async (req) => {
       )
     }
 
-    const { apiKey, service, ping } = requestBody;
+    const apiKey = requestBody.apiKey as string | undefined;
+    const service = requestBody.service as string | undefined;
+    const ping = requestBody.ping as boolean | undefined;
 
     // Health check / deployment test - no external calls (ping or empty body)
     if (ping === true || (requestBody && Object.keys(requestBody).length === 0)) {
