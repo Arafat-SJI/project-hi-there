@@ -46,15 +46,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const {
-      message,
-      session_id,
-      user_id,
-      model_id,
-      include_history = true,
-      max_tokens,
-      temperature,
-    } = body
+    const message = body.message as string | undefined
+    const session_id = body.session_id as string | undefined
+    const user_id = body.user_id as string | null
+    const model_id = body.model_id as string | undefined
+    const include_history = (body.include_history ?? true) as boolean
+    const max_tokens = body.max_tokens as number | undefined
+    const temperature = body.temperature as number | undefined
 
     if (!message || !session_id) {
       return new Response(

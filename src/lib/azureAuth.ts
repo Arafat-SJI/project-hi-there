@@ -157,16 +157,38 @@ export async function initiateAzureLoginRedirect(): Promise<{
 
 /**
  * Send Azure token to backend and get application JWT
+ * This function acquires a fresh token before sending to ensure it's not expired
  */
-export async function handleLoginResponse(azureToken: string): Promise<{
+export async function handleLoginResponse(azureToken?: string): Promise<{
   user: any;
   profile: any;
   magicLink?: string;
 }> {
+  // Always try to get a fresh token to avoid expiration issues
+  let tokenToUse = azureToken;
+  
+  if (!tokenToUse) {
+    // Try to acquire a fresh token silently
+    const freshToken = await acquireTokenSilently();
+    if (freshToken?.accessToken) {
+      tokenToUse = freshToken.accessToken;
+      // Update the stored response with fresh token
+      sessionStorage.setItem('msal_auth_response', JSON.stringify({
+        accessToken: freshToken.accessToken,
+        account: freshToken.account,
+        idToken: freshToken.idToken,
+      }));
+    }
+  }
+  
+  if (!tokenToUse) {
+    throw new Error('No valid Azure token available. Please sign in again.');
+  }
+
   // Call backend login endpoint
   const { data, error } = await supabase.functions.invoke('azure-auth-login', {
     body: {
-      azureToken,
+      azureToken: tokenToUse,
     },
   });
 
@@ -212,11 +234,21 @@ export async function completeAzureLoginFromRedirect(): Promise<{
     return null;
   }
   
-  // DO NOT clear the stored response - it's needed for Graph API calls
-  // The token will naturally expire or be cleared on logout
+  // Try to get a fresh token first to avoid expiration issues
+  const freshToken = await acquireTokenSilently();
+  const tokenToUse = freshToken?.accessToken || storedResponse.accessToken;
   
-  // Send to backend
-  return handleLoginResponse(storedResponse.accessToken);
+  // Update stored response with fresh token if available
+  if (freshToken?.accessToken) {
+    sessionStorage.setItem('msal_auth_response', JSON.stringify({
+      accessToken: freshToken.accessToken,
+      account: freshToken.account,
+      idToken: freshToken.idToken,
+    }));
+  }
+  
+  // Send to backend with fresh token
+  return handleLoginResponse(tokenToUse);
 }
 
 /**
