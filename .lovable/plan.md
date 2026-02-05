@@ -1,18 +1,16 @@
-
-
 # Plan: Fix Missing `google_meet_id` Column Error
 
 ## Problem Analysis
 
 The `sync-google-meet` edge function is using columns that don't exist in the `meetings` table:
 
-| Column Used in Code | Exists in DB |
-|---------------------|--------------|
-| `google_meet_id` | ❌ NO |
-| `google_meet_link` | ❌ NO |
-| `external_id` | ✅ YES |
-| `external_meeting_id` | ✅ YES |
-| `join_url` | ✅ YES |
+| Column Used in Code   | Exists in DB |
+| --------------------- | ------------ |
+| `google_meet_id`      | ❌ NO        |
+| `google_meet_link`    | ❌ NO        |
+| `external_id`         | ✅ YES       |
+| `external_meeting_id` | ✅ YES       |
+| `join_url`            | ✅ YES       |
 
 The edge function was written using provider-specific columns (like Zoom has `zoom_id`, `zoom_meeting_id`, etc.), but Google Meet columns were never added to the database.
 
@@ -36,6 +34,7 @@ Update the `sync-google-meet` edge function to use only the **provider-agnostic 
    - Keep: `external_id`, `external_meeting_id`, `join_url`, `host_url` (these already exist)
 
 **Before (lines 184-207):**
+
 ```typescript
 // Check if meeting exists
 const { data: existingMeeting } = await supabaseClient
@@ -52,6 +51,7 @@ const meetingData = {
 ```
 
 **After:**
+
 ```typescript
 // Check if meeting exists
 const { data: existingMeeting } = await supabaseClient
@@ -79,8 +79,8 @@ const meetingData = {
 
 ## Files Changed
 
-| File | Action | Description |
-|------|--------|-------------|
+| File                                           | Action | Description                                                         |
+| ---------------------------------------------- | ------ | ------------------------------------------------------------------- |
 | `supabase/functions/sync-google-meet/index.ts` | MODIFY | Remove non-existent `google_meet_id` and `google_meet_link` columns |
 
 ## Technical Notes
@@ -90,4 +90,3 @@ const meetingData = {
 2. **Adding `organizer_id`**: The insert query should include `organizer_id: user.id` since this is a required column for new meetings
 
 3. **No Schema Migration Needed**: This fix only requires updating the edge function code - no database changes are needed
-
