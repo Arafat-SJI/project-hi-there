@@ -1,7 +1,8 @@
 -- ============================================================
 -- SEED: Productivity Base Tables (Path B - EmployeeProductivity)
 -- Populates Employee, ActionItem, EmployeeProductivity for demo
--- Run after 07-productivity.sql (optional - adds base-model data)
+-- Run after 07-productivity.sql and after migration 20260203_productivity_base_tables.sql
+-- Skips silently if Path B tables (public."Employee") do not exist.
 -- ============================================================
 
 DO $$
@@ -9,9 +10,18 @@ DECLARE
   u1 UUID := (SELECT id FROM auth.users ORDER BY created_at LIMIT 1);
   emp_email TEXT;
   emp_name TEXT;
-  dept TEXT;
-  loc TEXT;
+  path_b_exists BOOLEAN;
 BEGIN
+  -- Only run if Path B migration has created public."Employee"
+  SELECT EXISTS (
+    SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'Employee'
+  ) INTO path_b_exists;
+
+  IF NOT path_b_exists THEN
+    RAISE NOTICE 'Seed 07b-productivity-base: public."Employee" not found — run migration 20260203_productivity_base_tables.sql first. Skipping.';
+    RETURN;
+  END IF;
+
   -- Get first user's email and name for Employee
   SELECT email, COALESCE(raw_user_meta_data->>'full_name', 'Admin User')
     INTO emp_email, emp_name
