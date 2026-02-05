@@ -37,7 +37,7 @@ const EDGE_FUNCTIONS: EdgeFunction[] = [
   { name: "run-ai-agent", category: "AI", description: "Execute AI agents", required: true, envVars: ["OPENAI_API_KEY"] },
   { name: "generate-embeddings", category: "AI", description: "Create embeddings", required: true, envVars: ["OPENAI_API_KEY"] },
   { name: "generate-meeting-summary", category: "AI", description: "Summarize meetings", required: false, envVars: ["OPENAI_API_KEY"] },
-  { name: "generate-business-doc", category: "AI", description: "Generate documents", required: false, envVars: ["OPENAI_API_KEY"], requiresAuth: true },
+  { name: "generate-business-doc", category: "AI", description: "Generate documents", required: false, envVars: ["OPENAI_API_KEY"] },
 
   // Meetings (5)
   { name: "sync-zoom-files", category: "Meetings", description: "Sync Zoom recordings", required: false, envVars: ["ZOOM_CLIENT_ID", "ZOOM_CLIENT_SECRET"], requiresAuth: true },

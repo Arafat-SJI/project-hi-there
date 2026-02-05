@@ -31,7 +31,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-business-doc]
-verify_jwt = true
+verify_jwt = false
 
 # Zoom meeting creation - disable JWT for ES256 compatibility
 [functions.create-zoom-meeting]
