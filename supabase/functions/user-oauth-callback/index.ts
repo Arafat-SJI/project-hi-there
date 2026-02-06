@@ -244,7 +244,7 @@ serve(async (req) => {
     return Response.redirect(`${finalRedirect}?connected=${provider}`);
   } catch (error: unknown) {
     console.error("User OAuth callback error:", error);
-    const appUrl = Deno.env.get("APP_URL") || "https://controltower.collabai.software";
+    const appUrl = Deno.env.get("APP_URL") || "https://controltowerdemo.collabai.software";
     const message = error instanceof Error ? error.message : "Unknown error";
     return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent(message)}`);
   }
