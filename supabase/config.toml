@@ -114,6 +114,13 @@ verify_jwt = false
 [functions.user-oauth-disconnect]
 verify_jwt = false
 
+# User Drive functions - authentication validated in-code for ES256 compatibility
+[functions.user-drive-list]
+verify_jwt = false
+
+[functions.user-drive-download]
+verify_jwt = false
+
 # SSO and webhook functions
 [functions.validate-sso-domain]
 verify_jwt = false
