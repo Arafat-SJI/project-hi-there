@@ -30,6 +30,7 @@ const getTokenEndpoint = (provider: string): string => {
   const endpoints: Record<string, string> = {
     google: "https://oauth2.googleapis.com/token",
     "google-meet": "https://oauth2.googleapis.com/token",
+    "google-drive": "https://oauth2.googleapis.com/token",
     zoom: "https://zoom.us/oauth/token",
     microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
   };
@@ -45,6 +46,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
   switch (provider) {
     case "google":
     case "google-meet":
+    case "google-drive":
       url = "https://www.googleapis.com/oauth2/v2/userinfo";
       break;
     case "zoom":
@@ -70,6 +72,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
     switch (provider) {
       case "google":
       case "google-meet":
+      case "google-drive":
         return {
           email: data.email,
           name: data.name,
