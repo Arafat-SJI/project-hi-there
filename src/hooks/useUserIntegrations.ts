@@ -237,6 +237,45 @@ export function useRefreshOAuthToken() {
 }
 
 // Check if user has a valid (non-expired) token for a provider
+// Google Drive files interface
+export interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  size?: string;
+  modifiedTime: string;
+  webViewLink?: string;
+  thumbnailLink?: string;
+}
+
+export interface DriveListResponse {
+  success: boolean;
+  files: DriveFile[];
+  folders: DriveFile[];
+  total: number;
+}
+
+// Hook to list Google Drive files
+export function useDriveFiles(folderId?: string) {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['drive-files', user?.id, folderId],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase.functions.invoke('user-drive-list', {
+        body: { folder_id: folderId },
+      });
+
+      if (error) throw error;
+      return data as DriveListResponse;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}
+
 export function useHasValidToken(providerSlug: string) {
   const { data: token, isLoading } = useUserOAuthToken(providerSlug);
 
