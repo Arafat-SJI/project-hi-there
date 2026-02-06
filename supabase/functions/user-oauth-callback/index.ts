@@ -46,6 +46,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
   switch (provider) {
     case "google":
     case "google-meet":
+    case "google-drive":
       url = "https://www.googleapis.com/oauth2/v2/userinfo";
       break;
     case "zoom":
