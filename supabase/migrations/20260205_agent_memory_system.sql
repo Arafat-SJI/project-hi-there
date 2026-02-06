@@ -354,6 +354,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to increment access count for multiple memories
+CREATE OR REPLACE FUNCTION increment_memory_access(memory_ids UUID[])
+RETURNS VOID AS $$
+BEGIN
+  UPDATE agent_memories
+  SET
+    access_count = access_count + 1,
+    last_accessed_at = NOW()
+  WHERE id = ANY(memory_ids);
+END;
+$$ LANGUAGE plpgsql;
+
 -- Function to boost importance of frequently accessed memories
 CREATE OR REPLACE FUNCTION boost_memory_importance(
   p_memory_id UUID,

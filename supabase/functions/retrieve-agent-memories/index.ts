@@ -191,13 +191,10 @@ serve(async (req) => {
     // Update access statistics for retrieved memories
     const memoryIds = limitedMemories.map(m => m.memory_id)
     if (memoryIds.length > 0) {
-      await supabaseClient
-        .from('agent_memories')
-        .update({
-          access_count: supabaseClient.raw('access_count + 1'),
-          last_accessed_at: new Date().toISOString(),
-        })
-        .in('id', memoryIds)
+      // Use PostgreSQL function to increment access count atomically
+      await supabaseClient.rpc('increment_memory_access', {
+        memory_ids: memoryIds
+      })
     }
 
     return new Response(

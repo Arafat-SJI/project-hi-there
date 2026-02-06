@@ -93,44 +93,58 @@ serve(async (req) => {
           .order('created_at', { ascending: true })
           .limit(20)
 
-        // 4. Get relevant memories
+        // 4. Get relevant memories (if agent has memory enabled)
         let memoryContext = ''
-        try {
-          // Generate embedding for the message
-          const embeddingResponse = await fetch(
-            `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-embeddings`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ text: params.message, user_id: params.user_id }),
-            }
-          )
+        if (agent.memory_enabled) {
+          try {
+            // Use new retrieve-agent-memories edge function
+            const memoryResponse = await fetch(
+              `${Deno.env.get('SUPABASE_URL')}/functions/v1/retrieve-agent-memories`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  agent_id: params.agent_id,
+                  user_id: params.user_id,
+                  query: params.message,
+                  memory_types: ['short_term', 'long_term', 'episodic'],
+                  limit: 5,
+                  similarity_threshold: 0.7,
+                  include_recent: true,
+                  recent_days: 7,
+                }),
+              }
+            )
 
-          if (embeddingResponse.ok) {
-            const embeddingData = await embeddingResponse.json()
+            if (memoryResponse.ok) {
+              const memoryData = await memoryResponse.json()
 
-            if (embeddingData?.embedding) {
-              const { data: memories } = await supabaseClient.rpc('match_agent_memories', {
-                query_embedding: embeddingData.embedding,
-                p_agent_id: params.agent_id,
-                p_user_id: params.user_id,
-                match_count: 3,
-                match_threshold: 0.7,
-              })
-
-              if (memories && memories.length > 0) {
-                memoryContext = '\n\nRELEVANT MEMORIES:\n' + memories
-                  .map((m: any, i: number) => `[${m.memory_type}] ${m.content}`)
+              if (memoryData?.memories && memoryData.memories.length > 0) {
+                // Format memories for injection into system prompt
+                const formattedMemories = memoryData.memories
+                  .map((m: any) => {
+                    const category = m.memory_category ? `[${m.memory_category}]` : ''
+                    const similarity = m.similarity ? ` (relevance: ${(m.similarity * 100).toFixed(0)}%)` : ''
+                    return `${category} ${m.content}${similarity}`
+                  })
                   .join('\n')
+
+                memoryContext = `\n\nRELEVANT CONTEXT FROM PREVIOUS CONVERSATIONS:\n${formattedMemories}\n`
+
+                sendEvent('memory', {
+                  count: memoryData.memories.length,
+                  semantic_count: memoryData.semantic_count,
+                  recent_count: memoryData.recent_count
+                })
               }
             }
+          } catch (memError) {
+            console.error('Memory retrieval error:', memError)
+            // Continue without memories - don't fail the chat
           }
-        } catch (memError) {
-          console.error('Memory retrieval error:', memError)
-          // Continue without memories
         }
 
         // 5. Build messages array
@@ -278,13 +292,36 @@ serve(async (req) => {
           })
           .eq('id', params.conversation_id)
 
-        // 11. Send complete event
+        // 11. Extract and store memories (if agent has memory enabled)
+        // Run asynchronously - don't block response
+        if (agent.memory_enabled) {
+          // Fire and forget - don't await
+          fetch(
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/extract-agent-memories`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                agent_id: params.agent_id,
+                user_id: params.user_id,
+                conversation_id: params.conversation_id,
+                auto_extract: true,
+              }),
+            }
+          ).catch(err => console.error('Background memory extraction error:', err))
+        }
+
+        // 12. Send complete event
         sendEvent('complete', {
           fullMessage: fullContent,
           metadata: {
             latency_ms: latency,
             model_used: modelId,
             had_memories: memoryContext.length > 0,
+            memory_extraction_triggered: agent.memory_enabled,
           },
         })
 
