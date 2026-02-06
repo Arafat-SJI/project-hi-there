@@ -45,6 +45,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Brain, Loader2, Plus, Edit, Play, Pause, Trash2, History, MessageSquare } from "lucide-react";
+import {
+  QuickStartWizard,
+  AgentCategoryGuide,
+  SystemPromptGuide,
+  MemorySystemGuide,
+  MultiAgentCollaborationInfo,
+  HITLApprovalInfo,
+} from "@/components/admin/AgentConfigurationGuide";
 
 export default function AIAgents() {
   const { data: agents, isLoading } = useAIAgents();
@@ -223,6 +231,9 @@ export default function AIAgents() {
                   Configure your AI agent's behavior and settings
                 </DialogDescription>
               </DialogHeader>
+
+              {!editingAgent && <QuickStartWizard />}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
@@ -278,6 +289,7 @@ export default function AIAgents() {
                       <SelectItem value="task_management">Task Management</SelectItem>
                     </SelectContent>
                   </Select>
+                  <AgentCategoryGuide />
                 </div>
 
                 <div className="space-y-2">
@@ -291,6 +303,7 @@ export default function AIAgents() {
                     required
                     disabled={isProcessing}
                   />
+                  <SystemPromptGuide />
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg border p-4">
@@ -310,12 +323,7 @@ export default function AIAgents() {
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg border p-4">
-                  <div>
-                    <Label>Enable Memory</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Agent will remember previous interactions
-                    </p>
-                  </div>
+                  <MemorySystemGuide />
                   <Switch
                     checked={formData.memory_enabled}
                     onCheckedChange={(checked) =>
@@ -323,6 +331,13 @@ export default function AIAgents() {
                     }
                     disabled={isProcessing}
                   />
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-4">
+                  <MultiAgentCollaborationInfo />
+                  <HITLApprovalInfo />
                 </div>
 
                 <div className="flex justify-end gap-2">
