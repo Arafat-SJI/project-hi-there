@@ -22,6 +22,7 @@ import {
   useUpdateIntegration 
 } from "@/hooks/useIntegrations";
 import { DynamicFormField } from "@/components/integrations/DynamicFormField";
+import { GoogleDriveBrowser } from "@/components/integrations/GoogleDriveBrowser";
 
 export default function GoogleDriveIntegration() {
   const { user } = useAuth();
@@ -534,6 +535,11 @@ export default function GoogleDriveIntegration() {
             )}
           </CardContent>
         </Card>
+
+        {/* Google Drive Browser */}
+        {isConnected && (
+          <GoogleDriveBrowser />
+        )}
 
         {/* Account Information Card */}
         {isConnected && googleToken && (

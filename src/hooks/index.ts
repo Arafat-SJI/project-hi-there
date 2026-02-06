@@ -79,6 +79,7 @@ export {
   useDisconnectOAuth,
   useRefreshOAuthToken,
   useHasValidToken,
+  useDriveFiles,
 } from './useUserIntegrations';
 export { useSyncZoom } from './useSyncZoom';
 export { useZoomFiles } from './useZoomFiles';
