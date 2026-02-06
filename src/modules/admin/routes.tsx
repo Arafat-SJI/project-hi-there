@@ -25,6 +25,7 @@ import ZoomMeetings from "@/pages/admin/integrations/ZoomMeetings";
 import ZoomDocumentation from "@/pages/admin/integrations/ZoomDocumentation";
 import GoogleMeetIntegration from "@/pages/admin/integrations/GoogleMeetIntegration";
 import GoogleMeetMeetings from "@/pages/admin/integrations/GoogleMeetMeetings";
+import GoogleDriveIntegration from "@/pages/admin/integrations/GoogleDriveIntegration";
 import IntegrationAnalytics from "@/pages/admin/IntegrationAnalytics";
 import ProjectReports from "@/pages/admin/ProjectReports";
 import ResourceUtilizationReports from "@/pages/admin/ResourceUtilizationReports";
@@ -86,6 +87,7 @@ export const adminRoutes = (
     <Route path="/admin/integrations/zoom/documentation" element={<ZoomDocumentation />} />
     <Route path="/admin/integrations/google-meet" element={<GoogleMeetIntegration />} />
     <Route path="/admin/integrations/google-meet/meetings" element={<GoogleMeetMeetings />} />
+    <Route path="/admin/integrations/google-drive" element={<GoogleDriveIntegration />} />
     <Route path="/admin/integrations/:slug" element={<ProviderDetail />} />
 
     {/* AI & Automation */}
