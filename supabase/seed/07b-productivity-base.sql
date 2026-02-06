@@ -41,7 +41,7 @@ BEGIN
   VALUES
     ('Shahed Islam',   'shahed@sjinnovation.com',  'Senior Developer',      'developer', 'Engineering',    'New York, NY',      'active'),
     ('Abesh Rahman',   'abesh@sjinnovation.com',   'Full Stack Developer',  'developer', 'Engineering',    'Dhaka, BD',         'active'),
-    ('Zia Ahmed',      'zia@sjinnovation.com',     'Frontend Developer',    'developer', 'Engineering',    'Dhaka, BD',         'active'),
+    ('Omkar Ahmed',    'omkar@sjinnovation.com',   'Frontend Developer',    'developer', 'Engineering',    'Dhaka, BD',         'active'),
     ('Sarah Chen',     'sarah@sjinnovation.com',   'Business Development',  'developer', 'Sales & BD',     'San Francisco, CA', 'active'),
     ('Marcus Williams','marcus@sjinnovation.com',  'Operations Manager',    'manager',   'Operations',     'New York, NY',      'active')
   ON CONFLICT (email) DO NOTHING;
@@ -51,29 +51,29 @@ BEGIN
   VALUES
     (gen_random_uuid()::text, '2026-W02', 'shahed@sjinnovation.com',  'Shahed Islam',   'Engineering',    'New York, NY',      '36', 85.7, 5),
     (gen_random_uuid()::text, '2026-W02', 'abesh@sjinnovation.com',   'Abesh Rahman',   'Engineering',    'Dhaka, BD',         '34', 85.0, 5),
-    (gen_random_uuid()::text, '2026-W02', 'zia@sjinnovation.com',     'Zia Ahmed',      'Engineering',    'Dhaka, BD',         '30', 78.9, 5),
+    (gen_random_uuid()::text, '2026-W02', 'omkar@sjinnovation.com',   'Omkar Ahmed',    'Engineering',    'Dhaka, BD',         '30', 78.9, 5),
     (gen_random_uuid()::text, '2026-W02', 'sarah@sjinnovation.com',   'Sarah Chen',     'Sales & BD',     'San Francisco, CA', '32', 80.0, 5),
     (gen_random_uuid()::text, '2026-W02', 'marcus@sjinnovation.com',  'Marcus Williams','Operations',     'New York, NY',      '20', 50.0, 5),
     (gen_random_uuid()::text, '2026-W03', 'shahed@sjinnovation.com',  'Shahed Islam',   'Engineering',    'New York, NY',      '38', 86.4, 5),
     (gen_random_uuid()::text, '2026-W03', 'abesh@sjinnovation.com',   'Abesh Rahman',   'Engineering',    'Dhaka, BD',         '35', 87.5, 5),
-    (gen_random_uuid()::text, '2026-W03', 'zia@sjinnovation.com',     'Zia Ahmed',      'Engineering',    'Dhaka, BD',         '28', 77.8, 4),
+    (gen_random_uuid()::text, '2026-W03', 'omkar@sjinnovation.com',   'Omkar Ahmed',    'Engineering',    'Dhaka, BD',         '28', 77.8, 4),
     (gen_random_uuid()::text, '2026-W03', 'sarah@sjinnovation.com',   'Sarah Chen',     'Sales & BD',     'San Francisco, CA', '35', 83.3, 5),
     (gen_random_uuid()::text, '2026-W03', 'marcus@sjinnovation.com',  'Marcus Williams','Operations',     'New York, NY',      '22', 55.0, 5),
     (gen_random_uuid()::text, '2026-W04', 'shahed@sjinnovation.com',  'Shahed Islam',   'Engineering',    'New York, NY',      '40', 88.9, 5),
     (gen_random_uuid()::text, '2026-W04', 'abesh@sjinnovation.com',   'Abesh Rahman',   'Engineering',    'Dhaka, BD',         '36', 87.8, 5),
-    (gen_random_uuid()::text, '2026-W04', 'zia@sjinnovation.com',     'Zia Ahmed',      'Engineering',    'Dhaka, BD',         '33', 82.5, 5),
+    (gen_random_uuid()::text, '2026-W04', 'omkar@sjinnovation.com',   'Omkar Ahmed',    'Engineering',    'Dhaka, BD',         '33', 82.5, 5),
     (gen_random_uuid()::text, '2026-W04', 'sarah@sjinnovation.com',   'Sarah Chen',     'Sales & BD',     'San Francisco, CA', '30', 78.9, 5),
     (gen_random_uuid()::text, '2026-W04', 'marcus@sjinnovation.com',  'Marcus Williams','Operations',     'New York, NY',      '24', 60.0, 5),
     (gen_random_uuid()::text, '2026-W05', 'shahed@sjinnovation.com',  'Shahed Islam',   'Engineering',    'New York, NY',      '38', 88.4, 5),
     (gen_random_uuid()::text, '2026-W05', 'abesh@sjinnovation.com',   'Abesh Rahman',   'Engineering',    'Dhaka, BD',         '35', 87.5, 5),
-    (gen_random_uuid()::text, '2026-W05', 'zia@sjinnovation.com',     'Zia Ahmed',      'Engineering',    'Dhaka, BD',         '34', 85.0, 5),
+    (gen_random_uuid()::text, '2026-W05', 'omkar@sjinnovation.com',   'Omkar Ahmed',    'Engineering',    'Dhaka, BD',         '34', 85.0, 5),
     (gen_random_uuid()::text, '2026-W05', 'sarah@sjinnovation.com',   'Sarah Chen',     'Sales & BD',     'San Francisco, CA', '33', 82.5, 5)
   ON CONFLICT (email, week) DO NOTHING;
 
   -- 4. Action items (sample)
   INSERT INTO public."ActionItem" (id, email, summary, status, priority, week)
   VALUES
-    ('act-1', 'zia@sjinnovation.com', 'Complete onboarding docs', 'completed', 'medium', '2026-W03'),
+    ('act-1', 'omkar@sjinnovation.com', 'Complete onboarding docs', 'completed', 'medium', '2026-W03'),
     ('act-2', 'marcus@sjinnovation.com', 'Q1 planning session', 'pending', 'high', '2026-W05')
   ON CONFLICT (id) DO NOTHING;
 
