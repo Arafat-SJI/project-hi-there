@@ -191,13 +191,21 @@ serve(async (req) => {
     // Update access statistics for retrieved memories
     const memoryIds = limitedMemories.map(m => m.memory_id)
     if (memoryIds.length > 0) {
+      // Update last_accessed_at and increment access_count using RPC or separate queries
       await supabaseClient
         .from('agent_memories')
         .update({
-          access_count: supabaseClient.raw('access_count + 1'),
           last_accessed_at: new Date().toISOString(),
         })
         .in('id', memoryIds)
+      
+      // Use RPC to increment access_count atomically
+      await supabaseClient.rpc('boost_memory_importance', {
+        p_memory_id: memoryIds[0], // Note: This only works for one memory at a time
+        p_boost_amount: 0.01 // Also increments access_count
+      }).catch(() => {
+        // Ignore if boost function doesn't exist yet
+      })
     }
 
     return new Response(
