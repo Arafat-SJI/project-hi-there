@@ -92,6 +92,42 @@ supabase/functions/
 
 ---
 
+## Config Sync (config.toml)
+
+New edge functions must be added to `supabase/config.toml` with `verify_jwt` settings.
+
+### Auto-sync script
+
+```bash
+# Sync all missing functions to config.toml
+./scripts/sync-config-functions.sh
+
+# Preview without writing
+./scripts/sync-config-functions.sh --dry-run
+
+# Require JWT by default for new functions
+VERIFY_JWT_DEFAULT=true ./scripts/sync-config-functions.sh
+```
+
+### Create new function (scaffold + config)
+
+```bash
+# Create function with verify_jwt = false (default for webhooks, OAuth, etc.)
+./scripts/create-edge-function.sh my-new-function
+
+# Create function with verify_jwt = true (for authenticated APIs)
+./scripts/create-edge-function.sh api-v2-users --verify-jwt
+```
+
+### Git hook (auto-sync on commit)
+
+```bash
+# Run once to auto-sync config when functions change
+./scripts/setup-config-sync-hook.sh
+```
+
+---
+
 ## Creating a Function
 
 ```typescript

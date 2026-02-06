@@ -12,12 +12,28 @@ serve(async (req) => {
 
   try {
     const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY')
+    const body = await req.json()
 
-    if (!SENDGRID_API_KEY) {
-      throw new Error('SENDGRID_API_KEY is not configured')
+    // Health check / deployment test - no email sent
+    if (body?.ping === true) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          configured: !!SENDGRID_API_KEY,
+          message: SENDGRID_API_KEY ? 'SendGrid is configured' : 'SENDGRID_API_KEY is not configured',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
     }
 
-    const { to, from, subject, html, text } = await req.json()
+    if (!SENDGRID_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'SENDGRID_API_KEY is not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+      )
+    }
+
+    const { to, from, subject, html, text } = body
 
     if (!to || !subject || (!html && !text)) {
       return new Response(

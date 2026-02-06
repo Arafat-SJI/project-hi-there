@@ -30,6 +30,7 @@ const getTokenEndpoint = (provider: string): string => {
   const endpoints: Record<string, string> = {
     google: "https://oauth2.googleapis.com/token",
     "google-meet": "https://oauth2.googleapis.com/token",
+    "google-drive": "https://oauth2.googleapis.com/token",
     zoom: "https://zoom.us/oauth/token",
     microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
   };
@@ -45,6 +46,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
   switch (provider) {
     case "google":
     case "google-meet":
+    case "google-drive":
       url = "https://www.googleapis.com/oauth2/v2/userinfo";
       break;
     case "zoom":
@@ -70,6 +72,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
     switch (provider) {
       case "google":
       case "google-meet":
+      case "google-drive":
         return {
           email: data.email,
           name: data.name,
@@ -105,7 +108,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const appUrl = Deno.env.get("APP_URL") || "https://controltower.collabai.software";
+    const appUrl = Deno.env.get("APP_URL") || "https://controltowerdemo.collabai.software";
 
     // Get callback parameters
     const url = new URL(req.url);
@@ -230,13 +233,15 @@ serve(async (req) => {
     await supabase.from("oauth_states").delete().eq("state", state);
 
     // Redirect back to app with success
-    // For Zoom/Google Meet, redirect to the integration page; otherwise use redirect_uri or settings
+    // For Zoom/Google Meet/Google Drive, redirect to the integration page; otherwise use redirect_uri or settings
     let finalRedirect;
     if (provider === "zoom") {
       finalRedirect = `${appUrl}/admin/integrations/zoom`;
     } else if (provider === "google-meet") {
       finalRedirect = `${appUrl}/admin/integrations/google-meet`;
-    } else if (redirect_uri && !redirect_uri.includes("undefined")) {
+    } else if (provider === "google-drive") {
+      finalRedirect = `${appUrl}/admin/integrations/google-drive`;
+    } else if (redirect_uri && redirect_uri.trim() !== "" && !redirect_uri.includes("undefined")) {
       finalRedirect = redirect_uri;
     } else {
       finalRedirect = `${appUrl}/settings`;
@@ -244,7 +249,7 @@ serve(async (req) => {
     return Response.redirect(`${finalRedirect}?connected=${provider}`);
   } catch (error: unknown) {
     console.error("User OAuth callback error:", error);
-    const appUrl = Deno.env.get("APP_URL") || "https://controltower.collabai.software";
+    const appUrl = Deno.env.get("APP_URL") || "https://controltowerdemo.collabai.software";
     const message = error instanceof Error ? error.message : "Unknown error";
     return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent(message)}`);
   }

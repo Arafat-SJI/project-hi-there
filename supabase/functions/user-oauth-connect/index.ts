@@ -49,6 +49,19 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
         prompt: "consent",
       },
     },
+    "google-drive": {
+      authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+      scopes: [
+        "openid",
+        "email",
+        "profile",
+        "https://www.googleapis.com/auth/drive.readonly",
+      ],
+      additionalParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
     zoom: {
       authUrl: "https://zoom.us/oauth/authorize",
       scopes: [
@@ -187,7 +200,7 @@ serve(async (req) => {
     const state = crypto.randomUUID();
 
     // Store state in database for verification
-    const defaultAppUrl = Deno.env.get("APP_URL") || "https://controltower.collabai.software";
+    const defaultAppUrl = Deno.env.get("APP_URL") || "https://controltowerdemo.collabai.software";
     await supabase.from("oauth_states").insert({
       state,
       user_id: user.id,

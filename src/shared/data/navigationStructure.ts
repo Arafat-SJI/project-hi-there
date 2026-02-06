@@ -20,155 +20,259 @@ export interface NavItem {
   featureFlag?: string; // Legacy feature flag check
   adminOnly?: boolean;
   badge?: string;
+  children?: NavItem[]; // Nested sub-items (e.g., Streams under Tasks)
 }
 
 export interface NavGroup {
+  id: string;
   title: string;
+  icon: string;
+  isAI?: boolean; // Shows AI indicator animation
+  module?: ModuleId;
+  featureFlag?: string;
   items: NavItem[];
 }
 
 /**
- * Main application navigation (user sidebar)
+ * Dashboard - Always visible at top level
  */
-export const mainNavigation: NavItem[] = [
+export const dashboardItem: NavItem = {
+  title: "Dashboard",
+  href: "/dashboard",
+  icon: "LayoutDashboard",
+};
+
+/**
+ * Main application navigation - Grouped structure
+ */
+export const navigationGroups: NavGroup[] = [
   {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: "LayoutDashboard",
-  },
-  {
-    title: "Clients",
-    href: "/clients",
-    icon: "Users",
+    id: "business-dev",
+    title: "Business Development",
+    icon: "Briefcase",
     module: "business-dev",
-    featureFlag: "enableClients",
+    items: [
+      {
+        title: "Clients",
+        href: "/clients",
+        icon: "Users",
+        module: "business-dev",
+        featureFlag: "enableClients",
+      },
+      {
+        title: "Deals",
+        href: "/deals",
+        icon: "Handshake",
+        module: "business-dev",
+        featureFlag: "enableClients",
+      },
+      {
+        title: "Contacts",
+        href: "/contacts",
+        icon: "Contact",
+        module: "business-dev",
+        featureFlag: "enableClients",
+      },
+    ],
   },
   {
-    title: "Deals",
-    href: "/deals",
-    icon: "Handshake",
-    module: "business-dev",
-    featureFlag: "enableClients",
+    id: "work-management",
+    title: "Work Management",
+    icon: "ListTodo",
+    items: [
+      {
+        title: "Tasks",
+        href: "/tasks",
+        icon: "CheckSquare",
+        module: "actions",
+        featureFlag: "enableTasks",
+        children: [
+          {
+            title: "Streams",
+            href: "/tasks/streams",
+            icon: "GitBranch",
+            module: "actions",
+            featureFlag: "enableTasks",
+          },
+        ],
+      },
+      {
+        title: "Projects",
+        href: "/projects",
+        icon: "FolderKanban",
+        module: "projects",
+      },
+    ],
   },
   {
-    title: "Contacts",
-    href: "/contacts",
-    icon: "Contact",
-    module: "business-dev",
-    featureFlag: "enableClients",
-  },
-  {
+    id: "meetings",
     title: "Meetings",
-    href: "/meetings",
     icon: "Calendar",
     module: "meetings",
-    featureFlag: "enableMeetings",
+    items: [
+      {
+        title: "Schedule",
+        href: "/meetings",
+        icon: "Calendar",
+        module: "meetings",
+        featureFlag: "enableMeetings",
+      },
+      {
+        title: "Series",
+        href: "/meetings/series",
+        icon: "Repeat",
+        module: "meetings",
+        featureFlag: "enableMeetings",
+      },
+      {
+        title: "Transcripts",
+        href: "/meetings/transcripts",
+        icon: "ScrollText",
+        module: "meetings",
+        featureFlag: "enableMeetings",
+      },
+    ],
   },
   {
-    title: "Series",
-    href: "/meetings/series",
-    icon: "Repeat",
-    module: "meetings",
-    featureFlag: "enableMeetings",
-  },
-  {
-    title: "Transcripts",
-    href: "/meetings/transcripts",
-    icon: "ScrollText",
-    module: "meetings",
-    featureFlag: "enableMeetings",
-  },
-  {
-    title: "Tasks",
-    href: "/tasks",
-    icon: "CheckSquare",
-    module: "actions",
-    featureFlag: "enableTasks",
-  },
-  {
-    title: "Streams",
-    href: "/tasks/streams",
-    icon: "GitBranch",
-    module: "actions",
-    featureFlag: "enableTasks",
-  },
-  {
-    title: "Knowledge Base",
-    href: "/knowledge",
+    id: "knowledge",
+    title: "Knowledge",
     icon: "BookOpen",
     module: "knowledge",
-    featureFlag: "enableKnowledgeBase",
+    items: [
+      {
+        title: "Knowledge Base",
+        href: "/knowledge",
+        icon: "BookOpen",
+        module: "knowledge",
+        featureFlag: "enableKnowledgeBase",
+      },
+      {
+        title: "Semantic Search",
+        href: "/knowledge/search",
+        icon: "Sparkles",
+        module: "knowledge",
+        featureFlag: "enableKnowledgeBase",
+      },
+      {
+        title: "Personal Library",
+        href: "/personal-knowledge",
+        icon: "BookMarked",
+        module: "knowledge",
+        featureFlag: "enablePersonalKnowledge",
+      },
+    ],
   },
   {
-    title: "Semantic Search",
-    href: "/knowledge/search",
-    icon: "Sparkles",
-    module: "knowledge",
-    featureFlag: "enableKnowledgeBase",
-  },
-  {
-    title: "Feedback",
-    href: "/feedback",
-    icon: "MessageSquare",
-    featureFlag: "enableFeedback",
-  },
-  {
-    title: "EOS",
-    href: "/eos",
+    id: "strategy",
+    title: "Strategy (EOS)",
     icon: "Target",
     module: "eos",
+    items: [
+      {
+        title: "EOS Hub",
+        href: "/eos",
+        icon: "Target",
+        module: "eos",
+      },
+      {
+        title: "V/TO",
+        href: "/eos/vto",
+        icon: "Eye",
+        module: "eos",
+      },
+      {
+        title: "OKRs",
+        href: "/okrs",
+        icon: "Crosshair",
+        module: "eos",
+      },
+      {
+        title: "Issues",
+        href: "/eos/issues",
+        icon: "AlertCircle",
+        module: "eos",
+      },
+      {
+        title: "Scorecard",
+        href: "/eos/scorecard",
+        icon: "BarChart3",
+        module: "eos",
+      },
+      {
+        title: "Accountability",
+        href: "/eos/accountability",
+        icon: "Network",
+        module: "eos",
+      },
+    ],
   },
   {
-    title: "OKRs",
-    href: "/okrs",
-    icon: "Crosshair",
-    module: "eos",
-  },
-  {
-    title: "Projects",
-    href: "/projects",
-    icon: "FolderKanban",
-    module: "projects",
-  },
-  {
-    title: "Productivity",
-    href: "/productivity",
-    icon: "BarChart3",
+    id: "operations",
+    title: "Operations",
+    icon: "Settings2",
     module: "productivity",
+    items: [
+      {
+        title: "Productivity",
+        href: "/productivity",
+        icon: "BarChart3",
+        module: "productivity",
+      },
+      {
+        title: "Processes",
+        href: "/process",
+        icon: "FileText",
+        module: "productivity",
+      },
+    ],
   },
   {
-    title: "Processes",
-    href: "/process",
-    icon: "FileText",
-    module: "productivity",
-  },
-  {
-    title: "AI Agents",
-    href: "/ai-agents",
+    id: "ai-command",
+    title: "AI Command Center",
     icon: "Bot",
-    featureFlag: "enableAIAgents",
+    isAI: true,
+    items: [
+      {
+        title: "AI Agents",
+        href: "/ai-agents",
+        icon: "Bot",
+        featureFlag: "enableAIAgents",
+      },
+      {
+        title: "AI Chat",
+        href: "/ai-chat",
+        icon: "MessageSquare",
+        featureFlag: "enableAIChat",
+      },
+      {
+        title: "Feedback",
+        href: "/feedback",
+        icon: "MessageCircle",
+        featureFlag: "enableFeedback",
+      },
+    ],
   },
-  {
-    title: "AI Chat",
-    href: "/ai-chat",
-    icon: "MessageSquare",
-    featureFlag: "enableAIChat",
-  },
-  {
-    title: "Personal Knowledge",
-    href: "/personal-knowledge",
-    icon: "BookMarked",
-    module: "knowledge",
-    featureFlag: "enablePersonalKnowledge",
-  },
+];
+
+/**
+ * Legacy flat navigation - maintained for backward compatibility
+ * @deprecated Use navigationGroups instead
+ */
+export const mainNavigation: NavItem[] = [
+  dashboardItem,
+  ...navigationGroups.flatMap((group) =>
+    group.items.flatMap((item) => [item, ...(item.children || [])])
+  ),
 ];
 
 /**
  * Admin panel navigation (admin sidebar)
  */
 export const adminNavigation: NavGroup[] = [
-{
+  {
+    id: "admin-dashboard",
     title: "DASHBOARD",
+    icon: "LayoutDashboard",
     items: [
       {
         title: "Overview",
@@ -178,7 +282,9 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    id: "users-access",
     title: "USERS & ACCESS",
+    icon: "Users",
     items: [
       {
         title: "User Management",
@@ -198,7 +304,9 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    id: "team-resources",
     title: "TEAM & RESOURCES",
+    icon: "Building2",
     items: [
       {
         title: "Employees",
@@ -223,7 +331,9 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    id: "admin-eos",
     title: "EOS",
+    icon: "Target",
     items: [
       {
         title: "EOS Admin",
@@ -248,7 +358,9 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    id: "admin-knowledge",
     title: "KNOWLEDGE",
+    icon: "BookOpen",
     items: [
       {
         title: "Knowledge Analytics",
@@ -268,7 +380,9 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    id: "content-feedback",
     title: "CONTENT & FEEDBACK",
+    icon: "MessageSquare",
     items: [
       {
         title: "Feedback Management",
@@ -278,7 +392,9 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    id: "ai-automation",
     title: "AI & AUTOMATION",
+    icon: "Brain",
     items: [
       {
         title: "AI Models",
@@ -298,7 +414,9 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
+    id: "system",
     title: "SYSTEM",
+    icon: "Settings",
     items: [
       {
         title: "System Settings",

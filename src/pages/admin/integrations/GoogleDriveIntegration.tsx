@@ -1,6 +1,6 @@
 /**
- * Zoom Integration Page
- * Allows users to connect their Zoom account for meeting integration
+ * Google Drive Integration Page
+ * Allows users to connect their Google account for Drive integration
  */
 
 import { useState, useEffect } from "react";
@@ -11,12 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Video, CheckCircle2, AlertCircle, Loader2, RefreshCw, Eye, Calendar, Settings, Copy, ExternalLink, Save, Plus, BookOpen, ArrowLeft, TrendingUp, Clock, Users, Zap } from "lucide-react";
+import { HardDrive, CheckCircle2, AlertCircle, Loader2, RefreshCw, Settings, Copy, ExternalLink, Save, ArrowLeft, TrendingUp, Users, Zap, Folder } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useSyncZoom } from "@/hooks/useSyncZoom";
 import { useUserOAuthToken, useConnectOAuth, useDisconnectOAuth, useHasValidToken } from "@/hooks/useUserIntegrations";
-import { useMeetings } from "@/hooks/useMeetings";
 import { 
   useIntegrationProvider, 
   useIntegrationFields, 
@@ -24,9 +22,9 @@ import {
   useUpdateIntegration 
 } from "@/hooks/useIntegrations";
 import { DynamicFormField } from "@/components/integrations/DynamicFormField";
-import { CreateZoomMeetingDialog } from "@/components/meetings/CreateZoomMeetingDialog";
+import { GoogleDriveBrowser } from "@/components/integrations/GoogleDriveBrowser";
 
-export default function ZoomIntegration() {
+export default function GoogleDriveIntegration() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -37,28 +35,22 @@ export default function ZoomIntegration() {
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   // Organization-level integration hooks
-  const { data: zoomProvider, isLoading: providerLoading } = useIntegrationProvider("zoom");
-  const { data: integrationFields, isLoading: fieldsLoading } = useIntegrationFields(zoomProvider?.id || "");
-  const { data: orgIntegration, isLoading: orgIntegrationLoading } = useOrganizationIntegration(zoomProvider?.id || "");
+  const { data: googleDriveProvider, isLoading: providerLoading } = useIntegrationProvider("google-drive");
+  const { data: integrationFields, isLoading: fieldsLoading } = useIntegrationFields(googleDriveProvider?.id || "");
+  const { data: orgIntegration, isLoading: orgIntegrationLoading } = useOrganizationIntegration(googleDriveProvider?.id || "");
   const updateIntegration = useUpdateIntegration();
 
   // Check if org-level integration is configured
   const isOrgConfigured = !!orgIntegration && orgIntegration.enabled && orgIntegration.connection_status === 'connected';
 
-  // Check Zoom connection status (user-level)
-  const { data: zoomToken } = useUserOAuthToken("zoom");
-  const { hasValidToken, isExpired, hasError, errorMessage } = useHasValidToken("zoom");
-  const isConnected = !!zoomToken && hasValidToken;
+  // Check Google Drive connection status (user-level)
+  const { data: googleToken } = useUserOAuthToken("google-drive");
+  const { hasValidToken, isExpired, hasError, errorMessage } = useHasValidToken("google-drive");
+  const isConnected = !!googleToken && hasValidToken;
 
   // OAuth hooks
   const connectOAuth = useConnectOAuth();
   const disconnectOAuth = useDisconnectOAuth();
-
-  // Zoom sync hook
-  const syncZoom = useSyncZoom();
-
-  // Get Zoom meetings count
-  const { data: meetings } = useMeetings({ meetingType: "zoom" });
 
   // Get Supabase URL for redirect URL
   const supabaseUrl = "https://tjkqvbxtziheggurtvcz.supabase.co";
@@ -76,7 +68,7 @@ export default function ZoomIntegration() {
     if (!providerLoading && !fieldsLoading && !orgIntegrationLoading) {
       setCheckingStatus(false);
     }
-  }, [providerLoading, fieldsLoading, orgIntegrationLoading, zoomToken]);
+  }, [providerLoading, fieldsLoading, orgIntegrationLoading, googleToken]);
 
   const copyRedirectUrl = () => {
     navigator.clipboard.writeText(redirectUrl);
@@ -91,14 +83,14 @@ export default function ZoomIntegration() {
     setError("");
     
     try {
-      await connectOAuth.mutateAsync({ provider: "zoom" });
+      await connectOAuth.mutateAsync({ provider: "google-drive" });
       // The hook will redirect to OAuth, so we don't need to do anything else here
     } catch (err: any) {
-      console.error("Zoom connection error:", err);
-      setError(err.message || "Failed to connect to Zoom");
+      console.error("Google Drive connection error:", err);
+      setError(err.message || "Failed to connect to Google Drive");
       toast({
         title: "Connection failed",
-        description: err.message || "Failed to connect to Zoom",
+        description: err.message || "Failed to connect to Google Drive",
         variant: "destructive",
       });
       setLoading(false);
@@ -108,16 +100,15 @@ export default function ZoomIntegration() {
   const handleDisconnect = async () => {
     setLoading(true);
     try {
-      await disconnectOAuth.mutateAsync({ provider: "zoom" });
+      await disconnectOAuth.mutateAsync({ provider: "google-drive" });
       
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['zoom-files'] });
-      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      queryClient.invalidateQueries({ queryKey: ['google-drive-files'] });
       queryClient.invalidateQueries({ queryKey: ['user-oauth-tokens'] });
       
       toast({
         title: "Disconnected",
-        description: "Your Zoom account has been disconnected.",
+        description: "Your Google account has been disconnected.",
       });
     } catch (err: any) {
       console.error("Disconnect error:", err);
@@ -131,24 +122,13 @@ export default function ZoomIntegration() {
     }
   };
 
-  const handleSyncMeetings = async () => {
-    try {
-      await syncZoom.mutateAsync({
-        sync_recordings: true,
-        sync_transcripts: true,
-      });
-    } catch (err) {
-      console.error("Sync error:", err);
-    }
-  };
-
   const handleSaveOrgConfig = async () => {
-    if (!zoomProvider) return;
+    if (!googleDriveProvider) return;
     
     setIsSavingConfig(true);
     try {
       await updateIntegration.mutateAsync({
-        providerId: zoomProvider.id,
+        providerId: googleDriveProvider.id,
         config: orgConfigValues,
         enabled: true,
       });
@@ -157,7 +137,7 @@ export default function ZoomIntegration() {
       
       toast({
         title: "Configuration saved",
-        description: "Zoom organization configuration has been saved successfully.",
+        description: "Google Drive organization configuration has been saved successfully.",
       });
     } catch (err: any) {
       console.error("Save config error:", err);
@@ -184,14 +164,6 @@ export default function ZoomIntegration() {
     return !!orgConfigValues[field.field_key];
   }) ?? false;
 
-  // Calculate statistics
-  const meetingsCount = meetings?.length || 0;
-  const upcomingMeetings = meetings?.filter((m) => {
-    if (!m.scheduled_at) return false;
-    return new Date(m.scheduled_at) > new Date();
-  }).length || 0;
-  const completedMeetings = meetings?.filter((m) => m.status === 'completed').length || 0;
-
   if (checkingStatus) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -214,99 +186,18 @@ export default function ZoomIntegration() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 shadow-lg">
-              <Video className="h-7 w-7 text-white" />
+              <HardDrive className="h-7 w-7 text-white" />
             </div>
             <div>
               <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-blue-300 bg-clip-text text-transparent">
-                Zoom Integration
+                Google Drive Integration
               </h1>
               <p className="text-muted-foreground mt-2 text-base">
-                Connect your Zoom account to sync meetings, recordings, and transcripts
+                Connect your Google account to sync files from Google Drive and manage your documents
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="flex items-center gap-2"
-          >
-            <Link to="/admin/integrations/zoom/documentation">
-              <BookOpen className="h-4 w-4" />
-              Documentation
-            </Link>
-          </Button>
         </div>
-
-        {/* Statistics Cards */}
-        {isConnected && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="border-2 hover:shadow-lg transition-all duration-200">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10">
-                    <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <TrendingUp className="h-4 w-4 text-green-600 opacity-60" />
-                </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-bold text-foreground">{meetingsCount}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Total Meetings</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 hover:shadow-lg transition-all duration-200">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10">
-                    <Clock className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <TrendingUp className="h-4 w-4 text-green-600 opacity-60" />
-                </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-bold text-foreground">{upcomingMeetings}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Upcoming</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 hover:shadow-lg transition-all duration-200">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/10 to-green-600/10">
-                    <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  </div>
-                  <TrendingUp className="h-4 w-4 text-green-600 opacity-60" />
-                </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-bold text-foreground">{completedMeetings}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Completed</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 hover:shadow-lg transition-all duration-200">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/10 to-indigo-600/10">
-                    <Zap className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <Badge variant="outline" className="border-green-200 text-green-700 dark:border-green-800 dark:text-green-300">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Active
-                  </Badge>
-                </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-bold text-foreground">
-                    {isOrgConfigured ? "✓" : "—"}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">Org Config</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
 
       <div className="grid gap-6">
@@ -317,12 +208,12 @@ export default function ZoomIntegration() {
               <div>
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10">
-                    <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <HardDrive className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   OAuth Configuration
                 </CardTitle>
                 <CardDescription className="mt-2 text-base">
-                  Configure your Zoom OAuth app with these settings
+                  Configure your Google OAuth app with these settings
                 </CardDescription>
               </div>
             </div>
@@ -340,7 +231,7 @@ export default function ZoomIntegration() {
                     </p>
                   </div>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mb-3 ml-7">
-                    Add this URL to your Zoom OAuth app settings in the Zoom Marketplace
+                    Add this URL to your Google OAuth app settings in Google Cloud Console
                   </p>
                   <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-800 shadow-sm">
                     <code className="text-xs font-mono text-blue-900 dark:text-blue-100 flex-1 break-all">
@@ -365,11 +256,12 @@ export default function ZoomIntegration() {
                 Setup Steps:
               </p>
               <ol className="text-sm text-muted-foreground space-y-2.5 list-decimal list-inside ml-2">
-                <li className="pl-2">Go to <a href="https://marketplace.zoom.us/develop/create" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 font-medium">Zoom Marketplace <ExternalLink className="h-3 w-3" /></a></li>
-                <li className="pl-2">Create or edit your OAuth app</li>
-                <li className="pl-2">Add the Redirect URL above to your app settings</li>
+                <li className="pl-2">Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 font-medium">Google Cloud Console <ExternalLink className="h-3 w-3" /></a></li>
+                <li className="pl-2">Create or select a project</li>
+                <li className="pl-2">Create OAuth 2.0 Client ID credentials</li>
+                <li className="pl-2">Add the Redirect URL above to your OAuth consent screen</li>
                 <li className="pl-2">Copy your Client ID and Client Secret</li>
-                <li className="pl-2">Go to <Link to="/admin/integrations/zoom" className="text-primary hover:underline font-medium">Zoom Integration Settings</Link> and enter your credentials</li>
+                <li className="pl-2">Go to <Link to="/admin/integrations/google-drive" className="text-primary hover:underline font-medium">Google Drive Integration Settings</Link> and enter your credentials</li>
               </ol>
             </div>
 
@@ -383,7 +275,7 @@ export default function ZoomIntegration() {
                     Required Scopes
                   </p>
                   <p className="text-xs text-amber-800 dark:text-amber-200">
-                    Make sure to request these scopes in your Zoom app: <code className="bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded font-mono text-xs">meeting:read</code>, <code className="bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded font-mono text-xs">recording:read</code>, and <code className="bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded font-mono text-xs">user:read</code>
+                    Make sure to enable these scopes in your Google OAuth app: <code className="bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded font-mono text-xs">https://www.googleapis.com/auth/drive.readonly</code> and <code className="bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded font-mono text-xs">https://www.googleapis.com/auth/drive.file</code>
                   </p>
                 </div>
               </div>
@@ -415,8 +307,8 @@ export default function ZoomIntegration() {
                 </CardTitle>
                 <CardDescription className="text-base">
                   {isOrgConfigured 
-                    ? "Zoom OAuth credentials are configured. Users can now connect their accounts."
-                    : "Enter your Zoom OAuth credentials to enable user connections."}
+                    ? "Google OAuth credentials are configured. Users can now connect their accounts."
+                    : "Enter your Google OAuth credentials to enable user connections."}
                 </CardDescription>
               </div>
             </div>
@@ -431,10 +323,10 @@ export default function ZoomIntegration() {
                   <div className="flex-1">
                     <p className="font-bold text-amber-900 dark:text-amber-100 text-base mb-2">Configuration Required</p>
                     <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
-                      You must configure the Zoom OAuth credentials before users can connect their Zoom accounts. 
+                      You must configure the Google OAuth credentials before users can connect their Google accounts. 
                       Get your Client ID and Client Secret from the{" "}
-                      <a href="https://marketplace.zoom.us/develop/apps" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-amber-900 dark:hover:text-amber-100">
-                        Zoom Marketplace
+                      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-amber-900 dark:hover:text-amber-100">
+                        Google Cloud Console
                       </a>.
                     </p>
                   </div>
@@ -493,7 +385,7 @@ export default function ZoomIntegration() {
                   <div className="flex-1">
                     <p className="font-bold text-green-900 dark:text-green-100 text-base mb-2">Configuration Active</p>
                     <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
-                      Users can now connect their personal Zoom accounts using the connection section below.
+                      Users can now connect their personal Google accounts using the connection section below.
                     </p>
                   </div>
                 </div>
@@ -507,12 +399,12 @@ export default function ZoomIntegration() {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-xl">
               <div className="p-2 rounded-lg bg-gradient-to-br from-primary/10 to-primary/20">
-                <Video className="h-5 w-5 text-primary" />
+                <HardDrive className="h-5 w-5 text-primary" />
               </div>
               Connection Status
             </CardTitle>
             <CardDescription className="text-base mt-2">
-              Current Zoom account connection status
+              Current Google account connection status
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -526,7 +418,7 @@ export default function ZoomIntegration() {
                     <div>
                       <p className="font-bold text-green-900 dark:text-green-100 text-base">Connected</p>
                       <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                        {zoomToken?.account_email || zoomToken?.account_name || 'Zoom account'}
+                        {googleToken?.account_email || googleToken?.account_name || 'Google account'}
                       </p>
                     </div>
                   </div>
@@ -591,7 +483,7 @@ export default function ZoomIntegration() {
                       <div>
                         <p className="font-bold text-amber-900 dark:text-amber-100 text-base">Organization Setup Required</p>
                         <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                          An administrator must configure the Zoom OAuth credentials above before you can connect.
+                          An administrator must configure the Google OAuth credentials above before you can connect.
                         </p>
                       </div>
                     </div>
@@ -606,7 +498,7 @@ export default function ZoomIntegration() {
                       <p className="font-bold text-base">Not connected</p>
                       <p className="text-sm text-muted-foreground mt-1">
                         {isOrgConfigured 
-                          ? "Connect to enable Zoom features"
+                          ? "Connect to enable Google Drive features"
                           : "Configure organization credentials first"}
                       </p>
                     </div>
@@ -624,8 +516,8 @@ export default function ZoomIntegration() {
                       </>
                     ) : (
                       <>
-                        <Video className="mr-2 h-4 w-4" />
-                        Connect with Zoom
+                        <HardDrive className="mr-2 h-4 w-4" />
+                        Connect with Google
                       </>
                     )}
                   </Button>
@@ -644,117 +536,13 @@ export default function ZoomIntegration() {
           </CardContent>
         </Card>
 
-        {/* Sync Zoom Meetings Card */}
-        {isConnected && hasValidToken && (
-          <Card className="border-2 shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-purple-600/10">
-                  <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                Sync Zoom Meetings
-              </CardTitle>
-              <CardDescription className="text-base mt-2">
-                Import your Zoom meetings, recordings, and transcripts
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <Button
-                onClick={handleSyncMeetings}
-                disabled={syncZoom.isPending || !hasValidToken}
-                variant="secondary"
-                size="lg"
-                className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white shadow-md hover:shadow-lg transition-all"
-              >
-                {syncZoom.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Sync All Meetings
-                  </>
-                )}
-              </Button>
-              
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Sync and refresh your Zoom meetings, recordings, and transcripts.
-              </p>
-
-              {syncZoom.isSuccess && (
-                <div className="rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30 p-5 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-green-200 dark:bg-green-900/50">
-                      <CheckCircle2 className="h-5 w-5 text-green-700 dark:text-green-300" />
-                    </div>
-                    <span className="text-green-900 dark:text-green-100 font-bold text-base">
-                      Meetings synced successfully
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {meetings && meetings.length > 0 && (
-                <Button variant="outline" size="lg" asChild className="w-full sm:w-auto border-2 hover:bg-muted/50 transition-colors">
-                  <Link to="/admin/integrations/zoom/meetings">
-                    <Eye className="mr-2 h-4 w-4" />
-                    View All Synced Meetings ({meetings.length})
-                  </Link>
-                </Button>
-              )}
-
-              <Separator />
-
-              <div className="rounded-lg bg-muted/50 p-4 border border-muted">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  <strong className="font-semibold">Note:</strong> Requires Zoom OAuth permissions for meeting:read and recording:read.
-                  If you see a permission error, disconnect and reconnect your Zoom account.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Create Zoom Meeting Card */}
-        {isConnected && hasValidToken && (
-          <Card className="border-2 hover:border-primary/50 transition-all shadow-lg hover:shadow-xl">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10">
-                  <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                Create Zoom Meeting
-              </CardTitle>
-              <CardDescription className="text-base mt-2">
-                Schedule a new Zoom meeting directly from the app
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <CreateZoomMeetingDialog 
-                trigger={
-                  <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-md hover:shadow-lg transition-all">
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Zoom Meeting
-                  </Button>
-                }
-              />
-              
-              <div className="rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 p-4 border-2 border-muted shadow-sm">
-                <p className="text-sm text-muted-foreground flex items-start gap-3 leading-relaxed">
-                  <Video className="h-5 w-5 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-                  <span>
-                    Create meetings with title, time, agenda, and optional attendees. The meeting will be saved locally and attendees will receive email invites.
-                  </span>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Google Drive Browser */}
+        {isConnected && (
+          <GoogleDriveBrowser />
         )}
 
         {/* Account Information Card */}
-        {isConnected && zoomToken && (
+        {isConnected && googleToken && (
           <Card className="border-2 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3 text-xl">
@@ -764,27 +552,27 @@ export default function ZoomIntegration() {
                 Account Information
               </CardTitle>
               <CardDescription className="text-base mt-2">
-                Details about your connected Zoom account
+                Details about your connected Google account
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {zoomToken.account_name && (
+              {googleToken.account_name && (
                 <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 border border-muted shadow-sm">
                   <span className="text-sm font-semibold">Name</span>
-                  <span className="text-sm text-muted-foreground font-medium">{zoomToken.account_name}</span>
+                  <span className="text-sm text-muted-foreground font-medium">{googleToken.account_name}</span>
                 </div>
               )}
-              {zoomToken.account_email && (
+              {googleToken.account_email && (
                 <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 border border-muted shadow-sm">
                   <span className="text-sm font-semibold">Email</span>
-                  <span className="text-sm text-muted-foreground font-medium">{zoomToken.account_email}</span>
+                  <span className="text-sm text-muted-foreground font-medium">{googleToken.account_email}</span>
                 </div>
               )}
-              {zoomToken.scopes && zoomToken.scopes.length > 0 && (
+              {googleToken.scopes && googleToken.scopes.length > 0 && (
                 <div className="p-4 rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 border border-muted shadow-sm">
                   <span className="text-sm font-semibold block mb-3">Scopes</span>
                   <div className="flex flex-wrap gap-2">
-                    {zoomToken.scopes.map((scope) => (
+                    {googleToken.scopes.map((scope) => (
                       <Badge key={scope} variant="secondary" className="text-xs font-mono">
                         {scope}
                       </Badge>
@@ -792,11 +580,11 @@ export default function ZoomIntegration() {
                   </div>
                 </div>
               )}
-              {zoomToken.last_used_at && (
+              {googleToken.last_used_at && (
                 <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 border border-muted shadow-sm">
                   <span className="text-sm font-semibold">Last Used</span>
                   <span className="text-sm text-muted-foreground font-medium">
-                    {new Date(zoomToken.last_used_at).toLocaleString()}
+                    {new Date(googleToken.last_used_at).toLocaleString()}
                   </span>
                 </div>
               )}
@@ -807,4 +595,3 @@ export default function ZoomIntegration() {
     </div>
   );
 }
-

@@ -44,20 +44,28 @@ SELECT id INTO m4 FROM meetings WHERE title = 'L10 Meeting — Feb 3' LIMIT 1;
 SELECT id INTO m5 FROM meetings WHERE title = 'Acme Corp — Quarterly Review' LIMIT 1;
 SELECT id INTO m6 FROM meetings WHERE title = 'TechStart — Product Demo' LIMIT 1;
 
--- 3. Participants
+-- 3. Participants (upsert to avoid duplicate key on re-seed)
 IF m3 IS NOT NULL THEN
-  INSERT INTO meeting_participants (meeting_id, user_id, role, rsvp_status, attended) VALUES
-    (m3, u1, 'organizer', 'accepted', true);
+  INSERT INTO meeting_participants (meeting_id, user_id, role, rsvp_status, attended)
+  VALUES (m3, u1, 'organizer', 'accepted', true)
+  ON CONFLICT (meeting_id, user_id) DO UPDATE SET
+    role = EXCLUDED.role, rsvp_status = EXCLUDED.rsvp_status, attended = EXCLUDED.attended;
 END IF;
 IF m5 IS NOT NULL THEN
-  INSERT INTO meeting_participants (meeting_id, user_id, email, name, role, rsvp_status) VALUES
+  INSERT INTO meeting_participants (meeting_id, user_id, email, name, role, rsvp_status)
+  VALUES
     (m5, u1, NULL, NULL, 'organizer', 'accepted'),
-    (m5, NULL, 'john.doe@example.com', 'John Doe', 'attendee', 'accepted');
+    (m5, NULL, 'john.doe@example.com', 'John Doe', 'attendee', 'accepted')
+  ON CONFLICT (meeting_id, user_id) DO UPDATE SET
+    email = EXCLUDED.email, name = EXCLUDED.name, role = EXCLUDED.role, rsvp_status = EXCLUDED.rsvp_status;
 END IF;
 IF m6 IS NOT NULL THEN
-  INSERT INTO meeting_participants (meeting_id, user_id, email, name, role, rsvp_status, attended) VALUES
+  INSERT INTO meeting_participants (meeting_id, user_id, email, name, role, rsvp_status, attended)
+  VALUES
     (m6, u1, NULL, NULL, 'presenter', 'accepted', true),
-    (m6, NULL, 'jane.smith@techstart.io', 'Jane Smith', 'attendee', 'accepted', true);
+    (m6, NULL, 'jane.smith@techstart.io', 'Jane Smith', 'attendee', 'accepted', true)
+  ON CONFLICT (meeting_id, user_id) DO UPDATE SET
+    email = EXCLUDED.email, name = EXCLUDED.name, role = EXCLUDED.role, rsvp_status = EXCLUDED.rsvp_status, attended = EXCLUDED.attended;
 END IF;
 
 -- 4. Agenda items (L10 Jan 27 meeting)

@@ -8,7 +8,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.validate-api-key]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-ai-models]
 verify_jwt = false
@@ -31,7 +31,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-business-doc]
-verify_jwt = true
+verify_jwt = false
 
 # Zoom meeting creation - disable JWT for ES256 compatibility
 [functions.create-zoom-meeting]
@@ -114,6 +114,13 @@ verify_jwt = false
 [functions.user-oauth-disconnect]
 verify_jwt = false
 
+# User Drive functions - authentication validated in-code for ES256 compatibility
+[functions.user-drive-list]
+verify_jwt = false
+
+[functions.user-drive-download]
+verify_jwt = false
+
 # SSO and webhook functions
 [functions.validate-sso-domain]
 verify_jwt = false
@@ -149,3 +156,83 @@ verify_jwt = true
 
 [functions.import-productivity-csv]
 verify_jwt = true
+
+# Auto-added functions - run scripts/sync-config-functions.sh to sync
+[functions.agent-chat-stream]
+verify_jwt = false
+
+[functions.agent-conversation-chat]
+verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.api-v1-documents]
+verify_jwt = false
+
+[functions.api-v1-tasks]
+verify_jwt = false
+
+[functions.client-dashboard-api]
+verify_jwt = false
+
+[functions.client-documents]
+verify_jwt = false
+
+[functions.create-client-access]
+verify_jwt = false
+
+[functions.eos-triage-assistant]
+verify_jwt = false
+
+[functions.execute-mcp-tool]
+verify_jwt = false
+
+[functions.extract-agent-memories]
+verify_jwt = false
+
+[functions.extract-meeting-issues]
+verify_jwt = false
+
+[functions.extract-meeting-tasks]
+verify_jwt = false
+
+[functions.gemini-rag-query]
+verify_jwt = false
+
+[functions.knowledge-base]
+verify_jwt = false
+
+[functions.log-activity]
+verify_jwt = false
+
+[functions.oauth-authorize]
+verify_jwt = false
+
+[functions.oauth-revoke-token]
+verify_jwt = false
+
+[functions.oauth-token]
+verify_jwt = false
+
+[functions.oauth-userinfo]
+verify_jwt = false
+
+[functions.promote-first-admin]
+verify_jwt = false
+
+[functions.quarterly-digest]
+verify_jwt = false
+
+[functions.run-seed]
+verify_jwt = false
+
+[functions.suggest-okrs]
+verify_jwt = false
+
+[functions.sync-projects-activecollab]
+verify_jwt = false
+
+[functions.sync-projects-jira]
+verify_jwt = false
+

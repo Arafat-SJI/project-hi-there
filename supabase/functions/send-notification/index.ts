@@ -17,14 +17,24 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
+    const body = await req.json()
     const {
       user_id,
       title,
       message,
       type = 'info',
       channels = ['in_app'],
-      metadata = {}
-    } = await req.json()
+      metadata = {},
+      ping,
+    } = body
+
+    // Health check / deployment test - no DB write
+    if (ping === true) {
+      return new Response(
+        JSON.stringify({ success: true, message: 'ok' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
 
     if (!user_id || !title || !message) {
       return new Response(

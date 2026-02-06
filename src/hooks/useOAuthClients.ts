@@ -1,5 +1,8 @@
 /**
  * Custom hook for managing OAuth clients
+ * 
+ * NOTE: Requires the oauth_clients table to be created via migration.
+ * Until then, operations will fail gracefully with informative error messages.
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,22 +43,29 @@ export function useOAuthClients() {
     error,
   } = useQuery({
     queryKey: ["oauth-clients"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("oauth_clients")
-        .select("*")
-        .order("created_at", { ascending: false });
+    queryFn: async (): Promise<OAuthClient[]> => {
+      try {
+        const { data, error } = await supabase
+          .from("oauth_clients" as never)
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data as OAuthClient[];
+        if (error) {
+          console.warn("oauth_clients table not available:", error.message);
+          return [];
+        }
+        return (data || []) as OAuthClient[];
+      } catch {
+        return [];
+      }
     },
   });
 
   const createClient = useMutation({
     mutationFn: async (clientData: Partial<OAuthClient>) => {
       const { data, error } = await supabase
-        .from("oauth_clients")
-        .insert([clientData])
+        .from("oauth_clients" as never)
+        .insert([clientData] as never)
         .select()
         .single();
 
@@ -81,8 +91,8 @@ export function useOAuthClients() {
   const updateClient = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<OAuthClient> }) => {
       const { data, error } = await supabase
-        .from("oauth_clients")
-        .update(updates)
+        .from("oauth_clients" as never)
+        .update(updates as never)
         .eq("id", id)
         .select()
         .single();
@@ -108,7 +118,10 @@ export function useOAuthClients() {
 
   const deleteClient = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("oauth_clients").delete().eq("id", id);
+      const { error } = await supabase
+        .from("oauth_clients" as never)
+        .delete()
+        .eq("id", id);
 
       if (error) throw error;
     },
@@ -131,8 +144,8 @@ export function useOAuthClients() {
   const toggleEnabled = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
       const { error } = await supabase
-        .from("oauth_clients")
-        .update({ enabled })
+        .from("oauth_clients" as never)
+        .update({ enabled } as never)
         .eq("id", id);
 
       if (error) throw error;

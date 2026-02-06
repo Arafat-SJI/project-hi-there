@@ -1,93 +1,80 @@
 
+# Fix: Google Drive OAuth Callback - Missing Token Endpoint
 
-# Plan: Fix Missing `google_meet_id` Column Error
+## Problem
 
-## Problem Analysis
+When connecting Google Drive, after granting permissions, users are redirected to `/settings?error=Invalid%20URL%3A%20%27%27`. This happens because the `user-oauth-callback` edge function is missing the `google-drive` provider configuration.
 
-The `sync-google-meet` edge function is using columns that don't exist in the `meetings` table:
+## Root Cause
 
-| Column Used in Code | Exists in DB |
-|---------------------|--------------|
-| `google_meet_id` | ❌ NO |
-| `google_meet_link` | ❌ NO |
-| `external_id` | ✅ YES |
-| `external_meeting_id` | ✅ YES |
-| `join_url` | ✅ YES |
+The `user-oauth-callback/index.ts` has two functions that need `google-drive` support but are missing it:
 
-The edge function was written using provider-specific columns (like Zoom has `zoom_id`, `zoom_meeting_id`, etc.), but Google Meet columns were never added to the database.
+| Function | Issue |
+|----------|-------|
+| `getTokenEndpoint()` | Missing `google-drive` entry - returns empty string |
+| `getUserInfo()` | Missing `google-drive` case - cannot fetch user profile |
+
+When `getTokenEndpoint("google-drive")` returns `""`, the subsequent `fetch("")` call throws "Invalid URL: ''" error.
 
 ## Solution
 
-Update the `sync-google-meet` edge function to use only the **provider-agnostic columns** that already exist in the database schema. This follows the project's established pattern for multi-provider meeting support.
+Add `google-drive` support to both functions in `user-oauth-callback/index.ts`:
 
-## Implementation
+### Change 1: Add Token Endpoint
 
-### File: `supabase/functions/sync-google-meet/index.ts`
-
-**Changes required:**
-
-1. **Line 188**: Fix the `.or()` query that checks for existing meetings
-   - Remove: `google_meet_id.eq.${eventId}`
-   - The query should only use `external_id` since that's the standardized identifier
-
-2. **Lines 205-206**: Remove Google Meet specific columns from `meetingData`
-   - Remove: `google_meet_id: eventId`
-   - Remove: `google_meet_link: meetLink`
-   - Keep: `external_id`, `external_meeting_id`, `join_url`, `host_url` (these already exist)
-
-**Before (lines 184-207):**
 ```typescript
-// Check if meeting exists
-const { data: existingMeeting } = await supabaseClient
-  .from('meetings')
-  .select('id')
-  .or(`external_id.eq.${eventId},google_meet_id.eq.${eventId}`)  // BAD
-  .single()
+const getTokenEndpoint = (provider: string): string => {
+  const endpoints: Record<string, string> = {
+    google: "https://oauth2.googleapis.com/token",
+    "google-meet": "https://oauth2.googleapis.com/token",
+    "google-drive": "https://oauth2.googleapis.com/token",  // ADD THIS
+    zoom: "https://zoom.us/oauth/token",
+    microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+  };
+  return endpoints[provider] || "";
+};
+```
 
-const meetingData = {
-  // ... other fields
-  google_meet_id: eventId,      // BAD - column doesn't exist
-  google_meet_link: meetLink,   // BAD - column doesn't exist
+### Change 2: Add User Info Handler
+
+```typescript
+switch (provider) {
+  case "google":
+  case "google-meet":
+  case "google-drive":  // ADD THIS CASE
+    url = "https://www.googleapis.com/oauth2/v2/userinfo";
+    break;
+  // ... other cases
+}
+
+// Also in the response normalization switch:
+switch (provider) {
+  case "google":
+  case "google-meet":
+  case "google-drive":  // ADD THIS CASE
+    return {
+      email: data.email,
+      name: data.name,
+      picture: data.picture,
+    };
+  // ... other cases
 }
 ```
 
-**After:**
-```typescript
-// Check if meeting exists
-const { data: existingMeeting } = await supabaseClient
-  .from('meetings')
-  .select('id')
-  .eq('external_id', eventId)  // GOOD - use provider-agnostic column
-  .single()
+## File Changes
 
-const meetingData = {
-  title: event.summary || 'Untitled Meeting',
-  description: event.description,
-  scheduled_at: eventStart,
-  duration_minutes: durationMinutes,
-  status: new Date(eventEnd) < new Date() ? 'completed' : 'scheduled',
-  provider: meetingProvider,
-  external_id: eventId,
-  external_uuid: eventId,
-  external_meeting_id: eventId,
-  join_url: meetLink,
-  host_url: meetLink,
-  organizer_id: user.id,
-  // NO google_meet_id or google_meet_link
-}
-```
+| File | Changes |
+|------|---------|
+| `supabase/functions/user-oauth-callback/index.ts` | Add `google-drive` to token endpoint and user info handlers |
 
-## Files Changed
+## Post-Change Action
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/functions/sync-google-meet/index.ts` | MODIFY | Remove non-existent `google_meet_id` and `google_meet_link` columns |
+After code changes, the `user-oauth-callback` edge function needs to be redeployed.
 
-## Technical Notes
+## Expected Result
 
-1. **Provider-Agnostic Design**: The `meetings` table uses `provider` column to identify the meeting type (zoom, google_meet, microsoft_teams) and generic columns (`external_id`, `join_url`, etc.) for provider-specific data
-
-2. **Adding `organizer_id`**: The insert query should include `organizer_id: user.id` since this is a required column for new meetings
-
-3. **No Schema Migration Needed**: This fix only requires updating the edge function code - no database changes are needed
-
+After fix:
+- Google Drive OAuth flow completes successfully
+- User is redirected to `/admin/integrations/google-drive?connected=google-drive`
+- User tokens are stored in `user_oauth_tokens` table
+- Integration shows as connected

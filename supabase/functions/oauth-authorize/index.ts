@@ -50,7 +50,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const appUrl = Deno.env.get("APP_URL") || "https://controltower.collabai.software";
+    const appUrl = Deno.env.get("APP_URL") || "https://controltowerdemo.collabai.software";
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
