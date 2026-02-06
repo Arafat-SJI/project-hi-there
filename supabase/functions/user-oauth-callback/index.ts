@@ -72,6 +72,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
     switch (provider) {
       case "google":
       case "google-meet":
+      case "google-drive":
         return {
           email: data.email,
           name: data.name,
