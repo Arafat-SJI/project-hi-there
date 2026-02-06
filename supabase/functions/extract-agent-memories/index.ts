@@ -198,20 +198,23 @@ Return ONLY valid JSON, no other text. Example format:
         console.error('Embedding generation error:', embError)
       }
 
-      // Store memory
+      // Store memory (updated to use new agent_memories table schema)
       const { data: storedMemory, error: storeError } = await supabaseClient
-        .from('agent_memory')
+        .from('agent_memories')
         .insert({
           agent_id,
           user_id,
-          memory_type: memory.memory_type,
+          memory_type: 'short_term', // New memories start as short-term
+          memory_category: memory.memory_type, // Map old memory_type to category
           content: memory.content,
+          summary: memory.content.slice(0, 200), // Create summary from first 200 chars
           embedding,
-          source_conversation_id: conversation_id,
-          relevance_score: memory.relevance_score,
+          source_type: 'conversation',
+          source_id: conversation_id,
+          importance_score: memory.relevance_score,
           is_active: true,
         })
-        .select('id, memory_type, content, relevance_score')
+        .select('id, memory_type, memory_category, content, importance_score')
         .single()
 
       if (!storeError && storedMemory) {
