@@ -8,6 +8,8 @@ import { useDriveFiles, type DriveFile } from "@/hooks/useUserIntegrations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Folder, 
   File, 
@@ -22,6 +24,8 @@ import {
   Archive,
   FileSpreadsheet,
   Presentation,
+  Download,
+  Eye,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -32,6 +36,8 @@ interface GoogleDriveBrowserProps {
 export function GoogleDriveBrowser({ className }: GoogleDriveBrowserProps) {
   const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
   const [folderStack, setFolderStack] = useState<Array<{ id: string; name: string }>>([]);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const { toast } = useToast();
   
   const { data, isLoading, error, refetch } = useDriveFiles(currentFolderId);
 
@@ -67,6 +73,92 @@ export function GoogleDriveBrowser({ className }: GoogleDriveBrowserProps) {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  };
+
+  const handleDownload = async (file: DriveFile) => {
+    setDownloadingFileId(file.id);
+    try {
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      // Get Supabase URL from environment
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!supabaseUrl) {
+        throw new Error("Supabase URL not configured");
+      }
+
+      // Call the backend endpoint to download the file
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/user-drive-download`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            file_id: file.id,
+            mime_type: file.mimeType,
+            file_name: file.name,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Download failed: ${errorText}`);
+      }
+
+      // Get the blob and create a download link
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      
+      // Determine filename with proper extension
+      let filename = file.name;
+      if (file.mimeType.startsWith("application/vnd.google-apps")) {
+        const extensionMap: Record<string, string> = {
+          "application/vnd.google-apps.document": ".docx",
+          "application/vnd.google-apps.spreadsheet": ".xlsx",
+          "application/vnd.google-apps.presentation": ".pptx",
+          "application/vnd.google-apps.drawing": ".png",
+        };
+        const ext = extensionMap[file.mimeType] || ".pdf";
+        if (!filename.endsWith(ext)) {
+          filename = filename.replace(/\.[^/.]+$/, "") + ext;
+        }
+      }
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download started",
+        description: `Downloading ${file.name}...`,
+      });
+    } catch (err: any) {
+      console.error("Download error:", err);
+      toast({
+        title: "Download failed",
+        description: err.message || "Failed to download file",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingFileId(null);
+    }
+  };
+
+  const handleView = (file: DriveFile) => {
+    if (file.webViewLink) {
+      window.open(file.webViewLink, "_blank");
+    }
   };
 
   if (error) {
@@ -191,16 +283,33 @@ export function GoogleDriveBrowser({ className }: GoogleDriveBrowserProps) {
                             {file.mimeType.split("/")[1]?.split(".")[0] || "file"}
                           </Badge>
                         )}
-                        {file.webViewLink && (
+                        <div className="flex items-center gap-1">
+                          {file.webViewLink && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleView(file)}
+                              className="h-8 w-8 p-0"
+                              title="View file"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => window.open(file.webViewLink, "_blank")}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => handleDownload(file)}
+                            disabled={downloadingFileId === file.id}
+                            className="h-8 w-8 p-0"
+                            title="Download file"
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            {downloadingFileId === file.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
                           </Button>
-                        )}
+                        </div>
                       </div>
                     </div>
                   ))}
