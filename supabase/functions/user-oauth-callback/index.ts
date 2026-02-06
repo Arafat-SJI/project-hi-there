@@ -230,13 +230,15 @@ serve(async (req) => {
     await supabase.from("oauth_states").delete().eq("state", state);
 
     // Redirect back to app with success
-    // For Zoom/Google Meet, redirect to the integration page; otherwise use redirect_uri or settings
+    // For Zoom/Google Meet/Google Drive, redirect to the integration page; otherwise use redirect_uri or settings
     let finalRedirect;
     if (provider === "zoom") {
       finalRedirect = `${appUrl}/admin/integrations/zoom`;
     } else if (provider === "google-meet") {
       finalRedirect = `${appUrl}/admin/integrations/google-meet`;
-    } else if (redirect_uri && !redirect_uri.includes("undefined")) {
+    } else if (provider === "google-drive") {
+      finalRedirect = `${appUrl}/admin/integrations/google-drive`;
+    } else if (redirect_uri && redirect_uri.trim() !== "" && !redirect_uri.includes("undefined")) {
       finalRedirect = redirect_uri;
     } else {
       finalRedirect = `${appUrl}/settings`;
