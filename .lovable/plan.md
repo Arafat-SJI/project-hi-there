@@ -1,119 +1,80 @@
 
+# Fix: Google Drive OAuth Callback - Missing Token Endpoint
 
-# Fix: Google Drive Integration Fields & Build Error
+## Problem
 
-## Issue Summary
+When connecting Google Drive, after granting permissions, users are redirected to `/settings?error=Invalid%20URL%3A%20%27%27`. This happens because the `user-oauth-callback` edge function is missing the `google-drive` provider configuration.
 
-Two issues need to be addressed:
+## Root Cause
 
-1. **Google Drive config fields not showing** - The `integration_fields` table has no records for Google Drive provider, causing "Loading configuration fields..." to display indefinitely
-2. **Build error** - TypeScript error in `retrieve-agent-memories/index.ts` where `.catch()` is improperly used on a Supabase query builder
+The `user-oauth-callback/index.ts` has two functions that need `google-drive` support but are missing it:
 
----
+| Function | Issue |
+|----------|-------|
+| `getTokenEndpoint()` | Missing `google-drive` entry - returns empty string |
+| `getUserInfo()` | Missing `google-drive` case - cannot fetch user profile |
 
-## Root Cause Analysis
-
-### Issue 1: Missing Database Records
-
-The page queries `integration_fields` for the Google Drive provider ID (`b5c092ce-f08f-4510-8299-0369e6195477`), but this table has **zero matching records**. Compare with working integrations:
-
-| Provider | Fields Present |
-|----------|----------------|
-| Zoom | client_id, client_secret |
-| Google Meet | client_id, client_secret |
-| **Google Drive** | **NONE** |
-
-### Issue 2: TypeScript Error
-
-```typescript
-// Current (line 206) - INVALID
-await supabaseClient.rpc('boost_memory_importance', {...}).catch(() => {...})
-```
-
-The Supabase client returns a `PostgrestFilterBuilder`, not a Promise. Using `.catch()` directly is invalid.
-
----
+When `getTokenEndpoint("google-drive")` returns `""`, the subsequent `fetch("")` call throws "Invalid URL: ''" error.
 
 ## Solution
 
-### Step 1: Add Google Drive Integration Fields
+Add `google-drive` support to both functions in `user-oauth-callback/index.ts`:
 
-Create a migration to insert the missing `client_id` and `client_secret` fields:
-
-```sql
--- Insert integration fields for Google Drive
-INSERT INTO integration_fields (
-  id, provider_id, field_key, field_type, label, 
-  placeholder, help_text, is_required, is_sensitive, display_order
-) VALUES 
-  (
-    gen_random_uuid(),
-    'b5c092ce-f08f-4510-8299-0369e6195477',
-    'client_id',
-    'text',
-    'Client ID',
-    'Enter your Google OAuth Client ID',
-    'Get this from the Google Cloud Console under APIs & Services > Credentials',
-    true,
-    false,
-    1
-  ),
-  (
-    gen_random_uuid(),
-    'b5c092ce-f08f-4510-8299-0369e6195477',
-    'client_secret',
-    'password',
-    'Client Secret',
-    'Enter your Google OAuth Client Secret',
-    'Get this from the Google Cloud Console under APIs & Services > Credentials',
-    true,
-    true,
-    2
-  );
-
--- Refresh PostgREST schema cache
-NOTIFY pgrst, 'reload schema';
-```
-
-### Step 2: Fix Edge Function Build Error
-
-Update `supabase/functions/retrieve-agent-memories/index.ts` to properly handle the async call:
+### Change 1: Add Token Endpoint
 
 ```typescript
-// Change from:
-await supabaseClient.rpc('boost_memory_importance', {
-  p_memory_id: memoryIds[0],
-  p_boost_amount: 0.01
-}).catch(() => {
-  // Ignore if boost function doesn't exist yet
-})
+const getTokenEndpoint = (provider: string): string => {
+  const endpoints: Record<string, string> = {
+    google: "https://oauth2.googleapis.com/token",
+    "google-meet": "https://oauth2.googleapis.com/token",
+    "google-drive": "https://oauth2.googleapis.com/token",  // ADD THIS
+    zoom: "https://zoom.us/oauth/token",
+    microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+  };
+  return endpoints[provider] || "";
+};
+```
 
-// Change to:
-try {
-  await supabaseClient.rpc('boost_memory_importance', {
-    p_memory_id: memoryIds[0],
-    p_boost_amount: 0.01
-  })
-} catch {
-  // Ignore if boost function doesn't exist yet
+### Change 2: Add User Info Handler
+
+```typescript
+switch (provider) {
+  case "google":
+  case "google-meet":
+  case "google-drive":  // ADD THIS CASE
+    url = "https://www.googleapis.com/oauth2/v2/userinfo";
+    break;
+  // ... other cases
+}
+
+// Also in the response normalization switch:
+switch (provider) {
+  case "google":
+  case "google-meet":
+  case "google-drive":  // ADD THIS CASE
+    return {
+      email: data.email,
+      name: data.name,
+      picture: data.picture,
+    };
+  // ... other cases
 }
 ```
 
----
+## File Changes
 
-## Files to Modify
+| File | Changes |
+|------|---------|
+| `supabase/functions/user-oauth-callback/index.ts` | Add `google-drive` to token endpoint and user info handlers |
 
-| File | Change |
-|------|--------|
-| New migration SQL | Add `client_id` and `client_secret` fields for Google Drive |
-| `supabase/functions/retrieve-agent-memories/index.ts` | Fix `.catch()` to use try/catch block |
+## Post-Change Action
 
----
+After code changes, the `user-oauth-callback` edge function needs to be redeployed.
 
-## Expected Outcome
+## Expected Result
 
-After implementation:
-- The Google Drive integration page will display the Client ID and Client Secret input fields
-- The build error will be resolved
-- Users can configure their Google OAuth credentials for Drive integration
-
+After fix:
+- Google Drive OAuth flow completes successfully
+- User is redirected to `/admin/integrations/google-drive?connected=google-drive`
+- User tokens are stored in `user_oauth_tokens` table
+- Integration shows as connected
