@@ -245,6 +245,7 @@ export interface DriveFile {
   size?: string;
   modifiedTime: string;
   webViewLink?: string;
+  webContentLink?: string;
   thumbnailLink?: string;
 }
 

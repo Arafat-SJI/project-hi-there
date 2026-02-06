@@ -1,6 +1,6 @@
 /**
- * User Drive List Edge Function
- * Lists files and folders from user's Google Drive
+ * User Drive Download Edge Function
+ * Downloads files from user's Google Drive with proper authentication
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -99,54 +99,15 @@ async function getValidAccessToken(
   return tokenRow.access_token;
 }
 
-interface DriveFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  size?: string;
-  modifiedTime: string;
-  webViewLink?: string;
-  webContentLink?: string;
-  thumbnailLink?: string;
-}
-
-/** List files from Google Drive (root or specific folder) */
-async function listDriveFiles(
-  accessToken: string,
-  folderId?: string,
-): Promise<DriveFile[]> {
-  const allFiles: DriveFile[] = [];
-  let pageToken: string | undefined;
-
-  do {
-    // Build query: if folderId is provided, list files in that folder; otherwise list root files
-    const query = folderId
-      ? `'${folderId}' in parents and trashed = false`
-      : "trashed = false and 'root' in parents";
-
-    const params = new URLSearchParams({
-      q: query,
-      fields: "nextPageToken,files(id,name,mimeType,size,modifiedTime,webViewLink,webContentLink,thumbnailLink)",
-      pageSize: "100",
-      orderBy: "modifiedTime desc",
-    });
-    if (pageToken) params.set("pageToken", pageToken);
-
-    const response = await fetch(`${DRIVE_FILES_URL}?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Google Drive list failed (${response.status}): ${errText}`);
-    }
-
-    const data = await response.json();
-    allFiles.push(...(data.files || []));
-    pageToken = data.nextPageToken;
-  } while (pageToken);
-
-  return allFiles;
+/** Get export MIME type for Google Workspace files */
+function getExportMimeType(mimeType: string): string {
+  const exportMap: Record<string, string> = {
+    "application/vnd.google-apps.document": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.google-apps.spreadsheet": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.google-apps.presentation": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.google-apps.drawing": "image/png",
+  };
+  return exportMap[mimeType] || "application/pdf";
 }
 
 serve(async (req) => {
@@ -187,29 +148,71 @@ serve(async (req) => {
     }
 
     // Get request body
-    const { folder_id } = await req.json().catch(() => ({}));
+    const { file_id, mime_type, file_name } = await req.json().catch(() => ({}));
+
+    if (!file_id) {
+      return new Response(
+        JSON.stringify({ error: "file_id is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // Get valid access token
     const accessToken = await getValidAccessToken(supabase, user.id);
 
-    // List files
-    const files = await listDriveFiles(accessToken, folder_id);
+    // Determine if this is a Google Workspace file
+    const isGoogleWorkspaceFile = mime_type?.startsWith("application/vnd.google-apps");
 
-    // Separate folders and files
-    const folders = files.filter((f) => f.mimeType === "application/vnd.google-apps.folder");
-    const regularFiles = files.filter((f) => f.mimeType !== "application/vnd.google-apps.folder");
+    // Build download URL
+    let downloadUrl: string;
+    if (isGoogleWorkspaceFile) {
+      // Export Google Workspace files
+      const exportMimeType = getExportMimeType(mime_type);
+      downloadUrl = `${DRIVE_FILES_URL}/${file_id}/export?mimeType=${encodeURIComponent(exportMimeType)}`;
+    } else {
+      // Download regular files
+      downloadUrl = `${DRIVE_FILES_URL}/${file_id}?alt=media`;
+    }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        files: regularFiles,
-        folders: folders,
-        total: files.length,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    // Fetch file content
+    const response = await fetch(downloadUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Google Drive download failed (${response.status}): ${errText}`);
+    }
+
+    // Get file content
+    const fileContent = await response.arrayBuffer();
+    const contentType = response.headers.get("content-type") || "application/octet-stream";
+
+    // Determine filename
+    let filename = file_name || "download";
+    if (isGoogleWorkspaceFile && mime_type) {
+      const extensionMap: Record<string, string> = {
+        "application/vnd.google-apps.document": ".docx",
+        "application/vnd.google-apps.spreadsheet": ".xlsx",
+        "application/vnd.google-apps.presentation": ".pptx",
+        "application/vnd.google-apps.drawing": ".png",
+      };
+      const ext = extensionMap[mime_type] || ".pdf";
+      if (!filename.endsWith(ext)) {
+        filename = filename.replace(/\.[^/.]+$/, "") + ext;
+      }
+    }
+
+    // Return file with proper headers
+    return new Response(fileContent, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": contentType,
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      },
+    });
   } catch (error: unknown) {
-    console.error("User Drive List error:", error);
+    console.error("User Drive Download error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: message }),
