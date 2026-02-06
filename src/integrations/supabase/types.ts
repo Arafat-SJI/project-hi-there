@@ -143,6 +143,401 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_execution_plans: {
+        Row: {
+          agent_id: string
+          completed_at: string | null
+          created_at: string | null
+          current_step_number: number | null
+          execution_time_ms: number | null
+          final_output: Json | null
+          goal: string
+          id: string
+          input: string
+          metadata: Json | null
+          plan_summary: string | null
+          planning_time_ms: number | null
+          started_at: string | null
+          status: string
+          steps: Json
+          success: boolean | null
+          total_cost: number | null
+          total_steps: number | null
+          total_tokens_used: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_step_number?: number | null
+          execution_time_ms?: number | null
+          final_output?: Json | null
+          goal: string
+          id?: string
+          input: string
+          metadata?: Json | null
+          plan_summary?: string | null
+          planning_time_ms?: number | null
+          started_at?: string | null
+          status?: string
+          steps?: Json
+          success?: boolean | null
+          total_cost?: number | null
+          total_steps?: number | null
+          total_tokens_used?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_step_number?: number | null
+          execution_time_ms?: number | null
+          final_output?: Json | null
+          goal?: string
+          id?: string
+          input?: string
+          metadata?: Json | null
+          plan_summary?: string | null
+          planning_time_ms?: number | null
+          started_at?: string | null
+          status?: string
+          steps?: Json
+          success?: boolean | null
+          total_cost?: number | null
+          total_steps?: number | null
+          total_tokens_used?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_execution_plans_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_execution_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_execution_steps: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          can_run_parallel: boolean | null
+          completed_at: string | null
+          cost: number | null
+          created_at: string | null
+          depends_on: number[] | null
+          description: string | null
+          error_code: string | null
+          error_message: string | null
+          execution_time_ms: number | null
+          id: string
+          max_retries: number | null
+          output_for_next_step: string | null
+          parent_step_id: string | null
+          plan_id: string
+          result: Json | null
+          retry_count: number | null
+          started_at: string | null
+          status: string
+          step_name: string | null
+          step_number: number
+          tokens_used: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          can_run_parallel?: boolean | null
+          completed_at?: string | null
+          cost?: number | null
+          created_at?: string | null
+          depends_on?: number[] | null
+          description?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          max_retries?: number | null
+          output_for_next_step?: string | null
+          parent_step_id?: string | null
+          plan_id: string
+          result?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          step_name?: string | null
+          step_number: number
+          tokens_used?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          can_run_parallel?: boolean | null
+          completed_at?: string | null
+          cost?: number | null
+          created_at?: string | null
+          depends_on?: number[] | null
+          description?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          max_retries?: number | null
+          output_for_next_step?: string | null
+          parent_step_id?: string | null
+          plan_id?: string
+          result?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          step_name?: string | null
+          step_number?: number
+          tokens_used?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_execution_steps_parent_step_id_fkey"
+            columns: ["parent_step_id"]
+            isOneToOne: false
+            referencedRelation: "agent_execution_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_execution_steps_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "agent_execution_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_learning_events: {
+        Row: {
+          agent_action_taken: string | null
+          agent_id: string
+          behavior_change: Json | null
+          created_at: string | null
+          event_description: string
+          event_type: string
+          feedback_text: string | null
+          feedback_type: string | null
+          id: string
+          related_conversation_id: string | null
+          related_memory_id: string | null
+          related_message_id: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_action_taken?: string | null
+          agent_id: string
+          behavior_change?: Json | null
+          created_at?: string | null
+          event_description: string
+          event_type: string
+          feedback_text?: string | null
+          feedback_type?: string | null
+          id?: string
+          related_conversation_id?: string | null
+          related_memory_id?: string | null
+          related_message_id?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_action_taken?: string | null
+          agent_id?: string
+          behavior_change?: Json | null
+          created_at?: string | null
+          event_description?: string
+          event_type?: string
+          feedback_text?: string | null
+          feedback_type?: string | null
+          id?: string
+          related_conversation_id?: string | null
+          related_memory_id?: string | null
+          related_message_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_learning_events_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_learning_events_related_memory_id_fkey"
+            columns: ["related_memory_id"]
+            isOneToOne: false
+            referencedRelation: "agent_memories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_learning_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_memories: {
+        Row: {
+          access_count: number | null
+          agent_id: string
+          consolidated: boolean | null
+          content: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          importance_score: number | null
+          is_active: boolean | null
+          last_accessed_at: string | null
+          memory_category: string | null
+          memory_type: string
+          metadata: Json | null
+          source_id: string | null
+          source_type: string | null
+          summary: string | null
+          superseded_by: string | null
+          updated_at: string | null
+          user_id: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          access_count?: number | null
+          agent_id: string
+          consolidated?: boolean | null
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          importance_score?: number | null
+          is_active?: boolean | null
+          last_accessed_at?: string | null
+          memory_category?: string | null
+          memory_type: string
+          metadata?: Json | null
+          source_id?: string | null
+          source_type?: string | null
+          summary?: string | null
+          superseded_by?: string | null
+          updated_at?: string | null
+          user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          access_count?: number | null
+          agent_id?: string
+          consolidated?: boolean | null
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          importance_score?: number | null
+          is_active?: boolean | null
+          last_accessed_at?: string | null
+          memory_category?: string | null
+          memory_type?: string
+          metadata?: Json | null
+          source_id?: string | null
+          source_type?: string | null
+          summary?: string | null
+          superseded_by?: string | null
+          updated_at?: string | null
+          user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_memories_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_memories_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "agent_memories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_memories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_reasoning_traces: {
+        Row: {
+          confidence_score: number | null
+          content: string
+          context: Json | null
+          created_at: string | null
+          id: string
+          plan_id: string
+          reasoning_type: string
+          step_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          content: string
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          plan_id: string
+          reasoning_type: string
+          step_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          content?: string
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          plan_id?: string
+          reasoning_type?: string
+          step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_reasoning_traces_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "agent_execution_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_reasoning_traces_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "agent_execution_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_agent_runs: {
         Row: {
           agent_id: string
@@ -2355,6 +2750,246 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      mcp_servers: {
+        Row: {
+          auth_config: Json | null
+          auth_type: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          documentation_url: string | null
+          homepage_url: string | null
+          icon_url: string | null
+          id: string
+          is_enabled: boolean | null
+          is_global: boolean | null
+          is_verified: boolean | null
+          last_used_at: string | null
+          last_verified_at: string | null
+          name: string
+          organization_id: string | null
+          server_url: string
+          slug: string
+          supports_prompts: boolean | null
+          supports_resources: boolean | null
+          supports_sampling: boolean | null
+          supports_tools: boolean | null
+          total_tool_calls: number | null
+          transport_type: string
+          updated_at: string | null
+          verification_error: string | null
+          verification_status: string | null
+          version: string | null
+        }
+        Insert: {
+          auth_config?: Json | null
+          auth_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          documentation_url?: string | null
+          homepage_url?: string | null
+          icon_url?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          is_global?: boolean | null
+          is_verified?: boolean | null
+          last_used_at?: string | null
+          last_verified_at?: string | null
+          name: string
+          organization_id?: string | null
+          server_url: string
+          slug: string
+          supports_prompts?: boolean | null
+          supports_resources?: boolean | null
+          supports_sampling?: boolean | null
+          supports_tools?: boolean | null
+          total_tool_calls?: number | null
+          transport_type?: string
+          updated_at?: string | null
+          verification_error?: string | null
+          verification_status?: string | null
+          version?: string | null
+        }
+        Update: {
+          auth_config?: Json | null
+          auth_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          documentation_url?: string | null
+          homepage_url?: string | null
+          icon_url?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          is_global?: boolean | null
+          is_verified?: boolean | null
+          last_used_at?: string | null
+          last_verified_at?: string | null
+          name?: string
+          organization_id?: string | null
+          server_url?: string
+          slug?: string
+          supports_prompts?: boolean | null
+          supports_resources?: boolean | null
+          supports_sampling?: boolean | null
+          supports_tools?: boolean | null
+          total_tool_calls?: number | null
+          transport_type?: string
+          updated_at?: string | null
+          verification_error?: string | null
+          verification_status?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_servers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_tool_executions: {
+        Row: {
+          agent_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_code: string | null
+          error_message: string | null
+          execution_context: Json | null
+          execution_time_ms: number | null
+          id: string
+          input_parameters: Json
+          output_result: Json | null
+          server_id: string
+          started_at: string | null
+          status: string
+          tool_id: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          execution_context?: Json | null
+          execution_time_ms?: number | null
+          id?: string
+          input_parameters: Json
+          output_result?: Json | null
+          server_id: string
+          started_at?: string | null
+          status: string
+          tool_id: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          execution_context?: Json | null
+          execution_time_ms?: number | null
+          id?: string
+          input_parameters?: Json
+          output_result?: Json | null
+          server_id?: string
+          started_at?: string | null
+          status?: string
+          tool_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_tool_executions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_tool_executions_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_servers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_tool_executions_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_tool_executions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_tools: {
+        Row: {
+          avg_execution_time_ms: number | null
+          description: string | null
+          discovered_at: string | null
+          failed_executions: number | null
+          id: string
+          input_schema: Json
+          is_enabled: boolean | null
+          last_executed_at: string | null
+          name: string
+          server_id: string
+          successful_executions: number | null
+          total_executions: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          avg_execution_time_ms?: number | null
+          description?: string | null
+          discovered_at?: string | null
+          failed_executions?: number | null
+          id?: string
+          input_schema: Json
+          is_enabled?: boolean | null
+          last_executed_at?: string | null
+          name: string
+          server_id: string
+          successful_executions?: number | null
+          total_executions?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          avg_execution_time_ms?: number | null
+          description?: string | null
+          discovered_at?: string | null
+          failed_executions?: number | null
+          id?: string
+          input_schema?: Json
+          is_enabled?: boolean | null
+          last_executed_at?: string | null
+          name?: string
+          server_id?: string
+          successful_executions?: number | null
+          total_executions?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_tools_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_servers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meeting_agenda_items: {
         Row: {
@@ -4890,6 +5525,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          agent_id: string | null
+          confidence_score: number | null
+          created_at: string | null
+          evidence_count: number | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          learned_from: string | null
+          preference_key: string
+          preference_value: Json
+          times_used: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          evidence_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          learned_from?: string | null
+          preference_key: string
+          preference_value: Json
+          times_used?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          evidence_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          learned_from?: string | null
+          preference_key?: string
+          preference_value?: Json
+          times_used?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -5014,10 +5712,130 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      agent_learning_summary: {
+        Row: {
+          agent_id: string | null
+          correction_count: number | null
+          feedback_count: number | null
+          negative_feedback: number | null
+          positive_feedback: number | null
+          reinforcement_count: number | null
+          total_events: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_learning_events_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_memory_stats: {
+        Row: {
+          agent_id: string | null
+          avg_importance: number | null
+          episodic_count: number | null
+          last_memory_access: string | null
+          long_term_count: number | null
+          semantic_count: number | null
+          short_term_count: number | null
+          total_accesses: number | null
+          total_memories: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_memories_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_plan_performance: {
+        Row: {
+          agent_id: string | null
+          avg_cost_per_plan: number | null
+          avg_execution_time_ms: number | null
+          avg_steps_per_plan: number | null
+          avg_tokens_per_plan: number | null
+          failed_plans: number | null
+          successful_plans: number | null
+          total_cost: number | null
+          total_plans: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_execution_plans_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_step_performance: {
+        Row: {
+          action_type: string | null
+          avg_execution_time_ms: number | null
+          avg_retry_count: number | null
+          failed_steps: number | null
+          successful_steps: number | null
+          total_steps: number | null
+        }
+        Relationships: []
+      }
+      user_preference_coverage: {
+        Row: {
+          avg_confidence: number | null
+          explicit_count: number | null
+          inferred_count: number | null
+          observed_count: number | null
+          total_preferences: number | null
+          total_usage: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_exec_sql: { Args: { sql_content: string }; Returns: Json }
+      boost_memory_importance: {
+        Args: { p_boost_amount?: number; p_memory_id: string }
+        Returns: undefined
+      }
+      consolidate_short_term_memories: {
+        Args: { p_agent_id: string; p_days_old?: number; p_user_id: string }
+        Returns: number
+      }
+      get_relevant_memories: {
+        Args: {
+          p_agent_id: string
+          p_limit?: number
+          p_memory_types?: string[]
+          p_query_embedding: string
+          p_similarity_threshold?: number
+          p_user_id: string
+        }
+        Returns: {
+          content: string
+          created_at: string
+          importance_score: number
+          memory_id: string
+          memory_type: string
+          similarity: number
+        }[]
+      }
       get_user_modules: {
         Args: never
         Returns: {
@@ -5053,6 +5871,19 @@ export type Database = {
           unified_document_id: string
           user_id: string
         }[]
+      }
+      prune_short_term_memories: {
+        Args: {
+          p_agent_id: string
+          p_days_old?: number
+          p_importance_threshold?: number
+          p_user_id: string
+        }
+        Returns: number
+      }
+      update_plan_status_if_all_steps_done: {
+        Args: { p_plan_id: string }
+        Returns: undefined
       }
     }
     Enums: {
