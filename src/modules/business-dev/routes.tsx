@@ -22,6 +22,7 @@ import LeadFollowUpEmailDraftStep1 from "./pages/LeadFollowUpEmailDraftStep1";
 import LeadFollowUpEmailDraftStep2 from "./pages/LeadFollowUpEmailDraftStep2";
 import LeadFollowUpCommunication from "./pages/LeadFollowUpCommunication";
 import LeadFollowUpAnalyze from "./pages/LeadFollowUpAnalyze";
+import LeadFollowUpAdmin from "./pages/LeadFollowUpAdmin";
 
 export const businessDevRoutes = (
   <Route element={<ModuleRoute module="business-dev" requiresFeatureFlag="enableClients" />}>
@@ -36,6 +37,7 @@ export const businessDevRoutes = (
     <Route path="/contacts" element={<ContactsPage />} />
     <Route path="/contacts/:id" element={<ContactDetailPage />} />
     <Route path="/lead-followup" element={<LeadFollowUp />} />
+    <Route path="/lead-followup/admin" element={<LeadFollowUpAdmin />} />
     <Route path="/lead-followup/:contactSlug" element={<LeadFollowUpContactDetail />} />
     <Route path="/lead-followup/:contactSlug/email-draft" element={<LeadFollowUpEmailDraft />} />
     <Route path="/lead-followup/:contactSlug/email-draft-step1" element={<LeadFollowUpEmailDraftStep1 />} />
