@@ -15,6 +15,13 @@ import DealDetailPage from "./pages/DealDetailPage";
 import DealFormPage from "./pages/DealFormPage";
 import ContactsPage from "./pages/ContactsPage";
 import ContactDetailPage from "./pages/ContactDetailPage";
+import LeadFollowUp from "./pages/LeadFollowUp";
+import LeadFollowUpContactDetail from "./pages/LeadFollowUpContactDetail";
+import LeadFollowUpEmailDraft from "./pages/LeadFollowUpEmailDraft";
+import LeadFollowUpEmailDraftStep1 from "./pages/LeadFollowUpEmailDraftStep1";
+import LeadFollowUpEmailDraftStep2 from "./pages/LeadFollowUpEmailDraftStep2";
+import LeadFollowUpCommunication from "./pages/LeadFollowUpCommunication";
+import LeadFollowUpAnalyze from "./pages/LeadFollowUpAnalyze";
 
 export const businessDevRoutes = (
   <Route element={<ModuleRoute module="business-dev" requiresFeatureFlag="enableClients" />}>
@@ -28,5 +35,12 @@ export const businessDevRoutes = (
     <Route path="/deals/:slug/edit" element={<DealFormPage />} />
     <Route path="/contacts" element={<ContactsPage />} />
     <Route path="/contacts/:id" element={<ContactDetailPage />} />
+    <Route path="/lead-followup" element={<LeadFollowUp />} />
+    <Route path="/lead-followup/:contactSlug" element={<LeadFollowUpContactDetail />} />
+    <Route path="/lead-followup/:contactSlug/email-draft" element={<LeadFollowUpEmailDraft />} />
+    <Route path="/lead-followup/:contactSlug/email-draft-step1" element={<LeadFollowUpEmailDraftStep1 />} />
+    <Route path="/lead-followup/:contactSlug/email-draft-step2" element={<LeadFollowUpEmailDraftStep2 />} />
+    <Route path="/lead-followup/:contactSlug/communication" element={<LeadFollowUpCommunication />} />
+    <Route path="/lead-followup/:contactSlug/analyze" element={<LeadFollowUpAnalyze />} />
   </Route>
 );
