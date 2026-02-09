@@ -73,6 +73,12 @@ export const navigationGroups: NavGroup[] = [
         module: "business-dev",
         featureFlag: "enableClients",
       },
+      {
+        title: "Lead Follow-Up",
+        href: "/lead-followup",
+        icon: "Target",
+        module: "lead-followup",
+      },
     ],
   },
   {
