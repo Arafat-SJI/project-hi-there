@@ -3,6 +3,7 @@
  * Routes to step 1 or step 2 of the email drafting process
  */
 
+import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
@@ -11,7 +12,13 @@ export default function LeadFollowUpEmailDraft() {
   const { contactSlug } = useParams<{ contactSlug: string }>()
   const navigate = useNavigate()
 
-  // Redirect to step 1
+  // Redirect to step 1 on mount
+  useEffect(() => {
+    if (contactSlug) {
+      navigate(`/lead-followup/${contactSlug}/email-draft-step1`, { replace: true })
+    }
+  }, [contactSlug, navigate])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -28,7 +35,6 @@ export default function LeadFollowUpEmailDraft() {
       {/* Redirect to step 1 */}
       <div className="text-center py-12">
         <p className="text-muted-foreground mb-4">Redirecting to email draft...</p>
-        {typeof window !== 'undefined' && window.location.assign(`/lead-followup/${contactSlug}/email-draft-step1`)}
       </div>
     </div>
   )

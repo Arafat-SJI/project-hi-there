@@ -124,22 +124,25 @@ serve(async (req) => {
     let trackingConfig = { openTracking: enableTracking, clickTracking: enableTracking }
 
     if (supabase) {
-      const { data: config } = await supabase
-        .from('sendgrid_config')
-        .select('*')
-        .limit(1)
-        .single()
-        .catch(() => ({ data: null }))
+      try {
+        const { data: config } = await supabase
+          .from('sendgrid_config')
+          .select('*')
+          .limit(1)
+          .single()
 
-      if (config) {
-        fromConfig = {
-          email: fromEmail || config.from_email,
-          name: fromName || config.from_name
+        if (config) {
+          fromConfig = {
+            email: fromEmail || config.from_email,
+            name: fromName || config.from_name
+          }
+          trackingConfig = {
+            openTracking: config.enable_open_tracking,
+            clickTracking: config.enable_click_tracking
+          }
         }
-        trackingConfig = {
-          openTracking: config.enable_open_tracking,
-          clickTracking: config.enable_click_tracking
-        }
+      } catch {
+        // Use defaults if config fetch fails
       }
     }
 
@@ -240,32 +243,35 @@ serve(async (req) => {
 
     // Log to database if contact provided
     if (contactId && supabase) {
-      await supabase
-        .from('email_logs')
-        .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id || crypto.randomUUID(),
-          contact_id: contactId,
-          recipient: to.join(','),
-          cc: cc?.join(','),
-          bcc: bcc?.join(','),
-          subject,
-          body_html: finalBodyHtml,
-          body_text: bodyText,
-          status: 'sent',
-          sent_at: new Date().toISOString(),
-          provider: 'sendgrid',
-          provider_message_id: messageId,
-          metadata: {
-            tracking_id: trackingPixelId,
-            from_email: fromConfig.email,
-            from_name: fromConfig.name,
-            reply_to: replyTo
-          }
-        })
-        .catch(error => console.error('Failed to log email:', error))
+      try {
+        await supabase
+          .from('email_logs')
+          .insert({
+            user_id: (await supabase.auth.getUser()).data.user?.id || crypto.randomUUID(),
+            contact_id: contactId,
+            recipient: to.join(','),
+            cc: cc?.join(','),
+            bcc: bcc?.join(','),
+            subject,
+            body_html: finalBodyHtml,
+            body_text: bodyText,
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            provider: 'sendgrid',
+            provider_message_id: messageId,
+            metadata: {
+              tracking_id: trackingPixelId,
+              from_email: fromConfig.email,
+              from_name: fromConfig.name,
+              reply_to: replyTo
+            }
+          })
+      } catch (err) {
+        console.error('Failed to log email:', err)
+      }
 
       // Log activity if contact and activity tracking enabled
-      if (supabase) {
+      try {
         await supabase
           .from('contact_activities')
           .insert({
@@ -285,7 +291,8 @@ serve(async (req) => {
               tracking_id: trackingPixelId
             }
           })
-          .catch(error => console.error('Failed to log activity:', error))
+      } catch (err) {
+        console.error('Failed to log activity:', err)
       }
     }
 

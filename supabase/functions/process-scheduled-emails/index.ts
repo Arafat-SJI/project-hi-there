@@ -179,15 +179,18 @@ serve(async (req) => {
         results.failed++
 
         // Update email log with error
-        await supabase
-          .from('email_logs')
-          .update({
-            status: 'failed',
-            error_message: emailError instanceof Error ? emailError.message : String(emailError),
-            updated_at: now.toISOString(),
-          })
-          .eq('id', email.id)
-          .catch(e => console.error('Failed to update error status:', e))
+        try {
+          await supabase
+            .from('email_logs')
+            .update({
+              status: 'failed',
+              error_message: emailError instanceof Error ? emailError.message : String(emailError),
+              updated_at: now.toISOString(),
+            })
+            .eq('id', email.id)
+        } catch (updateErr) {
+          console.error('Failed to update error status:', updateErr)
+        }
 
         results.errors.push(
           `Email ${email.id}: ${emailError instanceof Error ? emailError.message : String(emailError)}`
