@@ -1091,6 +1091,124 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_activities: {
+        Row: {
+          activity_type: string
+          channel: string
+          contact_id: string
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          description: string | null
+          direction: string
+          email_bcc: string[] | null
+          email_body: string | null
+          email_cc: string[] | null
+          email_sent_at: string | null
+          email_to: string[] | null
+          id: string
+          metadata: Json | null
+          subject: string | null
+        }
+        Insert: {
+          activity_type: string
+          channel: string
+          contact_id: string
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          direction: string
+          email_bcc?: string[] | null
+          email_body?: string | null
+          email_cc?: string[] | null
+          email_sent_at?: string | null
+          email_to?: string[] | null
+          id?: string
+          metadata?: Json | null
+          subject?: string | null
+        }
+        Update: {
+          activity_type?: string
+          channel?: string
+          contact_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          direction?: string
+          email_bcc?: string[] | null
+          email_body?: string | null
+          email_cc?: string[] | null
+          email_sent_at?: string | null
+          email_to?: string[] | null
+          id?: string
+          metadata?: Json | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_ai_summaries: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          data_snapshot: Json | null
+          engagement_level: string | null
+          expires_at: string | null
+          generated_at: string | null
+          id: string
+          lead_score: number | null
+          recommended_approach: string | null
+          summary_text: string | null
+          talking_points: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string | null
+          data_snapshot?: Json | null
+          engagement_level?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          lead_score?: number | null
+          recommended_approach?: string | null
+          summary_text?: string | null
+          talking_points?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          data_snapshot?: Json | null
+          engagement_level?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          lead_score?: number | null
+          recommended_approach?: string | null
+          summary_text?: string | null
+          talking_points?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_ai_summaries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_communications: {
         Row: {
           channel: string
@@ -1132,60 +1250,180 @@ export type Database = {
           },
         ]
       }
+      contact_email_templates: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          name: string
+          subject: string
+          updated_at: string | null
+          usage_count: number | null
+          variables: Json | null
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name: string
+          subject: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          name?: string
+          subject?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           client_id: string | null
           company: string | null
           created_at: string | null
           created_by: string | null
+          current_intent_status: string | null
+          current_mood_label: string | null
+          current_mood_score: number | null
+          deal_potential_score: number | null
+          department: string | null
           email: string | null
+          engagement_score: number | null
           first_name: string
+          followup_assigned_to: string | null
+          followup_attempt_count: number | null
+          followup_interval_days: number | null
+          followup_notes: string | null
+          followup_status: string | null
+          hubspot_id: string | null
           id: string
+          is_lead_follow_up: boolean | null
+          is_upwork_lead: boolean | null
+          last_contact_date: string | null
           last_contacted_at: string | null
+          last_intent_analysis_at: string | null
+          last_mood_analysis_at: string | null
           last_name: string | null
+          last_score_calculated_at: string | null
+          lead_score: number | null
+          lead_temperature: string | null
           linkedin_url: string | null
+          next_followup_date: string | null
           notes: string | null
           phone: string | null
+          preferred_contact_channel: string | null
+          profile_score: number | null
+          recency_score: number | null
           source: string | null
           tags: string[] | null
           title: string | null
           updated_at: string | null
+          website: string | null
         }
         Insert: {
           client_id?: string | null
           company?: string | null
           created_at?: string | null
           created_by?: string | null
+          current_intent_status?: string | null
+          current_mood_label?: string | null
+          current_mood_score?: number | null
+          deal_potential_score?: number | null
+          department?: string | null
           email?: string | null
+          engagement_score?: number | null
           first_name: string
+          followup_assigned_to?: string | null
+          followup_attempt_count?: number | null
+          followup_interval_days?: number | null
+          followup_notes?: string | null
+          followup_status?: string | null
+          hubspot_id?: string | null
           id?: string
+          is_lead_follow_up?: boolean | null
+          is_upwork_lead?: boolean | null
+          last_contact_date?: string | null
           last_contacted_at?: string | null
+          last_intent_analysis_at?: string | null
+          last_mood_analysis_at?: string | null
           last_name?: string | null
+          last_score_calculated_at?: string | null
+          lead_score?: number | null
+          lead_temperature?: string | null
           linkedin_url?: string | null
+          next_followup_date?: string | null
           notes?: string | null
           phone?: string | null
+          preferred_contact_channel?: string | null
+          profile_score?: number | null
+          recency_score?: number | null
           source?: string | null
           tags?: string[] | null
           title?: string | null
           updated_at?: string | null
+          website?: string | null
         }
         Update: {
           client_id?: string | null
           company?: string | null
           created_at?: string | null
           created_by?: string | null
+          current_intent_status?: string | null
+          current_mood_label?: string | null
+          current_mood_score?: number | null
+          deal_potential_score?: number | null
+          department?: string | null
           email?: string | null
+          engagement_score?: number | null
           first_name?: string
+          followup_assigned_to?: string | null
+          followup_attempt_count?: number | null
+          followup_interval_days?: number | null
+          followup_notes?: string | null
+          followup_status?: string | null
+          hubspot_id?: string | null
           id?: string
+          is_lead_follow_up?: boolean | null
+          is_upwork_lead?: boolean | null
+          last_contact_date?: string | null
           last_contacted_at?: string | null
+          last_intent_analysis_at?: string | null
+          last_mood_analysis_at?: string | null
           last_name?: string | null
+          last_score_calculated_at?: string | null
+          lead_score?: number | null
+          lead_temperature?: string | null
           linkedin_url?: string | null
+          next_followup_date?: string | null
           notes?: string | null
           phone?: string | null
+          preferred_contact_channel?: string | null
+          profile_score?: number | null
+          recency_score?: number | null
           source?: string | null
           tags?: string[] | null
           title?: string | null
           updated_at?: string | null
+          website?: string | null
         }
         Relationships: []
       }
@@ -1368,6 +1606,169 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      email_logs: {
+        Row: {
+          bcc: string | null
+          body_html: string | null
+          body_text: string | null
+          cc: string | null
+          clicked_at: string | null
+          client_id: string | null
+          contact_id: string | null
+          created_at: string | null
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          priority: string | null
+          provider: string | null
+          provider_message_id: string | null
+          recipient: string
+          recipient_name: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          template_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bcc?: string | null
+          body_html?: string | null
+          body_text?: string | null
+          cc?: string | null
+          clicked_at?: string | null
+          client_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          priority?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient: string
+          recipient_name?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          template_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bcc?: string | null
+          body_html?: string | null
+          body_text?: string | null
+          cc?: string | null
+          clicked_at?: string | null
+          client_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          priority?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient?: string
+          recipient_name?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          template_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contact_email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_tracking_events: {
+        Row: {
+          activity_id: string | null
+          clicked_url: string | null
+          contact_id: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          sendgrid_event_id: string | null
+          sendgrid_message_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          activity_id?: string | null
+          clicked_url?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          sendgrid_event_id?: string | null
+          sendgrid_message_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          activity_id?: string | null
+          clicked_url?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          sendgrid_event_id?: string | null
+          sendgrid_message_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_tracking_events_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "contact_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_tracking_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       embedding_queue: {
         Row: {
@@ -2706,6 +3107,132 @@ export type Database = {
           {
             foreignKeyName: "lead_followup_contacts_converted_deal_id_fkey"
             columns: ["converted_deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_intent_analysis: {
+        Row: {
+          agent_run_id: string | null
+          analyzed_at: string | null
+          confidence: string | null
+          contact_id: string
+          created_at: string | null
+          days_since_activity: number | null
+          decay_signals: Json | null
+          id: string
+          intent_status: string
+          lead_id: string | null
+          momentum_score: number
+          momentum_signals: Json | null
+          reasoning: string | null
+          suggested_action: string | null
+        }
+        Insert: {
+          agent_run_id?: string | null
+          analyzed_at?: string | null
+          confidence?: string | null
+          contact_id: string
+          created_at?: string | null
+          days_since_activity?: number | null
+          decay_signals?: Json | null
+          id?: string
+          intent_status: string
+          lead_id?: string | null
+          momentum_score: number
+          momentum_signals?: Json | null
+          reasoning?: string | null
+          suggested_action?: string | null
+        }
+        Update: {
+          agent_run_id?: string | null
+          analyzed_at?: string | null
+          confidence?: string | null
+          contact_id?: string
+          created_at?: string | null
+          days_since_activity?: number | null
+          decay_signals?: Json | null
+          id?: string
+          intent_status?: string
+          lead_id?: string | null
+          momentum_score?: number
+          momentum_signals?: Json | null
+          reasoning?: string | null
+          suggested_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_intent_analysis_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_intent_analysis_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_mood_analysis: {
+        Row: {
+          agent_run_id: string | null
+          analyzed_at: string | null
+          confidence: string | null
+          contact_id: string
+          created_at: string | null
+          id: string
+          key_signals: Json | null
+          lead_id: string | null
+          mood_label: string
+          mood_score: number
+          reasoning: string | null
+          suggested_action: string | null
+        }
+        Insert: {
+          agent_run_id?: string | null
+          analyzed_at?: string | null
+          confidence?: string | null
+          contact_id: string
+          created_at?: string | null
+          id?: string
+          key_signals?: Json | null
+          lead_id?: string | null
+          mood_label: string
+          mood_score: number
+          reasoning?: string | null
+          suggested_action?: string | null
+        }
+        Update: {
+          agent_run_id?: string | null
+          analyzed_at?: string | null
+          confidence?: string | null
+          contact_id?: string
+          created_at?: string | null
+          id?: string
+          key_signals?: Json | null
+          lead_id?: string | null
+          mood_label?: string
+          mood_score?: number
+          reasoning?: string | null
+          suggested_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_mood_analysis_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_mood_analysis_lead_id_fkey"
+            columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "deals"
             referencedColumns: ["id"]
@@ -4837,6 +5364,51 @@ export type Database = {
           },
         ]
       }
+      sendgrid_config: {
+        Row: {
+          api_key_encrypted: string | null
+          created_at: string | null
+          enable_click_tracking: boolean | null
+          enable_open_tracking: boolean | null
+          from_email: string | null
+          from_name: string | null
+          id: string
+          is_enabled: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          created_at?: string | null
+          enable_click_tracking?: boolean | null
+          enable_open_tracking?: boolean | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          created_at?: string | null
+          enable_click_tracking?: boolean | null
+          enable_open_tracking?: boolean | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           category: string
@@ -5787,6 +6359,29 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_email_engagement: {
+        Row: {
+          click_rate: number | null
+          contact_id: string | null
+          emails_clicked: number | null
+          emails_opened: number | null
+          emails_sent: number | null
+          last_email_clicked: string | null
+          last_email_opened: string | null
+          last_email_sent: string | null
+          open_rate: number | null
+          total_emails: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preference_coverage: {
         Row: {
           avg_confidence: number | null
@@ -5814,9 +6409,71 @@ export type Database = {
         Args: { p_boost_amount?: number; p_memory_id: string }
         Returns: undefined
       }
+      calculate_contact_lead_score: {
+        Args: { contact_id: string }
+        Returns: {
+          deal_potential_score: number
+          engagement_score: number
+          profile_score: number
+          recency_score: number
+          temperature: string
+          total_score: number
+        }[]
+      }
       consolidate_short_term_memories: {
         Args: { p_agent_id: string; p_days_old?: number; p_user_id: string }
         Returns: number
+      }
+      get_latest_contact_intent_analysis: {
+        Args: { p_contact_id: string }
+        Returns: {
+          analyzed_at: string
+          confidence: string
+          days_since_activity: number
+          decay_signals: Json
+          id: string
+          intent_status: string
+          momentum_score: number
+          momentum_signals: Json
+          reasoning: string
+          suggested_action: string
+        }[]
+      }
+      get_latest_contact_mood_analysis: {
+        Args: { p_contact_id: string }
+        Returns: {
+          analyzed_at: string
+          confidence: string
+          id: string
+          key_signals: Json
+          mood_label: string
+          mood_score: number
+          reasoning: string
+          suggested_action: string
+        }[]
+      }
+      get_or_create_sendgrid_config: {
+        Args: never
+        Returns: {
+          api_key_encrypted: string | null
+          created_at: string | null
+          enable_click_tracking: boolean | null
+          enable_open_tracking: boolean | null
+          from_email: string | null
+          from_name: string | null
+          id: string
+          is_enabled: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sendgrid_config"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_relevant_memories: {
         Args: {
@@ -5852,6 +6509,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_template_usage: {
+        Args: { template_id: string }
+        Returns: undefined
+      }
+      is_contact_ai_summary_expired: {
+        Args: { p_contact_id: string }
+        Returns: boolean
+      }
       match_embeddings: {
         Args: {
           filter_entity_type?: string
@@ -5872,6 +6537,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      process_sendgrid_event: {
+        Args: {
+          p_clicked_url?: string
+          p_contact_id: string
+          p_event_type: string
+          p_ip_address?: string
+          p_metadata?: Json
+          p_sendgrid_message_id: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       prune_short_term_memories: {
         Args: {
           p_agent_id: string
@@ -5880,6 +6557,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: number
+      }
+      refresh_contact_ai_summary: {
+        Args: { p_contact_id: string }
+        Returns: undefined
+      }
+      replace_template_variables: {
+        Args: { template_body: string; variables_json: Json }
+        Returns: string
       }
       update_plan_status_if_all_steps_done: {
         Args: { p_plan_id: string }
