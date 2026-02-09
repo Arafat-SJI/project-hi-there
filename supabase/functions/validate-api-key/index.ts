@@ -33,9 +33,23 @@ serve(async (req) => {
       )
     }
 
-    const apiKey = requestBody.apiKey as string | undefined;
-    const service = requestBody.service as string | undefined;
+    // Support both formats:
+    // 1. { apiKey: "xxx", service: "sendgrid" } - direct format
+    // 2. { provider: "sendgrid", credentials: { api_key: "xxx" } } - frontend format
+    let apiKey = requestBody.apiKey as string | undefined;
+    let service = requestBody.service as string | undefined;
     const ping = requestBody.ping as boolean | undefined;
+    
+    // Handle frontend format with provider/credentials
+    const provider = requestBody.provider as string | undefined;
+    const credentials = requestBody.credentials as Record<string, string> | undefined;
+    
+    if (provider && credentials) {
+      service = provider;
+      // Extract API key from credentials - common field names
+      apiKey = credentials.api_key || credentials.apiKey || credentials.access_token || 
+               credentials.secret_key || credentials.token || Object.values(credentials)[0];
+    }
 
     // Health check / deployment test - no external calls (ping or empty body)
     if (ping === true || (requestBody && Object.keys(requestBody).length === 0)) {
@@ -47,7 +61,7 @@ serve(async (req) => {
 
     if (!apiKey || !service) {
       return new Response(
-        JSON.stringify({ valid: false, error: 'API key and service are required' }),
+        JSON.stringify({ valid: false, error: 'API key and service are required. Expected { apiKey, service } or { provider, credentials }' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
