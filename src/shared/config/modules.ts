@@ -25,6 +25,7 @@ export type ModuleId =
   | "projects"
   | "actions"
   | "business-dev"
+  | "lead-followup"
   | "knowledge"
   | "productivity"
   | "admin";
@@ -122,6 +123,17 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     dependencies: ["platform"],
     defaultEnabled: true,
     featureFlags: ["enableClients"],
+  },
+  "lead-followup": {
+    id: "lead-followup",
+    name: "Lead Follow-Up",
+    description: "Contact management and engagement tracking with AI-powered sentiment analysis and email automation",
+    icon: "Target",
+    category: "business",
+    isCore: false,
+    dependencies: ["platform", "business-dev"],
+    defaultEnabled: true,
+    featureFlags: [],
   },
   productivity: {
     id: "productivity",
