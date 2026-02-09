@@ -101,7 +101,7 @@ serve(async (req) => {
       const redirectUrl = url.searchParams.get('url')
 
       if (trackingId) {
-        await logTrackingEvent(supabase, trackingId, 'clicked', redirectUrl, userAgent, ipAddress)
+        await logTrackingEvent(supabase, trackingId, 'clicked', redirectUrl ?? undefined, userAgent, ipAddress)
       }
 
       // Redirect to original URL if provided
