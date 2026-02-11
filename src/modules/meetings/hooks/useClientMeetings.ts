@@ -35,7 +35,7 @@ export function useClientMeetings(clientId: string) {
   return useQuery({
     queryKey: [CLIENT_MEETINGS_KEY, clientId],
     queryFn: async (): Promise<ClientMeetingRow[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("client_meetings")
         .select(
           "*, meeting:meetings(id, title, scheduled_at, status, duration_minutes, slug)"
@@ -64,7 +64,7 @@ export function useAddClientMeeting() {
       clientId: string;
       meetingId: string;
     }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("client_meetings")
         .insert({
           client_id: clientId,
@@ -104,7 +104,7 @@ export function useRemoveClientMeeting() {
       id: string;
       clientId: string;
     }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("client_meetings")
         .delete()
         .eq("id", id);

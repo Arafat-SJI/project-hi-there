@@ -43,7 +43,7 @@ export default function DeleteMeetingDialog({
     mutationFn: async () => {
       if (isRecurring && deleteScope === "series") {
         // First get the parent_meeting_id to find all related meetings
-        const { data: meeting, error: fetchError } = await supabase
+        const { data: meeting, error: fetchError } = await (supabase as any)
           .from("meetings")
           .select("parent_meeting_id")
           .eq("id", meetingId)
@@ -54,7 +54,7 @@ export default function DeleteMeetingDialog({
         const parentId = meeting?.parent_meeting_id || meetingId;
 
         // Delete all meetings in the series
-        const { error: deleteChildrenError } = await supabase
+        const { error: deleteChildrenError } = await (supabase as any)
           .from("meetings")
           .delete()
           .eq("parent_meeting_id", parentId);

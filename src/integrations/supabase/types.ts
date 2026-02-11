@@ -1016,6 +1016,42 @@ export type Database = {
           },
         ]
       }
+      client_meetings: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          meeting_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_meetings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_meetings_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           company: string | null
@@ -1295,6 +1331,42 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_meeting_links: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          meeting_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_meeting_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_meeting_links_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           client_id: string | null
@@ -1463,6 +1535,13 @@ export type Database = {
             referencedRelation: "deals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "deal_activities_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       deal_comments: {
@@ -1496,6 +1575,13 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_comments_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1569,10 +1655,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "deals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deals_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_created_by_profiles_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_owner_id_profiles_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3518,8 +3625,72 @@ export type Database = {
           },
         ]
       }
+      meeting_action_items: {
+        Row: {
+          assignee_email: string | null
+          assignee_id: string | null
+          created_at: string
+          due_date: string | null
+          extracted_from_transcript: boolean | null
+          extraction_confidence: number | null
+          id: string
+          meeting_id: string
+          priority: string | null
+          status: string | null
+          task_id: string | null
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_email?: string | null
+          assignee_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          extracted_from_transcript?: boolean | null
+          extraction_confidence?: number | null
+          id?: string
+          meeting_id: string
+          priority?: string | null
+          status?: string | null
+          task_id?: string | null
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_email?: string | null
+          assignee_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          extracted_from_transcript?: boolean | null
+          extraction_confidence?: number | null
+          id?: string
+          meeting_id?: string
+          priority?: string | null
+          status?: string | null
+          task_id?: string | null
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_action_items_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_action_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_agenda_items: {
         Row: {
+          assigned_to: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -3534,6 +3705,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          assigned_to?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -3548,6 +3720,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          assigned_to?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -3564,6 +3737,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "meeting_agenda_items_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_assignment_suggestions: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          id: string
+          meeting_id: string
+          reasoning: string | null
+          review_status: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          suggested_id: string
+          suggested_type: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          meeting_id: string
+          reasoning?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          suggested_id: string
+          suggested_type: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          reasoning?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          suggested_id?: string
+          suggested_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_assignment_suggestions_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
@@ -3614,8 +3837,13 @@ export type Database = {
           created_by: string | null
           id: string
           meeting_id: string
+          meeting_type: string | null
+          related_clients: Json | null
+          related_pods: Json | null
+          related_projects: Json | null
           rule_id: string | null
           source: string | null
+          tags: Json | null
         }
         Insert: {
           category: string
@@ -3624,8 +3852,13 @@ export type Database = {
           created_by?: string | null
           id?: string
           meeting_id: string
+          meeting_type?: string | null
+          related_clients?: Json | null
+          related_pods?: Json | null
+          related_projects?: Json | null
           rule_id?: string | null
           source?: string | null
+          tags?: Json | null
         }
         Update: {
           category?: string
@@ -3634,8 +3867,13 @@ export type Database = {
           created_by?: string | null
           id?: string
           meeting_id?: string
+          meeting_type?: string | null
+          related_clients?: Json | null
+          related_pods?: Json | null
+          related_projects?: Json | null
           rule_id?: string | null
           source?: string | null
+          tags?: Json | null
         }
         Relationships: [
           {
@@ -3647,8 +3885,52 @@ export type Database = {
           },
         ]
       }
+      meeting_external_participants: {
+        Row: {
+          created_at: string
+          external_email: string
+          external_name: string | null
+          id: string
+          meeting_id: string
+          role: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_email: string
+          external_name?: string | null
+          id?: string
+          meeting_id: string
+          role?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_email?: string
+          external_name?: string | null
+          id?: string
+          meeting_id?: string
+          role?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_external_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_files: {
         Row: {
+          assignment_confidence: number | null
+          assignment_reasoning: string | null
+          assignment_status: string | null
           created_at: string
           download_url: string | null
           external_meeting_id: string | null
@@ -3663,12 +3945,20 @@ export type Database = {
           metadata: Json | null
           processing_status: string | null
           provider: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           storage_path: string | null
+          suggested_client_id: string | null
+          suggested_pod_id: string | null
+          suggested_project_id: string | null
           transcript_content: Json | null
           transcript_text: string | null
           updated_at: string
         }
         Insert: {
+          assignment_confidence?: number | null
+          assignment_reasoning?: string | null
+          assignment_status?: string | null
           created_at?: string
           download_url?: string | null
           external_meeting_id?: string | null
@@ -3683,12 +3973,20 @@ export type Database = {
           metadata?: Json | null
           processing_status?: string | null
           provider?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           storage_path?: string | null
+          suggested_client_id?: string | null
+          suggested_pod_id?: string | null
+          suggested_project_id?: string | null
           transcript_content?: Json | null
           transcript_text?: string | null
           updated_at?: string
         }
         Update: {
+          assignment_confidence?: number | null
+          assignment_reasoning?: string | null
+          assignment_status?: string | null
           created_at?: string
           download_url?: string | null
           external_meeting_id?: string | null
@@ -3703,7 +4001,12 @@ export type Database = {
           metadata?: Json | null
           processing_status?: string | null
           provider?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           storage_path?: string | null
+          suggested_client_id?: string | null
+          suggested_pod_id?: string | null
+          suggested_project_id?: string | null
           transcript_content?: Json | null
           transcript_text?: string | null
           updated_at?: string
@@ -3714,6 +4017,20 @@ export type Database = {
             columns: ["meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_files_suggested_client_id_fkey"
+            columns: ["suggested_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_files_suggested_pod_id_fkey"
+            columns: ["suggested_pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods"
             referencedColumns: ["id"]
           },
         ]
@@ -3728,6 +4045,7 @@ export type Database = {
           left_at: string | null
           meeting_id: string
           name: string | null
+          response_at: string | null
           role: string | null
           rsvp_status: string | null
           user_id: string | null
@@ -3741,6 +4059,7 @@ export type Database = {
           left_at?: string | null
           meeting_id: string
           name?: string | null
+          response_at?: string | null
           role?: string | null
           rsvp_status?: string | null
           user_id?: string | null
@@ -3754,6 +4073,7 @@ export type Database = {
           left_at?: string | null
           meeting_id?: string
           name?: string | null
+          response_at?: string | null
           role?: string | null
           rsvp_status?: string | null
           user_id?: string | null
@@ -3821,6 +4141,8 @@ export type Database = {
           id: string
           is_completed: boolean | null
           meeting_id: string
+          priority: string | null
+          status: string | null
           takeaway_type: string
           task_id: string | null
           updated_at: string | null
@@ -3835,6 +4157,8 @@ export type Database = {
           id?: string
           is_completed?: boolean | null
           meeting_id: string
+          priority?: string | null
+          status?: string | null
           takeaway_type?: string
           task_id?: string | null
           updated_at?: string | null
@@ -3849,6 +4173,8 @@ export type Database = {
           id?: string
           is_completed?: boolean | null
           meeting_id?: string
+          priority?: string | null
+          status?: string | null
           takeaway_type?: string
           task_id?: string | null
           updated_at?: string | null
@@ -3898,30 +4224,44 @@ export type Database = {
         Row: {
           action_items: Json | null
           agenda_finalized: boolean | null
+          ai_summary: string | null
+          categorization_data: Json | null
           client_id: string | null
           closed_at: string | null
           created_at: string
+          deal_id: string | null
           description: string | null
           duration_minutes: number | null
           efficiency_score: number | null
+          embedding_status: string | null
           external_id: string | null
           external_meeting_id: string | null
           external_uuid: string | null
           host_url: string | null
           id: string
+          is_external: boolean | null
           is_recurring: boolean | null
           join_url: string | null
           location: string | null
           meeting_type: string | null
           metadata: Json | null
+          notes: string | null
           organizer_id: string
+          parent_meeting_id: string | null
+          pod_id: string | null
           provider: string | null
+          recording_url: string | null
+          recurrence_end_date: string | null
+          recurrence_pattern: string | null
           scheduled_at: string | null
           series_id: string | null
           slug: string | null
           status: string | null
           summary: string | null
+          timezone: string | null
           title: string
+          transcript_content: string | null
+          transcript_text: string | null
           updated_at: string
           zoom_id: string | null
           zoom_join_url: string | null
@@ -3932,30 +4272,44 @@ export type Database = {
         Insert: {
           action_items?: Json | null
           agenda_finalized?: boolean | null
+          ai_summary?: string | null
+          categorization_data?: Json | null
           client_id?: string | null
           closed_at?: string | null
           created_at?: string
+          deal_id?: string | null
           description?: string | null
           duration_minutes?: number | null
           efficiency_score?: number | null
+          embedding_status?: string | null
           external_id?: string | null
           external_meeting_id?: string | null
           external_uuid?: string | null
           host_url?: string | null
           id?: string
+          is_external?: boolean | null
           is_recurring?: boolean | null
           join_url?: string | null
           location?: string | null
           meeting_type?: string | null
           metadata?: Json | null
+          notes?: string | null
           organizer_id: string
+          parent_meeting_id?: string | null
+          pod_id?: string | null
           provider?: string | null
+          recording_url?: string | null
+          recurrence_end_date?: string | null
+          recurrence_pattern?: string | null
           scheduled_at?: string | null
           series_id?: string | null
           slug?: string | null
           status?: string | null
           summary?: string | null
+          timezone?: string | null
           title: string
+          transcript_content?: string | null
+          transcript_text?: string | null
           updated_at?: string
           zoom_id?: string | null
           zoom_join_url?: string | null
@@ -3966,30 +4320,44 @@ export type Database = {
         Update: {
           action_items?: Json | null
           agenda_finalized?: boolean | null
+          ai_summary?: string | null
+          categorization_data?: Json | null
           client_id?: string | null
           closed_at?: string | null
           created_at?: string
+          deal_id?: string | null
           description?: string | null
           duration_minutes?: number | null
           efficiency_score?: number | null
+          embedding_status?: string | null
           external_id?: string | null
           external_meeting_id?: string | null
           external_uuid?: string | null
           host_url?: string | null
           id?: string
+          is_external?: boolean | null
           is_recurring?: boolean | null
           join_url?: string | null
           location?: string | null
           meeting_type?: string | null
           metadata?: Json | null
+          notes?: string | null
           organizer_id?: string
+          parent_meeting_id?: string | null
+          pod_id?: string | null
           provider?: string | null
+          recording_url?: string | null
+          recurrence_end_date?: string | null
+          recurrence_pattern?: string | null
           scheduled_at?: string | null
           series_id?: string | null
           slug?: string | null
           status?: string | null
           summary?: string | null
+          timezone?: string | null
           title?: string
+          transcript_content?: string | null
+          transcript_text?: string | null
           updated_at?: string
           zoom_id?: string | null
           zoom_join_url?: string | null
@@ -4003,6 +4371,27 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_parent_meeting_id_fkey"
+            columns: ["parent_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods"
             referencedColumns: ["id"]
           },
           {

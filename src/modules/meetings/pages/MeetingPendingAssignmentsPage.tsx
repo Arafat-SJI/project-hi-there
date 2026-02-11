@@ -46,7 +46,7 @@ function usePendingSuggestions() {
   return useQuery({
     queryKey: ["pending-assignment-suggestions"],
     queryFn: async (): Promise<PendingSuggestion[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("meeting_assignment_suggestions")
         .select(
           "id, meeting_id, suggested_type, suggested_id, confidence, reasoning, review_status, created_at"
@@ -148,7 +148,7 @@ export default function MeetingPendingAssignmentsPage() {
       id: string;
       status: "approved" | "rejected";
     }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("meeting_assignment_suggestions")
         .update({
           review_status: status,

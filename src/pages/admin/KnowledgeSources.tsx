@@ -55,21 +55,14 @@ import { formatBytes, formatDateTime } from "@/lib/utils";
 interface KnowledgeSource {
   id: string;
   name: string;
-  slug: string;
-  description: string | null;
   source_type: string;
-  source_url: string | null;
-  sync_enabled: boolean;
-  sync_frequency: string;
+  is_active: boolean;
   last_synced_at: string | null;
-  sync_status: string;
-  file_count: number;
-  total_size: number;
-  credentials: Record<string, any>;
-  sync_config: Record<string, any>;
-  metadata: Record<string, any>;
+  config: Record<string, any>;
   created_at: string;
   updated_at: string;
+  created_by: string | null;
+  [key: string]: any;
 }
 
 const SOURCE_TYPES = [
@@ -122,7 +115,7 @@ export default function KnowledgeSources() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as KnowledgeSource[];
+      return data as unknown as KnowledgeSource[];
     },
   });
 
@@ -131,7 +124,7 @@ export default function KnowledgeSources() {
     mutationFn: async (data: Partial<KnowledgeSource>) => {
       const { data: source, error } = await supabase
         .from("knowledge_sources")
-        .insert([data])
+        .insert([data as any])
         .select()
         .single();
       if (error) throw error;

@@ -26,7 +26,7 @@ export function useDealMeetings(dealId: string) {
   return useQuery({
     queryKey: [DEAL_MEETINGS_KEY, dealId],
     queryFn: async (): Promise<DealMeeting[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("meetings")
         .select("id, title, scheduled_at, status, duration_minutes, slug")
         .eq("deal_id", dealId)

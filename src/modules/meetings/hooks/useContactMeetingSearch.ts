@@ -34,7 +34,7 @@ export function useContactMeetingSearch(contactId: string, query: string) {
   return useQuery({
     queryKey: [CONTACT_MEETING_SEARCH_KEY, contactId, query],
     queryFn: async (): Promise<ContactMeetingSearchResult[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("contact_meeting_links")
         .select(
           "id, contact_id, meeting_id, created_at, meeting:meetings!inner(id, title, scheduled_at, status, duration_minutes, slug)"
