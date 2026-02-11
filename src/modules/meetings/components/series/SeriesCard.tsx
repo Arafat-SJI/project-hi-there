@@ -15,43 +15,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { MeetingSeries } from "../../types";
+import { formatRecurrencePattern } from "../../utils";
 
 interface SeriesCardProps {
   series: MeetingSeries;
   onArchive?: (id: string) => void;
-}
-
-/**
- * Parse an iCal RRULE into a human-readable string.
- */
-function formatRecurrence(rule: string): string {
-  const match = rule.match(/FREQ=(\w+)/);
-  if (!match) return rule;
-
-  const freq = match[1].toLowerCase();
-  const dayMatch = rule.match(/BYDAY=([\w,]+)/);
-  const intervalMatch = rule.match(/INTERVAL=(\d+)/);
-  const interval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
-
-  const freqLabels: Record<string, string> = {
-    daily: "Daily",
-    weekly: "Weekly",
-    biweekly: "Bi-weekly",
-    monthly: "Monthly",
-    yearly: "Yearly",
-  };
-
-  let label = interval > 1 ? `Every ${interval} ${freq}s` : freqLabels[freq] || freq;
-
-  if (dayMatch) {
-    const dayMap: Record<string, string> = {
-      MO: "Mon", TU: "Tue", WE: "Wed", TH: "Thu", FR: "Fri", SA: "Sat", SU: "Sun",
-    };
-    const days = dayMatch[1].split(",").map((d) => dayMap[d] || d).join(", ");
-    label += ` on ${days}`;
-  }
-
-  return label;
 }
 
 export function SeriesCard({ series, onArchive }: SeriesCardProps) {
@@ -85,7 +53,7 @@ export function SeriesCard({ series, onArchive }: SeriesCardProps) {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="flex items-center gap-1">
             <Repeat className="h-3 w-3" />
-            {formatRecurrence(series.recurrence_rule)}
+            {formatRecurrencePattern(series.recurrence_rule)}
           </Badge>
           <Badge variant="secondary" className="flex items-center gap-1">
             <Clock className="h-3 w-3" />

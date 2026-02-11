@@ -7,6 +7,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeSearchInput } from "@/lib/sanitize";
 import type { MeetingAssignment } from "../types";
 
 const PROJECT_MEETING_SEARCH_KEY = "project-meeting-search";
@@ -37,7 +38,7 @@ export function useProjectMeetingSearch(projectId: string, query: string) {
         )
         .eq("entity_type", "project")
         .eq("entity_id", projectId)
-        .ilike("meetings.title" as any, `%${query}%`)
+        .ilike("meetings.title" as any, `%${sanitizeSearchInput(query)}%`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

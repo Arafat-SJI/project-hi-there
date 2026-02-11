@@ -8,6 +8,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeSearchInput } from "@/lib/sanitize";
 
 const KNOWLEDGE_MEETINGS_KEY = "knowledge-meetings";
 
@@ -51,7 +52,7 @@ export function useKnowledgeMeetings(filters?: KnowledgeMeetingsFilters) {
       }
 
       if (filters?.search && filters.search.length >= 2) {
-        query = query.ilike("title", `%${filters.search}%`);
+        query = query.ilike("title", `%${sanitizeSearchInput(filters.search)}%`);
       }
 
       const { data, error } = await query;

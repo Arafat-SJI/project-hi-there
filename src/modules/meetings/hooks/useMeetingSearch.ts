@@ -7,6 +7,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeSearchInput } from "@/lib/sanitize";
 
 const MEETING_SEARCH_KEY = "meeting-search";
 
@@ -40,7 +41,7 @@ export function useMeetingSearch(query: string, filters?: MeetingSearchFilters) 
         .select(
           "id, title, description, scheduled_at, status, duration_minutes, slug, client_id, clients(name)"
         )
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+        .or(`title.ilike.%${sanitizeSearchInput(query)}%,description.ilike.%${sanitizeSearchInput(query)}%`)
         .order("scheduled_at", { ascending: false })
         .limit(50);
 
