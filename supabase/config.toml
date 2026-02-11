@@ -236,6 +236,9 @@ verify_jwt = false
 [functions.sync-projects-jira]
 verify_jwt = false
 
+
+[functions.deal-coach]
+verify_jwt = false
 # Meeting module V2 - management functions
 [functions.create-meeting-review-tasks]
 verify_jwt = false

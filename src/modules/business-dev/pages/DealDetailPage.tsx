@@ -1,19 +1,28 @@
 /**
- * Deal Detail Page - Tabbed view with activities and comments
+ * Deal Detail Page - Tabbed view with activities, comments, meetings, and AI coach
  */
 
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, DollarSign, Calendar, User, Building2, MessageSquare, Activity, Loader2, ChevronRight, Pencil, Trash2, Video } from "lucide-react";
-import { useDeal, useDealActivities, useDealComments, useAddDealComment, useUpdateDealStage, useDeleteDeal } from "../hooks/useDeals";
+import { ArrowLeft, DollarSign, Calendar, User, Building2, MessageSquare, Activity, Loader2, ChevronRight, Pencil, Trash2, Video, Plus, Bot, Tag, Send, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDeal, useDealActivities, useDealComments, useAddDealComment, useUpdateDealComment, useDeleteDealComment, useAddDealActivity, useUpdateDealStage, useUpdateDeal, useDeleteDeal } from "../hooks/useDeals";
 import { useDealMeetings } from "@/modules/meetings/hooks/useCrossModuleMeetings";
-import type { DealStage } from "../types";
+import { useAssignMeeting } from "@/modules/meetings/hooks/useMeetingAssignment";
+import type { DealStage, DealActivityType } from "../types";
 
 const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
   lead: { label: "Lead", color: "#6b7280" },
@@ -26,19 +35,65 @@ const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
 
 const STAGES: DealStage[] = ["lead", "discovery", "estimation", "proposal", "won", "lost"];
 
+const ACTIVITY_TYPES: { value: DealActivityType; label: string }[] = [
+  { value: "note", label: "Note" },
+  { value: "call", label: "Call" },
+  { value: "email", label: "Email" },
+  { value: "meeting", label: "Meeting" },
+  { value: "task", label: "Task" },
+];
+
 export default function DealDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [tab, setTab] = useState("overview");
   const [newComment, setNewComment] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
+
+  // Lost reason dialog state
+  const [lostDialogOpen, setLostDialogOpen] = useState(false);
+  const [lostReason, setLostReason] = useState("");
+  const [pendingLostDealId, setPendingLostDealId] = useState<string | null>(null);
+
+  // Activity creation state
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  const [activityType, setActivityType] = useState<DealActivityType>("note");
+  const [activityContent, setActivityContent] = useState("");
+
+  // Link meeting dialog state
+  const [linkMeetingDialogOpen, setLinkMeetingDialogOpen] = useState(false);
+  const [selectedMeetingId, setSelectedMeetingId] = useState("");
+
+  // AI Coach state
+  const [coachQuery, setCoachQuery] = useState("");
+  const [coachResponse, setCoachResponse] = useState("");
+  const [coachLoading, setCoachLoading] = useState(false);
 
   const { data: deal, isLoading } = useDeal(slug!);
   const { data: activities = [] } = useDealActivities(deal?.id || "");
   const { data: comments = [] } = useDealComments(deal?.id || "");
   const addComment = useAddDealComment();
+  const updateComment = useUpdateDealComment();
+  const deleteComment = useDeleteDealComment();
+  const addActivity = useAddDealActivity();
   const updateStage = useUpdateDealStage();
+  const updateDeal = useUpdateDeal();
   const deleteDeal = useDeleteDeal();
+  const assignMeeting = useAssignMeeting();
   const { data: linkedMeetings = [] } = useDealMeetings(deal?.id);
+
+  // Fetch available meetings for linking
+  const { data: availableMeetings = [] } = useQuery({
+    queryKey: ["meetings", "for-linking"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("meetings").select("id, title, scheduled_at").order("scheduled_at", { ascending: false }).limit(50);
+      if (error) throw error;
+      return data as { id: string; title: string; scheduled_at: string | null }[];
+    },
+    enabled: linkMeetingDialogOpen,
+  });
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -55,11 +110,73 @@ export default function DealDetailPage() {
 
   const currentStageIdx = STAGES.indexOf(deal.stage);
 
+  const handleStageClick = (stage: DealStage) => {
+    if (stage === deal.stage) return;
+    if (stage === "lost") {
+      setPendingLostDealId(deal.id);
+      setLostReason("");
+      setLostDialogOpen(true);
+      return;
+    }
+    updateStage.mutate({ id: deal.id, stage, fromStage: deal.stage });
+  };
+
+  const handleConfirmLost = () => {
+    if (pendingLostDealId) {
+      updateDeal.mutate({ id: pendingLostDealId, data: { stage: "lost", lost_reason: lostReason || undefined } });
+      updateStage.mutate({ id: pendingLostDealId, stage: "lost", fromStage: deal.stage });
+    }
+    setLostDialogOpen(false);
+    setPendingLostDealId(null);
+  };
+
   const handleSubmitComment = () => {
     if (!newComment.trim()) return;
     addComment.mutate({ dealId: deal.id, content: newComment.trim() });
     setNewComment("");
   };
+
+  const handleSaveEditComment = () => {
+    if (!editingCommentId || !editingCommentContent.trim()) return;
+    updateComment.mutate({ id: editingCommentId, dealId: deal.id, content: editingCommentContent.trim() });
+    setEditingCommentId(null);
+    setEditingCommentContent("");
+  };
+
+  const handleSubmitActivity = () => {
+    if (!activityContent.trim()) return;
+    addActivity.mutate({ dealId: deal.id, activityType, content: activityContent.trim() });
+    setActivityContent("");
+    setActivityDialogOpen(false);
+  };
+
+  const handleLinkMeeting = () => {
+    if (!selectedMeetingId) return;
+    assignMeeting.mutate({ meetingId: selectedMeetingId, entityType: "deal" as any, entityId: deal.id });
+    setSelectedMeetingId("");
+    setLinkMeetingDialogOpen(false);
+  };
+
+  const handleAskCoach = async () => {
+    if (!coachQuery.trim()) return;
+    setCoachLoading(true);
+    setCoachResponse("");
+    try {
+      const { data, error } = await supabase.functions.invoke("deal-coach", {
+        body: { deal_id: deal.id, question: coachQuery },
+      });
+      if (error) throw error;
+      setCoachResponse(data?.response || "No response from coach.");
+    } catch (err: any) {
+      setCoachResponse(`Error: ${err.message || "Failed to get coaching response"}`);
+    } finally {
+      setCoachLoading(false);
+    }
+  };
+
+  // Filter out already-linked meetings
+  const linkedMeetingIds = new Set(linkedMeetings.map((m) => m.meeting_id));
+  const unlinkableMeetings = availableMeetings.filter((m) => !linkedMeetingIds.has(m.id));
 
   return (
     <div className="space-y-6">
@@ -67,11 +184,14 @@ export default function DealDetailPage() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/deals")}><ArrowLeft className="h-5 w-5" /></Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{deal.title}</h1>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <Badge style={{ backgroundColor: `${STAGE_CONFIG[deal.stage]?.color}20`, color: STAGE_CONFIG[deal.stage]?.color, borderColor: STAGE_CONFIG[deal.stage]?.color }} variant="outline">
               {STAGE_CONFIG[deal.stage]?.label}
             </Badge>
             {deal.client && <span className="text-sm text-muted-foreground">{deal.client.name}</span>}
+            {(deal.tags || []).map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs"><Tag className="h-3 w-3 mr-1" />{tag}</Badge>
+            ))}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -113,7 +233,7 @@ export default function DealDetailPage() {
                 color: isActive ? "#fff" : cfg.color,
                 "--tw-ring-color": isCurrent ? cfg.color : undefined,
               } as React.CSSProperties}
-              onClick={() => updateStage.mutate({ id: deal.id, stage, fromStage: deal.stage })}
+              onClick={() => handleStageClick(stage)}
             >
               {cfg.label}
             </button>
@@ -127,8 +247,10 @@ export default function DealDetailPage() {
           <TabsTrigger value="activities">Activities ({activities.length})</TabsTrigger>
           <TabsTrigger value="comments">Comments ({comments.length})</TabsTrigger>
           <TabsTrigger value="meetings">Meetings ({linkedMeetings.length})</TabsTrigger>
+          <TabsTrigger value="ai-coach"><Bot className="h-3.5 w-3.5 mr-1" />AI Coach</TabsTrigger>
         </TabsList>
 
+        {/* === OVERVIEW TAB === */}
         <TabsContent value="overview" className="space-y-4 mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2">
@@ -183,6 +305,16 @@ export default function DealDetailPage() {
                     </div>
                   )}
                 </div>
+                {(deal.tags || []).length > 0 && (
+                  <div className="border-t pt-3 mt-3">
+                    <p className="text-sm text-muted-foreground mb-2">Tags</p>
+                    <div className="flex flex-wrap gap-1">
+                      {deal.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {deal.closed_at && (
                   <div className="border-t pt-3 mt-3">
                     <p className="text-sm text-muted-foreground">
@@ -217,7 +349,13 @@ export default function DealDetailPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="activities" className="mt-4">
+        {/* === ACTIVITIES TAB === */}
+        <TabsContent value="activities" className="mt-4 space-y-4">
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => { setActivityType("note"); setActivityContent(""); setActivityDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" />Log Activity
+            </Button>
+          </div>
           {activities.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No activities recorded.</p>
           ) : (
@@ -241,6 +379,7 @@ export default function DealDetailPage() {
           )}
         </TabsContent>
 
+        {/* === COMMENTS TAB === */}
         <TabsContent value="comments" className="mt-4 space-y-4">
           <div className="flex items-center gap-2">
             <Input
@@ -260,11 +399,46 @@ export default function DealDetailPage() {
               {comments.map((c) => (
                 <Card key={c.id}>
                   <CardContent className="py-3 px-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-sm">{c.user?.full_name || "Unknown"}</span>
-                      <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{c.content}</p>
+                    {editingCommentId === c.id ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={editingCommentContent}
+                          onChange={(e) => setEditingCommentContent(e.target.value)}
+                          rows={2}
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" variant="outline" onClick={() => setEditingCommentId(null)}>Cancel</Button>
+                          <Button size="sm" disabled={!editingCommentContent.trim()} onClick={handleSaveEditComment}>Save</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">{c.user?.full_name || "Unknown"}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
+                            {c.user_id === user?.id && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => { setEditingCommentId(c.id); setEditingCommentContent(c.content); }}>
+                                    <Pencil className="h-3.5 w-3.5 mr-2" />Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive" onClick={() => deleteComment.mutate({ id: c.id, dealId: deal.id })}>
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{c.content}</p>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -272,7 +446,13 @@ export default function DealDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="meetings" className="mt-4">
+        {/* === MEETINGS TAB === */}
+        <TabsContent value="meetings" className="mt-4 space-y-4">
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => setLinkMeetingDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />Link Meeting
+            </Button>
+          </div>
           {linkedMeetings.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No meetings linked to this deal.</p>
           ) : (
@@ -305,7 +485,134 @@ export default function DealDetailPage() {
             </div>
           )}
         </TabsContent>
+
+        {/* === AI COACH TAB === */}
+        <TabsContent value="ai-coach" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2"><Bot className="h-4 w-4" />Deal Coach</CardTitle>
+              <p className="text-sm text-muted-foreground">Get AI-powered advice on deal strategy, objection handling, and next steps using the MEDDPICC framework.</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {["Analyze this deal with MEDDPICC", "What should my next steps be?", "Draft a follow-up email", "Help me handle objections"].map((suggestion) => (
+                  <Button key={suggestion} variant="outline" size="sm" className="text-xs" onClick={() => setCoachQuery(suggestion)}>
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <Textarea
+                  placeholder="Ask the Deal Coach a question about this deal..."
+                  value={coachQuery}
+                  onChange={(e) => setCoachQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAskCoach(); } }}
+                  rows={2}
+                  className="flex-1"
+                />
+                <Button size="sm" disabled={!coachQuery.trim() || coachLoading} onClick={handleAskCoach}>
+                  {coachLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </div>
+              {coachResponse && (
+                <Card className="bg-muted/50">
+                  <CardContent className="py-3 px-4">
+                    <p className="text-sm whitespace-pre-wrap">{coachResponse}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Lost reason dialog */}
+      <Dialog open={lostDialogOpen} onOpenChange={setLostDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark deal as lost</DialogTitle>
+            <DialogDescription>Optionally provide a reason why this deal was lost.</DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label htmlFor="lost-reason">Reason (optional)</Label>
+            <Textarea
+              id="lost-reason"
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+              placeholder="e.g. Budget constraints, went with competitor, timing..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLostDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleConfirmLost}>Mark as Lost</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Log activity dialog */}
+      <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log Activity</DialogTitle>
+            <DialogDescription>Record a note, call, email, or other activity for this deal.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Activity Type</Label>
+              <Select value={activityType} onValueChange={(v) => setActivityType(v as DealActivityType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ACTIVITY_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Details</Label>
+              <Textarea
+                value={activityContent}
+                onChange={(e) => setActivityContent(e.target.value)}
+                placeholder="Describe the activity..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActivityDialogOpen(false)}>Cancel</Button>
+            <Button disabled={!activityContent.trim()} onClick={handleSubmitActivity}>Log Activity</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link meeting dialog */}
+      <Dialog open={linkMeetingDialogOpen} onOpenChange={setLinkMeetingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Link a Meeting</DialogTitle>
+            <DialogDescription>Select a meeting to link to this deal.</DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label>Meeting</Label>
+            <Select value={selectedMeetingId || "none"} onValueChange={(v) => setSelectedMeetingId(v === "none" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Select meeting" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Select a meeting</SelectItem>
+                {unlinkableMeetings.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.title}{m.scheduled_at ? ` (${new Date(m.scheduled_at).toLocaleDateString()})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkMeetingDialogOpen(false)}>Cancel</Button>
+            <Button disabled={!selectedMeetingId} onClick={handleLinkMeeting}>Link Meeting</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
