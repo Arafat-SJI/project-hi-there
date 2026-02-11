@@ -107,8 +107,10 @@ serve(async (req) => {
     ].filter(Boolean)
 
     // Build project list context
-    const projectsList = projects.map((p: { id: string; name: string; description: string | null; client_id: string | null; clients: { name: string } | null }) => {
-      const clientName = p.clients ? (p.clients as { name: string }).name : 'N/A'
+    const projectsList = projects.map((p: any) => {
+      const clients = p.clients
+      const client = Array.isArray(clients) ? clients[0] : clients
+      const clientName = client?.name || 'N/A'
       return `- Project: "${p.name}" (id: ${p.id}, client: ${clientName})${p.description ? `\n  Description: ${p.description.slice(0, 200)}` : ''}`
     }).join('\n')
 

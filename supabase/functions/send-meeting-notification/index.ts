@@ -135,7 +135,8 @@ serve(async (req) => {
     // Extract email addresses
     const recipients: string[] = []
     for (const participant of recipientList) {
-      const profile = participant.profiles as { id: string; email: string; full_name: string } | null
+      const profiles = (participant as any).profiles
+      const profile = Array.isArray(profiles) ? profiles[0] : profiles
       if (profile?.email) {
         recipients.push(profile.email)
       }

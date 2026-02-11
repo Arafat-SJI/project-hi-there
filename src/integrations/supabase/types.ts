@@ -602,7 +602,9 @@ export type Database = {
       }
       ai_agents: {
         Row: {
+          avatar: string | null
           category: string | null
+          conversation_starters: Json | null
           created_at: string
           data_sources: Json | null
           description: string | null
@@ -616,9 +618,12 @@ export type Database = {
           slug: string
           system_prompt: string
           updated_at: string
+          welcome_message: string | null
         }
         Insert: {
+          avatar?: string | null
           category?: string | null
+          conversation_starters?: Json | null
           created_at?: string
           data_sources?: Json | null
           description?: string | null
@@ -632,9 +637,12 @@ export type Database = {
           slug: string
           system_prompt: string
           updated_at?: string
+          welcome_message?: string | null
         }
         Update: {
+          avatar?: string | null
           category?: string | null
+          conversation_starters?: Json | null
           created_at?: string
           data_sources?: Json | null
           description?: string | null
@@ -648,6 +656,7 @@ export type Database = {
           slug?: string
           system_prompt?: string
           updated_at?: string
+          welcome_message?: string | null
         }
         Relationships: []
       }
