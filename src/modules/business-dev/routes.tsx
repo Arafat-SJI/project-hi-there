@@ -10,6 +10,7 @@ import { ModuleRoute } from "@/components/routing/ModuleRoute";
 import Clients from "@/pages/Clients";
 import ClientForm from "@/pages/ClientForm";
 import ClientDetail from "@/pages/ClientDetail";
+import ClientKnowledge from "@/pages/ClientKnowledge";
 import DealsPage from "./pages/DealsPage";
 import DealDetailPage from "./pages/DealDetailPage";
 import DealFormPage from "./pages/DealFormPage";
@@ -30,6 +31,7 @@ export const businessDevRoutes = (
     <Route path="/clients/new" element={<ClientForm />} />
     <Route path="/clients/:id" element={<ClientDetail />} />
     <Route path="/clients/:id/edit" element={<ClientForm />} />
+    <Route path="/clients/:clientId/knowledge" element={<ClientKnowledge />} />
     <Route path="/deals" element={<DealsPage />} />
     <Route path="/deals/new" element={<DealFormPage />} />
     <Route path="/deals/:slug" element={<DealDetailPage />} />

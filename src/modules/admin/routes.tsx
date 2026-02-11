@@ -48,6 +48,7 @@ import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 import KnowledgeSources from "@/pages/admin/KnowledgeSources";
 import KnowledgeFiles from "@/pages/admin/KnowledgeFiles";
 import KnowledgeSyncStatus from "@/pages/admin/KnowledgeSyncStatus";
+import CommonKnowledgeManagement from "@/pages/admin/CommonKnowledgeManagement";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
 import SeedRunner from "@/pages/admin/SeedRunner";
 import GeminiRAGConfig from "@/pages/admin/GeminiRAGConfig";
@@ -110,6 +111,7 @@ export const adminRoutes = (
     <Route path="/admin/knowledge/sources" element={<KnowledgeSources />} />
     <Route path="/admin/knowledge/files" element={<KnowledgeFiles />} />
     <Route path="/admin/knowledge/sync-status" element={<KnowledgeSyncStatus />} />
+    <Route path="/admin/knowledge/common" element={<CommonKnowledgeManagement />} />
     <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />
     <Route path="/admin/knowledge/gemini" element={<GeminiRAGConfig />} />
     <Route path="/admin/knowledge/memory-analytics" element={<MemoryAnalytics />} />
