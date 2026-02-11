@@ -10,6 +10,20 @@ export { useMeetingSearch } from "./hooks/useMeetingSearch";
 export { useCalendarMeetings, useMeetingsForMonth } from "./hooks/useCalendarMeetings";
 export { usePendingAssignmentCount } from "./hooks/usePendingAssignmentCount";
 export { useKnowledgeMeetings } from "./hooks/useKnowledgeMeetings";
+export {
+  useMeetingAgents,
+  useSummarizeMeeting,
+  useExtractActionItems,
+  useCategorizeMeeting,
+  usePrepareMeeting,
+  useAnalyzeTranscript,
+  useGenerateFollowUpEmail,
+  useAnalyzeMeetingEfficiency,
+  useMatchMeetingToClient,
+} from "./hooks/useMeetingAIAgents";
+
+// Re-export utilities
+export { formatMeetingDateTime, formatRecurrencePattern } from "./utils";
 
 // Re-export types
 export type {
