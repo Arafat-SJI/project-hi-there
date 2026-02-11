@@ -49,22 +49,13 @@ interface KnowledgeFile {
   file_name: string;
   file_type: string | null;
   file_size: number | null;
-  mime_type: string | null;
   storage_path: string | null;
-  external_id: string | null;
-  external_url: string | null;
   processing_status: string;
   chunk_count: number | null;
   processing_error: string | null;
   created_at: string;
   updated_at: string;
-  knowledge_categories?: {
-    name: string;
-    slug: string;
-  };
-  knowledge_sources?: {
-    name: string;
-  };
+  [key: string]: any;
 }
 
 export default function KnowledgeFiles() {
@@ -105,7 +96,7 @@ export default function KnowledgeFiles() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as KnowledgeFile[];
+      return data as unknown as KnowledgeFile[];
     },
   });
 

@@ -54,18 +54,13 @@ interface CommonKnowledge {
   id: string;
   title: string;
   content: string;
-  category_id: string | null;
-  visibility: string; // 'all' | 'team' | 'department'
-  metadata: Record<string, any>;
+  category: string | null;
+  is_active: boolean | null;
+  tags: string[] | null;
   created_at: string;
   updated_at: string;
   created_by: string;
-  knowledge_categories?: {
-    name: string;
-  };
-  profiles?: {
-    full_name: string;
-  };
+  [key: string]: any;
 }
 
 export default function CommonKnowledgeManagement() {
@@ -89,11 +84,7 @@ export default function CommonKnowledgeManagement() {
     queryFn: async () => {
       let query = supabase
         .from("common_knowledge")
-        .select(`
-          *,
-          knowledge_categories(name),
-          profiles(full_name)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (searchQuery) {
@@ -102,7 +93,7 @@ export default function CommonKnowledgeManagement() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as CommonKnowledge[];
+      return data as unknown as CommonKnowledge[];
     },
   });
 
@@ -124,7 +115,7 @@ export default function CommonKnowledgeManagement() {
     mutationFn: async (data: Partial<CommonKnowledge>) => {
       const { data: entry, error } = await supabase
         .from("common_knowledge")
-        .insert([data])
+        .insert([data as any])
         .select()
         .single();
       if (error) throw error;

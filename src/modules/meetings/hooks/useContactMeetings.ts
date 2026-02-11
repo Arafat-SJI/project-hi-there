@@ -35,7 +35,7 @@ export function useContactMeetings(contactId: string) {
   return useQuery({
     queryKey: [CONTACT_MEETINGS_KEY, contactId],
     queryFn: async (): Promise<ContactMeetingRow[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("contact_meeting_links")
         .select(
           "*, meeting:meetings(id, title, scheduled_at, status, duration_minutes, slug)"
@@ -64,7 +64,7 @@ export function useAddContactMeetingLink() {
       contactId: string;
       meetingId: string;
     }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("contact_meeting_links")
         .insert({
           contact_id: contactId,
@@ -104,7 +104,7 @@ export function useRemoveContactMeetingLink() {
       id: string;
       contactId: string;
     }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("contact_meeting_links")
         .delete()
         .eq("id", id);

@@ -62,7 +62,7 @@ export function useMeetings(filters?: Record<string, any>) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as (Meeting & { clients?: { name: string } | null })[];
+      return data as unknown as (Meeting & { clients?: { name: string } | null })[];
     },
   });
 }

@@ -66,7 +66,7 @@ function useAssignmentSuggestions(filter: ReviewFilter) {
   return useQuery({
     queryKey: ["assignment-suggestions", filter],
     queryFn: async (): Promise<SuggestionRow[]> => {
-      let query = supabase
+      let query = (supabase as any)
         .from("meeting_assignment_suggestions")
         .select(
           "id, meeting_id, suggested_type, suggested_id, confidence, reasoning, review_status, reviewed_by, reviewed_at, created_at"
@@ -154,7 +154,7 @@ export default function MeetingAiMatchResultsPage() {
       id: string;
       status: "approved" | "rejected";
     }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("meeting_assignment_suggestions")
         .update({
           review_status: status,
@@ -194,7 +194,7 @@ export default function MeetingAiMatchResultsPage() {
       }
 
       const ids = highConfidencePending.map((s) => s.id);
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("meeting_assignment_suggestions")
         .update({
           review_status: "approved",

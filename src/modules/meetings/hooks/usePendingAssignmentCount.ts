@@ -17,7 +17,7 @@ export function usePendingAssignmentCount() {
   return useQuery({
     queryKey: [PENDING_ASSIGNMENT_COUNT_KEY],
     queryFn: async (): Promise<number> => {
-      const { count, error } = await supabase
+      const { count, error } = await (supabase as any)
         .from("meeting_assignment_suggestions")
         .select("id", { count: "exact", head: true })
         .eq("review_status", "pending");

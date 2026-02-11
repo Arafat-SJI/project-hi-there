@@ -75,11 +75,11 @@ export default function ClientKnowledge() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("deals")
-        .select("id, title, status, value, created_at")
+        .select("id, title, stage, value, created_at")
         .eq("client_id", clientId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Deal[];
+      return (data || []).map((d: any) => ({ ...d, status: d.stage })) as Deal[];
     },
     enabled: !!clientId,
   });

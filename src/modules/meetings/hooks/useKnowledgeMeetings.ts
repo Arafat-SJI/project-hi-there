@@ -40,7 +40,7 @@ export function useKnowledgeMeetings(filters?: KnowledgeMeetingsFilters) {
   return useQuery({
     queryKey: [KNOWLEDGE_MEETINGS_KEY, filters],
     queryFn: async (): Promise<KnowledgeMeeting[]> => {
-      let query = supabase
+      let query = (supabase as any)
         .from("meetings")
         .select(
           "id, title, description, scheduled_at, status, slug, ai_summary, embedding_status, duration_minutes, client_id, clients(name)"
