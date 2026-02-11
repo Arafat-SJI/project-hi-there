@@ -45,6 +45,9 @@ import EmployeeProjection from "@/pages/admin/EmployeeProjection";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
+import KnowledgeSources from "@/pages/admin/KnowledgeSources";
+import KnowledgeFiles from "@/pages/admin/KnowledgeFiles";
+import KnowledgeSyncStatus from "@/pages/admin/KnowledgeSyncStatus";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
 import SeedRunner from "@/pages/admin/SeedRunner";
 import GeminiRAGConfig from "@/pages/admin/GeminiRAGConfig";
@@ -104,9 +107,12 @@ export const adminRoutes = (
     {/* Knowledge Admin */}
     <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />
     <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
+    <Route path="/admin/knowledge/sources" element={<KnowledgeSources />} />
+    <Route path="/admin/knowledge/files" element={<KnowledgeFiles />} />
+    <Route path="/admin/knowledge/sync-status" element={<KnowledgeSyncStatus />} />
     <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />
-  <Route path="/admin/knowledge/gemini" element={<GeminiRAGConfig />} />
-  <Route path="/admin/knowledge/memory-analytics" element={<MemoryAnalytics />} />
+    <Route path="/admin/knowledge/gemini" element={<GeminiRAGConfig />} />
+    <Route path="/admin/knowledge/memory-analytics" element={<MemoryAnalytics />} />
 
     {/* EOS Admin */}
     <Route path="/admin/eos" element={<AdminEOS />} />
