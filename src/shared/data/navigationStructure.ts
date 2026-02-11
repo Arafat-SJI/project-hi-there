@@ -374,13 +374,43 @@ export const adminNavigation: NavGroup[] = [
         icon: "BarChart3",
       },
       {
-        title: "Knowledge Categories",
+        title: "Categories",
         href: "/admin/knowledge/categories",
         icon: "FolderOpen",
       },
       {
-        title: "Embeddings Explorer",
+        title: "Sources",
+        href: "/admin/knowledge/sources",
+        icon: "Database",
+      },
+      {
+        title: "Files",
+        href: "/admin/knowledge/files",
+        icon: "FileText",
+      },
+      {
+        title: "Sync Status",
+        href: "/admin/knowledge/sync-status",
+        icon: "RefreshCw",
+      },
+      {
+        title: "Common Knowledge",
+        href: "/admin/knowledge/common",
+        icon: "Globe",
+      },
+      {
+        title: "Embeddings",
         href: "/admin/knowledge/embeddings",
+        icon: "Brain",
+      },
+      {
+        title: "Gemini RAG",
+        href: "/admin/knowledge/gemini",
+        icon: "Sparkles",
+      },
+      {
+        title: "Memory Analytics",
+        href: "/admin/knowledge/memory-analytics",
         icon: "Brain",
       },
     ],
