@@ -42,6 +42,16 @@ export const queryKeys = {
     agentPersonalizations: (userId: string) => ["knowledge", "agentPersonalizations", userId] as const,
   },
 
+  // Deals
+  deals: {
+    all: ["deals"] as const,
+    list: (filters?: Record<string, any>) => ["deals", "list", filters] as const,
+    detail: (slug: string) => ["deals", "detail", slug] as const,
+    pipelineStats: ["deals", "pipeline-stats"] as const,
+    activities: (dealId: string) => ["deals", "activities", dealId] as const,
+    comments: (dealId: string) => ["deals", "comments", dealId] as const,
+  },
+
   // Tasks
   tasks: {
     all: ["tasks"] as const,
@@ -108,6 +118,9 @@ export const invalidateKeys = {
   },
   knowledge: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.all });
+  },
+  deals: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });
   },
   tasks: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });

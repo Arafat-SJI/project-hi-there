@@ -6,18 +6,21 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { queryKeys, invalidateKeys } from "@/lib/cache";
 import type { Deal, DealFormData, DealFilters, DealActivity, DealComment, DealPipelineStats, DealStage } from "../types";
 
-const DEALS_KEY = "deals";
+const DEAL_SELECT = "*, owner:profiles!deals_owner_id_profiles_fkey(full_name, email), client:clients(name), contact:contacts(first_name, last_name, email)";
+const ACTIVITY_SELECT = "*, user:profiles!deal_activities_user_id_profiles_fkey(full_name)";
+const COMMENT_SELECT = "*, user:profiles!deal_comments_user_id_profiles_fkey(full_name, email)";
 
 export function useDeals(filters?: DealFilters) {
   const { user } = useAuth();
   return useQuery({
-    queryKey: [DEALS_KEY, filters],
+    queryKey: queryKeys.deals.list(filters),
     queryFn: async (): Promise<Deal[]> => {
       let query = supabase
         .from("deals")
-        .select("*")
+        .select(DEAL_SELECT)
         .order("updated_at", { ascending: false });
 
       if (filters?.stage && filters.stage !== "all") query = query.eq("stage", filters.stage);
@@ -35,11 +38,11 @@ export function useDeals(filters?: DealFilters) {
 
 export function useDeal(slug: string) {
   return useQuery({
-    queryKey: [DEALS_KEY, slug],
+    queryKey: queryKeys.deals.detail(slug),
     queryFn: async (): Promise<Deal> => {
       const { data, error } = await supabase
         .from("deals")
-        .select("*")
+        .select(DEAL_SELECT)
         .eq("slug", slug)
         .single();
       if (error) throw error;
@@ -51,7 +54,7 @@ export function useDeal(slug: string) {
 
 export function useDealPipelineStats() {
   return useQuery({
-    queryKey: [DEALS_KEY, "pipeline-stats"],
+    queryKey: queryKeys.deals.pipelineStats,
     queryFn: async (): Promise<DealPipelineStats> => {
       const { data, error } = await supabase.from("deals").select("stage, value, probability");
       if (error) throw error;
@@ -103,7 +106,7 @@ export function useCreateDeal() {
       if (error) throw error;
       return deal;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [DEALS_KEY] }); toast.success("Deal created"); },
+    onSuccess: () => { invalidateKeys.deals(queryClient); toast.success("Deal created"); },
     onError: (error: Error) => toast.error("Failed to create deal", { description: error.message }),
   });
 }
@@ -132,7 +135,7 @@ export function useUpdateDeal() {
       if (error) throw error;
       return deal;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [DEALS_KEY] }); toast.success("Deal updated"); },
+    onSuccess: () => { invalidateKeys.deals(queryClient); toast.success("Deal updated"); },
     onError: (error: Error) => toast.error("Failed to update deal", { description: error.message }),
   });
 }
@@ -144,7 +147,7 @@ export function useDeleteDeal() {
       const { error } = await supabase.from("deals").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [DEALS_KEY] }); toast.success("Deal deleted"); },
+    onSuccess: () => { invalidateKeys.deals(queryClient); toast.success("Deal deleted"); },
     onError: (error: Error) => toast.error("Failed to delete deal", { description: error.message }),
   });
 }
@@ -171,8 +174,8 @@ export function useUpdateDealStage() {
       }
     },
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [DEALS_KEY] });
-      queryClient.invalidateQueries({ queryKey: [DEALS_KEY, vars.id, "activities"] });
+      invalidateKeys.deals(queryClient);
+      queryClient.invalidateQueries({ queryKey: queryKeys.deals.activities(vars.id) });
       toast.success("Stage updated");
     },
     onError: (error: Error) => toast.error("Failed to update stage", { description: error.message }),
@@ -181,11 +184,11 @@ export function useUpdateDealStage() {
 
 export function useDealActivities(dealId: string) {
   return useQuery({
-    queryKey: [DEALS_KEY, dealId, "activities"],
+    queryKey: queryKeys.deals.activities(dealId),
     queryFn: async (): Promise<DealActivity[]> => {
       const { data, error } = await supabase
         .from("deal_activities")
-        .select("*")
+        .select(ACTIVITY_SELECT)
         .eq("deal_id", dealId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -197,11 +200,11 @@ export function useDealActivities(dealId: string) {
 
 export function useDealComments(dealId: string) {
   return useQuery({
-    queryKey: [DEALS_KEY, dealId, "comments"],
+    queryKey: queryKeys.deals.comments(dealId),
     queryFn: async (): Promise<DealComment[]> => {
       const { data, error } = await supabase
         .from("deal_comments")
-        .select("*")
+        .select(COMMENT_SELECT)
         .eq("deal_id", dealId)
         .order("created_at");
       if (error) throw error;
@@ -219,7 +222,7 @@ export function useAddDealComment() {
       const { error } = await supabase.from("deal_comments").insert({ deal_id: dealId, user_id: user?.id!, content });
       if (error) throw error;
     },
-    onSuccess: (_, vars) => { queryClient.invalidateQueries({ queryKey: [DEALS_KEY, vars.dealId, "comments"] }); },
+    onSuccess: (_, vars) => { queryClient.invalidateQueries({ queryKey: queryKeys.deals.comments(vars.dealId) }); },
     onError: (error: Error) => toast.error("Failed to add comment", { description: error.message }),
   });
 }

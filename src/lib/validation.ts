@@ -87,10 +87,34 @@ export const taskSchema = z.object({
   meeting_id: z.string().optional().or(z.literal("")),
 });
 
+export const dealSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
+  description: z.string().optional().or(z.literal("")),
+  stage: z.enum(["lead", "discovery", "estimation", "proposal", "won", "lost"]).optional(),
+  value: z.number().min(0, "Value must be positive").optional().nullable(),
+  client_id: z.string().uuid().optional().or(z.literal("")),
+  contact_id: z.string().uuid().optional().or(z.literal("")),
+  owner_id: z.string().uuid().optional().or(z.literal("")),
+  expected_close_date: z.string().optional().or(z.literal("")),
+  source: z.string().optional().or(z.literal("")),
+});
+
+export const contactSchema = z.object({
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().optional().or(z.literal("")),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  phone: phoneSchema.optional().or(z.literal("")),
+  company: z.string().optional().or(z.literal("")),
+  title: z.string().optional().or(z.literal("")),
+  client_id: z.string().uuid().optional().or(z.literal("")),
+});
+
 export type ClientFormData = z.infer<typeof clientSchema>;
 export type MeetingFormData = z.infer<typeof meetingSchema>;
 export type KnowledgeEntryFormData = z.infer<typeof knowledgeEntrySchema>;
 export type TaskFormData = z.infer<typeof taskSchema>;
+export type DealValidatedFormData = z.infer<typeof dealSchema>;
+export type ContactValidatedFormData = z.infer<typeof contactSchema>;
 
 // Teams meeting creation schema with production-safe validation
 export const createTeamsMeetingSchema = z.object({

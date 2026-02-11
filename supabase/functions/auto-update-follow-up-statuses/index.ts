@@ -95,13 +95,15 @@ serve(async (req) => {
       results.errors.push(`Rule 2 error: ${error instanceof Error ? error.message : String(error)}`)
     }
 
-    // Rule 3: past due date + not completed -> follow_up_needed
+    // Rule 3: past due follow-up date + not completed -> follow_up_needed
     try {
       const { data: rule3Contacts, error: rule3Error } = await supabase
         .from('contacts')
         .select('id')
         .eq('is_lead_follow_up', true)
         .neq('followup_status', 'completed')
+        .neq('followup_status', 'follow_up_needed')
+        .not('next_followup_date', 'is', null)
         .lt('next_followup_date', now.toISOString())
 
       if (rule3Error) throw rule3Error
