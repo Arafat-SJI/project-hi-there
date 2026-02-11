@@ -11,6 +11,7 @@
 --     -f supabase/seed/01-actions.sql \
 --     -f supabase/seed/02-eos.sql \
 --     -f supabase/seed/03-meetings.sql \
+--     -f supabase/seed/03b-meetings-extended.sql \
 --     -f supabase/seed/04-knowledge.sql \
 --     -f supabase/seed/05-projects.sql \
 --     -f supabase/seed/05b-project-client-access.sql \
@@ -25,6 +26,8 @@
 --   3. The existing test-data migration (20251231183500) has run
 --      (provides 5 clients, 5 knowledge categories, 3 AI agents).
 --   4. 05b and 05c run after 05-projects.sql (05b needs seeded projects).
+--   5. 03b-meetings-extended.sql runs AFTER 03-meetings.sql and 06-business-dev.sql
+--      (needs contacts, deals, and base meetings to exist).
 --
 -- Notes:
 --   - All INSERTs use ON CONFLICT DO NOTHING for idempotency.

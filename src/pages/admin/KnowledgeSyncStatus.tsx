@@ -57,11 +57,12 @@ interface KnowledgeSource {
   id: string;
   name: string;
   source_type: string;
-  sync_enabled: boolean;
-  sync_frequency: string;
-  sync_status: string;
+  is_active: boolean;
   last_synced_at: string | null;
-  file_count: number;
+  config: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  [key: string]: any;
 }
 
 export default function KnowledgeSyncStatus() {
@@ -78,7 +79,7 @@ export default function KnowledgeSyncStatus() {
         .select("*")
         .order("last_synced_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return data as KnowledgeSource[];
+      return data as unknown as KnowledgeSource[];
     },
     refetchInterval: autoRefresh ? 5000 : false,
   });

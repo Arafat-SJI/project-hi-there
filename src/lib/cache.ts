@@ -23,6 +23,43 @@ export const queryKeys = {
     list: (filters?: Record<string, any>) => ["meetings", "list", filters] as const,
     detail: (id: string) => ["meetings", "detail", id] as const,
     zoom: (meetingId: string) => ["meetings", "zoom", meetingId] as const,
+    // Participants & External Participants
+    participants: (meetingId: string) => ["meetings", "participants", meetingId] as const,
+    externalParticipants: (meetingId: string) => ["meetings", "externalParticipants", meetingId] as const,
+    // Agenda & Takeaways
+    agenda: (meetingId: string) => ["meetings", "agenda", meetingId] as const,
+    takeaways: (meetingId: string) => ["meetings", "takeaways", meetingId] as const,
+    // Action Items
+    actionItems: (meetingId: string) => ["meetings", "actionItems", meetingId] as const,
+    // Series
+    series: (seriesId: string) => ["meetings", "series", seriesId] as const,
+    seriesList: ["meetings", "seriesList"] as const,
+    // Transcripts & Files
+    transcripts: (filters?: Record<string, any>) => ["meetings", "transcripts", filters] as const,
+    files: (meetingId: string) => ["meetings", "files", meetingId] as const,
+    fileSummary: (fileId: string) => ["meetings", "fileSummary", fileId] as const,
+    transcriptSummary: (meetingId: string) => ["meetings", "transcriptSummary", meetingId] as const,
+    // Categorizations & AI
+    categorizations: (meetingId: string) => ["meetings", "categorizations", meetingId] as const,
+    categorizationStatus: ["meetings", "categorizationStatus"] as const,
+    // Assignments & Suggestions
+    assignments: (meetingId: string) => ["meetings", "assignments", meetingId] as const,
+    assignmentSuggestions: (meetingId: string) => ["meetings", "assignmentSuggestions", meetingId] as const,
+    pendingAssignments: (filters?: Record<string, any>) => ["meetings", "pendingAssignments", filters] as const,
+    pendingAssignmentCount: ["meetings", "pendingAssignmentCount"] as const,
+    // Search & Calendar
+    search: (query: string, filters?: Record<string, any>) => ["meetings", "search", query, filters] as const,
+    calendar: (dateRange: { start: string; end: string }) => ["meetings", "calendar", dateRange] as const,
+    // Efficiency
+    efficiency: (meetingId: string) => ["meetings", "efficiency", meetingId] as const,
+    // Entity-based views
+    clientMeetings: (clientId: string) => ["meetings", "client", clientId] as const,
+    projectMeetings: (projectId: string) => ["meetings", "project", projectId] as const,
+    dealMeetings: (dealId: string) => ["meetings", "deal", dealId] as const,
+    contactMeetings: (contactId: string) => ["meetings", "contact", contactId] as const,
+    entityMeetings: (entityType: string, entityId: string) => ["meetings", "entity", entityType, entityId] as const,
+    // Knowledge base integration
+    knowledgeMeetings: (filters?: Record<string, any>) => ["meetings", "knowledge", filters] as const,
   },
 
   // Knowledge Base
@@ -115,6 +152,40 @@ export const invalidateKeys = {
   },
   meetings: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.meetings.all });
+  },
+  meetingDetail: (queryClient: any, meetingId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.detail(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.participants(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.externalParticipants(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.agenda(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.takeaways(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.actionItems(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.assignments(meetingId) });
+  },
+  meetingParticipants: (queryClient: any, meetingId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.participants(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.externalParticipants(meetingId) });
+  },
+  meetingAgenda: (queryClient: any, meetingId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.agenda(meetingId) });
+  },
+  meetingTakeaways: (queryClient: any, meetingId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.takeaways(meetingId) });
+  },
+  meetingActionItems: (queryClient: any, meetingId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.actionItems(meetingId) });
+  },
+  meetingAssignments: (queryClient: any, meetingId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.assignments(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.assignmentSuggestions(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.pendingAssignmentCount });
+  },
+  meetingCategorizations: (queryClient: any, meetingId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.categorizations(meetingId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.categorizationStatus });
+  },
+  meetingSeries: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.meetings.seriesList });
   },
   knowledge: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.all });

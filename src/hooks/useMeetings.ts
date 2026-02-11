@@ -38,7 +38,7 @@ export function useMeetings(filters?: Record<string, any>) {
     queryFn: async () => {
       let query = supabase
         .from("meetings")
-        .select("*, clients(name)")
+        .select("id, title, description, scheduled_at, duration_minutes, status, client_id, organizer_id, provider, location, meeting_type, slug, join_url, host_url, is_recurring, created_at, updated_at, clients(name)")
         .order("scheduled_at", { ascending: false });
 
       if (filters?.status) {
@@ -53,9 +53,16 @@ export function useMeetings(filters?: Record<string, any>) {
         query = query.eq("meeting_type", filters.meetingType);
       }
 
+      // Pagination: default page=0, limit=50
+      const page = filters?.page ?? 0;
+      const limit = filters?.limit ?? 50;
+      const from = page * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+
       const { data, error } = await query;
       if (error) throw error;
-      return data as (Meeting & { clients?: { name: string } | null })[];
+      return data as unknown as (Meeting & { clients?: { name: string } | null })[];
     },
   });
 }

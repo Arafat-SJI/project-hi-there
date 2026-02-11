@@ -98,3 +98,11 @@ export function sanitizeInput(input: string): string {
 export function sanitizeFilename(filename: string): string {
   return filename.replace(/[^a-z0-9._-]/gi, "_").replace(/\.{2,}/g, ".");
 }
+
+/**
+ * Escapes special characters for PostgreSQL ilike/like queries.
+ * Prevents characters like %, _, and \ from being interpreted as wildcards.
+ */
+export function sanitizeSearchInput(input: string): string {
+  return input.replace(/[\\%_]/g, (char) => `\\${char}`);
+}

@@ -49,22 +49,13 @@ interface KnowledgeFile {
   file_name: string;
   file_type: string | null;
   file_size: number | null;
-  mime_type: string | null;
   storage_path: string | null;
-  external_id: string | null;
-  external_url: string | null;
   processing_status: string;
   chunk_count: number | null;
   processing_error: string | null;
   created_at: string;
   updated_at: string;
-  knowledge_categories?: {
-    name: string;
-    slug: string;
-  };
-  knowledge_sources?: {
-    name: string;
-  };
+  [key: string]: any;
 }
 
 export default function KnowledgeFiles() {
@@ -105,7 +96,7 @@ export default function KnowledgeFiles() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as KnowledgeFile[];
+      return data as unknown as KnowledgeFile[];
     },
   });
 
@@ -213,6 +204,82 @@ export default function KnowledgeFiles() {
     },
   });
 
+  // Bulk reprocess mutation
+  const bulkReprocess = useMutation({
+    mutationFn: async (fileIds: string[]) => {
+      const results = await Promise.allSettled(
+        fileIds.map((fileId) =>
+          supabase.functions.invoke("user-knowledge-process", {
+            body: { file_id: fileId },
+          })
+        )
+      );
+
+      const succeeded = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
+
+      return { succeeded, failed, total: fileIds.length };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "knowledge-files"] });
+      setSelectedFiles(new Set());
+      toast({
+        title: "Bulk Reprocess Complete",
+        description: `${data.succeeded} files queued, ${data.failed} failed`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Export to CSV function
+  const exportToCSV = () => {
+    const selectedData = selectedFiles.size > 0
+      ? files.filter((f) => selectedFiles.has(f.id))
+      : files;
+
+    const csvData = selectedData.map((file) => ({
+      ID: file.id,
+      Title: file.title,
+      FileName: file.file_name,
+      Category: file.knowledge_categories?.name || "-",
+      Source: file.knowledge_sources?.name || "-",
+      Status: file.processing_status,
+      Chunks: file.chunk_count || 0,
+      Size: formatBytes(file.file_size || 0),
+      Created: formatDateTime(file.created_at),
+      Error: file.processing_error || "-",
+    }));
+
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(","),
+      ...csvData.map((row) =>
+        headers.map((header) => `"${row[header as keyof typeof row]}"`).join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `knowledge-files-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${csvData.length} files to CSV`,
+    });
+  };
+
   const toggleFileSelection = (fileId: string) => {
     const newSelection = new Set(selectedFiles);
     if (newSelection.has(fileId)) {
@@ -274,16 +341,32 @@ export default function KnowledgeFiles() {
             Manage and monitor all knowledge files across sources
           </p>
         </div>
-        {selectedFiles.size > 0 && (
-          <Button
-            variant="destructive"
-            onClick={() => bulkDelete.mutate(Array.from(selectedFiles))}
-            disabled={bulkDelete.isPending}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete {selectedFiles.size} Selected
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToCSV}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV {selectedFiles.size > 0 && `(${selectedFiles.size})`}
           </Button>
-        )}
+          {selectedFiles.size > 0 && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => bulkReprocess.mutate(Array.from(selectedFiles))}
+                disabled={bulkReprocess.isPending}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reprocess {selectedFiles.size}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => bulkDelete.mutate(Array.from(selectedFiles))}
+                disabled={bulkDelete.isPending}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete {selectedFiles.size}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Stats */}

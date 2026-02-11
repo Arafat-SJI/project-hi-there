@@ -239,3 +239,84 @@ verify_jwt = false
 
 [functions.deal-coach]
 verify_jwt = false
+# Meeting module V2 - management functions
+[functions.create-meeting-review-tasks]
+verify_jwt = false
+
+[functions.generate-recurring-meetings]
+verify_jwt = false
+
+[functions.send-meeting-notification]
+verify_jwt = false
+
+# Meeting module V2 - transcript processing
+[functions.generate-meeting-summary-v2]
+verify_jwt = false
+
+[functions.compile-meeting-summary]
+verify_jwt = false
+
+[functions.parse-meeting-action-items]
+verify_jwt = false
+
+# Meeting module V2 - intelligence
+[functions.discover-meeting-relationships]
+verify_jwt = false
+
+[functions.ai-match-meeting-client]
+verify_jwt = false
+
+[functions.smart-categorize-meetings]
+verify_jwt = false
+
+[functions.classify-zoom-meetings]
+verify_jwt = false
+
+# Meeting module V2 - analysis
+[functions.meeting-efficiency-analyzer]
+verify_jwt = false
+
+[functions.meeting-issue-reporter]
+verify_jwt = false
+
+[functions.meeting-summary-and-extract]
+verify_jwt = false
+
+[functions.match-meeting-to-project]
+verify_jwt = false
+
+[functions.apply-meeting-rules]
+verify_jwt = false
+
+# Meeting module V2 - sync
+[functions.sync-meeting-participants]
+verify_jwt = false
+
+[functions.zoom-cron-sync]
+verify_jwt = false
+
+[functions.check-zoom-sync-health]
+verify_jwt = false
+
+[functions.sync-action-item-to-ac]
+verify_jwt = false
+
+[functions.sync-workboard-action-items]
+verify_jwt = false
+
+# Meeting module V2 - automation
+[functions.process-pending-meetings]
+verify_jwt = false
+
+[functions.send-meeting-efficiency-report]
+verify_jwt = false
+
+[functions.api-v1-zoom-files]
+verify_jwt = false
+
+[functions.manage-zoom-account]
+verify_jwt = false
+
+[functions.get-meeting-participants]
+verify_jwt = false
+
