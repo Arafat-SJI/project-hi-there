@@ -1,80 +1,55 @@
 
-# Fix: Google Drive OAuth Callback - Missing Token Endpoint
 
-## Problem
+# Run Pending Migrations and Fix Build Errors
 
-When connecting Google Drive, after granting permissions, users are redirected to `/settings?error=Invalid%20URL%3A%20%27%27`. This happens because the `user-oauth-callback` edge function is missing the `google-drive` provider configuration.
+## Overview
+Two migrations from today (Feb 11) need to be applied, and several TypeScript/edge function errors need fixing. Running the migrations will auto-regenerate `types.ts` and resolve the majority of build errors.
 
-## Root Cause
+## Step 1: Run Migration -- Deals Module Fixes
+**File:** `20260211_deals_module_fixes.sql`
 
-The `user-oauth-callback/index.ts` has two functions that need `google-drive` support but are missing it:
+What it does:
+- Adds FK constraints: `deals.client_id -> clients`, `deals.owner_id -> profiles`, `deals.created_by -> profiles`
+- Adds FK constraints on `deal_activities` and `deal_comments` to `profiles`
+- Adds missing columns to `contacts`: `followup_status`, `is_lead_follow_up`, `last_contact_date`, `next_followup_date` (idempotent, most already exist)
+- Tightens RLS policies on deals/activities/comments to owner/creator-based access
 
-| Function | Issue |
-|----------|-------|
-| `getTokenEndpoint()` | Missing `google-drive` entry - returns empty string |
-| `getUserInfo()` | Missing `google-drive` case - cannot fetch user profile |
+**Must run first** -- no dependencies on the second migration.
 
-When `getTokenEndpoint("google-drive")` returns `""`, the subsequent `fetch("")` call throws "Invalid URL: ''" error.
+## Step 2: Run Migration -- Meetings Replication Alignment
+**File:** `20260211_meetings_replication_alignment.sql`
 
-## Solution
+What it does:
+- Creates 5 new tables: `meeting_external_participants`, `meeting_action_items`, `meeting_assignment_suggestions`, `client_meetings`, `contact_meeting_links`
+- Adds columns to `meetings`: `deal_id`, `pod_id`, `recording_url`, `transcript_content`, `parent_meeting_id`, `ai_summary`, etc.
+- Adds columns to `meeting_participants`, `meeting_agenda_items`, `meeting_takeaways`, `meeting_files`, `meeting_categorizations`
+- Creates indexes and RLS policies for all new tables
 
-Add `google-drive` support to both functions in `user-oauth-callback/index.ts`:
+**Must run second** -- references `deals`, `pods`, `tasks`, `clients`, `contacts` tables.
 
-### Change 1: Add Token Endpoint
+## Step 3: Fix Edge Function Type Errors (6 errors)
+After migrations run and `types.ts` regenerates, fix remaining edge function issues:
 
-```typescript
-const getTokenEndpoint = (provider: string): string => {
-  const endpoints: Record<string, string> = {
-    google: "https://oauth2.googleapis.com/token",
-    "google-meet": "https://oauth2.googleapis.com/token",
-    "google-drive": "https://oauth2.googleapis.com/token",  // ADD THIS
-    zoom: "https://zoom.us/oauth/token",
-    microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-  };
-  return endpoints[provider] || "";
-};
-```
+- **`compile-meeting-summary/index.ts`**: Fix `profiles` type -- Supabase returns arrays for joined relations; access as `profiles[0]` instead of treating as single object
+- **`get-meeting-participants/index.ts`**: Add explicit type annotation to `enrichedInternal` array
+- **`match-meeting-to-project/index.ts`**: Fix `clients` join type (array vs object)
+- **`send-meeting-notification/index.ts`**: Fix `profiles` cast (array vs object)
 
-### Change 2: Add User Info Handler
+## Step 4: Fix Frontend Type Errors
+After types regenerate, most meeting hooks errors will resolve automatically. Remaining fixes:
 
-```typescript
-switch (provider) {
-  case "google":
-  case "google-meet":
-  case "google-drive":  // ADD THIS CASE
-    url = "https://www.googleapis.com/oauth2/v2/userinfo";
-    break;
-  // ... other cases
-}
+- **`src/hooks/useMeetings.ts`**: Cast query result through `unknown` to handle new optional columns
+- **`src/pages/ClientKnowledge.tsx`**: Fix `deals.status` column reference
+- **`src/pages/admin/CommonKnowledgeManagement.tsx`**: Fix join query syntax
 
-// Also in the response normalization switch:
-switch (provider) {
-  case "google":
-  case "google-meet":
-  case "google-drive":  // ADD THIS CASE
-    return {
-      email: data.email,
-      name: data.name,
-      picture: data.picture,
-    };
-  // ... other cases
-}
-```
+## Expected Outcome
+- All pending migrations applied
+- `types.ts` regenerated with new tables and columns
+- Build errors reduced from 30+ to 0
+- New meeting tables available for the meetings module hooks
 
-## File Changes
+## Technical Notes
+- Both migrations use `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` so they are safe to re-run
+- The deals migration tightens RLS -- existing "manage" policies are dropped and replaced with owner-based policies
+- The meetings migration adds `CHECK` constraints on new columns (e.g., priority, status enums)
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/user-oauth-callback/index.ts` | Add `google-drive` to token endpoint and user info handlers |
-
-## Post-Change Action
-
-After code changes, the `user-oauth-callback` edge function needs to be redeployed.
-
-## Expected Result
-
-After fix:
-- Google Drive OAuth flow completes successfully
-- User is redirected to `/admin/integrations/google-drive?connected=google-drive`
-- User tokens are stored in `user_oauth_tokens` table
-- Integration shows as connected
