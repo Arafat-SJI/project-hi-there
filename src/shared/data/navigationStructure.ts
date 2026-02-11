@@ -137,6 +137,20 @@ export const navigationGroups: NavGroup[] = [
         module: "meetings",
         featureFlag: "enableMeetings",
       },
+      {
+        title: "Pending Assignments",
+        href: "/meetings/pending-assignments",
+        icon: "ClipboardCheck",
+        module: "meetings",
+        featureFlag: "enableMeetings",
+      },
+      {
+        title: "AI Match",
+        href: "/meetings/transcripts/ai-match",
+        icon: "Sparkles",
+        module: "meetings",
+        featureFlag: "enableMeetings",
+      },
     ],
   },
   {
