@@ -114,6 +114,13 @@ serve(async (req) => {
     // Get the default model
     const model = await getModel(supabase, undefined, "chat")
 
+    if (!model) {
+      return new Response(
+        JSON.stringify({ error: "No AI model configured for chat" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 }
+      )
+    }
+
     const result = await chatCompletion(supabase, model, {
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
@@ -124,7 +131,7 @@ serve(async (req) => {
     })
 
     return new Response(
-      JSON.stringify({ response: result.content, model: model.model_id }),
+      JSON.stringify({ response: result.content, model: model?.model_id || 'unknown' }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     )
   } catch (error: unknown) {

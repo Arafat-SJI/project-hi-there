@@ -77,8 +77,9 @@ serve(async (req) => {
     const followUps = (takeaways || []).filter((t: { takeaway_type: string }) => t.takeaway_type === 'follow_up')
 
     // Build attendees list
-    const attendeeNames = (participants || []).map((p: { profiles: { full_name: string; email: string } | null }) => {
-      const profile = p.profiles as { full_name: string; email: string } | null
+    const attendeeNames = (participants || []).map((p: any) => {
+      const profiles = p.profiles
+      const profile = Array.isArray(profiles) ? profiles[0] : profiles
       return profile?.full_name || profile?.email || 'Unknown'
     })
 

@@ -52,7 +52,7 @@ serve(async (req) => {
     }
 
     // Enrich internal participants with profile data (avatar, full_name, email)
-    const enrichedInternal = []
+    const enrichedInternal: any[] = []
     if (internalParticipants && internalParticipants.length > 0) {
       // Gather user_ids that are not null to fetch profiles
       const userIds = internalParticipants
