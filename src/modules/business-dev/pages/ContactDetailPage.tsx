@@ -32,6 +32,7 @@ import {
   Save,
   Trash2,
   User,
+  Video,
   X,
 } from "lucide-react";
 import {
@@ -41,6 +42,7 @@ import {
   useCreateLeadFollowUp,
   useUpdateLeadFollowUp,
 } from "../hooks/useContacts";
+import { useContactMeetings } from "@/modules/meetings/hooks/useContactMeetings";
 import type { ContactFormData } from "../types";
 
 const FOLLOWUP_COLORS: Record<string, string> = {
@@ -71,6 +73,7 @@ export default function ContactDetailPage() {
   const deleteContact = useDeleteContact();
   const createFollowUp = useCreateLeadFollowUp();
   const updateFollowUp = useUpdateLeadFollowUp();
+  const { data: contactMeetings = [] } = useContactMeetings(id!);
 
   const [form, setForm] = useState<Partial<ContactFormData>>({});
 
@@ -376,7 +379,53 @@ export default function ContactDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Follow-up sidebar */}
+        {/* Meetings + Follow-up sidebar */}
+        <div className="space-y-6">
+          {/* Contact Meetings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Video className="h-4 w-4" />
+                Meetings ({contactMeetings.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {contactMeetings.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No meetings linked to this contact.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {contactMeetings.slice(0, 5).map((cm: any) => {
+                    const meeting = cm.meeting;
+                    if (!meeting) return null;
+                    return (
+                      <button
+                        key={cm.id}
+                        className="w-full text-left rounded-md border p-3 hover:bg-accent/50 transition-colors"
+                        onClick={() => navigate(`/meetings/${meeting.slug || meeting.id}`)}
+                      >
+                        <p className="font-medium text-sm">{meeting.title}</p>
+                        {meeting.scheduled_at && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <Calendar className="h-3 w-3 inline mr-1" />
+                            {new Date(meeting.scheduled_at).toLocaleDateString()}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {contactMeetings.length > 5 && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      +{contactMeetings.length - 5} more
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Lead Follow-up */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Lead Follow-up</CardTitle>
@@ -479,6 +528,7 @@ export default function ContactDetailPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

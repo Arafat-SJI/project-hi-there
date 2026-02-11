@@ -27,6 +27,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import { useMeeting } from "@/hooks/useMeetings";
+import { formatMeetingDateTime } from "../utils";
 import { AgendaTab } from "../components/agenda/AgendaTab";
 import { TakeawaysTab } from "../components/takeaways/TakeawaysTab";
 import { ParticipantsTab } from "../components/participants/ParticipantsTab";
@@ -172,7 +173,7 @@ export default function MeetingDetailV2Page() {
                   <InfoRow
                     icon={<Calendar className="h-4 w-4" />}
                     label="Date"
-                    value={new Date(meeting.scheduled_at).toLocaleString()}
+                    value={formatMeetingDateTime(meeting.scheduled_at, (meeting as any).timezone)}
                   />
                 )}
                 {meeting.duration_minutes && (
