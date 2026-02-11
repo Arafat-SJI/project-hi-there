@@ -2,15 +2,18 @@
  * Deals Pipeline Page - Kanban-style pipeline view of deals
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, DollarSign, TrendingUp, BarChart3, Loader2, Handshake } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useDeals, useDealPipelineStats, useUpdateDealStage } from "../hooks/useDeals";
+import { useClients } from "@/hooks/useClients";
 import type { DealStage, DealFilters } from "../types";
 
 const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
@@ -29,7 +32,21 @@ export default function DealsPage() {
   const [filters, setFilters] = useState<DealFilters>({});
   const { data: deals = [], isLoading } = useDeals(filters);
   const { data: stats } = useDealPipelineStats();
+  const { data: clients = [] } = useClients();
   const updateStage = useUpdateDealStage();
+
+  // Get unique owner IDs from deals and fetch their profiles
+  const ownerIds = useMemo(() => [...new Set(deals.map((d) => d.owner_id).filter(Boolean))] as string[], [deals]);
+  const { data: ownerProfiles = [] } = useQuery({
+    queryKey: ["profiles", ownerIds],
+    queryFn: async () => {
+      if (ownerIds.length === 0) return [];
+      const { data, error } = await supabase.from("profiles").select("id, full_name, email").in("id", ownerIds);
+      if (error) throw error;
+      return (data || []) as { id: string; full_name: string | null; email: string | null }[];
+    },
+    enabled: ownerIds.length > 0,
+  });
 
   const formatCurrency = (val: number) =>
     val >= 1_000_000 ? `$${(val / 1_000_000).toFixed(1)}M` : val >= 1_000 ? `$${(val / 1_000).toFixed(0)}K` : `$${val}`;
@@ -88,8 +105,8 @@ export default function DealsPage() {
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9"
@@ -106,6 +123,28 @@ export default function DealsPage() {
             <SelectItem value="all">All Stages</SelectItem>
             {Object.entries(STAGE_CONFIG).map(([key, { label }]) => (
               <SelectItem key={key} value={key}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filters.owner_id || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, owner_id: v === "all" ? undefined : v }))}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Owner" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Owners</SelectItem>
+            {ownerProfiles.map((p) => (
+              <SelectItem key={p.id} value={p.id}>{p.full_name || p.email || "Unknown"}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filters.client_id || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, client_id: v === "all" ? undefined : v }))}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Client" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Clients</SelectItem>
+            {clients.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -126,7 +165,7 @@ export default function DealsPage() {
               <CardContent className="flex items-center gap-4 py-3 px-4">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{deal.title}</p>
-                  <p className="text-xs text-muted-foreground">{deal.client?.name || "No client"}</p>
+                  <p className="text-xs text-muted-foreground">{deal.client?.name || "No client"}{deal.owner ? ` — ${deal.owner.full_name}` : ""}</p>
                 </div>
                 {deal.value && <p className="text-sm font-semibold">{formatCurrency(deal.value)}</p>}
                 <Badge variant="outline" style={{ borderColor: STAGE_CONFIG[deal.stage]?.color, color: STAGE_CONFIG[deal.stage]?.color }}>

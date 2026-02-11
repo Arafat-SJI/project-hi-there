@@ -84,16 +84,20 @@ export interface LeadFollowUp {
   updated_at: string;
 }
 
+export type DealActivityType = "note" | "call" | "email" | "meeting" | "stage_change" | "task";
+
 export interface DealFormData {
   title: string;
   description?: string;
   stage?: DealStage;
   value?: number;
+  probability?: number;
   client_id?: string;
   contact_id?: string;
   owner_id?: string;
   expected_close_date?: string;
   source?: string;
+  tags?: string[];
 }
 
 export interface DealFilters {

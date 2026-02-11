@@ -236,3 +236,6 @@ verify_jwt = false
 [functions.sync-projects-jira]
 verify_jwt = false
 
+
+[functions.deal-coach]
+verify_jwt = false

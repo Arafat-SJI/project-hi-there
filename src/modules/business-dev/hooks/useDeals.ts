@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { queryKeys, invalidateKeys } from "@/lib/cache";
-import type { Deal, DealFormData, DealFilters, DealActivity, DealComment, DealPipelineStats, DealStage } from "../types";
+import type { Deal, DealFormData, DealFilters, DealActivity, DealComment, DealPipelineStats, DealStage, DealActivityType } from "../types";
 
 const DEAL_SELECT = "*, owner:profiles!deals_owner_id_profiles_fkey(full_name, email), client:clients(name), contact:contacts(first_name, last_name, email)";
 const ACTIVITY_SELECT = "*, user:profiles!deal_activities_user_id_profiles_fkey(full_name)";
@@ -96,11 +96,13 @@ export function useCreateDeal() {
         description: data.description || null,
         stage: data.stage || "lead",
         value: data.value || null,
+        probability: data.probability ?? 0,
         client_id: data.client_id || null,
         contact_id: data.contact_id || null,
         owner_id: data.owner_id || user?.id || null,
         expected_close_date: data.expected_close_date || null,
         source: data.source || null,
+        tags: data.tags || [],
         created_by: user?.id || null,
       }).select().single();
       if (error) throw error;
@@ -124,6 +126,8 @@ export function useUpdateDeal() {
         else updates.closed_at = null;
       }
       if (data.value !== undefined) updates.value = data.value || null;
+      if (data.probability !== undefined) updates.probability = data.probability ?? 0;
+      if (data.tags !== undefined) updates.tags = data.tags || [];
       if (data.client_id !== undefined) updates.client_id = data.client_id || null;
       if (data.contact_id !== undefined) updates.contact_id = data.contact_id || null;
       if (data.owner_id !== undefined) updates.owner_id = data.owner_id || null;
@@ -224,5 +228,50 @@ export function useAddDealComment() {
     },
     onSuccess: (_, vars) => { queryClient.invalidateQueries({ queryKey: queryKeys.deals.comments(vars.dealId) }); },
     onError: (error: Error) => toast.error("Failed to add comment", { description: error.message }),
+  });
+}
+
+export function useUpdateDealComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, dealId, content }: { id: string; dealId: string; content: string }) => {
+      const { error } = await supabase.from("deal_comments").update({ content, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => { queryClient.invalidateQueries({ queryKey: queryKeys.deals.comments(vars.dealId) }); toast.success("Comment updated"); },
+    onError: (error: Error) => toast.error("Failed to update comment", { description: error.message }),
+  });
+}
+
+export function useDeleteDealComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; dealId: string }) => {
+      const { error } = await supabase.from("deal_comments").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => { queryClient.invalidateQueries({ queryKey: queryKeys.deals.comments(vars.dealId) }); toast.success("Comment deleted"); },
+    onError: (error: Error) => toast.error("Failed to delete comment", { description: error.message }),
+  });
+}
+
+export function useAddDealActivity() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ dealId, activityType, content }: { dealId: string; activityType: DealActivityType; content: string }) => {
+      const { error } = await supabase.from("deal_activities").insert({
+        deal_id: dealId,
+        activity_type: activityType,
+        content,
+        user_id: user?.id || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.deals.activities(vars.dealId) });
+      toast.success("Activity logged");
+    },
+    onError: (error: Error) => toast.error("Failed to log activity", { description: error.message }),
   });
 }
