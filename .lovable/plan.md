@@ -1,55 +1,47 @@
 
 
-# Run Pending Migrations and Fix Build Errors
+# Migration Review (Last 72 Hours) and Build Error Fixes
 
-## Overview
-Two migrations from today (Feb 11) need to be applied, and several TypeScript/edge function errors need fixing. Running the migrations will auto-regenerate `types.ts` and resolve the majority of build errors.
+## Migration Status (Feb 8-11, 2026)
 
-## Step 1: Run Migration -- Deals Module Fixes
-**File:** `20260211_deals_module_fixes.sql`
+Here is the complete list of migration files from the last 72 hours and their current status:
 
-What it does:
-- Adds FK constraints: `deals.client_id -> clients`, `deals.owner_id -> profiles`, `deals.created_by -> profiles`
-- Adds FK constraints on `deal_activities` and `deal_comments` to `profiles`
-- Adds missing columns to `contacts`: `followup_status`, `is_lead_follow_up`, `last_contact_date`, `next_followup_date` (idempotent, most already exist)
-- Tightens RLS policies on deals/activities/comments to owner/creator-based access
+| # | File | Status | Notes |
+|---|------|--------|-------|
+| 1 | `20260209001542_da65eae2-...sql` | APPLIED | Combined Lead Follow-Up (15 migrations). Applied as version `20260209001540`. |
+| 2 | `20260211193714_5d88f294-...sql` | APPLIED | Deals Module Fixes (FK constraints, RLS). Applied as version `20260211193712`. |
+| 3 | `20260211193811_6df1e526-...sql` | APPLIED | Meetings Replication Alignment (5 new tables). Applied as version `20260211193810`. |
+| 4 | `20260211_deals_module_fixes.sql` | SKIP | Source/template file -- already applied via #2 above. |
+| 5 | `20260211_meetings_replication_alignment.sql` | SKIP | Source/template file -- already applied via #3 above. |
+| 6 | `20260211_seed_meetings_ai_agents.sql` | NOT APPLIED | Seeds 8 AI agents for meetings module. **Needs to run.** |
 
-**Must run first** -- no dependencies on the second migration.
+All 5 new meeting tables (`meeting_external_participants`, `meeting_action_items`, `meeting_assignment_suggestions`, `client_meetings`, `contact_meeting_links`) are confirmed to exist in the database.
 
-## Step 2: Run Migration -- Meetings Replication Alignment
-**File:** `20260211_meetings_replication_alignment.sql`
+## What Needs To Be Done
 
-What it does:
-- Creates 5 new tables: `meeting_external_participants`, `meeting_action_items`, `meeting_assignment_suggestions`, `client_meetings`, `contact_meeting_links`
-- Adds columns to `meetings`: `deal_id`, `pod_id`, `recording_url`, `transcript_content`, `parent_meeting_id`, `ai_summary`, etc.
-- Adds columns to `meeting_participants`, `meeting_agenda_items`, `meeting_takeaways`, `meeting_files`, `meeting_categorizations`
-- Creates indexes and RLS policies for all new tables
+### Step 1: Run Pending Migration
+Run `20260211_seed_meetings_ai_agents.sql` via the Supabase migration tool. This seeds 8 AI agent configurations for the meetings module (summarizer, action item extractor, categorizer, prep assistant, transcript analyzer, follow-up email generator, etc.).
 
-**Must run second** -- references `deals`, `pods`, `tasks`, `clients`, `contacts` tables.
+### Step 2: Fix 8 Edge Function Build Errors
+These are TypeScript type errors in 4 edge functions, caused by Supabase returning joined relations as arrays instead of single objects.
 
-## Step 3: Fix Edge Function Type Errors (6 errors)
-After migrations run and `types.ts` regenerates, fix remaining edge function issues:
+**File 1: `supabase/functions/compile-meeting-summary/index.ts` (line 80)**
+- Fix: Change the `.map()` callback to treat `profiles` as an array -- access `p.profiles?.[0]` instead of `p.profiles`.
 
-- **`compile-meeting-summary/index.ts`**: Fix `profiles` type -- Supabase returns arrays for joined relations; access as `profiles[0]` instead of treating as single object
-- **`get-meeting-participants/index.ts`**: Add explicit type annotation to `enrichedInternal` array
-- **`match-meeting-to-project/index.ts`**: Fix `clients` join type (array vs object)
-- **`send-meeting-notification/index.ts`**: Fix `profiles` cast (array vs object)
+**File 2: `supabase/functions/deal-coach/index.ts` (lines 117, 127)**
+- Fix: Add a null check for `model` before calling `chatCompletion` and accessing `model.model_id`.
 
-## Step 4: Fix Frontend Type Errors
-After types regenerate, most meeting hooks errors will resolve automatically. Remaining fixes:
+**File 3: `supabase/functions/get-meeting-participants/index.ts` (line 55)**
+- Fix: Add an explicit type annotation to `const enrichedInternal: any[] = []`.
 
-- **`src/hooks/useMeetings.ts`**: Cast query result through `unknown` to handle new optional columns
-- **`src/pages/ClientKnowledge.tsx`**: Fix `deals.status` column reference
-- **`src/pages/admin/CommonKnowledgeManagement.tsx`**: Fix join query syntax
+**File 4: `supabase/functions/match-meeting-to-project/index.ts` (line 110)**
+- Fix: Change the `.map()` callback to treat `clients` as an array -- access `p.clients?.[0]?.name` instead of `p.clients.name`.
 
-## Expected Outcome
-- All pending migrations applied
-- `types.ts` regenerated with new tables and columns
-- Build errors reduced from 30+ to 0
-- New meeting tables available for the meetings module hooks
+**File 5: `supabase/functions/send-meeting-notification/index.ts` (line 138)**
+- Fix: Cast through `unknown` first -- `participant.profiles as unknown as {...} | null`, then access `[0]`.
 
-## Technical Notes
-- Both migrations use `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` so they are safe to re-run
-- The deals migration tightens RLS -- existing "manage" policies are dropped and replaced with owner-based policies
-- The meetings migration adds `CHECK` constraints on new columns (e.g., priority, status enums)
+### Expected Outcome
+- 1 pending migration applied (meetings AI agents seeded)
+- All 8 build errors resolved
+- Edge functions deployable without type errors
 
