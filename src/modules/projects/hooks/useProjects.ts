@@ -11,6 +11,9 @@ import type { Project, ProjectFormData, ProjectFilters, ProjectStatus } from "..
 const PROJECTS_KEY = "projects";
 const STATUSES_KEY = "project-statuses";
 
+const DEFAULT_SORT = "updated_at";
+const DEFAULT_ASC = false;
+
 export function useProjects(filters?: ProjectFilters) {
   const { user } = useAuth();
   return useQuery({
@@ -19,23 +22,62 @@ export function useProjects(filters?: ProjectFilters) {
       let query = supabase
         .from("projects")
         .select("*")
-        .eq("is_archived", filters?.is_archived ?? false)
-        .order("updated_at", { ascending: false });
+        .eq("is_archived", filters?.is_archived ?? false);
 
       if (filters?.status_id) query = query.eq("status_id", filters.status_id);
       if (filters?.owner_id) query = query.eq("owner_id", filters.owner_id);
       if (filters?.client_id) query = query.eq("client_id", filters.client_id);
       if (filters?.search) query = query.ilike("name", `%${filters.search}%`);
+      if (filters?.date_from) query = query.gte("start_date", filters.date_from);
+      if (filters?.date_to) query = query.lte("end_date", filters.date_to);
 
-      const { data, error } = await query;
+      const sortBy = filters?.sort_by ?? DEFAULT_SORT;
+      const asc = filters?.sort_asc ?? DEFAULT_ASC;
+      const needBilling = filters?.show_over_budget_only || sortBy === "over_budget_gap";
+      const orderBy = sortBy === "over_budget_gap" ? DEFAULT_SORT : sortBy;
+      query = query.order(orderBy, { ascending: asc });
+
+      const { data: rawData, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as Project[];
+      let list = (rawData || []) as unknown as Project[];
+
+      if (list.length > 0 && needBilling) {
+        const { data: billingRows } = await supabase
+          .from("project_billing")
+          .select("project_id, invoiced_amount")
+          .in("project_id", list.map((p) => p.id));
+        const invoicedByProject = new Map(
+          (billingRows || []).map((r: { project_id: string; invoiced_amount: number | null }) => [
+            r.project_id,
+            r.invoiced_amount ?? 0,
+          ])
+        );
+        if (filters?.show_over_budget_only) {
+          list = list.filter((p) => {
+            if (p.budget == null || p.budget <= 0) return false;
+            return (invoicedByProject.get(p.id) ?? 0) > p.budget;
+          });
+        }
+        if (sortBy === "over_budget_gap") {
+          list = [...list].sort((a, b) => {
+            const budgetA = a.budget ?? 0;
+            const budgetB = b.budget ?? 0;
+            const invA = invoicedByProject.get(a.id) ?? 0;
+            const invB = invoicedByProject.get(b.id) ?? 0;
+            const gapA = budgetA > 0 ? invA - budgetA : 0;
+            const gapB = budgetB > 0 ? invB - budgetB : 0;
+            return gapB - gapA;
+          });
+        }
+      }
+
+      return list;
     },
     enabled: !!user,
   });
 }
 
-export function useProject(slug: string) {
+export function useProject(slug: string | undefined) {
   return useQuery({
     queryKey: [PROJECTS_KEY, slug],
     queryFn: async (): Promise<Project> => {
@@ -55,6 +97,43 @@ export function useProject(slug: string) {
       } as unknown as Project;
     },
     enabled: !!slug,
+  });
+}
+
+/** Alias for useProject for replication guide compatibility */
+export const useProjectBySlug = useProject;
+
+export function useManagers() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["profiles", "managers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .order("full_name");
+      if (error) throw error;
+      return (data || []) as { id: string; full_name: string | null; email: string | null }[];
+    },
+    enabled: !!user,
+  });
+}
+
+/** Placeholder for future project teams - returns empty until backend supports */
+export function useTeams() {
+  return useQuery({
+    queryKey: ["project-teams"],
+    queryFn: async (): Promise<{ id: string; name: string }[]> => [],
+    enabled: false,
+  });
+}
+
+/** Placeholder for future project categories - returns empty until backend supports */
+export function useProjectCategories() {
+  return useQuery({
+    queryKey: ["project-categories"],
+    queryFn: async (): Promise<{ id: string; name: string }[]> => [],
+    enabled: false,
   });
 }
 

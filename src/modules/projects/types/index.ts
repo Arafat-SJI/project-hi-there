@@ -143,6 +143,27 @@ export interface ProjectFilters {
   client_id?: string;
   search?: string;
   is_archived?: boolean;
+  date_from?: string;
+  date_to?: string;
+  show_over_budget_only?: boolean;
+  sort_by?: "name" | "start_date" | "end_date" | "updated_at" | "over_budget_gap";
+  sort_asc?: boolean;
+  page?: number;
+  page_size?: number;
 }
 
-export type ProjectTab = "overview" | "tasks" | "milestones" | "meetings" | "files" | "billing" | "issues" | "members" | "client_portal" | "integrations";
+export type ProjectTab =
+  | "overview"
+  | "tasks"
+  | "milestones"
+  | "meetings"
+  | "files"
+  | "billing"
+  | "finance"
+  | "issues"
+  | "members"
+  | "client_portal"
+  | "integrations"
+  | "checklist"
+  | "risks"
+  | "concerns";

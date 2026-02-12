@@ -246,6 +246,40 @@ function downloadFile(content: string, filename: string, mimeType: string): void
 }
 
 /**
+ * Generate CSV content for projects list and trigger download
+ */
+export function generateProjectsCSV(
+  projects: { name: string; slug: string; start_date: string | null; end_date: string | null; budget: number | null; client_name?: string; status_name?: string; owner_name?: string }[],
+  filename = "projects"
+): void {
+  const headers = ["Name", "Slug", "Status", "Client", "Owner", "Start", "End", "Budget"];
+  const rows = projects.map((p) => [
+    p.name,
+    p.slug,
+    p.status_name ?? "",
+    p.client_name ?? "",
+    p.owner_name ?? "",
+    p.start_date ? new Date(p.start_date).toISOString().split("T")[0] : "",
+    p.end_date ? new Date(p.end_date).toISOString().split("T")[0] : "",
+    p.budget != null ? String(p.budget) : "",
+  ]);
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
+  ].join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${filename}-${new Date().toISOString().split("T")[0]}.csv`;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Format date range for export filename
  * @param dateRange - Date range identifier
  */
