@@ -353,9 +353,9 @@ export default function KnowledgeForm() {
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                value={formData.category}
+                value={formData.category || "none"}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, category: value })
+                  setFormData({ ...formData, category: value === "none" ? "" : value })
                 }
                 disabled={createEntry.isPending || updateEntry.isPending}
               >
@@ -363,7 +363,7 @@ export default function KnowledgeForm() {
                   <SelectValue placeholder="Select a category (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Category</SelectItem>
+                  <SelectItem value="none">No Category</SelectItem>
                   {categories?.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}

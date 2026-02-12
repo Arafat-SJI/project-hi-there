@@ -213,15 +213,15 @@ export default function MeetingForm() {
               <div className="space-y-2">
                 <Label htmlFor="client_id">Client</Label>
                 <Select
-                  value={clientId}
-                  onValueChange={(value) => setValue("client_id", value)}
+                   value={clientId || "none"}
+                   onValueChange={(value) => setValue("client_id", value === "none" ? "" : value)}
                   disabled={isSubmitting}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a client (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {clients?.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}

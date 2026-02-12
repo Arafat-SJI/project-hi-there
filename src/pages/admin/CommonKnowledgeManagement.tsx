@@ -422,16 +422,16 @@ export default function CommonKnowledgeManagement() {
               <div className="space-y-2">
                 <Label htmlFor="category">Category (Optional)</Label>
                 <Select
-                  value={formData.category_id}
+                  value={formData.category_id || "none"}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, category_id: value })
+                    setFormData({ ...formData, category_id: value === "none" ? "" : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -515,16 +515,16 @@ export default function CommonKnowledgeManagement() {
               <div className="space-y-2">
                 <Label htmlFor="edit-category">Category (Optional)</Label>
                 <Select
-                  value={formData.category_id}
+                  value={formData.category_id || "none"}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, category_id: value })
+                    setFormData({ ...formData, category_id: value === "none" ? "" : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}

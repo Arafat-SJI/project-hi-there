@@ -268,7 +268,7 @@ export function useDeleteOKR() {
 
       const { error } = await supabase.from("okrs").delete().eq("id", id);
       if (error) throw error;
-      return { approval_pending: false } as ApprovalPendingResult;
+      return { approval_pending: false } as unknown as ApprovalPendingResult;
     },
     onSuccess: (result) => {
       if (isApprovalPendingResult(result)) {

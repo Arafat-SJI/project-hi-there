@@ -110,10 +110,10 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
           </div>
           <div>
             <Label>Client</Label>
-            <Select value={form.client_id ?? ""} onValueChange={(v) => set("client_id", v || undefined)}>
+            <Select value={form.client_id ?? "none"} onValueChange={(v) => set("client_id", v === "none" ? undefined : v)}>
               <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
