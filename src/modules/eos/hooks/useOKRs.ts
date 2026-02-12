@@ -12,6 +12,44 @@ import type { OKR, OKRKeyResult, OKRCheckIn, OKRFormData, OKRFilters } from "../
 
 const OKRS_KEY = "eos-okrs";
 
+type ApprovalPendingResult = {
+  approval_pending: true;
+  approval_request_id?: string;
+};
+
+function isApprovalPendingResult(value: unknown): value is ApprovalPendingResult {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "approval_pending" in value &&
+      (value as { approval_pending?: unknown }).approval_pending === true
+  );
+}
+
+async function requestOKRApproval(params: {
+  userId: string;
+  actionDescription: string;
+  requestType: "create" | "update" | "delete";
+  payload: Record<string, unknown>;
+}) {
+  const { data, error } = await supabase.functions.invoke("request-approval", {
+    body: {
+      user_id: params.userId,
+      agent_id: "eos-okr-governance",
+      request_type: "data_change",
+      action_description: params.actionDescription,
+      tool_name: `okr.${params.requestType}`,
+      tool_parameters: params.payload,
+      risk_level: "medium",
+      confidence_score: 1,
+    },
+  });
+
+  if (error) throw error;
+  return data as { requires_approval?: boolean; approval_request_id?: string };
+}
+
+
 /**
  * Fetch OKRs with optional filters.
  */
@@ -115,6 +153,17 @@ export function useCreateOKR() {
 
   return useMutation({
     mutationFn: async (data: OKRFormData) => {
+      const approval = await requestOKRApproval({
+        userId: user!.id,
+        actionDescription: `Create OKR: ${data.title}`,
+        requestType: "create",
+        payload: data as unknown as Record<string, unknown>,
+      });
+
+      if (approval?.requires_approval) {
+        return { approval_pending: true, approval_request_id: approval.approval_request_id } as ApprovalPendingResult;
+      }
+
       const { data: okr, error } = await supabase
         .from("okrs")
         .insert({
@@ -135,7 +184,13 @@ export function useCreateOKR() {
       if (error) throw error;
       return okr;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (isApprovalPendingResult(result)) {
+        toast.info("OKR creation submitted for approval", {
+          description: `Request ID: ${String(result.approval_request_id || "").slice(0, 8)}...`,
+        });
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: [OKRS_KEY] });
       toast.success("OKR created");
     },
@@ -150,9 +205,21 @@ export function useCreateOKR() {
  */
 export function useUpdateOKR() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<OKRFormData> & { progress?: number } }) => {
+      const approval = await requestOKRApproval({
+        userId: user!.id,
+        actionDescription: `Update OKR ${id}`,
+        requestType: "update",
+        payload: { id, ...data } as Record<string, unknown>,
+      });
+
+      if (approval?.requires_approval) {
+        return { approval_pending: true, approval_request_id: approval.approval_request_id } as ApprovalPendingResult;
+      }
+
       const { data: okr, error } = await supabase
         .from("okrs")
         .update({ ...data, updated_at: new Date().toISOString() })
@@ -163,7 +230,13 @@ export function useUpdateOKR() {
       if (error) throw error;
       return okr;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (isApprovalPendingResult(result)) {
+        toast.info("OKR update submitted for approval", {
+          description: `Request ID: ${String(result.approval_request_id || "").slice(0, 8)}...`,
+        });
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: [OKRS_KEY] });
       toast.success("OKR updated");
     },
@@ -178,13 +251,32 @@ export function useUpdateOKR() {
  */
 export function useDeleteOKR() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
+      const approval = await requestOKRApproval({
+        userId: user!.id,
+        actionDescription: `Delete OKR ${id}`,
+        requestType: "delete",
+        payload: { id },
+      });
+
+      if (approval?.requires_approval) {
+        return { approval_pending: true, approval_request_id: approval.approval_request_id } as ApprovalPendingResult;
+      }
+
       const { error } = await supabase.from("okrs").delete().eq("id", id);
       if (error) throw error;
+      return { approval_pending: false } as ApprovalPendingResult;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (isApprovalPendingResult(result)) {
+        toast.info("OKR deletion submitted for approval", {
+          description: `Request ID: ${String(result.approval_request_id || "").slice(0, 8)}...`,
+        });
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: [OKRS_KEY] });
       toast.success("OKR deleted");
     },
@@ -279,6 +371,19 @@ export function useCheckIn() {
         .eq("id", data.key_result_id);
 
       if (updateError) throw updateError;
+
+      // Write value change to audit history table (additive parity support)
+      const { error: historyError } = await supabase
+        .from("key_result_history" as never)
+        .insert({
+          key_result_id: data.key_result_id,
+          previous_value: data.previous_value,
+          new_value: data.new_value,
+          notes: data.notes || null,
+          updated_by: user!.id,
+        } as never);
+
+      if (historyError) throw historyError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OKRS_KEY] });

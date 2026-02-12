@@ -14,6 +14,7 @@ import {
   Settings,
   Target,
   AlertCircle,
+  Crosshair,
 } from "lucide-react";
 
 const EOS_ADMIN_SECTIONS = [
@@ -29,6 +30,13 @@ const EOS_ADMIN_SECTIONS = [
     description: "Create and configure scorecards with metrics, targets, and goal directions.",
     href: "/admin/eos/scorecards",
     icon: BarChart3,
+    status: "live" as const,
+  },
+  {
+    title: "OKRs Workspace",
+    description: "Oversee OKR lifecycle, filter by quarter/status, and perform admin triage actions.",
+    href: "/admin/eos/okrs",
+    icon: Crosshair,
     status: "live" as const,
   },
   {

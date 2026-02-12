@@ -230,6 +230,13 @@ verify_jwt = false
 [functions.suggest-okrs]
 verify_jwt = false
 
+[functions.analyze-okr-progress]
+verify_jwt = false
+
+[functions.okr-update-reminder]
+verify_jwt = false
+
+
 [functions.sync-projects-activecollab]
 verify_jwt = false
 

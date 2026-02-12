@@ -58,6 +58,7 @@ import AdminEOS from "@/pages/admin/eos/AdminEOS";
 import VTOAdmin from "@/pages/admin/eos/VTOAdmin";
 import ScorecardWorkspace from "@/pages/admin/eos/ScorecardWorkspace";
 import AdminEOSAccountability from "@/pages/admin/eos/AdminEOSAccountability";
+import OKRsWorkspace from "@/pages/admin/eos/OKRsWorkspace";
 import ProductivityImport from "@/pages/admin/ProductivityImport";
 import OAuthClients from "@/pages/admin/OAuthClients";
 import ApiKeys from "@/pages/admin/ApiKeys";
@@ -121,6 +122,7 @@ export const adminRoutes = (
     <Route path="/admin/eos/vto" element={<VTOAdmin />} />
     <Route path="/admin/eos/scorecards" element={<ScorecardWorkspace />} />
     <Route path="/admin/eos/accountability" element={<AdminEOSAccountability />} />
+    <Route path="/admin/eos/okrs" element={<OKRsWorkspace />} />
 
     {/* Content & Feedback */}
     <Route path="/admin/feedback" element={<FeedbackManagement />} />
