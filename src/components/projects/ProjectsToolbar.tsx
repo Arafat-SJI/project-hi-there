@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +21,7 @@ import {
   ChevronDown,
   ArrowDownUp,
   ArrowDown,
+  FilterX,
 } from "lucide-react";
 import {
   Tooltip,
@@ -80,6 +82,7 @@ export function ProjectsToolbar({
   const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
   const dateTo = filters.dateTo ? new Date(filters.dateTo) : undefined;
   const hasDates = dateFrom || dateTo;
+  const [datePickerOpen, setDatePickerOpen] = useState<"from" | "to" | null>(null);
 
   return (
     <div className="space-y-3">
@@ -150,7 +153,7 @@ export function ProjectsToolbar({
             ))}
           </SelectContent>
         </Select>
-        <Popover>
+        <Popover onOpenChange={(open) => !open && setDatePickerOpen(null)}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -173,20 +176,95 @@ export function ProjectsToolbar({
               <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <div className="p-3 space-y-2">
-              <p className="text-sm font-medium">From</p>
-              <Calendar
-                mode="single"
-                selected={dateFrom}
-                onSelect={(d) => onFiltersChange({ dateFrom: d ? format(d, "yyyy-MM-dd") : "" })}
-              />
-              <p className="text-sm font-medium pt-2">To</p>
-              <Calendar
-                mode="single"
-                selected={dateTo}
-                onSelect={(d) => onFiltersChange({ dateTo: d ? format(d, "yyyy-MM-dd") : "" })}
-              />
+          <PopoverContent className="w-auto p-4" align="start">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">From Date</label>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-9 pl-3",
+                    !dateFrom && "text-muted-foreground"
+                  )}
+                  onClick={() => setDatePickerOpen((prev) => (prev === "from" ? null : "from"))}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? format(dateFrom, "MMM d, yyyy") : "Pick a date"}
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">To Date</label>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-9 pl-3",
+                    !dateTo && "text-muted-foreground"
+                  )}
+                  onClick={() => setDatePickerOpen((prev) => (prev === "to" ? null : "to"))}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? format(dateTo, "MMM d, yyyy") : "Pick a date"}
+                </Button>
+              </div>
+              {datePickerOpen === "from" && (
+                <div className="space-y-2">
+                  <Calendar
+                    mode="single"
+                    selected={dateFrom}
+                    onSelect={(d) => {
+                      onFiltersChange({ dateFrom: d ? format(d, "yyyy-MM-dd") : "" });
+                      setDatePickerOpen(null);
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      onFiltersChange({ dateFrom: "" });
+                      setDatePickerOpen(null);
+                    }}
+                  >
+                    Clear date
+                  </Button>
+                </div>
+              )}
+              {datePickerOpen === "to" && (
+                <div className="space-y-2">
+                  <Calendar
+                    mode="single"
+                    selected={dateTo}
+                    onSelect={(d) => {
+                      onFiltersChange({ dateTo: d ? format(d, "yyyy-MM-dd") : "" });
+                      setDatePickerOpen(null);
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      onFiltersChange({ dateTo: "" });
+                      setDatePickerOpen(null);
+                    }}
+                  >
+                    Clear date
+                  </Button>
+                </div>
+              )}
+              {hasDates && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="w-full text-muted-foreground h-auto py-1"
+                  onClick={() => {
+                    onFiltersChange({ dateFrom: "", dateTo: "" });
+                    setDatePickerOpen(null);
+                  }}
+                >
+                  Clear dates
+                </Button>
+              )}
             </div>
           </PopoverContent>
         </Popover>
@@ -313,6 +391,29 @@ export function ProjectsToolbar({
         <Button variant="outline" size="sm" className="h-9" onClick={onExport}>
           <Download className="h-4 w-4 mr-1" />
           Export
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 text-muted-foreground hover:text-foreground"
+          onClick={() =>
+            onFiltersChange({
+              searchQuery: "",
+              selectedManager: "",
+              selectedClient: "",
+              selectedTeam: "",
+              selectedCategory: "",
+              dateFrom: "",
+              dateTo: "",
+              showArchived: false,
+              showOverBudgetOnly: false,
+              sortBy: "updated_at",
+              sortAsc: false,
+            })
+          }
+        >
+          <FilterX className="h-4 w-4 mr-1" />
+          Clear filters
         </Button>
         <CreateProjectDialog />
       </div>
