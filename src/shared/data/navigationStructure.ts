@@ -60,11 +60,18 @@ export const navigationGroups: NavGroup[] = [
         featureFlag: "enableClients",
       },
       {
-        title: "Deals",
+        title: "All Deals",
         href: "/deals",
         icon: "Handshake",
         module: "business-dev",
         featureFlag: "enableClients",
+        children: [
+          { title: "Lead", href: "/deals?tab=all&stage=lead", icon: "Users", module: "business-dev", featureFlag: "enableClients" },
+          { title: "Discovery", href: "/deals?tab=all&stage=discovery", icon: "Search", module: "business-dev", featureFlag: "enableClients" },
+          { title: "Qualified", href: "/deals?tab=all&stage=qualified", icon: "CheckCircle", module: "business-dev", featureFlag: "enableClients" },
+          { title: "Estimation", href: "/deals?tab=all&stage=estimation", icon: "Calculator", module: "business-dev", featureFlag: "enableClients" },
+          { title: "Proposal", href: "/deals?tab=all&stage=proposal", icon: "FileText", module: "business-dev", featureFlag: "enableClients" },
+        ],
       },
       {
         title: "Contacts",

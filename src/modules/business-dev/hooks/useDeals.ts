@@ -27,6 +27,7 @@ export function useDeals(filters?: DealFilters) {
       if (filters?.owner_id) query = query.eq("owner_id", filters.owner_id);
       if (filters?.client_id) query = query.eq("client_id", filters.client_id);
       if (filters?.search) query = query.ilike("title", `%${filters.search}%`);
+      if (filters?.excludeLost) query = query.neq("stage", "lost");
 
       const { data, error } = await query;
       if (error) throw error;
@@ -59,7 +60,7 @@ export function useDealPipelineStats() {
       const { data, error } = await supabase.from("deals").select("stage, value, probability");
       if (error) throw error;
 
-      const stages: DealStage[] = ["lead", "discovery", "estimation", "proposal", "won", "lost"];
+      const stages: DealStage[] = ["lead", "discovery", "qualified", "estimation", "proposal", "won", "lost"];
       const by_stage = {} as Record<DealStage, { count: number; value: number }>;
       stages.forEach((s) => { by_stage[s] = { count: 0, value: 0 }; });
 
@@ -80,6 +81,78 @@ export function useDealPipelineStats() {
         by_stage,
         avg_probability: data?.length ? Math.round(prob_sum / data.length) : 0,
       };
+    },
+  });
+}
+
+export interface RevenueProjectionMonth {
+  month: string;
+  label: string;
+  projected: number;
+}
+
+export function useDealRevenueProjection(year?: number) {
+  const y = year ?? new Date().getFullYear();
+  return useQuery({
+    queryKey: queryKeys.deals.revenueProjection(y),
+    queryFn: async (): Promise<RevenueProjectionMonth[]> => {
+      const start = `${y}-01-01`;
+      const end = `${y}-12-31`;
+      const { data, error } = await supabase
+        .from("deals")
+        .select("value, probability, expected_close_date")
+        .in("stage", ["lead", "discovery", "qualified", "estimation", "proposal"])
+        .not("expected_close_date", "is", null)
+        .gte("expected_close_date", start)
+        .lte("expected_close_date", end);
+      if (error) throw error;
+      const byMonth: Record<string, number> = {};
+      for (let m = 1; m <= 12; m++) {
+        const key = `${y}-${String(m).padStart(2, "0")}`;
+        byMonth[key] = 0;
+      }
+      (data || []).forEach((d: any) => {
+        const date = d.expected_close_date;
+        if (!date) return;
+        const monthKey = date.slice(0, 7);
+        const val = Number(d.value) || 0;
+        const prob = Number(d.probability) || 0;
+        byMonth[monthKey] = (byMonth[monthKey] ?? 0) + val * (prob / 100);
+      });
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => {
+        const month = `${y}-${String(m).padStart(2, "0")}`;
+        return {
+          month,
+          label: `${monthNames[m - 1]} ${String(y).slice(2)}`,
+          projected: byMonth[month] ?? 0,
+        };
+      });
+    },
+  });
+}
+
+export interface DealOverviewExtra {
+  avg_days_to_close: number;
+}
+
+export function useDealOverviewExtra() {
+  return useQuery({
+    queryKey: queryKeys.deals.overviewExtra,
+    queryFn: async (): Promise<DealOverviewExtra> => {
+      const { data, error } = await supabase
+        .from("deals")
+        .select("created_at, closed_at")
+        .eq("stage", "won")
+        .not("closed_at", "is", null);
+      if (error) throw error;
+      const days: number[] = (data || []).map((d: any) => {
+        const created = new Date(d.created_at).getTime();
+        const closed = new Date(d.closed_at).getTime();
+        return Math.round((closed - created) / (1000 * 60 * 60 * 24));
+      }).filter((d) => !isNaN(d));
+      const avg = days.length ? Math.round(days.reduce((a, b) => a + b, 0) / days.length) : 0;
+      return { avg_days_to_close: avg };
     },
   });
 }

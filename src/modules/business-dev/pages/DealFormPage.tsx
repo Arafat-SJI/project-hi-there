@@ -22,6 +22,7 @@ import type { DealFormData, DealStage } from "../types";
 const STAGES: { value: DealStage; label: string }[] = [
   { value: "lead", label: "Lead" },
   { value: "discovery", label: "Discovery" },
+  { value: "qualified", label: "Qualified" },
   { value: "estimation", label: "Estimation" },
   { value: "proposal", label: "Proposal" },
   { value: "won", label: "Won" },

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useModuleAccess } from "@/shared/hooks/useModuleAccess";
+import { useDealPipelineStats } from "@/modules/business-dev/hooks/useDeals";
 import {
   dashboardItem,
   navigationGroups,
@@ -43,8 +44,14 @@ import {
   Sparkles,
   ScrollText,
   Network,
+  Search,
+  Calculator,
+  CheckCircle,
+  PanelLeft,
+  PanelLeftClose,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Icon resolver: maps string names from navigation data to actual components
 const iconMap: Record<string, LucideIcon> = {
@@ -75,6 +82,9 @@ const iconMap: Record<string, LucideIcon> = {
   Sparkles,
   ScrollText,
   Network,
+  Search,
+  Calculator,
+  CheckCircle,
 };
 
 function resolveIcon(iconName: string): LucideIcon {
@@ -84,12 +94,19 @@ function resolveIcon(iconName: string): LucideIcon {
 // Local storage key for expanded groups
 const EXPANDED_GROUPS_KEY = "sidebar-expanded-groups";
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  open?: boolean;
+  onToggleSidebar?: () => void;
+}
+
+export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
   const location = useLocation();
   const { profile } = useAuth();
   const { companyName } = useBranding();
   const { isFeatureEnabled } = useFeatureFlags();
   const { hasModule } = useModuleAccess();
+  const { data: dealStats } = useDealPipelineStats();
+  const dealStageCounts = dealStats?.by_stage ?? {};
 
   // Track expanded groups with localStorage persistence
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
@@ -140,7 +157,14 @@ export function AppSidebar() {
   // Check if route is active
   const isRouteActive = (href: string): boolean => {
     if (href === "/dashboard") return location.pathname === "/dashboard";
-    return location.pathname === href || location.pathname.startsWith(href + "/");
+    const path = href.split("?")[0];
+    if (location.pathname !== path && !location.pathname.startsWith(path + "/")) return false;
+    if (href.includes("?")) {
+      const params = new URLSearchParams(href.split("?")[1]);
+      const current = new URLSearchParams(location.search);
+      return Array.from(params.entries()).every(([k, v]) => current.get(k) === v);
+    }
+    return true;
   };
 
   // Check if any item in group is active (to keep group highlighted)
@@ -159,25 +183,88 @@ export function AppSidebar() {
   const DashboardIcon = resolveIcon(dashboardItem.icon);
   const isDashboardActive = isRouteActive(dashboardItem.href);
 
+  // Collapsed: flat list of dashboard + all visible items (icon-only)
+  const collapsedNavItems = [
+    { href: dashboardItem.href, icon: dashboardItem.icon, title: dashboardItem.title },
+    ...visibleGroups.flatMap((g) =>
+      g.items.filter(isItemVisible).map((item) => ({
+        href: item.href,
+        icon: item.icon,
+        title: item.title,
+      }))
+    ),
+  ];
+
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar-background">
+    <>
+    <aside
+      className={cn(
+        "fixed left-0 top-0 z-40 h-screen border-r border-sidebar-border bg-sidebar-background transition-[width] duration-200 ease-in-out",
+        open ? "w-64" : "w-16"
+      )}
+    >
       <div className="flex h-full flex-col">
-        {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-          <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-sm">
-              <Brain className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-sidebar-foreground">
-                Control Tower
-              </span>
-              <span className="text-xs text-muted-foreground">{companyName}</span>
-            </div>
-          </Link>
+        {/* Logo + sidebar toggle (expanded) / Icon only (collapsed) */}
+        <div
+          className={cn(
+            "flex h-16 shrink-0 items-center border-b border-sidebar-border transition-[padding] duration-200",
+            open ? "justify-between gap-2 px-6" : "flex-col justify-center gap-1 px-0"
+          )}
+        >
+          {open ? (
+            <>
+              <Link to="/dashboard" className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary shadow-sm">
+                  <Brain className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div className="min-w-0 flex flex-col">
+                  <span className="text-sm font-semibold text-sidebar-foreground truncate">
+                    Control Tower
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">{companyName}</span>
+                </div>
+              </Link>
+              {onToggleSidebar && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  onClick={onToggleSidebar}
+                  title="Collapse sidebar"
+                  aria-label="Collapse sidebar"
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <Link
+                to="/dashboard"
+                className="flex h-10 w-full items-center justify-center rounded-none text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                onClick={() => onToggleSidebar?.()}
+                title="Dashboard"
+              >
+                <Brain className="h-5 w-5 text-primary-foreground shrink-0 rounded-lg bg-primary p-1" />
+              </Link>
+              {onToggleSidebar && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  onClick={onToggleSidebar}
+                  title="Expand sidebar"
+                  aria-label="Expand sidebar"
+                >
+                  <PanelLeft className="h-4 w-4" />
+                </Button>
+              )}
+            </>
+          )}
         </div>
 
         {/* Navigation */}
+        {open ? (
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           {/* Dashboard - Always at top */}
           <div className="mb-4">
@@ -286,6 +373,9 @@ export function AppSidebar() {
                               {item.children!.filter(isItemVisible).map((child) => {
                                 const ChildIcon = resolveIcon(child.icon);
                                 const isChildActive = isRouteActive(child.href);
+                                const stageMatch = item.href === "/deals" && child.href.match(/stage=(\w+)/);
+                                const stageCount = stageMatch ? dealStageCounts[stageMatch[1] as keyof typeof dealStageCounts]?.count : undefined;
+                                const badge = child.badge ?? (stageCount != null ? String(stageCount) : undefined);
 
                                 return (
                                   <Link
@@ -300,6 +390,9 @@ export function AppSidebar() {
                                   >
                                     <ChildIcon className="h-[14px] w-[14px] shrink-0" />
                                     <span>{child.title}</span>
+                                    {badge != null && (
+                                      <span className="ml-auto text-xs text-muted-foreground">({badge})</span>
+                                    )}
                                   </Link>
                                 );
                               })}
@@ -314,15 +407,56 @@ export function AppSidebar() {
             })}
           </div>
         </nav>
+        ) : (
+        /* Collapsed: icon-only nav */
+        <nav className="flex-1 overflow-y-auto py-2">
+          <div className="flex flex-col items-center gap-0.5">
+            {collapsedNavItems.map((item) => {
+              const Icon = resolveIcon(item.icon);
+              const isActive = isRouteActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => onToggleSidebar?.()}
+                  title={item.title}
+                  className={cn(
+                    "flex h-10 w-full items-center justify-center rounded-md text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  )}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+        )}
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-4">
-          <div className="rounded-lg bg-sidebar-accent/50 px-4 py-3">
-            <p className="text-sm font-medium text-sidebar-foreground">Framework</p>
-            <p className="text-xs text-muted-foreground">v1.0.0 - Enterprise</p>
-          </div>
+        <div className={cn("border-t border-sidebar-border shrink-0", open ? "p-4" : "p-2")}>
+          {open ? (
+            <div className="rounded-lg bg-sidebar-accent/50 px-4 py-3">
+              <p className="text-sm font-medium text-sidebar-foreground">Framework</p>
+              <p className="text-xs text-muted-foreground">v1.0.0 - Enterprise</p>
+            </div>
+          ) : onToggleSidebar ? (
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                onClick={onToggleSidebar}
+                title="Expand sidebar"
+                aria-label="Expand sidebar"
+              >
+                <PanelLeft className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
     </aside>
+    </>
   );
 }

@@ -27,13 +27,14 @@ import type { DealStage, DealActivityType } from "../types";
 const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
   lead: { label: "Lead", color: "#6b7280" },
   discovery: { label: "Discovery", color: "#3b82f6" },
+  qualified: { label: "Qualified", color: "#2563eb" },
   estimation: { label: "Estimation", color: "#8b5cf6" },
   proposal: { label: "Proposal", color: "#f59e0b" },
   won: { label: "Won", color: "#22c55e" },
   lost: { label: "Lost", color: "#ef4444" },
 };
 
-const STAGES: DealStage[] = ["lead", "discovery", "estimation", "proposal", "won", "lost"];
+const STAGES: DealStage[] = ["lead", "discovery", "qualified", "estimation", "proposal", "won", "lost"];
 
 const ACTIVITY_TYPES: { value: DealActivityType; label: string }[] = [
   { value: "note", label: "Note" },

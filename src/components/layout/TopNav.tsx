@@ -25,7 +25,12 @@ import { useState } from "react";
 import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
 import { useSemanticSearch } from "@/hooks/useSemanticSearch";
 
-export function TopNav() {
+interface TopNavProps {
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+}
+
+export function TopNav({ sidebarOpen = true, onToggleSidebar }: TopNavProps) {
   const { user, profile, signOut } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -71,7 +76,11 @@ export function TopNav() {
   };
 
   return (
-    <header className="fixed left-64 right-0 top-0 z-30 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
+    <header
+      className={`fixed right-0 top-0 z-30 h-16 border-b border-border bg-background/95 backdrop-blur-sm transition-[left] duration-200 ${
+        sidebarOpen ? "left-64" : "left-16"
+      }`}
+    >
       <div className="flex h-full items-center justify-between px-6">
         {/* Search */}
         <div className="relative max-w-md flex-1">
