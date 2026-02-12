@@ -2,7 +2,7 @@
  * Business Development Module Types
  */
 
-export type DealStage = "lead" | "discovery" | "estimation" | "proposal" | "won" | "lost";
+export type DealStage = "lead" | "discovery" | "qualified" | "estimation" | "proposal" | "won" | "lost";
 
 export interface Deal {
   id: string;
@@ -105,6 +105,7 @@ export interface DealFilters {
   owner_id?: string;
   client_id?: string;
   search?: string;
+  excludeLost?: boolean;
 }
 
 export interface ContactFormData {
