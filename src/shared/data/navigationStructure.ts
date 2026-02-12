@@ -357,6 +357,11 @@ export const adminNavigation: NavGroup[] = [
         icon: "BarChart3",
       },
       {
+        title: "OKRs Workspace",
+        href: "/admin/eos/okrs",
+        icon: "Crosshair",
+      },
+      {
         title: "Accountability",
         href: "/admin/eos/accountability",
         icon: "Network",

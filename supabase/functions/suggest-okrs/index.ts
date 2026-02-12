@@ -29,7 +29,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const { pod_id, quarter, context: userContext } = await req.json()
+    const { pod_id, quarter, context: userContext, type = 'team', count = 3 } = await req.json()
 
     // Gather context from the database
     const contextParts: string[] = []
@@ -87,7 +87,7 @@ serve(async (req) => {
           role: 'system',
           content: `You are an OKR coach that suggests objectives and key results using the EOS (Entrepreneurial Operating System) methodology.
 
-Generate 3-5 OKR suggestions based on the provided context. Each suggestion should include:
+Generate 1-8 OKR suggestions based on the provided context. Each suggestion should include:
 - title: A clear, inspiring objective statement
 - description: Why this objective matters
 - key_results: Array of 2-4 measurable key results, each with:
@@ -100,27 +100,48 @@ Generate 3-5 OKR suggestions based on the provided context. Each suggestion shou
 
 Ensure OKRs follow best practices: objectives are qualitative and inspiring, key results are quantitative and measurable. Target quarter: ${targetQuarter}.
 
-Respond with JSON: { "suggestions": [...] }`
+Respond with JSON: { "okrs": [{ title, description, key_results:[{ title, measurement_unit, target_value, update_frequency }], reasoning }], "suggestions": [...] }`
         },
         {
           role: 'user',
           content: contextParts.length > 0
-            ? `Based on this company context, suggest OKRs for ${targetQuarter}:\n\n${contextParts.join('\n\n')}`
-            : `Suggest general business OKRs for ${targetQuarter} for a technology services company.`
+            ? `Based on this company context, suggest ${count} ${type} OKRs for ${targetQuarter}:\n\n${contextParts.join('\n\n')}`
+            : `Suggest ${count} ${type} OKRs for ${targetQuarter} for a technology services company.`
         }
       ],
       temperature: 0.7,
       max_tokens: 3000,
     })
 
-    let suggestions = []
+    let parsed: Record<string, unknown> = {}
     try {
-      const parsed = JSON.parse(result.content)
-      suggestions = parsed.suggestions || parsed || []
+      parsed = JSON.parse(result.content)
     } catch {
       console.warn('Failed to parse AI response as JSON')
-      suggestions = []
+      parsed = {}
     }
+
+    const rawOkrs = Array.isArray(parsed.okrs)
+      ? parsed.okrs
+      : Array.isArray(parsed.suggestions)
+        ? parsed.suggestions
+        : Array.isArray(parsed)
+          ? parsed
+          : []
+
+    const okrs = rawOkrs.slice(0, Math.max(1, Number(count) || 3)).map((item: Record<string, unknown>) => ({
+      title: String(item.title || 'Untitled objective'),
+      description: String(item.description || ''),
+      key_results: Array.isArray(item.key_results)
+        ? item.key_results.map((kr: Record<string, unknown>) => ({
+            title: String(kr.title || 'Key result'),
+            measurement_unit: String(kr.measurement_unit || kr.unit || 'number'),
+            target_value: Number(kr.target_value || 0),
+            update_frequency: String(kr.update_frequency || 'weekly'),
+          }))
+        : [],
+      reasoning: String(item.reasoning || item.rationale || ''),
+    }))
 
     // Log AI usage
     await logUsage(
@@ -135,7 +156,15 @@ Respond with JSON: { "suggestions": [...] }`
     )
 
     return new Response(
-      JSON.stringify({ suggestions, quarter: targetQuarter }),
+      JSON.stringify({
+        success: true,
+        quarter: targetQuarter,
+        type,
+        count: okrs.length,
+        okrs,
+        // backward compatibility for existing callers
+        suggestions: okrs,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error: unknown) {
