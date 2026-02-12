@@ -98,6 +98,11 @@ export interface DealFormData {
   expected_close_date?: string;
   source?: string;
   tags?: string[];
+  deal_type?: string;
+  category?: string;
+  pipeline?: string;
+  assigned_pod?: string;
+  next_step?: string;
 }
 
 export interface DealFilters {

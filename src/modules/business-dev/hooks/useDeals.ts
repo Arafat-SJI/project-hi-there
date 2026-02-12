@@ -13,6 +13,16 @@ const DEAL_SELECT = "*, owner:profiles!deals_owner_id_profiles_fkey(full_name, e
 const ACTIVITY_SELECT = "*, user:profiles!deal_activities_user_id_profiles_fkey(full_name)";
 const COMMENT_SELECT = "*, user:profiles!deal_comments_user_id_profiles_fkey(full_name, email)";
 
+/** Metadata keys stored on deals.metadata (including URLs & Links and Advanced) */
+const DEAL_METADATA_KEYS = [
+  "deal_type", "category", "next_step", "pipeline", "assigned_pod",
+  "estimate_url", "internal_estimate_doc_url", "client_estimate_doc_url",
+  "pandadoc_proposal_url", "hubspot_deal_url", "leadslift_crm_deal_url",
+  "google_drive_folder_url", "workboard_ai_link", "collaborative_ai_link", "client_agent_folder",
+  "company_name", "client_email", "contact_first_name", "contact_last_name", "contact_phone",
+  "website", "linkedin_profile", "hubspot_deal_id", "hubspot_owner_id", "type_of_work",
+] as const;
+
 export function useDeals(filters?: DealFilters) {
   const { user } = useAuth();
   return useQuery({
@@ -161,8 +171,13 @@ export function useCreateDeal() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (data: DealFormData) => {
+    mutationFn: async (data: DealFormData & Record<string, unknown>) => {
       const slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const metadata: Record<string, unknown> = {};
+      for (const k of DEAL_METADATA_KEYS) {
+        const v = data[k];
+        if (v !== undefined && v !== null && v !== "") metadata[k] = v;
+      }
       const { data: deal, error } = await supabase.from("deals").insert({
         title: data.title,
         slug: `${slug}-${Date.now().toString(36)}`,
@@ -177,6 +192,7 @@ export function useCreateDeal() {
         source: data.source || null,
         tags: data.tags || [],
         created_by: user?.id || null,
+        metadata: Object.keys(metadata).length > 0 ? metadata : null,
       }).select().single();
       if (error) throw error;
       return deal;
@@ -207,6 +223,16 @@ export function useUpdateDeal() {
       if (data.expected_close_date !== undefined) updates.expected_close_date = data.expected_close_date || null;
       if (data.source !== undefined) updates.source = data.source || null;
       if (data.lost_reason !== undefined) updates.lost_reason = data.lost_reason || null;
+      const dataAny = data as Record<string, unknown>;
+      const hasMeta = DEAL_METADATA_KEYS.some((k) => dataAny[k] !== undefined);
+      if (hasMeta) {
+        const { data: existing } = await supabase.from("deals").select("metadata").eq("id", id).single();
+        const prev = (existing as any)?.metadata as Record<string, unknown> || {};
+        updates.metadata = { ...prev };
+        for (const k of DEAL_METADATA_KEYS) {
+          if (dataAny[k] !== undefined) (updates.metadata as Record<string, unknown>)[k] = dataAny[k] || null;
+        }
+      }
 
       const { data: deal, error } = await supabase.from("deals").update(updates).eq("id", id).select().single();
       if (error) throw error;
