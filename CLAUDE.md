@@ -323,6 +323,45 @@ VITE_MODULE_PRODUCTIVITY=true
 | `vite.config.ts` | Build config (port 8080, `@` alias) |
 | `tailwind.config.ts` | Tailwind with dark mode, custom colors |
 
+## Specialized Subagents
+
+Seven specialized agents are available in `.claude/agents/` for delegating complex tasks. Each agent has deep knowledge of this project's patterns, conventions, and file structure.
+
+| Agent | File | Specialization | Tools |
+|-------|------|---------------|-------|
+| **react-frontend-dev** | `.claude/agents/react-frontend-dev.md` | Pages, components, hooks, forms, routing, UI/styling | Read, Write, Edit, Bash, Glob, Grep |
+| **supabase-backend-dev** | `.claude/agents/supabase-backend-dev.md` | Edge Functions, migrations, RLS policies, auth, DB schema | Read, Write, Edit, Bash, Glob, Grep |
+| **code-reviewer** | `.claude/agents/code-reviewer.md` | Code quality, security audit, performance review, convention enforcement | Read, Grep, Glob (read-only) |
+| **typescript-strict** | `.claude/agents/typescript-strict.md` | Type safety, `any` elimination, Zod/TS alignment, type guards | Read, Write, Edit, Glob, Grep |
+| **documentation-engineer** | `.claude/agents/documentation-engineer.md` | Specs, API docs, module guides, schema docs, setup guides | Read, Write, Edit, Glob, Grep |
+| **debugger-detective** | `.claude/agents/debugger-detective.md` | Error analysis, React rendering bugs, Supabase/RLS debugging, perf profiling | Read, Edit, Bash, Glob, Grep |
+| **test-automator** | `.claude/agents/test-automator.md` | Unit tests, integration tests, test infrastructure (Vitest + RTL), fixtures | Read, Write, Edit, Bash, Glob, Grep |
+
+### Example Invocations
+
+```
+# Build a new page with data fetching
+Use the react-frontend-dev agent to create a new Contacts page with list/detail views
+
+# Create an Edge Function with migration
+Use the supabase-backend-dev agent to create a new API endpoint for team invitations
+
+# Review code before merge
+Use the code-reviewer agent to review the changes in src/hooks/useDeals.ts
+
+# Improve type safety
+Use the typescript-strict agent to eliminate all `any` types in src/hooks/useClients.ts
+
+# Write documentation
+Use the documentation-engineer agent to document the meetings module API
+
+# Debug an issue
+Use the debugger-detective agent to investigate why meetings list returns empty
+
+# Set up tests
+Use the test-automator agent to write unit tests for src/lib/validation.ts
+```
+
 ## Documentation
 
 Comprehensive docs in `/docs/` organized by topic:
