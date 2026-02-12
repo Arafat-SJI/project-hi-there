@@ -374,7 +374,7 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
                                 const ChildIcon = resolveIcon(child.icon);
                                 const isChildActive = isRouteActive(child.href);
                                 const stageMatch = item.href === "/deals" && child.href.match(/stage=(\w+)/);
-                                const stageCount = stageMatch ? dealStageCounts[stageMatch[1] as keyof typeof dealStageCounts]?.count : undefined;
+                                const stageCount = stageMatch ? (dealStageCounts as Record<string, { count: number; value: number }>)[stageMatch[1]]?.count : undefined;
                                 const badge = child.badge ?? (stageCount != null ? String(stageCount) : undefined);
 
                                 return (
