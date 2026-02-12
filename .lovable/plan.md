@@ -15,6 +15,7 @@
 
 ## Completed Steps
 
+
 ### ✅ Step 1: Added missing columns to ai_agents
 Added `avatar`, `welcome_message`, `conversation_starters` columns to support meetings AI agent configurations.
 
