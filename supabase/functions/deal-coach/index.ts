@@ -121,14 +121,14 @@ serve(async (req) => {
       )
     }
 
-    const result = await chatCompletion(supabase, model, {
+    const result = await chatCompletion(supabase, {
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: `Here is the deal context:\n\n${fullContext}\n\n---\n\nUser question: ${question}` },
       ],
       temperature: 0.7,
       max_tokens: 1500,
-    })
+    }, model.model_id)
 
     return new Response(
       JSON.stringify({ response: result.content, model: model?.model_id || 'unknown' }),

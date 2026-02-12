@@ -178,7 +178,7 @@ export function useCreateDeal() {
         const v = data[k];
         if (v !== undefined && v !== null && v !== "") metadata[k] = v;
       }
-      const { data: deal, error } = await supabase.from("deals").insert({
+      const { data: deal, error } = await (supabase as any).from("deals").insert({
         title: data.title,
         slug: `${slug}-${Date.now().toString(36)}`,
         description: data.description || null,
