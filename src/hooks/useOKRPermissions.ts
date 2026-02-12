@@ -7,7 +7,8 @@ import type { OKRRow } from "@/types/okr";
  * Current rules are compatible with existing EOS roles and can be tightened later.
  */
 export function useOKRPermissions(okr: OKRRow | null) {
-  const { user, isAdmin } = useAuth();
+  const { user, profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
 
   return useMemo(() => {
     if (!okr || !user) {
