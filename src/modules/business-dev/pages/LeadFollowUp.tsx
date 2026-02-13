@@ -39,9 +39,11 @@ import {
   Loader2,
   BarChart3,
   Target,
+  UserCheck,
+  CalendarCheck,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { format, isSameDay, isBefore, startOfToday } from 'date-fns'
+import { format, isSameDay, isBefore, startOfToday, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface Contact {
@@ -149,11 +151,16 @@ export default function LeadFollowUp() {
     }
   }
 
+  const assigneeOptions = Array.from(new Set(mockContacts.map(c => c.assigned_user?.full_name).filter(Boolean))) as string[]
+
   const filteredContacts = mockContacts.filter(c => {
-    if (search && !`${c.first_name} ${c.last_name} ${c.email}`.toLowerCase().includes(search.toLowerCase())) {
+    if (search && !`${c.first_name} ${c.last_name} ${c.email || ''}`.toLowerCase().includes(search.toLowerCase())) {
       return false
     }
     if (statusFilter !== 'all' && c.followup_status !== statusFilter) {
+      return false
+    }
+    if (assigneeFilter !== 'all' && c.assigned_user?.full_name !== assigneeFilter) {
       return false
     }
     return true
@@ -171,12 +178,58 @@ export default function LeadFollowUp() {
     return isBefore(nextDate, startOfToday())
   })
 
-  const kpis = {
-    overdue: overdueContacts.length,
-    dueToday: todayContacts.filter(c => isSameDay(new Date(c.next_followup_date!), startOfToday())).length,
-    hotLeads: filteredContacts.filter(c => c.lead_temperature === 'hot').length,
-    avgScore: Math.round(filteredContacts.reduce((sum, c) => sum + (c.lead_score || 0), 0) / filteredContacts.length),
-  }
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
+
+  const followUpsThisWeek = (list: Contact[]) =>
+    list.filter(c => c.next_followup_date && isWithinInterval(new Date(c.next_followup_date), { start: weekStart, end: weekEnd })).length
+  const activitiesThisWeek = (list: Contact[]) =>
+    list.filter(c => c.last_contact_date && isWithinInterval(new Date(c.last_contact_date), { start: weekStart, end: weekEnd })).length
+  const overdueCount = (list: Contact[]) =>
+    list.filter(c => c.next_followup_date && isBefore(new Date(c.next_followup_date), startOfToday())).length
+
+  const allOverdue = mockContacts.filter(c => c.next_followup_date && isBefore(new Date(c.next_followup_date), startOfToday())).length
+  const allFollowUpsThisWeek = followUpsThisWeek(mockContacts)
+  const allActivitiesThisWeek = activitiesThisWeek(mockContacts)
+
+  const searchFilterBar = (
+    <div className="w-full rounded-lg border border-border/60 bg-muted/30 p-4 flex flex-wrap items-center gap-3">
+      <div className="relative flex-1 min-w-[200px]">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by name or email..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="pl-10 rounded-md bg-background"
+        />
+      </div>
+      <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+        <SelectTrigger className="w-[180px] rounded-md bg-background border-primary/50 focus:ring-2 focus:ring-primary/20">
+          <SelectValue placeholder="All Assignees" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Assignees</SelectItem>
+          {assigneeOptions.map(name => (
+            <SelectItem key={name} value={name}>
+              {name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="w-[160px] rounded-md bg-background">
+          <SelectValue placeholder="All Statuses" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="engaged">Engaged</SelectItem>
+          <SelectItem value="follow_up_needed">Follow Up Needed</SelectItem>
+          <SelectItem value="awaiting_response">Awaiting Response</SelectItem>
+          <SelectItem value="completed">Completed</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  )
 
   const ContactRow = ({ contact }: { contact: Contact }) => (
     <TableRow
@@ -225,49 +278,6 @@ export default function LeadFollowUp() {
         </p>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{kpis.overdue}</div>
-            <p className="text-xs text-muted-foreground mt-1">needs immediate action</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Due Today</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{kpis.dueToday}</div>
-            <p className="text-xs text-muted-foreground mt-1">scheduled for today</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Hot Leads</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{kpis.hotLeads}</div>
-            <p className="text-xs text-muted-foreground mt-1">highest priority</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Avg Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{kpis.avgScore}</div>
-            <p className="text-xs text-muted-foreground mt-1">out of 100</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList>
@@ -285,8 +295,115 @@ export default function LeadFollowUp() {
           </TabsTrigger>
         </TabsList>
 
+        {/* Card section: changes by tab */}
+        {tab === 'today' && (
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mt-6">
+            <Card>
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Overdue</CardTitle>
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <AlertCircle className="h-4 w-4 text-primary" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{overdueContacts.length}</div>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/30">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Lead Follow-Up Pending</CardTitle>
+                <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
+                  <UserCheck className="h-4 w-4 text-primary" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{todayContacts.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Total pending leads</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Overall Progress</CardTitle>
+              </CardHeader>
+                <CardContent>
+                <div className="space-y-2">
+                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{
+                        width: todayContacts.length
+                          ? `${Math.min(100, (Math.max(0, todayContacts.length - overdueContacts.length) / todayContacts.length) * 100)}%`
+                          : '0%',
+                      }}
+                    />
+                  </div>
+                  <p className="text-sm font-medium tabular-nums">
+                    {Math.max(0, todayContacts.length - overdueContacts.length)}/{todayContacts.length}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        {(tab === 'my' || tab === 'all') && (() => {
+          const list = tab === 'my' ? filteredContacts : mockContacts
+          const total = list.length
+          const weekFollowUps = tab === 'my' ? followUpsThisWeek(filteredContacts) : allFollowUpsThisWeek
+          const weekActivities = tab === 'my' ? activitiesThisWeek(filteredContacts) : allActivitiesThisWeek
+          const overdue = tab === 'my' ? overdueCount(filteredContacts) : allOverdue
+          return (
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mt-6">
+              <Card>
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Lead Follow-ups</CardTitle>
+                  <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
+                    <UserCheck className="h-4 w-4 text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{total}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Follow-ups This Week</CardTitle>
+                  <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
+                    <CalendarCheck className="h-4 w-4 text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{weekFollowUps}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Activities This Week</CardTitle>
+                  <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
+                    <CalendarCheck className="h-4 w-4 text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{weekActivities}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Overdue Follow-ups</CardTitle>
+                  <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
+                    <AlertCircle className="h-4 w-4 text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{overdue}</div>
+                </CardContent>
+              </Card>
+            </div>
+          )
+        })()}
+
         {/* Today Tab */}
         <TabsContent value="today" className="space-y-4">
+          {searchFilterBar}
           {overdueContacts.length > 0 && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -345,33 +462,11 @@ export default function LeadFollowUp() {
 
         {/* My Follow-Ups Tab */}
         <TabsContent value="my" className="space-y-4">
+          {searchFilterBar}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex-1 min-w-64">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search contacts..."
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="engaged">Engaged</SelectItem>
-                    <SelectItem value="follow_up_needed">Follow Up Needed</SelectItem>
-                    <SelectItem value="awaiting_response">Awaiting Response</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <CardTitle>My Follow-Ups</CardTitle>
+              <CardDescription>Contacts assigned to you</CardDescription>
             </CardHeader>
             <CardContent>
               {filteredContacts.length === 0 ? (
@@ -408,6 +503,7 @@ export default function LeadFollowUp() {
 
         {/* All Follow-Ups Tab */}
         <TabsContent value="all" className="space-y-4">
+          {searchFilterBar}
           <Card>
             <CardHeader>
               <CardTitle>All Follow-Ups</CardTitle>
@@ -429,7 +525,7 @@ export default function LeadFollowUp() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockContacts.map(contact => (
+                    {filteredContacts.map(contact => (
                       <ContactRow key={contact.id} contact={contact} />
                     ))}
                   </TableBody>

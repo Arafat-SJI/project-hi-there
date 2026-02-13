@@ -18,14 +18,20 @@ export interface Client {
   updated_at: string;
 }
 
-export function useClients(filters?: Record<string, any>) {
+export type ClientSortBy = "name" | "created_at";
+export type ClientSortOrder = "asc" | "desc";
+
+export function useClients(filters?: Record<string, any> & { sortBy?: ClientSortBy; sortOrder?: ClientSortOrder }) {
+  const sortBy = filters?.sortBy ?? "created_at";
+  const sortOrder = filters?.sortOrder ?? "desc";
+
   return useQuery({
     queryKey: queryKeys.clients.list(filters),
     queryFn: async () => {
       let query = supabase
         .from("clients")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order(sortBy, { ascending: sortOrder === "asc" });
 
       if (filters?.search) {
         query = query.or(

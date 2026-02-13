@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useClients, useDeleteClient } from "@/hooks/useClients";
+import { useClients, useDeleteClient, type ClientSortBy, type ClientSortOrder } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,15 +28,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Edit, Eye } from "lucide-react";
+import { Plus, Search, Trash2, Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 export default function Clients() {
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<ClientSortBy>("created_at");
+  const [sortOrder, setSortOrder] = useState<ClientSortOrder>("desc");
 
-  const { data: clients, isLoading } = useClients({ search });
+  const { data: clients, isLoading } = useClients({ search, sortBy, sortOrder });
   const deleteClient = useDeleteClient();
+
+  const handleSort = (column: ClientSortBy) => {
+    if (sortBy === column) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(column);
+      setSortOrder(column === "name" ? "asc" : "desc");
+    }
+  };
+
+  const SortIcon = ({ column }: { column: ClientSortBy }) => {
+    if (sortBy !== column) return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />;
+    return sortOrder === "asc" ? (
+      <ArrowUp className="ml-1 h-4 w-4" />
+    ) : (
+      <ArrowDown className="ml-1 h-4 w-4" />
+    );
+  };
 
   const handleDelete = () => {
     if (deleteId) {
@@ -105,11 +125,29 @@ export default function Clients() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      className="-ml-3 h-8 font-semibold hover:bg-muted"
+                      onClick={() => handleSort("name")}
+                    >
+                      Name
+                      <SortIcon column="name" />
+                    </Button>
+                  </TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      className="-ml-3 h-8 font-semibold hover:bg-muted"
+                      onClick={() => handleSort("created_at")}
+                    >
+                      Created
+                      <SortIcon column="created_at" />
+                    </Button>
+                  </TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
