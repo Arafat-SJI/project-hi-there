@@ -2,7 +2,7 @@
  * Contacts Page - List and manage contacts with lead follow-up status
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Users, Loader2, Mail, Phone, Building2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Search, Users, Loader2, Mail, Phone, Building2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useContacts, useCreateContact } from "../hooks/useContacts";
 import type { Contact } from "../types";
+
+const PAGE_SIZES = [10, 25, 50, 100];
 
 const FOLLOWUP_COLORS: Record<string, string> = {
   new: "#6b7280",
@@ -28,8 +31,19 @@ export default function ContactsPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
   const { data: contacts = [], isLoading } = useContacts(search || undefined);
   const createContact = useCreateContact();
+
+  const totalCount = contacts.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const paginatedContacts = useMemo(
+    () => contacts.slice(currentPage * pageSize, currentPage * pageSize + pageSize),
+    [contacts, currentPage, pageSize]
+  );
+  const from = totalCount === 0 ? 0 : currentPage * pageSize + 1;
+  const to = Math.min((currentPage + 1) * pageSize, totalCount);
 
   const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "", company: "", title: "" });
 
@@ -133,19 +147,20 @@ export default function ContactsPage() {
           <p className="text-lg font-medium">No contacts found</p>
         </div>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Lead Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contacts.map((contact) => (
+        <>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Lead Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedContacts.map((contact) => (
                 <TableRow key={contact.id} className="cursor-pointer hover:bg-accent/50" onClick={() => navigate(`/contacts/${contact.id}`)}>
                   <TableCell>
                     <p className="font-medium">{contact.first_name} {contact.last_name || ""}</p>
@@ -170,10 +185,80 @@ export default function ContactsPage() {
                     ) : <span className="text-xs text-muted-foreground">No follow-up</span>}
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Showing {from} to {to} of {totalCount} results</span>
+              <span className="text-muted-foreground/70">·</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(v) => {
+                  setPageSize(Number(v));
+                  setCurrentPage(0);
+                }}
+              >
+                <SelectTrigger className="w-[110px] h-8 bg-muted/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZES.map((s) => (
+                    <SelectItem key={s} value={String(s)}>{s} per page</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md"
+                disabled={currentPage <= 0}
+                onClick={() => setCurrentPage(0)}
+                aria-label="First page"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md"
+                disabled={currentPage <= 0}
+                onClick={() => setCurrentPage((p) => p - 1)}
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="flex items-center gap-1 px-2 text-sm">
+                <span className="font-medium">{currentPage + 1}</span>
+                <span className="text-muted-foreground">of {totalPages}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md"
+                disabled={currentPage >= totalPages - 1}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                aria-label="Next page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-md"
+                disabled={currentPage >= totalPages - 1}
+                onClick={() => setCurrentPage(totalPages - 1)}
+                aria-label="Last page"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

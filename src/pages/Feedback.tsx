@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MessageSquare, Bug, Lightbulb, TrendingUp, Star, Loader2, Send } from "lucide-react";
+import { MessageSquare, Bug, Lightbulb, TrendingUp, Star, Loader2, Send, Upload, X } from "lucide-react";
+
+const SCREENSHOT_ACCEPT = "image/png,image/jpeg,image/jpg,image/gif,image/webp";
+const SCREENSHOT_MAX = 5;
+const SCREENSHOT_MAX_SIZE_MB = 5;
 
 interface FeedbackItem {
   id: string;
@@ -27,15 +31,20 @@ interface FeedbackItem {
   rating: number | null;
   status: "pending" | "reviewed" | "resolved" | "closed";
   admin_notes: string | null;
+  metadata: { screenshot_urls?: string[] } | null;
   created_at: string;
   updated_at: string;
 }
+
+type ScreenshotPreview = { file: File; previewUrl: string };
 
 export default function Feedback() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [myFeedback, setMyFeedback] = useState<FeedbackItem[]>([]);
+  const [screenshots, setScreenshots] = useState<ScreenshotPreview[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     type: "general" as FeedbackItem["type"],
     subject: "",
@@ -48,6 +57,48 @@ export default function Feedback() {
       fetchMyFeedback();
     }
   }, [user]);
+
+  const addScreenshotFiles = (files: FileList | null) => {
+    if (!files?.length) return;
+    const next: ScreenshotPreview[] = [];
+    for (let i = 0; i < files.length && screenshots.length + next.length < SCREENSHOT_MAX; i++) {
+      const file = files[i];
+      if (!SCREENSHOT_ACCEPT.split(",").some((t) => t.trim() === file.type)) {
+        toast.error(`${file.name}: use PNG, JPG, GIF, or WebP`);
+        continue;
+      }
+      if (file.size > SCREENSHOT_MAX_SIZE_MB * 1024 * 1024) {
+        toast.error(`${file.name}: max ${SCREENSHOT_MAX_SIZE_MB}MB`);
+        continue;
+      }
+      next.push({ file, previewUrl: URL.createObjectURL(file) });
+    }
+    if (next.length) setScreenshots((prev) => prev.concat(next).slice(0, SCREENSHOT_MAX));
+  };
+
+  const removeScreenshot = (index: number) => {
+    setScreenshots((prev) => {
+      const next = prev.slice();
+      URL.revokeObjectURL(next[index].previewUrl);
+      next.splice(index, 1);
+      return next;
+    });
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.files;
+    if (!items?.length) return;
+    const imageFiles: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) imageFiles.push(items[i]);
+    }
+    if (imageFiles.length) {
+      e.preventDefault();
+      const dto = new DataTransfer();
+      imageFiles.forEach((f) => dto.items.add(f));
+      addScreenshotFiles(dto.files);
+    }
+  };
 
   const fetchMyFeedback = async () => {
     if (!user) return;
@@ -70,6 +121,23 @@ export default function Feedback() {
     }
   };
 
+  const uploadScreenshots = async (): Promise<string[]> => {
+    if (!user || !screenshots.length) return [];
+    const urls: string[] = [];
+    for (const { file } of screenshots) {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `${user.id}/feedback/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("user-knowledge").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("user-knowledge").getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+    return urls;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -81,6 +149,10 @@ export default function Feedback() {
 
     setSubmitting(true);
     try {
+      const screenshotUrls = await uploadScreenshots();
+      const metadata =
+        screenshotUrls.length > 0 ? { screenshot_urls: screenshotUrls } : null;
+
       const { error } = await supabase.from("feedback").insert({
         user_id: user.id,
         type: formData.type,
@@ -88,6 +160,7 @@ export default function Feedback() {
         message: formData.message,
         rating: formData.rating,
         status: "pending",
+        metadata,
       });
 
       if (error) throw error;
@@ -98,6 +171,10 @@ export default function Feedback() {
         subject: "",
         message: "",
         rating: 5,
+      });
+      setScreenshots((prev) => {
+        prev.forEach((s) => URL.revokeObjectURL(s.previewUrl));
+        return [];
       });
       fetchMyFeedback();
     } catch (error: any) {
@@ -164,7 +241,7 @@ export default function Feedback() {
             <CardDescription>We'd love to hear from you!</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="type">Type</Label>
                 <Select
@@ -228,6 +305,59 @@ export default function Feedback() {
                   required
                   disabled={submitting}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Screenshots (Optional)</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={SCREENSHOT_ACCEPT}
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    addScreenshotFiles(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={submitting || screenshots.length >= SCREENSHOT_MAX}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Add Screenshot
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Upload or paste up to {SCREENSHOT_MAX} images (PNG, JPG, GIF, WebP). Max {SCREENSHOT_MAX_SIZE_MB}MB each.
+                </p>
+                {screenshots.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {screenshots.map((s, i) => (
+                      <div
+                        key={i}
+                        className="relative rounded-md border overflow-hidden bg-muted w-20 h-20 flex-shrink-0"
+                      >
+                        <img
+                          src={s.previewUrl}
+                          alt={`Screenshot ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          aria-label="Remove screenshot"
+                          className="absolute top-0.5 right-0.5 rounded-full bg-destructive/90 text-destructive-foreground p-1 hover:bg-destructive"
+                          onClick={() => removeScreenshot(i)}
+                          disabled={submitting}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -306,6 +436,25 @@ export default function Feedback() {
                           <p className="text-sm text-muted-foreground mt-1">
                             {item.message}
                           </p>
+                          {item.metadata?.screenshot_urls?.length ? (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {item.metadata.screenshot_urls.map((url, i) => (
+                                <a
+                                  key={i}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block rounded border overflow-hidden w-14 h-14 bg-muted flex-shrink-0"
+                                >
+                                  <img
+                                    src={url}
+                                    alt={`Screenshot ${i + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </a>
+                              ))}
+                            </div>
+                          ) : null}
                           {item.rating && (
                             <div className="flex items-center gap-1 mt-2">
                               {[...Array(item.rating)].map((_, i) => (
