@@ -85,6 +85,7 @@ export const queryKeys = {
     list: (filters?: Record<string, any>) => ["deals", "list", filters] as const,
     detail: (slug: string) => ["deals", "detail", slug] as const,
     pipelineStats: ["deals", "pipeline-stats"] as const,
+    analytics: ["deals", "analytics"] as const,
     revenueProjection: (year?: number) => ["deals", "revenue-projection", year ?? new Date().getFullYear()] as const,
     overviewExtra: ["deals", "overview-extra"] as const,
     activities: (dealId: string) => ["deals", "activities", dealId] as const,
