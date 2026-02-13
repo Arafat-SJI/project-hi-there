@@ -207,7 +207,7 @@ export default function DealsPage() {
       </div>
 
       <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTab)}>
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="h-4 w-4" />
             Overview

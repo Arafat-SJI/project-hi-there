@@ -95,6 +95,184 @@ export function useDealPipelineStats() {
   });
 }
 
+export interface DealsAnalyticsData {
+  kpis: {
+    totalValue: number;
+    totalDeals: number;
+    avgDealSize: number;
+    winRate: number;
+    stagnantCount: number;
+    stagnantValue: number;
+  };
+  stageDistribution: { stage: DealStage; label: string; count: number }[];
+  monthlyTrend: { month: string; dealsCreated: number; dealsWon: number; totalValue: number }[];
+  velocityByStage: { stage: DealStage; label: string; avgDays: number; count: number }[];
+  topClientsByValue: { clientId: string; clientName: string; totalValue: number; wonValue: number }[];
+  topOwnersByWinRate: { ownerId: string; ownerName: string; won: number; total: number; winRate: number }[];
+}
+
+const STAGE_LABELS: Record<DealStage, string> = {
+  lead: "Lead",
+  discovery: "Discovery",
+  qualified: "Qualified",
+  estimation: "Estimation",
+  proposal: "Proposal",
+  won: "Won",
+  lost: "Lost",
+};
+
+export function useDealsAnalytics() {
+  return useQuery({
+    queryKey: queryKeys.deals.analytics,
+    queryFn: async (): Promise<DealsAnalyticsData> => {
+      const { data: deals, error } = await supabase
+        .from("deals")
+        .select("id, stage, value, created_at, updated_at, closed_at, client_id, owner_id, client:clients(name), owner:profiles!deals_owner_id_profiles_fkey(full_name)");
+      if (error) throw error;
+      const rows = (deals || []) as Array<{
+        id: string;
+        stage: string;
+        value: number | null;
+        created_at: string | null;
+        updated_at: string | null;
+        closed_at: string | null;
+        client_id: string | null;
+        owner_id: string | null;
+        client?: { name: string } | null;
+        owner?: { full_name: string | null } | null;
+      }>;
+
+      const stages: DealStage[] = ["lead", "discovery", "qualified", "estimation", "proposal", "won", "lost"];
+      const now = Date.now();
+      const sixtyDaysAgo = now - 60 * 24 * 60 * 60 * 1000;
+      const activeStages: DealStage[] = ["lead", "discovery", "qualified", "estimation", "proposal"];
+
+      let totalValue = 0;
+      let totalDeals = rows.length;
+      let wonCount = 0;
+      let lostCount = 0;
+      let stagnantCount = 0;
+      let stagnantValue = 0;
+      const byStage: Record<DealStage, number> = {} as Record<DealStage, number>;
+      stages.forEach((s) => { byStage[s] = 0; });
+      const monthly: Record<string, { created: number; won: number; value: number }> = {};
+      const velocitySums: Record<DealStage, number> = {} as Record<DealStage, number>;
+      const velocityCounts: Record<DealStage, number> = {} as Record<DealStage, number>;
+      stages.forEach((s) => { velocitySums[s] = 0; velocityCounts[s] = 0; });
+      const clientAgg: Record<string, { name: string; total: number; won: number }> = {};
+      const ownerAgg: Record<string, { name: string; won: number; total: number }> = {};
+
+      rows.forEach((d) => {
+        const val = Number(d.value) || 0;
+        const stage = d.stage as DealStage;
+        totalValue += val;
+        if (stages.includes(stage)) byStage[stage]++;
+        if (stage === "won") wonCount++;
+        if (stage === "lost") lostCount++;
+
+        if (activeStages.includes(stage)) {
+          const updated = d.updated_at ? new Date(d.updated_at).getTime() : 0;
+          if (updated && updated < sixtyDaysAgo) {
+            stagnantCount++;
+            stagnantValue += val;
+          }
+        }
+
+        const createdAt = d.created_at ? d.created_at.slice(0, 7) : null;
+        if (createdAt) {
+          if (!monthly[createdAt]) monthly[createdAt] = { created: 0, won: 0, value: 0 };
+          monthly[createdAt].created++;
+          monthly[createdAt].value += val;
+        }
+        if (stage === "won" && d.closed_at) {
+          const closedMonth = d.closed_at.slice(0, 7);
+          if (!monthly[closedMonth]) monthly[closedMonth] = { created: 0, won: 0, value: 0 };
+          monthly[closedMonth].won++;
+        }
+
+        if (stage && velocityCounts[stage] !== undefined) {
+          const created = d.created_at ? new Date(d.created_at).getTime() : 0;
+          const updated = d.updated_at ? new Date(d.updated_at).getTime() : created;
+          const days = Math.round((updated - created) / (24 * 60 * 60 * 1000));
+          if (!isNaN(days) && days >= 0) {
+            velocitySums[stage] += days;
+            velocityCounts[stage]++;
+          }
+        }
+
+        const cid = d.client_id || "unknown";
+        if (!clientAgg[cid]) clientAgg[cid] = { name: (d.client as { name?: string })?.name || "Unknown", total: 0, won: 0 };
+        clientAgg[cid].total += val;
+        if (stage === "won") clientAgg[cid].won += val;
+
+        const oid = d.owner_id || "unassigned";
+        if (!ownerAgg[oid]) ownerAgg[oid] = { name: (d.owner as { full_name?: string })?.full_name || oid.slice(0, 8), won: 0, total: 0 };
+        ownerAgg[oid].total++;
+        if (stage === "won") ownerAgg[oid].won++;
+      });
+
+      const monthKeys = Object.keys(monthly).sort();
+      const monthlyTrend = monthKeys.map((month) => ({
+        month,
+        dealsCreated: monthly[month].created,
+        dealsWon: monthly[month].won,
+        totalValue: monthly[month].value,
+      }));
+
+      const stageDistribution = stages.map((stage) => ({
+        stage,
+        label: STAGE_LABELS[stage],
+        count: byStage[stage] ?? 0,
+      }));
+
+      const velocityByStage = stages.map((stage) => {
+        const n = velocityCounts[stage] || 0;
+        const sum = velocitySums[stage] || 0;
+        return {
+          stage,
+          label: STAGE_LABELS[stage],
+          avgDays: n ? Math.round(sum / n) : 0,
+          count: n,
+        };
+      });
+
+      const topClientsByValue = Object.entries(clientAgg)
+        .filter(([id]) => id !== "unknown")
+        .map(([clientId, v]) => ({ clientId, clientName: v.name, totalValue: v.total, wonValue: v.won }))
+        .sort((a, b) => b.totalValue - a.totalValue)
+        .slice(0, 10);
+
+      const topOwnersByWinRate = Object.entries(ownerAgg)
+        .filter(([id, agg]) => id !== "unassigned" && agg.total > 0)
+        .map(([ownerId, agg]) => ({
+          ownerId,
+          ownerName: agg.name,
+          won: agg.won,
+          total: agg.total,
+          winRate: agg.total ? Math.round((agg.won / agg.total) * 1000) / 10 : 0,
+        }))
+        .sort((a, b) => b.winRate - a.winRate)
+        .slice(0, 10);
+
+      return {
+        kpis: {
+          totalValue,
+          totalDeals,
+          avgDealSize: totalDeals ? Math.round(totalValue / totalDeals) : 0,
+          winRate: wonCount + lostCount > 0 ? Math.round((wonCount / (wonCount + lostCount)) * 1000) / 10 : 0,
+          stagnantCount,
+          stagnantValue,
+        },
+        stageDistribution,
+        monthlyTrend,
+        velocityByStage,
+        topClientsByValue,
+        topOwnersByWinRate,
+      };
+    },
+  });
+}
+
 export interface RevenueProjectionMonth {
   month: string;
   label: string;
