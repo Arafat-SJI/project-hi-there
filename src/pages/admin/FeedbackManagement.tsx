@@ -57,6 +57,7 @@ interface FeedbackItem {
   rating: number | null;
   status: "pending" | "reviewed" | "resolved" | "closed";
   admin_notes: string | null;
+  metadata: { screenshot_urls?: string[] } | null;
   created_at: string;
   updated_at: string;
 }
@@ -559,6 +560,33 @@ export default function FeedbackManagement() {
                   <p className="text-sm whitespace-pre-wrap">{selectedFeedback.message}</p>
                 </div>
               </div>
+
+              {/* Screenshots */}
+              {selectedFeedback.metadata?.screenshot_urls?.length ? (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Screenshots</Label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {selectedFeedback.metadata.screenshot_urls.map((url, i) => (
+                      <a
+                        key={i}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded-md border overflow-hidden w-24 h-24 bg-muted flex-shrink-0 hover:opacity-90"
+                      >
+                        <img
+                          src={url}
+                          alt={`Screenshot ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Click to open full size
+                  </p>
+                </div>
+              ) : null}
 
               {/* Date */}
               <div className="flex gap-4">
