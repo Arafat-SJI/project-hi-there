@@ -38,6 +38,28 @@ interface FeedbackItem {
 
 type ScreenshotPreview = { file: File; previewUrl: string };
 
+function SignedScreenshot({ storedPath, index }: { storedPath: string; index: number }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    let path = storedPath;
+    if (path.startsWith("http")) {
+      const parts = path.split("/object/public/user-knowledge/");
+      path = parts.length > 1 ? parts[1] : storedPath;
+    }
+    supabase.storage.from("user-knowledge").createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled && data) setUrl(data.signedUrl);
+    });
+    return () => { cancelled = true; };
+  }, [storedPath]);
+  if (!url) return <div className="w-14 h-14 bg-muted rounded border animate-pulse" />;
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block rounded border overflow-hidden w-14 h-14 bg-muted flex-shrink-0">
+      <img src={url} alt={`Screenshot ${index + 1}`} className="w-full h-full object-cover" />
+    </a>
+  );
+}
+
 export default function Feedback() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -132,8 +154,7 @@ export default function Feedback() {
         upsert: false,
       });
       if (error) throw error;
-      const { data } = supabase.storage.from("user-knowledge").getPublicUrl(path);
-      urls.push(data.publicUrl);
+      urls.push(path);
     }
     return urls;
   };
@@ -438,20 +459,8 @@ export default function Feedback() {
                           </p>
                           {item.metadata?.screenshot_urls?.length ? (
                             <div className="flex flex-wrap gap-1 mt-2">
-                              {item.metadata.screenshot_urls.map((url, i) => (
-                                <a
-                                  key={i}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block rounded border overflow-hidden w-14 h-14 bg-muted flex-shrink-0"
-                                >
-                                  <img
-                                    src={url}
-                                    alt={`Screenshot ${i + 1}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </a>
+                              {item.metadata.screenshot_urls.map((path, i) => (
+                                <SignedScreenshot key={i} storedPath={path} index={i} />
                               ))}
                             </div>
                           ) : null}
