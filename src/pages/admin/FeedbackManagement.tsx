@@ -88,6 +88,27 @@ export default function FeedbackManagement() {
   const [editStatus, setEditStatus] = useState<string>("");
   const [editNotes, setEditNotes] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [screenshotUrls, setScreenshotUrls] = useState<string[]>([]);
+
+  const resolveScreenshotUrl = async (storedPath: string): Promise<string> => {
+    let path = storedPath;
+    if (path.startsWith("http")) {
+      const parts = path.split("/object/public/user-knowledge/");
+      if (parts.length > 1) {
+        path = parts[1];
+      } else {
+        return path;
+      }
+    }
+    const { data, error } = await supabase.storage
+      .from("user-knowledge")
+      .createSignedUrl(path, 3600);
+    if (error) {
+      console.error("Error creating signed URL:", error);
+      return "";
+    }
+    return data.signedUrl;
+  };
 
   useEffect(() => {
     fetchFeedback();
@@ -133,8 +154,23 @@ export default function FeedbackManagement() {
     setSelectedFeedback(item);
     setEditStatus(item.status);
     setEditNotes(item.admin_notes || "");
+    setScreenshotUrls([]);
     setSheetOpen(true);
   };
+
+  useEffect(() => {
+    if (!selectedFeedback?.metadata?.screenshot_urls?.length) {
+      setScreenshotUrls([]);
+      return;
+    }
+    let cancelled = false;
+    Promise.all(selectedFeedback.metadata.screenshot_urls.map(resolveScreenshotUrl)).then(
+      (urls) => {
+        if (!cancelled) setScreenshotUrls(urls.filter(Boolean));
+      }
+    );
+    return () => { cancelled = true; };
+  }, [selectedFeedback]);
 
   const handleSaveFeedback = async () => {
     if (!selectedFeedback) return;
@@ -562,11 +598,11 @@ export default function FeedbackManagement() {
               </div>
 
               {/* Screenshots */}
-              {selectedFeedback.metadata?.screenshot_urls?.length ? (
+              {screenshotUrls.length > 0 ? (
                 <div>
                   <Label className="text-xs text-muted-foreground">Screenshots</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {selectedFeedback.metadata.screenshot_urls.map((url, i) => (
+                    {screenshotUrls.map((url, i) => (
                       <a
                         key={i}
                         href={url}
