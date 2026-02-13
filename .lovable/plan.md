@@ -1,112 +1,47 @@
 
 
-# Fix 3 Build Errors + Supabase Client Onboarding Requirements
+# Fix: Feedback Screenshots Not Visible ("Bucket not found")
 
-## Part 1: Supabase Information Needed from the Client
+## Problem
 
-The previous onboarding checklist missed Supabase entirely. Here is what you need to collect or decide for each new client deployment:
+The `user-knowledge` storage bucket is **private** (not public), but the feedback screenshot upload code uses `getPublicUrl()` to generate image URLs. Public URLs only work for public buckets -- private buckets return `{"statusCode":"404","error":"Bucket not found"}`.
 
-### A. Supabase Project Setup
-- **Deployment model**: Will the client get their own dedicated Supabase project, or share the existing one with tenant isolation?
-- **Region preference**: Which Supabase region (US West, US East, EU, Asia, etc.) for data residency compliance?
-- **Plan tier**: Free, Pro, or Team? (affects storage limits, edge function invocations, and database size)
+## Root Cause
 
-### B. Database Credentials (if client brings their own Supabase)
-- **Project URL**: `https://<project-ref>.supabase.co`
-- **Anon (publishable) key**: For frontend client
-- **Service Role key**: For edge functions (server-side only, never exposed to browser)
-- **Database connection string**: For direct DB access or migrations
-
-### C. Authentication Configuration
-- **Auth providers to enable**: Email/password, Microsoft SSO (Azure AD), Google OAuth, Magic Link?
-- **Azure AD details** (if using Microsoft SSO):
-  - Tenant (Directory) ID
-  - Application (Client) ID
-  - Redirect URI (production domain)
-  - Post-logout redirect URI
-- **Google OAuth details** (if using Google login):
-  - Client ID and Client Secret from Google Cloud Console
-- **Custom domain**: Will the client use a custom domain (e.g., `app.clientname.com`)? This affects redirect URIs for all OAuth providers.
-
-### D. Edge Function Secrets
-These must be configured in the Supabase Dashboard under Settings > Edge Functions > Secrets:
-
-| Secret | Purpose | Required? |
-|--------|---------|-----------|
-| `OPENAI_API_KEY` | AI features (deal coach, meeting summaries, embeddings) | Yes -- core AI |
-| `GEMINI_API_KEY` | Alternative AI provider | Optional |
-| `SENDGRID_API_KEY` | Email notifications and contact outreach | If using email features |
-| `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` / `ZOOM_ACCOUNT_ID` | Zoom meeting sync | If using Zoom integration |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_API_KEY` | Google Drive integration | If using Drive/Docs |
-| `SLACK_WEBHOOK_URL` | Slack notifications | If using Slack |
-
-### E. Storage Buckets
-- Confirm whether the client needs:
-  - `knowledge-files` (for knowledge base uploads)
-  - `meeting-recordings` (for meeting audio/video)
-  - `user-knowledge` (for personal documents)
-- **Storage limits**: How much storage does the client expect to use?
-
-### F. Row-Level Security (RLS) / Multi-Tenancy
-- If sharing a Supabase project across clients, you need a **tenant isolation strategy** (e.g., `organization_id` column on all tables with RLS policies filtering by tenant).
-- If dedicated project per client, standard user-based RLS is sufficient.
-
-### G. Backup and Data Retention
-- **Point-in-time recovery**: Does the client require PITR? (Pro plan and above)
-- **Data retention policy**: How long should deleted records be kept?
-- **Export requirements**: Does the client need periodic data exports?
-
----
-
-## Part 2: Fix 3 Build Errors
-
-### Error 1: `deal-coach/index.ts` -- Wrong `chatCompletion` call signature
-
-The `chatCompletion` function signature is:
-```
-chatCompletion(supabase, request: ChatCompletionRequest, modelId?: string)
-```
-
-But the current code passes `model` (an AIModel object) as the second argument. 
-
-**Fix** (line 124): Swap the arguments -- pass the request object as the second arg and `model.model_id` as the third:
+In `src/pages/Feedback.tsx` (line 135):
 ```typescript
-const result = await chatCompletion(supabase, {
-  messages: [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: `...` },
-  ],
-  temperature: 0.7,
-  max_tokens: 1500,
-}, model.model_id);
+const { data } = supabase.storage.from("user-knowledge").getPublicUrl(path);
+urls.push(data.publicUrl);
 ```
 
-Since `chatCompletion` internally calls `getModel()` again with the modelId, the earlier `getModel()` call on line 115 is now only used for the null check and final response. This is fine.
+These public URLs are then stored in the feedback record's `metadata.screenshot_urls` and later rendered as `<img src={url}>` in `FeedbackManagement.tsx`. Since the bucket is private, none of these URLs resolve.
 
-### Error 2: `AppSidebar.tsx` -- `.count` on `never` type
+## Solution
 
-Line 377 accesses `dealStageCounts[stageMatch[1]]?.count`, but TypeScript infers `dealStageCounts` as `Record<string, never>` because `by_stage` in `DealPipelineStats` is not explicitly typed in the return.
+Two files need changes:
 
-**Fix** (line 377): Add a type assertion to the access:
-```typescript
-const stageCount = stageMatch
-  ? (dealStageCounts as Record<string, { count: number; value: number }>)[stageMatch[1]]?.count
-  : undefined;
-```
+### 1. `src/pages/Feedback.tsx` -- Store file **paths** instead of public URLs
 
-### Error 3: `useDeals.ts` -- `title` not in Insert type
+Instead of calling `getPublicUrl()` and storing the full URL, store just the storage path (e.g., `userId/feedback/timestamp-random.png`). This allows the viewing side to generate signed URLs on demand.
 
-Line 182 passes `title` directly to `.insert()`, but the Supabase `deals` Insert type expects `title: string` and `slug: string` as required fields. The issue is that the insert object includes `title` which IS a valid field. The real error is that TypeScript expects the argument to be typed as a single object, not an array.
+- Line 135-136: Replace `getPublicUrl()` with just pushing the `path` string directly into the `urls` array (rename to `paths` for clarity).
 
-Looking at the error message: "'title' does not exist in type `{...}[]`" -- the problem is that `.insert()` is receiving or being inferred as expecting an **array** of objects. 
+### 2. `src/pages/admin/FeedbackManagement.tsx` -- Generate signed URLs for display
 
-**Fix** (line 181): Add explicit single-object typing by wrapping with `as any` or using a typed variable:
-```typescript
-const { data: deal, error } = await supabase.from("deals").insert({
-  title: data.title,
-  slug: `${slug}-${Date.now().toString(36)}`,
-  ...rest
-} as any).select().single();
-```
+When rendering screenshots, generate signed URLs from the stored paths:
 
-Alternatively, extract the insert payload into a typed const first to help TypeScript infer correctly.
+- Add a helper function that takes a path and calls `supabase.storage.from("user-knowledge").createSignedUrl(path, 3600)` (1-hour expiry).
+- Use a `useEffect` or inline state to resolve signed URLs when `selectedFeedback` changes.
+- Render the signed URLs in the `<img>` tags instead of the raw paths.
+- Handle backward compatibility: if a stored URL starts with `http`, it is a legacy public URL -- attempt to extract the path portion and generate a signed URL for it too.
+
+### Backward Compatibility
+
+Existing feedback records already have full public URLs stored. The viewing code will detect these (they start with `https://`) and extract the path portion after `/object/public/user-knowledge/` to generate a valid signed URL.
+
+## Technical Details
+
+- **Signed URL expiry**: 1 hour (3600 seconds) -- sufficient for viewing sessions
+- **No bucket configuration change needed** -- keeping the bucket private is the correct security posture for user-uploaded content
+- **Files modified**: 2 (`src/pages/Feedback.tsx`, `src/pages/admin/FeedbackManagement.tsx`)
+- **No database or migration changes required**
