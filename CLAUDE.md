@@ -323,9 +323,9 @@ VITE_MODULE_PRODUCTIVITY=true
 | `vite.config.ts` | Build config (port 8080, `@` alias) |
 | `tailwind.config.ts` | Tailwind with dark mode, custom colors |
 
-## Specialized Subagents (10 Agents)
+## Specialized Subagents (11 Agents)
 
-Ten specialized agents are available in `.claude/agents/` for delegating complex tasks. Each agent has deep knowledge of this project's patterns, conventions, and file structure. See `.claude/agents.md` for auto-delegation rules and multi-agent workflows.
+Eleven specialized agents are available in `.claude/agents/` for delegating complex tasks. Each agent has deep knowledge of this project's patterns, conventions, and file structure. See `.claude/agents.md` for auto-delegation rules and multi-agent workflows.
 
 | # | Agent | File | Specialization | Tools |
 |---|-------|------|---------------|-------|
@@ -339,6 +339,7 @@ Ten specialized agents are available in `.claude/agents/` for delegating complex
 | 8 | **security-auditor** | `.claude/agents/security-auditor.md` | Security scanning, RLS audit, vulnerability detection (read-only) | Read, Grep, Glob |
 | 9 | **typescript-pro** | `.claude/agents/typescript-pro.md` | Type safety, `any` elimination, Zod/TS alignment, generics | Read, Write, Edit, Glob, Grep |
 | 10 | **test-automator** | `.claude/agents/test-automator.md` | Unit tests, integration tests, Vitest setup, fixtures | Read, Write, Edit, Bash, Glob, Grep |
+| 11 | **edge-function-doctor** | `.claude/agents/edge-function-doctor.md` | Edge Function audit, non-2xx diagnosis, CORS fixes, function creation | Read, Write, Edit, Bash, Glob, Grep |
 
 ### Example Invocations
 
@@ -372,11 +373,20 @@ Use the refactoring-specialist agent to split the large Dashboard component
 
 # Security audit
 Use the security-auditor agent to audit RLS policies on all tables
+
+# Audit Edge Functions for non-2xx errors
+Use the edge-function-doctor agent to audit all Edge Functions
+
+# Fix a specific Edge Function error
+Use the edge-function-doctor agent to fix the 500 error in send-notification
+
+# Create a new Edge Function
+Use the edge-function-doctor agent to create a new Edge Function for team-invitations
 ```
 
 ## Skill Registry
 
-Six skills are available in `.claude/skills/` providing domain knowledge and workflow standards.
+Seven skills are available in `.claude/skills/` providing domain knowledge and workflow standards.
 
 | # | Skill | File | Purpose |
 |---|-------|------|---------|
@@ -386,6 +396,7 @@ Six skills are available in `.claude/skills/` providing domain knowledge and wor
 | 4 | **project-architecture** | `.claude/skills/project-architecture/SKILL.md` | Full architecture reference |
 | 5 | **specs-first-workflow** | `.claude/skills/specs-first-workflow/SKILL.md` | Specs before code workflow |
 | 6 | **ai-agents-domain** | `.claude/skills/ai-agents-domain/SKILL.md` | AI agents domain knowledge |
+| 7 | **edge-function-patterns** | `.claude/skills/edge-function-patterns/SKILL.md` | Edge Function best practices, CORS-first pattern, error prevention |
 
 ## Session Rules
 
@@ -397,6 +408,8 @@ Six skills are available in `.claude/skills/` providing domain knowledge and wor
 - Load **project-architecture** for architectural decisions
 - Run **code-reviewer** before suggesting any PR or merge
 - Run **security-auditor** before deploying sensitive features
+- Run **edge-function-doctor** for ALL Edge Function work (create, edit, debug, deploy)
+- Follow **edge-function-patterns** for ALL Edge Function code
 - Create/update docs for any feature work
 - Never skip specs
 

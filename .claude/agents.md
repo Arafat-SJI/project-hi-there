@@ -1,7 +1,7 @@
 # Agent Registry for SJ Control Tower Framework
 
 ## Overview
-This project has 10 specialized agents for delegating complex tasks. Claude Code automatically selects the appropriate agent based on the user's request. Each agent is deeply customized with this project's actual code patterns, file structure, database schema, and conventions.
+This project has 11 specialized agents for delegating complex tasks. Claude Code automatically selects the appropriate agent based on the user's request. Each agent is deeply customized with this project's actual code patterns, file structure, database schema, and conventions.
 
 ## Agent Roster
 
@@ -17,6 +17,7 @@ This project has 10 specialized agents for delegating complex tasks. Claude Code
 | 8 | security-auditor | Security scanning, vulnerability detection, RLS audit | Read, Grep, Glob | Read-only |
 | 9 | typescript-pro | Type safety, generics, zero `any`, Zod alignment | Read, Write, Edit, Glob, Grep | Builder |
 | 10 | test-automator | Unit tests, integration tests, RLS tests, Vitest setup | Read, Write, Edit, Bash, Glob, Grep | Builder |
+| 11 | edge-function-doctor | Edge Function audit, fix, creation, non-2xx diagnosis | Read, Write, Edit, Bash, Glob, Grep | Specialist |
 
 ## Auto-Delegation Rules
 
@@ -28,7 +29,8 @@ This project has 10 specialized agents for delegating complex tasks. Claude Code
 | "Review code / check quality / before PR / audit code" | **code-reviewer** |
 | "Write spec / create docs / implementation guide / update docs" | **documentation-engineer** |
 | "Create component / page / form / UI / hook / routing" | **react-frontend-dev** |
-| "Create table / Edge Function / migration / RLS / database" | **supabase-backend-dev** |
+| "Create table / migration / RLS / database" | **supabase-backend-dev** |
+| "Edge Function / non-2xx / CORS error / 500/503/504/546 / function deploy" | **edge-function-doctor** |
 | "Page is slow / optimize / performance / bundle size / re-renders" | **performance-engineer** |
 | "Refactor / clean up / split component / tech debt / extract hook" | **refactoring-specialist** |
 | "Security review / audit / check vulnerabilities / RLS audit" | **security-auditor** |
