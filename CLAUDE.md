@@ -323,19 +323,22 @@ VITE_MODULE_PRODUCTIVITY=true
 | `vite.config.ts` | Build config (port 8080, `@` alias) |
 | `tailwind.config.ts` | Tailwind with dark mode, custom colors |
 
-## Specialized Subagents
+## Specialized Subagents (10 Agents)
 
-Seven specialized agents are available in `.claude/agents/` for delegating complex tasks. Each agent has deep knowledge of this project's patterns, conventions, and file structure.
+Ten specialized agents are available in `.claude/agents/` for delegating complex tasks. Each agent has deep knowledge of this project's patterns, conventions, and file structure. See `.claude/agents.md` for auto-delegation rules and multi-agent workflows.
 
-| Agent | File | Specialization | Tools |
-|-------|------|---------------|-------|
-| **react-frontend-dev** | `.claude/agents/react-frontend-dev.md` | Pages, components, hooks, forms, routing, UI/styling | Read, Write, Edit, Bash, Glob, Grep |
-| **supabase-backend-dev** | `.claude/agents/supabase-backend-dev.md` | Edge Functions, migrations, RLS policies, auth, DB schema | Read, Write, Edit, Bash, Glob, Grep |
-| **code-reviewer** | `.claude/agents/code-reviewer.md` | Code quality, security audit, performance review, convention enforcement | Read, Grep, Glob (read-only) |
-| **typescript-strict** | `.claude/agents/typescript-strict.md` | Type safety, `any` elimination, Zod/TS alignment, type guards | Read, Write, Edit, Glob, Grep |
-| **documentation-engineer** | `.claude/agents/documentation-engineer.md` | Specs, API docs, module guides, schema docs, setup guides | Read, Write, Edit, Glob, Grep |
-| **debugger-detective** | `.claude/agents/debugger-detective.md` | Error analysis, React rendering bugs, Supabase/RLS debugging, perf profiling | Read, Edit, Bash, Glob, Grep |
-| **test-automator** | `.claude/agents/test-automator.md` | Unit tests, integration tests, test infrastructure (Vitest + RTL), fixtures | Read, Write, Edit, Bash, Glob, Grep |
+| # | Agent | File | Specialization | Tools |
+|---|-------|------|---------------|-------|
+| 1 | **react-frontend-dev** | `.claude/agents/react-frontend-dev.md` | Pages, components, hooks, forms, routing, UI/styling | Read, Write, Edit, Bash, Glob, Grep |
+| 2 | **supabase-backend-dev** | `.claude/agents/supabase-backend-dev.md` | Edge Functions, migrations, RLS policies, auth, DB schema | Read, Write, Edit, Bash, Glob, Grep |
+| 3 | **code-reviewer** | `.claude/agents/code-reviewer.md` | Code quality, convention enforcement (read-only) | Read, Grep, Glob |
+| 4 | **debugger** | `.claude/agents/debugger.md` | Bug investigation, error analysis, RLS debugging | Read, Edit, Bash, Glob, Grep |
+| 5 | **documentation-engineer** | `.claude/agents/documentation-engineer.md` | Specs, API docs, module guides, schema docs | Read, Write, Edit, Glob, Grep |
+| 6 | **performance-engineer** | `.claude/agents/performance-engineer.md` | Performance optimization, bundle analysis, query profiling | Read, Edit, Bash, Glob, Grep |
+| 7 | **refactoring-specialist** | `.claude/agents/refactoring-specialist.md` | Safe code restructuring, tech debt cleanup | Read, Write, Edit, Bash, Glob, Grep |
+| 8 | **security-auditor** | `.claude/agents/security-auditor.md` | Security scanning, RLS audit, vulnerability detection (read-only) | Read, Grep, Glob |
+| 9 | **typescript-pro** | `.claude/agents/typescript-pro.md` | Type safety, `any` elimination, Zod/TS alignment, generics | Read, Write, Edit, Glob, Grep |
+| 10 | **test-automator** | `.claude/agents/test-automator.md` | Unit tests, integration tests, Vitest setup, fixtures | Read, Write, Edit, Bash, Glob, Grep |
 
 ### Example Invocations
 
@@ -350,17 +353,52 @@ Use the supabase-backend-dev agent to create a new API endpoint for team invitat
 Use the code-reviewer agent to review the changes in src/hooks/useDeals.ts
 
 # Improve type safety
-Use the typescript-strict agent to eliminate all `any` types in src/hooks/useClients.ts
+Use the typescript-pro agent to eliminate all `any` types in src/hooks/useClients.ts
 
 # Write documentation
 Use the documentation-engineer agent to document the meetings module API
 
 # Debug an issue
-Use the debugger-detective agent to investigate why meetings list returns empty
+Use the debugger agent to investigate why meetings list returns empty
 
 # Set up tests
 Use the test-automator agent to write unit tests for src/lib/validation.ts
+
+# Optimize performance
+Use the performance-engineer agent to analyze slow loading on the Projects page
+
+# Refactor safely
+Use the refactoring-specialist agent to split the large Dashboard component
+
+# Security audit
+Use the security-auditor agent to audit RLS policies on all tables
 ```
+
+## Skill Registry
+
+Six skills are available in `.claude/skills/` providing domain knowledge and workflow standards.
+
+| # | Skill | File | Purpose |
+|---|-------|------|---------|
+| 1 | **sj-code-standards** | `.claude/skills/sj-code-standards/SKILL.md` | Coding standards for all code changes |
+| 2 | **sj-bug-fix-workflow** | `.claude/skills/sj-bug-fix-workflow/SKILL.md` | 8-step bug fix process |
+| 3 | **supabase-patterns** | `.claude/skills/supabase-patterns/SKILL.md` | Database and backend patterns |
+| 4 | **project-architecture** | `.claude/skills/project-architecture/SKILL.md` | Full architecture reference |
+| 5 | **specs-first-workflow** | `.claude/skills/specs-first-workflow/SKILL.md` | Specs before code workflow |
+| 6 | **ai-agents-domain** | `.claude/skills/ai-agents-domain/SKILL.md` | AI agents domain knowledge |
+
+## Session Rules
+
+- Read `.claude/agents.md` for agent delegation rules
+- Follow **sj-code-standards** for ALL code changes
+- Follow **sj-bug-fix-workflow** for ALL bug fixes
+- Follow **specs-first-workflow** before ANY new feature
+- Follow **supabase-patterns** for ALL database work
+- Load **project-architecture** for architectural decisions
+- Run **code-reviewer** before suggesting any PR or merge
+- Run **security-auditor** before deploying sensitive features
+- Create/update docs for any feature work
+- Never skip specs
 
 ## Documentation
 
