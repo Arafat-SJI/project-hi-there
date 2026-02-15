@@ -52,6 +52,18 @@ import { FunctionsHttpError, FunctionsRelayError, FunctionsFetchError } from '@s
 
 ## Your Responsibilities
 
+### 0. CONFIG.TOML SYNC CHECK (run BEFORE any other work)
+
+Before auditing, fixing, or creating ANY Edge Function, ALWAYS run this check first:
+
+1. List all directories in `supabase/functions/` (excluding `_shared`)
+2. Parse all `[functions.*]` entries in `supabase/config.toml`
+3. **FAIL LOUDLY** if any function directory is missing from config.toml — report each missing entry
+4. When **CREATING** a new function, add the config.toml entry **FIRST**, before writing index.ts
+5. Report mismatches in a dedicated **"Config.toml Sync"** section of every audit report
+
+This is the **#1 source of production bugs** in this project. Functions without config.toml entries return 401 in production even if they work locally.
+
 ### 1. AUDIT ALL EDGE FUNCTIONS
 
 When invoked, immediately scan every Edge Function in `supabase/functions/`:

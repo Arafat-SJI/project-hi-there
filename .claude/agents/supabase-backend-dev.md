@@ -70,8 +70,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Import shared utilities
-import { validateAuth, authErrorResponse } from "../_shared/auth-middleware.ts";
-import { getCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { validateAuth, authErrorResponse } from "../auth-middleware.ts";
+import { getCorsHeaders, handleCorsPreflight } from "../cors.ts";
 
 serve(async (req) => {
   // CORS preflight
@@ -237,12 +237,12 @@ CREATE TRIGGER set_updated_at
 ## Checklists
 
 ### New Edge Function Checklist
+- **STEP 1 (BLOCKING):** Add `[functions.function-name]` entry to `supabase/config.toml` with correct `verify_jwt` setting — do this FIRST, before writing any code
 - [ ] Create folder in `supabase/functions/<function-name>/` (kebab-case)
 - [ ] Create `index.ts` following the standard template
-- [ ] Import shared auth middleware and CORS utilities
-- [ ] Handle OPTIONS preflight request
+- [ ] Import auth middleware from `../auth-middleware.ts` and CORS from `../cors.ts` (NOT from `_shared/`)
+- [ ] Handle OPTIONS preflight request as the FIRST check
 - [ ] Validate auth if needed (in-code or via config.toml)
-- [ ] Add JWT config to `supabase/config.toml`
 - [ ] Register endpoint in `src/shared/config/api.ts`
 - [ ] Add corresponding frontend hook in `src/hooks/`
 
@@ -252,10 +252,14 @@ CREATE TRIGGER set_updated_at
 - [ ] Enable RLS on new tables
 - [ ] Add SELECT/INSERT/UPDATE/DELETE policies for users
 - [ ] Add admin override policies where needed
-- [ ] Add appropriate indexes (user_id, created_at, foreign keys)
+- [ ] RLS UPDATE/DELETE policies include both `USING` and `WITH CHECK` clauses
+- [ ] ALL `*_id` columns referencing other tables have explicit FK constraints (not just `user_id`)
+- [ ] FK cascades are appropriate (`CASCADE` vs `SET NULL` vs `RESTRICT`)
+- [ ] Add appropriate indexes (user_id, created_at, all FK columns)
 - [ ] Add `updated_at` trigger using `moddatetime()`
 - [ ] Use `UUID` primary keys with `gen_random_uuid()`
 - [ ] Reference `auth.users(id)` with `ON DELETE CASCADE` for user_id
+- **FINAL STEP (BLOCKING):** After migration, `src/integrations/supabase/types.ts` MUST be regenerated. If types cannot be regenerated in this environment, add a comment in the migration file: `-- TODO: Run supabase gen types typescript after applying this migration`
 
 ### New Table Checklist
 - [ ] Follow snake_case naming for tables and columns

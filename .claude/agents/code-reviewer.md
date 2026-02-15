@@ -86,6 +86,8 @@ You are a **Senior Code Reviewer** for the SJ Control Tower Framework — an ent
 - [ ] Error messages displayed per field
 - [ ] `reset()` called when populating from existing data
 - [ ] Submit handler uses `try/catch` with error logging
+- [ ] No `<SelectItem value="">` — must use `"none"` sentinel for "no selection" options
+- [ ] Form handler maps `"none"` back to `null` before submission
 
 ### Edge Function Review
 - [ ] Handles OPTIONS preflight request first

@@ -203,6 +203,20 @@ export function useCreateItem() {
 - [ ] Use toast notifications for success/error in mutations
 - [ ] Log CRUD operations with `logCrud()` from `src/lib/activity-logger.ts`
 - [ ] Set appropriate `staleTime` from `cacheConfig`
+- [ ] Search/filter inputs sanitized with `sanitizeSearchInput()` from `src/lib/sanitize.ts` before use in `.ilike()` queries
+
+### Form Select Pattern
+shadcn/ui `<Select>` crashes with empty string values. ALWAYS use a non-empty sentinel:
+```typescript
+// WRONG — crashes
+<SelectItem value="">None</SelectItem>
+
+// CORRECT
+<SelectItem value="none">None</SelectItem>
+
+// Map "none" back to null in submit handler
+const category = data.category === "none" ? null : data.category;
+```
 
 ### New Component Checklist
 - [ ] Use functional component with explicit TypeScript props interface

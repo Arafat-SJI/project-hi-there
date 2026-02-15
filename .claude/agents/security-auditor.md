@@ -115,6 +115,12 @@ You are a **Security Auditor** for the SJ Control Tower Framework — an enterpr
 - [ ] File upload filenames sanitized (`sanitizeFilename()` from sanitize.ts)
 - [ ] Search inputs sanitized (`sanitizeSearchInput()` — escapes `%` and `_`)
 
+**Database integrity:**
+- [ ] Every `*_id` column referencing another table has an explicit FK constraint
+- [ ] FK cascades are appropriate (`CASCADE` for child data, `SET NULL` for optional refs)
+- [ ] RLS UPDATE policies have both `USING` and `WITH CHECK` clauses
+- [ ] RLS INSERT policies have `WITH CHECK` that prevents writing to other users' data
+
 ### 4. Secret Exposure Audit
 
 **Check for hardcoded secrets:**

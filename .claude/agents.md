@@ -75,12 +75,20 @@ This project has 11 specialized agents for delegating complex tasks. Claude Code
 4. **performance-engineer** → optimize slow areas
 5. **test-automator** → add missing test coverage
 
+#### New Edge Function
+1. **edge-function-doctor** → verify config.toml entry exists FIRST (create if missing)
+2. **supabase-backend-dev** → create function using gold standard template
+3. **edge-function-doctor** → audit new function against mandatory checklist
+4. **code-reviewer** → verify CORS, auth, error handling patterns
+5. **security-auditor** → verify auth requirements and input validation
+
 #### Database Schema Change
 1. **documentation-engineer** → document schema change spec
-2. **supabase-backend-dev** → write migration, RLS policies, indexes
-3. **security-auditor** → verify RLS policies are correct
-4. **react-frontend-dev** → update frontend hooks and types
-5. **typescript-pro** → ensure Supabase generated types are integrated
+2. **supabase-backend-dev** → write migration, RLS policies, indexes, FK constraints
+3. **supabase-backend-dev** → regenerate Supabase types (`types.ts`)
+4. **security-auditor** → verify RLS policies and FK constraints are correct
+5. **react-frontend-dev** → update frontend hooks and types
+6. **typescript-pro** → ensure new types are integrated, eliminate any `as any` workarounds
 
 ## Project-Specific Context
 

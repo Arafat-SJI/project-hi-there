@@ -71,10 +71,11 @@ Determine which layer the bug originates from:
    - Check `useMemo`/`useCallback` dependency arrays
    - Look for variables used inside the hook but missing from deps
 
-3. **Race condition** — async timing issues
-   - Data not loaded before component renders
-   - Multiple mutations competing
-   - Auth session not ready when query fires
+3. **Stale Supabase types** — schema changed but types not regenerated
+   - Column added/removed in migration but `types.ts` is outdated
+   - Symptoms: `as any` casts, `never` type errors, type mismatch on insert/update
+   - Fix: Regenerate types with `supabase gen types typescript --project-id <id> > src/integrations/supabase/types.ts`
+   - Prevention: ALWAYS regenerate types after any migration
 
 4. **Type mismatch** — data shape doesn't match expectation
    - Supabase returns `null` but code expects array
@@ -86,18 +87,30 @@ Determine which layer the bug originates from:
    - Array method called on `undefined`
    - Object property access on potentially null query result
 
-6. **Edge Function timeout** — function takes too long
+6. **Race condition** — async timing issues
+   - Data not loaded before component renders
+   - Multiple mutations competing
+   - Auth session not ready when query fires
+
+7. **Edge Function timeout** — function takes too long
    - External API calls (OpenAI, Google, Zoom) timing out
    - Large database queries without limits
    - Missing pagination on large result sets
 
-7. **CORS misconfiguration** — origin not in allowlist
+8. **CORS misconfiguration** — origin not in allowlist
    - Check `supabase/cors.ts` for origin patterns
    - Check if Edge Function handles OPTIONS preflight
 
-8. **Stale Supabase types** — schema changed but types not regenerated
-   - Column added/removed in migration but `types.ts` is outdated
-   - Run type generation after schema changes
+9. **OAuth token expiry** — external provider tokens go stale
+   - Azure AD, Google, Zoom tokens have short lifetimes (often 5 minutes)
+   - Token acquired at login may expire by the time it's used for an API call
+   - Always acquire a fresh token immediately before the API call that needs it
+   - Check `src/lib/azureAuth.ts`, integration hooks for token refresh patterns
+
+10. **Missing config.toml entry** — Edge Function returns 401 in production
+    - Every Edge Function directory MUST have a `[functions.name]` entry in `supabase/config.toml`
+    - Functions work locally without this but fail in production
+    - This is the #1 source of Edge Function bugs in this project
 
 ## Step 5: Write a Failing Test (if test infra exists)
 
