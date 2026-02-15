@@ -280,6 +280,18 @@ Deno.serve(async (req) => {
 })
 ```
 
+### Rule 9: Register in config.toml BEFORE Writing Code
+
+Every Edge Function MUST have a `[functions.function-name]` entry in `supabase/config.toml`. Add this entry **FIRST** — before creating the function directory or writing any code.
+
+```toml
+# Add to supabase/config.toml BEFORE creating the function
+[functions.my-new-function]
+verify_jwt = false
+```
+
+Functions without config.toml entries will return **401 in production** even if they work locally. This is the **#1 source of production bugs** in this project (4 bugs in the last 10 days).
+
 ## Deployment Checklist
 
 Before deploying any Edge Function:

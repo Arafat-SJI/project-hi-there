@@ -157,6 +157,26 @@ const onSubmit = async (data: FormData) => {
 };
 ```
 
+## Select Component Pattern
+
+shadcn/ui `<Select>` crashes with empty string values. ALWAYS use a non-empty sentinel:
+
+```typescript
+// WRONG — crashes shadcn/ui Select
+<SelectItem value="">None</SelectItem>
+
+// CORRECT — use "none" sentinel
+<SelectItem value="none">None</SelectItem>
+
+// In form handler, map "none" back to null/undefined:
+const onSubmit = (data: FormData) => {
+  const payload = {
+    ...data,
+    category: data.category === "none" ? null : data.category,
+  };
+};
+```
+
 ## Security
 
 - All user-generated HTML sanitized via `sanitizeHtml()` from `src/lib/sanitize.ts`

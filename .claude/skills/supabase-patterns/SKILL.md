@@ -32,6 +32,26 @@ CREATE TABLE IF NOT EXISTS public.table_name (
 - Indexes: `idx_table_column` — `idx_clients_user_id`
 - RLS policies: Descriptive English — `"Users can view own records"`
 
+### Foreign Key Constraints
+
+Every column ending in `_id` that references another table MUST have an explicit FK constraint:
+
+```sql
+-- WRONG — no constraint, allows orphaned records
+client_id UUID,
+
+-- CORRECT — explicit FK with appropriate cascade
+client_id UUID REFERENCES public.clients(id) ON DELETE SET NULL,
+project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+meeting_id UUID REFERENCES public.meetings(id) ON DELETE CASCADE,
+```
+
+FK columns MUST also have indexes for join performance:
+```sql
+CREATE INDEX idx_deals_client_id ON public.deals(client_id);
+CREATE INDEX idx_tasks_project_id ON public.tasks(project_id);
+```
+
 ### Soft Deletes (when applicable)
 ```sql
 is_deleted BOOLEAN DEFAULT false,
@@ -310,6 +330,28 @@ const { data, error } = await supabase
 | `contacts` | Contact people | id, name, email, client_id |
 | `zoom_files` | Zoom recordings | id, meeting_id, file_url, file_type |
 | `mcp_servers` | MCP server configs | id, name, url, api_key |
+
+## Supabase Storage Patterns
+
+### Store Paths, Not URLs
+
+```typescript
+// WRONG — stores full URL (breaks if bucket access changes from public to private)
+const publicUrl = supabase.storage.from('bucket').getPublicUrl(path).data.publicUrl;
+await supabase.from('table').update({ file_url: publicUrl });
+
+// CORRECT — store the relative path, generate URL at render time
+await supabase.from('table').update({ file_path: path });
+
+// At render time, generate signed URL for private buckets
+const { data } = await supabase.storage.from('bucket').createSignedUrl(filePath, 3600);
+```
+
+Rules:
+- ALWAYS store relative file **paths** in the database, never full URLs
+- Use `createSignedUrl()` for private buckets (most buckets in this project)
+- Use `getPublicUrl()` only for explicitly public buckets
+- Signed URLs should have appropriate expiry (3600s for display, 60s for download)
 
 ## Edge Functions in This Project (118 total)
 
