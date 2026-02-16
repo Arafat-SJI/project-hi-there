@@ -244,7 +244,6 @@ export const navigationGroups: NavGroup[] = [
     id: "operations",
     title: "Operations",
     icon: "Settings2",
-    module: "productivity",
     items: [
       {
         title: "Productivity",
@@ -257,6 +256,12 @@ export const navigationGroups: NavGroup[] = [
         href: "/process",
         icon: "FileText",
         module: "productivity",
+      },
+      {
+        title: "Feedback",
+        href: "/feedback",
+        icon: "MessageCircle",
+        featureFlag: "enableFeedback",
       },
     ],
   },
@@ -271,18 +276,14 @@ export const navigationGroups: NavGroup[] = [
         href: "/ai-agents",
         icon: "Bot",
         featureFlag: "enableAIAgents",
+        adminOnly: true,
       },
       {
         title: "AI Chat",
         href: "/ai-chat",
         icon: "MessageSquare",
         featureFlag: "enableAIChat",
-      },
-      {
-        title: "Feedback",
-        href: "/feedback",
-        icon: "MessageCircle",
-        featureFlag: "enableFeedback",
+        adminOnly: true,
       },
     ],
   },
