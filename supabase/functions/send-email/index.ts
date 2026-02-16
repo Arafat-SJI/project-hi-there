@@ -4,7 +4,10 @@
  * Requires integration enabled to send
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../cors.ts";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 import { sendEmailViaSendGrid } from "../_shared/sendgrid-email.ts";
 
 Deno.serve(async (req) => {
