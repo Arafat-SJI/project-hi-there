@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useClient, useCreateClient, useUpdateClient, getClientNotes } from "@/hooks/useClients";
 import { clientSchema, ClientFormData } from "@/lib/validation";
@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -29,10 +36,12 @@ export default function ClientForm() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     reset,
   } = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
+    defaultValues: { status: "active" },
   });
 
   useEffect(() => {
@@ -42,6 +51,7 @@ export default function ClientForm() {
         email: client.email || "",
         company: client.company || "",
         phone: client.phone || "",
+        status: (client.status as "active" | "inactive") || "active",
         notes: getClientNotes(client),
       });
     }
@@ -154,6 +164,33 @@ export default function ClientForm() {
                 />
                 {errors.phone && (
                   <p className="text-sm text-destructive">{errors.phone.message}</p>
+                )}
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? "active"}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.status && (
+                  <p className="text-sm text-destructive">{errors.status.message}</p>
                 )}
               </div>
             </div>

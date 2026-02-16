@@ -91,8 +91,9 @@ function resolveIcon(iconName: string): LucideIcon {
   return iconMap[iconName] || LayoutDashboard;
 }
 
-// Local storage key for expanded groups
+// Local storage key for expanded groups and header-only sections
 const EXPANDED_GROUPS_KEY = "sidebar-expanded-groups";
+const EXPANDED_SECTIONS_KEY = "sidebar-expanded-sections";
 
 interface AppSidebarProps {
   open?: boolean;
@@ -121,15 +122,34 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
     }, {} as Record<string, boolean>);
   });
 
+  // Track expanded state for header-only sections (e.g. Clients)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem(EXPANDED_SECTIONS_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return {};
+  });
+
   // Persist expanded state
   useEffect(() => {
     localStorage.setItem(EXPANDED_GROUPS_KEY, JSON.stringify(expandedGroups));
   }, [expandedGroups]);
+  useEffect(() => {
+    localStorage.setItem(EXPANDED_SECTIONS_KEY, JSON.stringify(expandedSections));
+  }, [expandedSections]);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) => ({
       ...prev,
       [groupId]: !prev[groupId],
+    }));
+  };
+
+  const toggleSection = (key: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
     }));
   };
 
@@ -163,6 +183,11 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
       const params = new URLSearchParams(href.split("?")[1]);
       const current = new URLSearchParams(location.search);
       return Array.from(params.entries()).every(([k, v]) => current.get(k) === v);
+    }
+    // "/clients" (all) is active only when no status filter; otherwise "Active Clients" gets the highlight
+    if (href === "/clients" && location.pathname === "/clients") {
+      const status = new URLSearchParams(location.search).get("status");
+      return status == null || status === "";
     }
     return true;
   };
@@ -329,6 +354,76 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
                       const isActive = isRouteActive(item.href);
                       const hasChildren =
                         item.children && item.children.filter(isItemVisible).length > 0;
+                      const isHeaderOnly = item.headerOnly && hasChildren;
+                      const sectionKey = `section-${item.href}`;
+                      const isSectionExpanded = isHeaderOnly
+                        ? (expandedSections[sectionKey] ?? true)
+                        : true;
+
+                      // Header-only section: collapsible "Clients" header + sub-links; all 3 parts highlighted when section is active
+                      if (isHeaderOnly) {
+                        const sectionHasActiveChild = item.children?.some((c) => isRouteActive(c.href));
+                        return (
+                          <Collapsible
+                            key={item.href}
+                            open={isSectionExpanded}
+                            onOpenChange={() => toggleSection(sectionKey)}
+                          >
+                            {/* Main header: solid blue + white text when section active (like "All Deals") */}
+                            <CollapsibleTrigger
+                              className={cn(
+                                "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                                sectionHasActiveChild
+                                  ? "bg-primary text-primary-foreground shadow-sm"
+                                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                              )}
+                            >
+                              <Icon
+                                className={cn(
+                                  "h-[18px] w-[18px] shrink-0",
+                                  sectionHasActiveChild ? "text-primary-foreground" : undefined
+                                )}
+                              />
+                              <span className="flex-1 text-left">{item.title}</span>
+                              {isSectionExpanded ? (
+                                <ChevronDown className={cn("h-4 w-4 shrink-0", sectionHasActiveChild && "text-primary-foreground")} />
+                              ) : (
+                                <ChevronRight className={cn("h-4 w-4 shrink-0", sectionHasActiveChild && "text-primary-foreground")} />
+                              )}
+                            </CollapsibleTrigger>
+                            {/* Sub-parts: same highlighting as Deals (e.g. Discovery) - solid blue bar, blue text, badge grey */}
+                            <CollapsibleContent className="mt-0.5 space-y-0.5 pl-3">
+                              {item.children!.filter(isItemVisible).map((child) => {
+                                const ChildIcon = resolveIcon(child.icon);
+                                const isChildActive = isRouteActive(child.href);
+                                return (
+                                  <Link
+                                    key={child.href}
+                                    to={child.href}
+                                    className={cn(
+                                      "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-150",
+                                      isChildActive
+                                        ? "bg-primary/10 text-primary font-medium"
+                                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                                    )}
+                                  >
+                                    <ChildIcon
+                                      className={cn(
+                                        "h-[14px] w-[14px] shrink-0",
+                                        isChildActive ? "text-primary" : "text-muted-foreground"
+                                      )}
+                                    />
+                                    <span className="flex-1">{child.title}</span>
+                                    {child.badge != null && (
+                                      <span className="ml-auto text-xs text-muted-foreground">({child.badge})</span>
+                                    )}
+                                  </Link>
+                                );
+                              })}
+                            </CollapsibleContent>
+                          </Collapsible>
+                        );
+                      }
 
                       return (
                         <div key={item.href}>
@@ -367,7 +462,7 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
                             )}
                           </Link>
 
-                          {/* Nested children (e.g., Streams under Tasks) */}
+                          {/* Nested children (e.g., Streams under Tasks, Deals stages) */}
                           {hasChildren && (
                             <div className="ml-6 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-3">
                               {item.children!.filter(isItemVisible).map((child) => {

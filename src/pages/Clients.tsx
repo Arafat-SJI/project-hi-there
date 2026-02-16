@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useClients, useDeleteClient, type ClientSortBy, type ClientSortOrder } from "@/hooks/useClients";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useClients, useDeleteClient, useClientStats, type ClientSortBy, type ClientSortOrder } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,16 +28,43 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Search, Trash2, Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown, Users, Briefcase, DollarSign, TrendingUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
+const PAGE_SIZES = [10, 25, 50, 100];
+
+function formatCurrency(value: number): string {
+  if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
+  if (value >= 1e3) return `$${(value / 1e3).toFixed(0)}K`;
+  return `$${Math.round(value)}`;
+}
+
 export default function Clients() {
+  const [searchParams] = useSearchParams();
+  const statusFilter = searchParams.get("status") ?? undefined;
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<ClientSortBy>("created_at");
   const [sortOrder, setSortOrder] = useState<ClientSortOrder>("desc");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
 
-  const { data: clients, isLoading } = useClients({ search, sortBy, sortOrder });
+  const { data: clients, totalCount, isLoading } = useClients({
+    search,
+    sortBy,
+    sortOrder,
+    status: statusFilter,
+    page,
+    pageSize,
+  });
+  const { data: stats, isLoading: statsLoading } = useClientStats(statusFilter ?? undefined);
   const deleteClient = useDeleteClient();
 
   const handleSort = (column: ClientSortBy) => {
@@ -65,14 +92,31 @@ export default function Clients() {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const from = totalCount === 0 ? 0 : page * pageSize + 1;
+  const to = Math.min((page + 1) * pageSize, totalCount);
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(0);
+  };
+
+  useEffect(() => {
+    setPage(0);
+  }, [search, statusFilter]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {statusFilter === "active" ? "Active Clients" : "Clients"}
+          </h1>
           <p className="text-muted-foreground">
-            Manage your client relationships
+            {statusFilter === "active"
+              ? "View and manage your active client relationships"
+              : "Manage your client relationships"}
           </p>
         </div>
         <Button asChild>
@@ -81,6 +125,64 @@ export default function Clients() {
             Add Client
           </Link>
         </Button>
+      </div>
+
+      {/* Metric cards: Total/Active Clients, Active Projects, Lifetime Value, Avg Project Value */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">
+                {statusFilter === "active" ? "Active Clients" : "Total Clients"}
+              </p>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <p className="mt-2 text-2xl font-bold">
+              {statsLoading ? "—" : (stats?.totalClients ?? 0).toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">Active Projects</p>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <Briefcase className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <p className="mt-2 text-2xl font-bold">
+              {statsLoading ? "—" : (stats?.activeProjects ?? 0).toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">Lifetime Value</p>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <p className="mt-2 text-2xl font-bold">
+              {statsLoading ? "—" : formatCurrency(stats?.lifetimeValue ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">Avg Project Value</p>
+              <div className="rounded-lg bg-primary/10 p-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <p className="mt-2 text-2xl font-bold">
+              {statsLoading ? "—" : formatCurrency(stats?.avgProjectValue ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search and Filters */}
@@ -137,6 +239,7 @@ export default function Clients() {
                   </TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Company</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>
                     <Button
@@ -157,6 +260,7 @@ export default function Clients() {
                     <TableCell className="font-medium">{client.name}</TableCell>
                     <TableCell>{client.email}</TableCell>
                     <TableCell>{client.company || "-"}</TableCell>
+                    <TableCell className="capitalize">{client.status || "-"}</TableCell>
                     <TableCell>{client.phone || "-"}</TableCell>
                     <TableCell>{formatDate(client.created_at)}</TableCell>
                     <TableCell className="text-right">
@@ -184,6 +288,75 @@ export default function Clients() {
                 ))}
               </TableBody>
             </Table>
+          )}
+
+          {/* Pagination */}
+          {!isLoading && (clients?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                Showing {from} to {to} of {totalCount.toLocaleString()} clients
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="whitespace-nowrap text-sm text-muted-foreground">Rows per page:</span>
+                <Select value={String(pageSize)} onValueChange={(v) => handlePageSizeChange(Number(v))}>
+                  <SelectTrigger className="h-8 w-[70px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZES.map((s) => (
+                      <SelectItem key={s} value={String(s)}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="whitespace-nowrap text-sm text-muted-foreground">
+                  Page {page + 1} of {totalPages}
+                </span>
+                <div className="flex items-center gap-0.5">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 rounded-md"
+                    disabled={page <= 0}
+                    onClick={() => setPage(0)}
+                    aria-label="First page"
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 rounded-md"
+                    disabled={page <= 0}
+                    onClick={() => setPage((p) => p - 1)}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 rounded-md"
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage((p) => p + 1)}
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 rounded-md"
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage(totalPages - 1)}
+                    aria-label="Last page"
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
