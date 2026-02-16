@@ -386,21 +386,23 @@ Use the edge-function-doctor agent to create a new Edge Function for team-invita
 
 ## Skill Registry
 
-Seven skills are available in `.claude/skills/` providing domain knowledge and workflow standards.
+Eight skills are available in `.claude/skills/` providing domain knowledge and workflow standards.
 
 | # | Skill | File | Purpose |
 |---|-------|------|---------|
-| 1 | **sj-code-standards** | `.claude/skills/sj-code-standards/SKILL.md` | Coding standards for all code changes |
-| 2 | **sj-bug-fix-workflow** | `.claude/skills/sj-bug-fix-workflow/SKILL.md` | 8-step bug fix process |
-| 3 | **supabase-patterns** | `.claude/skills/supabase-patterns/SKILL.md` | Database and backend patterns |
-| 4 | **project-architecture** | `.claude/skills/project-architecture/SKILL.md` | Full architecture reference |
-| 5 | **specs-first-workflow** | `.claude/skills/specs-first-workflow/SKILL.md` | Specs before code workflow |
-| 6 | **ai-agents-domain** | `.claude/skills/ai-agents-domain/SKILL.md` | AI agents domain knowledge |
-| 7 | **edge-function-patterns** | `.claude/skills/edge-function-patterns/SKILL.md` | Edge Function best practices, CORS-first pattern, error prevention |
+| 1 | **brainstorming** | `.claude/skills/brainstorming/SKILL.md` | Design exploration before implementation |
+| 2 | **sj-code-standards** | `.claude/skills/sj-code-standards/SKILL.md` | Coding standards for all code changes |
+| 3 | **sj-bug-fix-workflow** | `.claude/skills/sj-bug-fix-workflow/SKILL.md` | 8-step bug fix process |
+| 4 | **supabase-patterns** | `.claude/skills/supabase-patterns/SKILL.md` | Database and backend patterns |
+| 5 | **project-architecture** | `.claude/skills/project-architecture/SKILL.md` | Full architecture reference |
+| 6 | **specs-first-workflow** | `.claude/skills/specs-first-workflow/SKILL.md` | Specs before code workflow |
+| 7 | **ai-agents-domain** | `.claude/skills/ai-agents-domain/SKILL.md` | AI agents domain knowledge |
+| 8 | **edge-function-patterns** | `.claude/skills/edge-function-patterns/SKILL.md` | Edge Function best practices, CORS-first pattern, error prevention |
 
 ## Session Rules
 
 - Read `.claude/agents.md` for agent delegation rules
+- Use **brainstorming** before ANY creative work (features, components, functionality changes)
 - Follow **sj-code-standards** for ALL code changes
 - Follow **sj-bug-fix-workflow** for ALL bug fixes
 - Follow **specs-first-workflow** before ANY new feature
