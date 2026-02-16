@@ -3,7 +3,7 @@
  * Uses sendgrid_config from DB, SENDGRID_API_KEY from Supabase secrets
  * Requires integration enabled to send
  */
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../cors.ts";
 import { sendEmailViaSendGrid } from "../_shared/sendgrid-email.ts";
 
