@@ -16,6 +16,7 @@ import ProjectStatusSettings from "@/pages/admin/ProjectStatusSettings";
 import ProjectModules from "@/pages/admin/ProjectModules";
 
 import Integrations from "@/pages/admin/Integrations";
+import SendGrid from "@/pages/admin/integrations/SendGrid";
 import ProviderDetail from "@/pages/admin/ProviderDetail";
 import OAuthCallback from "@/pages/admin/OAuthCallback";
 import MicrosoftTeamsIntegration from "@/pages/admin/integrations/MicrosoftTeamsIntegration";
@@ -93,6 +94,7 @@ export const adminRoutes = (
     <Route path="/admin/integrations/google-meet" element={<GoogleMeetIntegration />} />
     <Route path="/admin/integrations/google-meet/meetings" element={<GoogleMeetMeetings />} />
     <Route path="/admin/integrations/google-drive" element={<GoogleDriveIntegration />} />
+    <Route path="/admin/integrations/sendgrid" element={<SendGrid />} />
     <Route path="/admin/integrations/:slug" element={<ProviderDetail />} />
 
     {/* AI & Automation */}

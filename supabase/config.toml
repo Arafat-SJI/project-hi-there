@@ -71,6 +71,9 @@ verify_jwt = false
 [functions.send-email]
 verify_jwt = false
 
+[functions.sendgrid-validate]
+verify_jwt = false
+
 [functions.send-feedback-notification]
 verify_jwt = false
 

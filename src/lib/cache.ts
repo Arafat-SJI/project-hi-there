@@ -122,6 +122,13 @@ export const queryKeys = {
     permissions: ["admin", "permissions"] as const,
   },
 
+  // SendGrid
+  sendgrid: {
+    config: ["sendgrid", "config"] as const,
+    integration: ["sendgrid", "integration"] as const,
+    trackingEvents: (days?: number) => ["sendgrid", "trackingEvents", days] as const,
+  },
+
   // Notifications
   notifications: {
     all: ["notifications"] as const,
@@ -217,5 +224,10 @@ export const invalidateKeys = {
   },
   notifications: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+  },
+  sendgrid: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.config });
+    queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.integration });
+    queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.trackingEvents() });
   },
 };
