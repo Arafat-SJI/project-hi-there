@@ -5764,6 +5764,7 @@ export type Database = {
       }
       sendgrid_config: {
         Row: {
+          api_key: string | null
           api_key_encrypted: string | null
           created_at: string | null
           enable_click_tracking: boolean | null
@@ -5778,6 +5779,7 @@ export type Database = {
           webhook_url: string | null
         }
         Insert: {
+          api_key?: string | null
           api_key_encrypted?: string | null
           created_at?: string | null
           enable_click_tracking?: boolean | null
@@ -5792,6 +5794,7 @@ export type Database = {
           webhook_url?: string | null
         }
         Update: {
+          api_key?: string | null
           api_key_encrypted?: string | null
           created_at?: string | null
           enable_click_tracking?: boolean | null
@@ -6853,6 +6856,7 @@ export type Database = {
       get_or_create_sendgrid_config: {
         Args: never
         Returns: {
+          api_key: string | null
           api_key_encrypted: string | null
           created_at: string | null
           enable_click_tracking: boolean | null
