@@ -15,6 +15,7 @@ export const queryKeys = {
     all: ["clients"] as const,
     list: (filters?: Record<string, any>) => ["clients", "list", filters] as const,
     detail: (id: string) => ["clients", "detail", id] as const,
+    stats: (clientIds: string[]) => ["clients", "stats", clientIds] as const,
   },
 
   // Meetings

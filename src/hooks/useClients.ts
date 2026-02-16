@@ -21,29 +21,68 @@ export interface Client {
 export type ClientSortBy = "name" | "created_at";
 export type ClientSortOrder = "asc" | "desc";
 
-export function useClients(filters?: Record<string, any> & { sortBy?: ClientSortBy; sortOrder?: ClientSortOrder }) {
+export interface UseClientsResult {
+  data: Client[] | undefined;
+  totalCount: number;
+  isLoading: boolean;
+  error: Error | null;
+}
+
+export function useClients(
+  filters?: Record<string, any> & {
+    sortBy?: ClientSortBy;
+    sortOrder?: ClientSortOrder;
+    page?: number;
+    pageSize?: number;
+  }
+): UseClientsResult {
   const sortBy = filters?.sortBy ?? "created_at";
   const sortOrder = filters?.sortOrder ?? "desc";
+  const usePagination = filters?.page != null && filters?.pageSize != null;
+  const page = filters?.page ?? 0;
+  const pageSize = Math.min(Math.max(filters?.pageSize ?? 25, 1), 100);
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
 
-  return useQuery({
+  const query = useQuery({
     queryKey: queryKeys.clients.list(filters),
     queryFn: async () => {
-      let query = supabase
+      let q = supabase
         .from("clients")
-        .select("*")
+        .select("*", usePagination ? { count: "exact" } : undefined)
         .order(sortBy, { ascending: sortOrder === "asc" });
 
       if (filters?.search) {
-        query = query.or(
+        q = q.or(
           `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,company.ilike.%${filters.search}%`
         );
       }
 
-      const { data, error } = await query;
+      if (filters?.status) {
+        q = q.eq("status", filters.status);
+      }
+
+      if (usePagination) {
+        q = q.range(from, to);
+      }
+
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data as Client[];
+      const list = (data ?? []) as Client[];
+      return {
+        data: list,
+        totalCount: usePagination ? (count ?? 0) : list.length,
+      };
     },
   });
+
+  const result = query.data;
+  return {
+    data: result?.data,
+    totalCount: result?.totalCount ?? 0,
+    isLoading: query.isLoading,
+    error: query.error as Error | null,
+  };
 }
 
 export function useClient(id: string) {
@@ -75,6 +114,7 @@ export function useCreateClient() {
         email: data.email || null,
         company: data.company || null,
         phone: data.phone || null,
+        status: data.status ?? "active",
         metadata: data.notes ? { notes: data.notes } : null,
       };
       
@@ -117,6 +157,7 @@ export function useUpdateClient() {
       if (data.email !== undefined) updateData.email = data.email || null;
       if (data.company !== undefined) updateData.company = data.company || null;
       if (data.phone !== undefined) updateData.phone = data.phone || null;
+      if (data.status !== undefined) updateData.status = data.status;
       if (data.notes !== undefined) updateData.metadata = { notes: data.notes };
       
       const { data: client, error } = await supabase
@@ -174,6 +215,61 @@ export function useDeleteClient() {
         description: error.message || "Failed to delete client",
         variant: "destructive",
       });
+    },
+  });
+}
+
+export interface ClientStats {
+  totalClients: number;
+  activeProjects: number;
+  lifetimeValue: number;
+  avgProjectValue: number;
+}
+
+/** Stats for clients list: by status (all vs active). Used for metric cards on /clients and /clients?status=active */
+export function useClientStats(statusFilter?: string) {
+  return useQuery({
+    queryKey: queryKeys.clients.stats([statusFilter ?? "all"]),
+    queryFn: async (): Promise<ClientStats> => {
+      let clientQuery = supabase.from("clients").select("id");
+      if (statusFilter) {
+        clientQuery = clientQuery.eq("status", statusFilter);
+      }
+      const { data: clientsData, error: clientsError } = await clientQuery;
+      if (clientsError) throw clientsError;
+      const clientIds = (clientsData ?? []).map((r) => r.id);
+      const totalClients = clientIds.length;
+
+      if (clientIds.length === 0) {
+        return { totalClients: 0, activeProjects: 0, lifetimeValue: 0, avgProjectValue: 0 };
+      }
+
+      const [projectsRes, dealsRes] = await Promise.all([
+        supabase
+          .from("projects")
+          .select("id, budget")
+          .in("client_id", clientIds)
+          .eq("is_archived", false),
+        supabase.from("deals").select("value").in("client_id", clientIds),
+      ]);
+
+      if (projectsRes.error) throw projectsRes.error;
+      if (dealsRes.error) throw dealsRes.error;
+
+      const projects = (projectsRes.data ?? []) as { id: string; budget: number | null }[];
+      const deals = (dealsRes.data ?? []) as { value: number | null }[];
+
+      const activeProjects = projects.length;
+      const lifetimeValue = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+      const totalBudget = projects.reduce((sum, p) => sum + (Number(p.budget) || 0), 0);
+      const avgProjectValue = activeProjects > 0 ? totalBudget / activeProjects : 0;
+
+      return {
+        totalClients,
+        activeProjects,
+        lifetimeValue,
+        avgProjectValue,
+      };
     },
   });
 }

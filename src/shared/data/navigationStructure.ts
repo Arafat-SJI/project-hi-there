@@ -21,6 +21,8 @@ export interface NavItem {
   adminOnly?: boolean;
   badge?: string;
   children?: NavItem[]; // Nested sub-items (e.g., Streams under Tasks)
+  /** When true, parent is rendered as a section header only (collapsible), not a link; children are the links */
+  headerOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -58,6 +60,11 @@ export const navigationGroups: NavGroup[] = [
         icon: "Users",
         module: "business-dev",
         featureFlag: "enableClients",
+        headerOnly: true,
+        children: [
+          { title: "All Clients", href: "/clients", icon: "Users", module: "business-dev", featureFlag: "enableClients" },
+          { title: "Active Clients", href: "/clients?status=active", icon: "Users", module: "business-dev", featureFlag: "enableClients" },
+        ],
       },
       {
         title: "All Deals",

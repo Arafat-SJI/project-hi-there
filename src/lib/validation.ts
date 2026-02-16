@@ -47,11 +47,14 @@ export function maxLength(value: string, max: number): boolean {
 }
 
 // Common validation schemas - aligned with form requirements
+export const clientStatusEnum = z.enum(["active", "inactive"]);
+
 export const clientSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   company: z.string().optional(),
   phone: z.string().optional(),
+  status: clientStatusEnum.optional().default("active"),
   notes: z.string().optional(),
 });
 
