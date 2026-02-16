@@ -46,7 +46,7 @@ export function useIntegrationStatus(slug: string) {
   return useQuery({
     queryKey: [...queryKeys.sendgrid.integration, slug],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("integrations")
         .select("id, slug, name, status, last_sync")
         .eq("slug", slug)
@@ -118,7 +118,7 @@ export function useUpdateSendGridConfig() {
       invalidateKeys.sendgrid(queryClient);
 
       const status = variables.is_enabled ? "connected" : "disconnected";
-      const { error: intErr } = await supabase
+      const { error: intErr } = await (supabase as any)
         .from("integrations")
         .update({ status, last_sync: new Date().toISOString() })
         .eq("slug", "sendgrid");

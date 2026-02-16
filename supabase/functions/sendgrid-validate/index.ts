@@ -2,7 +2,7 @@
  * SendGrid API key validation - checks SENDGRID_API_KEY or api_key in sendgrid_config
  * No request body. Returns success/failure based on GET /v3/user/profile
  */
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../cors.ts";
 
 Deno.serve(async (req) => {
