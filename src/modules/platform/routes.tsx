@@ -24,6 +24,7 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Notifications from "@/pages/Notifications";
 import Feedback from "@/pages/Feedback";
+import FeedbackDetail from "@/pages/FeedbackDetail";
 import AIChat from "@/pages/AIChat";
 import AIAgents from "@/pages/AIAgents";
 import PersonalKnowledge from "@/modules/knowledge/pages/PersonalKnowledge";
@@ -53,6 +54,7 @@ export const coreProtectedRoutes = (
     <Route path="/profile" element={<Profile />} />
     <Route path="/settings" element={<Settings />} />
     <Route path="/feedback" element={<Feedback />} />
+    <Route path="/feedback/:id" element={<FeedbackDetail />} />
 
     {/* Feature-flag gated but part of platform */}
     <Route element={<ModuleRoute requiresFeatureFlag="enableNotifications" />}>
