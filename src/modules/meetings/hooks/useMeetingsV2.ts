@@ -151,7 +151,6 @@ export function useCreateMeetingV2() {
           status: data.status || 'scheduled',
           notes: data.notes || null,
           client_id: data.client_id || null,
-          project_id: data.project_id || null,
           deal_id: data.deal_id || null,
           recurrence_pattern: data.recurrence_pattern || null,
           recurrence_end_date: data.recurrence_end_date || null,
