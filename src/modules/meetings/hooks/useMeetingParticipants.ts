@@ -1,11 +1,11 @@
 /**
- * Meeting Participants Hook - CRUD operations for meeting_participants_v2
+ * Meeting Participants Hook - CRUD operations for meeting_participants
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { MeetingParticipantV2, MeetingParticipantWithProfile, ParticipantRole, ParticipantStatus } from "../types/meetings";
+import type { MeetingParticipant, ParticipantRole, RSVPStatus } from "../types/index";
 
 const PARTICIPANTS_KEY = "meeting-participants";
 
@@ -15,14 +15,14 @@ const PARTICIPANTS_KEY = "meeting-participants";
 export function useMeetingParticipants(meetingId: string | undefined) {
   return useQuery({
     queryKey: [PARTICIPANTS_KEY, meetingId],
-    queryFn: async (): Promise<MeetingParticipantWithProfile[]> => {
+    queryFn: async (): Promise<MeetingParticipant[]> => {
       if (!meetingId) return [];
 
-      const { data, error } = await supabase
-        .from("meeting_participants_v2")
+      const { data, error } = await (supabase as any)
+        .from("meeting_participants")
         .select(`
           *,
-          user:profiles!meeting_participants_v2_user_id_fkey(id, full_name, email, avatar_url)
+          user:profiles!meeting_participants_user_id_fkey(id, full_name, email, avatar_url)
         `)
         .eq("meeting_id", meetingId)
         .order("created_at", { ascending: true });
@@ -31,7 +31,7 @@ export function useMeetingParticipants(meetingId: string | undefined) {
       return (data || []).map((p: any) => ({
         ...p,
         user: p.user || null,
-      })) as MeetingParticipantWithProfile[];
+      })) as MeetingParticipant[];
     },
     enabled: !!meetingId,
   });
@@ -52,7 +52,7 @@ export function useAddParticipant() {
       externalEmail,
       externalName,
       role,
-      status,
+      rsvpStatus,
     }: {
       meetingId: string;
       userId?: string;
@@ -61,28 +61,27 @@ export function useAddParticipant() {
       externalEmail?: string;
       externalName?: string;
       role?: ParticipantRole;
-      status?: ParticipantStatus;
-    }): Promise<MeetingParticipantV2> => {
-      // Support both email/name (simpler) and externalEmail/externalName (explicit)
+      rsvpStatus?: RSVPStatus;
+    }): Promise<MeetingParticipant> => {
       const finalEmail = email || externalEmail;
       const finalName = name || externalName;
 
-      const { data, error } = await supabase
-        .from("meeting_participants_v2")
+      const { data, error } = await (supabase as any)
+        .from("meeting_participants")
         .insert({
           meeting_id: meetingId,
           user_id: userId || null,
-          external_email: finalEmail || null,
-          external_name: finalName || null,
-          role: role || "required",
-          status: status || "pending",
+          email: finalEmail || null,
+          name: finalName || null,
+          role: role || "attendee",
+          rsvp_status: rsvpStatus || "pending",
           attended: false,
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data as MeetingParticipantV2;
+      return data as MeetingParticipant;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PARTICIPANTS_KEY, variables.meetingId] });
@@ -106,17 +105,17 @@ export function useUpdateParticipant() {
       updates,
     }: {
       id: string;
-      updates: Partial<Pick<MeetingParticipantV2, "role" | "status" | "notes">>;
-    }): Promise<MeetingParticipantV2> => {
-      const { data, error } = await supabase
-        .from("meeting_participants_v2")
+      updates: Partial<Pick<MeetingParticipant, "role" | "rsvp_status">>;
+    }): Promise<MeetingParticipant> => {
+      const { data, error } = await (supabase as any)
+        .from("meeting_participants")
         .update(updates)
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as MeetingParticipantV2;
+      return data as MeetingParticipant;
     },
     onSuccess: (participant) => {
       queryClient.invalidateQueries({ queryKey: [PARTICIPANTS_KEY, participant.meeting_id] });
@@ -143,20 +142,19 @@ export function useUpdateParticipantAttendance() {
       id: string;
       meetingId: string;
       attended: boolean;
-    }): Promise<MeetingParticipantV2> => {
-      const { data, error } = await supabase
-        .from("meeting_participants_v2")
+    }): Promise<MeetingParticipant> => {
+      const { data, error } = await (supabase as any)
+        .from("meeting_participants")
         .update({
           attended,
-          // If marking as attended and status is still pending, update to accepted
-          ...(attended ? { status: "accepted" as ParticipantStatus } : {}),
+          ...(attended ? { rsvp_status: "accepted" } : {}),
         })
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as MeetingParticipantV2;
+      return data as MeetingParticipant;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PARTICIPANTS_KEY, variables.meetingId] });
@@ -182,14 +180,13 @@ export function useRemoveParticipant() {
       id: string;
       meetingId?: string;
     }): Promise<{ meeting_id: string }> => {
-      // Get meeting_id before deleting
-      const { data: participant } = await supabase
-        .from("meeting_participants_v2")
+      const { data: participant } = await (supabase as any)
+        .from("meeting_participants")
         .select("meeting_id")
         .eq("id", id)
         .single();
 
-      const { error } = await supabase.from("meeting_participants_v2").delete().eq("id", id);
+      const { error } = await (supabase as any).from("meeting_participants").delete().eq("id", id);
 
       if (error) throw error;
       const finalMeetingId = meetingId || participant?.meeting_id || "";

@@ -51,11 +51,9 @@ export function AgendaTab({ meetingId }: AgendaTabProps) {
     addItem.mutate(
       {
         meetingId,
-        data: {
-          title: newTitle.trim(),
-          description: newDescription.trim() || undefined,
-          duration_minutes: newDuration ? parseInt(newDuration) : undefined,
-        },
+        title: newTitle.trim(),
+        description: newDescription.trim() || undefined,
+        duration_minutes: newDuration ? parseInt(newDuration) : undefined,
       },
       {
         onSuccess: () => {
@@ -72,7 +70,7 @@ export function AgendaTab({ meetingId }: AgendaTabProps) {
     updateItem.mutate({
       id: item.id,
       meetingId,
-      data: { is_completed: !item.is_completed },
+      updates: { is_completed: !item.is_completed },
     });
   };
 

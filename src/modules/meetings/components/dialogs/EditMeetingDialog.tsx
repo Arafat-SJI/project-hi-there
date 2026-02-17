@@ -51,7 +51,7 @@ export default function EditMeetingDialog({
     meeting.duration_minutes?.toString() || ""
   );
   const [location, setLocation] = useState(meeting.location || "");
-  const [meetingType, setMeetingType] = useState<MeetingType>(meeting.type);
+  const [meetingType, setMeetingType] = useState<MeetingType>((meeting.meeting_type || 'internal') as MeetingType);
   const [timezone, setTimezone] = useState(meeting.timezone || "UTC");
   const [notes, setNotes] = useState(meeting.notes || "");
 
@@ -66,7 +66,7 @@ export default function EditMeetingDialog({
       );
       setDurationMinutes(meeting.duration_minutes?.toString() || "60");
       setLocation(meeting.location || "");
-      setMeetingType(meeting.type);
+      setMeetingType((meeting.meeting_type || 'internal') as MeetingType);
       setTimezone(meeting.timezone || "UTC");
       setNotes(meeting.notes || "");
     }
@@ -84,7 +84,7 @@ export default function EditMeetingDialog({
         scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : meeting.scheduled_at,
         duration_minutes: durationMinutes ? parseInt(durationMinutes) : 60,
         location: location.trim() || undefined,
-        type: meetingType,
+        meeting_type: meetingType,
         timezone: timezone.trim() || "UTC",
         notes: notes.trim() || undefined,
       },
@@ -147,7 +147,7 @@ export default function EditMeetingDialog({
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Meeting Type</label>
-            <Select value={meetingType} onValueChange={setMeetingType}>
+            <Select value={meetingType} onValueChange={(v) => setMeetingType(v as MeetingType)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

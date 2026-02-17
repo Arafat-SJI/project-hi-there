@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { MeetingTakeaway } from "../types/meetings";
+import type { MeetingTakeaway } from "../types/index";
 
 const TAKEAWAYS_KEY = "meeting-takeaways";
 
@@ -19,7 +19,7 @@ export function useMeetingTakeaways(meetingId: string | undefined) {
     queryFn: async (): Promise<MeetingTakeaway[]> => {
       if (!meetingId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("meeting_takeaways")
         .select(`
           *,
@@ -63,7 +63,7 @@ export function useAddTakeaway() {
     }): Promise<MeetingTakeaway> => {
       if (!user) throw new Error("User not authenticated");
 
-      const { data: takeaway, error } = await supabase
+      const { data: takeaway, error } = await (supabase as any)
         .from("meeting_takeaways")
         .insert({
           meeting_id: meetingId,
@@ -105,9 +105,9 @@ export function useUpdateTakeaway() {
       updates,
     }: {
       id: string;
-      updates: Partial<Pick<MeetingTakeaway, "content" | "assigned_to" | "due_date" | "status">>;
+      updates: Partial<Pick<MeetingTakeaway, "content" | "assigned_to" | "due_date" | "status" | "is_completed" | "takeaway_type" | "priority">>;
     }): Promise<MeetingTakeaway> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("meeting_takeaways")
         .update(updates)
         .eq("id", id)
@@ -143,7 +143,7 @@ export function useToggleTakeaway() {
       meetingId: string;
       is_completed: boolean;
     }): Promise<MeetingTakeaway> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("meeting_takeaways")
         .update({ is_completed, status: is_completed ? "completed" : "open" })
         .eq("id", id)
@@ -177,14 +177,13 @@ export function useDeleteTakeaway() {
       id: string;
       meetingId?: string;
     }): Promise<{ meeting_id: string }> => {
-      // Get meeting_id before deleting
-      const { data: item } = await supabase
+      const { data: item } = await (supabase as any)
         .from("meeting_takeaways")
         .select("meeting_id")
         .eq("id", id)
         .single();
 
-      const { error } = await supabase.from("meeting_takeaways").delete().eq("id", id);
+      const { error } = await (supabase as any).from("meeting_takeaways").delete().eq("id", id);
 
       if (error) throw error;
       const finalMeetingId = meetingId || item?.meeting_id || "";

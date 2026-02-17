@@ -1,15 +1,16 @@
 /**
- * Meetings V2 Hook - CRUD operations for meetings_v2 table
- * 
- * Provides hooks for listing, fetching, creating, updating, and deleting meetings
- * from the meetings_v2 table as specified in the standalone implementation plan.
+ * Meetings V2 Hook - CRUD operations for meetings table
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { MeetingV2, MeetingV2FormData, MeetingStatus, MeetingType } from "../types/meetings";
+import type { MeetingV2 } from "../types/index";
+import type { MeetingV2FormData, MeetingType } from "../types/meetings";
+
+export type { MeetingType };
+export type MeetingStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 
 const MEETINGS_V2_KEY = "meetings-v2";
 
@@ -34,58 +35,39 @@ export function useMeetingsV2(filters?: MeetingsV2Filters) {
   return useQuery({
     queryKey: [MEETINGS_V2_KEY, "list", filters],
     queryFn: async (): Promise<MeetingV2[]> => {
-      let query = supabase
-        .from("meetings_v2")
-        .select(`
-          *,
-          clients(name, email),
-          projects(name)
-        `)
+      let query = (supabase as any)
+        .from("meetings")
+        .select(`*,clients(name, email)`)
         .order("scheduled_at", { ascending: false });
 
-      // Status filter
       if (filters?.status && filters.status !== "all") {
         query = query.eq("status", filters.status);
       }
-
-      // Type filter
       if (filters?.type && filters.type !== "all") {
-        query = query.eq("type", filters.type);
+        query = query.eq("meeting_type", filters.type);
       }
-
-      // Client filter
       if (filters?.client_id) {
         query = query.eq("client_id", filters.client_id);
       }
-
-      // Project filter
       if (filters?.project_id) {
         query = query.eq("project_id", filters.project_id);
       }
-
-      // Search filter
       if (filters?.search) {
         query = query.ilike("title", `%${filters.search}%`);
       }
-
-      // My meetings only
       if (filters?.my_meetings_only && user?.id) {
-        query = query.eq("created_by", user.id);
+        query = query.eq("organizer_id", user.id);
       }
-
-      // Date range filters
       if (filters?.date_from) {
         query = query.gte("scheduled_at", filters.date_from);
       }
       if (filters?.date_to) {
         query = query.lte("scheduled_at", filters.date_to);
       }
-
-      // Tab-based filters
       if (filters?.tab) {
         const now = new Date().toISOString();
         switch (filters.tab) {
-          case "today":
+          case "today": {
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date();
@@ -94,6 +76,7 @@ export function useMeetingsV2(filters?: MeetingsV2Filters) {
               .gte("scheduled_at", todayStart.toISOString())
               .lte("scheduled_at", todayEnd.toISOString());
             break;
+          }
           case "upcoming":
             query = query.gt("scheduled_at", now);
             break;
@@ -125,24 +108,15 @@ export function useMeetingV2(idOrSlug: string | undefined) {
     queryFn: async (): Promise<MeetingV2 | null> => {
       if (!idOrSlug) return null;
 
-      // Try to fetch by slug first, then by ID
-      let query = supabase
-        .from("meetings_v2")
-        .select(`
-          *,
-          clients(name, email),
-          projects(name)
-        `)
+      const { data, error } = await (supabase as any)
+        .from("meetings")
+        .select(`*,clients(name, email)`)
         .or(`slug.eq.${idOrSlug},id.eq.${idOrSlug}`)
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      const { data, error } = await query;
-      if (error) {
-        if (error.code === "PGRST116") return null; // Not found
-        throw error;
-      }
-      return data as MeetingV2;
+      if (error) throw error;
+      return data as MeetingV2 | null;
     },
     enabled: !!user && !!idOrSlug,
   });
@@ -159,24 +133,33 @@ export function useCreateMeetingV2() {
     mutationFn: async (data: MeetingV2FormData): Promise<MeetingV2> => {
       if (!user) throw new Error("User not authenticated");
 
-      // Generate slug from title
       const slug = data.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
 
-      const { data: meeting, error } = await supabase
-        .from("meetings_v2")
+      const { data: meeting, error } = await (supabase as any)
+        .from("meetings")
         .insert({
-          ...data,
-          created_by: user.id,
+          title: data.title,
+          meeting_type: data.meeting_type || 'internal',
+          description: data.description || null,
+          scheduled_at: data.scheduled_at,
+          duration_minutes: data.duration_minutes,
+          location: data.location || null,
+          timezone: data.timezone || null,
+          status: data.status || 'scheduled',
+          notes: data.notes || null,
+          client_id: data.client_id || null,
+          project_id: data.project_id || null,
+          deal_id: data.deal_id || null,
+          recurrence_pattern: data.recurrence_pattern || null,
+          recurrence_end_date: data.recurrence_end_date || null,
+          parent_meeting_id: data.parent_meeting_id || null,
+          organizer_id: user.id,
           slug,
         })
-        .select(`
-          *,
-          clients(name, email),
-          projects(name)
-        `)
+        .select(`*,clients(name, email)`)
         .single();
 
       if (error) throw error;
@@ -209,26 +192,19 @@ export function useUpdateMeetingV2() {
     }): Promise<MeetingV2> => {
       if (!user) throw new Error("User not authenticated");
 
-      // Update slug if title changed
-      const updateData: any = { ...data };
+      const updateData: Record<string, unknown> = { ...data };
       if (data.title) {
-        const slug = data.title
+        updateData.slug = data.title
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, "");
-        updateData.slug = slug;
       }
 
-      const { data: meeting, error } = await supabase
-        .from("meetings_v2")
+      const { data: meeting, error } = await (supabase as any)
+        .from("meetings")
         .update(updateData)
         .eq("id", id)
-        .eq("created_by", user.id) // Ensure user owns the meeting
-        .select(`
-          *,
-          clients(name, email),
-          projects(name)
-        `)
+        .select(`*,clients(name, email)`)
         .single();
 
       if (error) throw error;
@@ -257,11 +233,10 @@ export function useDeleteMeetingV2() {
     mutationFn: async (id: string): Promise<void> => {
       if (!user) throw new Error("User not authenticated");
 
-      const { error } = await supabase
-        .from("meetings_v2")
+      const { error } = await (supabase as any)
+        .from("meetings")
         .delete()
-        .eq("id", id)
-        .eq("created_by", user.id); // Ensure user owns the meeting
+        .eq("id", id);
 
       if (error) throw error;
     },
@@ -286,16 +261,11 @@ export function useCloseMeetingV2() {
     mutationFn: async (id: string): Promise<MeetingV2> => {
       if (!user) throw new Error("User not authenticated");
 
-      const { data: meeting, error } = await supabase
-        .from("meetings_v2")
+      const { data: meeting, error } = await (supabase as any)
+        .from("meetings")
         .update({ status: "completed" })
         .eq("id", id)
-        .eq("created_by", user.id)
-        .select(`
-          *,
-          clients(name, email),
-          projects(name)
-        `)
+        .select(`*,clients(name, email)`)
         .single();
 
       if (error) throw error;
@@ -312,4 +282,3 @@ export function useCloseMeetingV2() {
     },
   });
 }
-
