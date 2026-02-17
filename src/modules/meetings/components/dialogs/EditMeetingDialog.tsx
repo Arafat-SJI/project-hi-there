@@ -6,9 +6,6 @@
  */
 
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,7 +24,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import type { MeetingV2 } from "../../types";
+import { useUpdateMeetingV2 } from "../../hooks/useMeetingsV2";
+import DateTimePicker from "../common/DateTimePicker";
+import type { MeetingV2, MeetingType } from "../../types/meetings";
 
 interface EditMeetingDialogProps {
   meeting: MeetingV2;
@@ -40,7 +39,6 @@ export default function EditMeetingDialog({
   open,
   onOpenChange,
 }: EditMeetingDialogProps) {
-  const queryClient = useQueryClient();
 
   const [title, setTitle] = useState(meeting.title);
   const [description, setDescription] = useState(meeting.description || "");
@@ -53,8 +51,8 @@ export default function EditMeetingDialog({
     meeting.duration_minutes?.toString() || ""
   );
   const [location, setLocation] = useState(meeting.location || "");
-  const [meetingType, setMeetingType] = useState(meeting.meeting_type || "internal");
-  const [timezone, setTimezone] = useState(meeting.timezone || "");
+  const [meetingType, setMeetingType] = useState<MeetingType>(meeting.type);
+  const [timezone, setTimezone] = useState(meeting.timezone || "UTC");
   const [notes, setNotes] = useState(meeting.notes || "");
 
   useEffect(() => {
@@ -66,49 +64,32 @@ export default function EditMeetingDialog({
           ? new Date(meeting.scheduled_at).toISOString().slice(0, 16)
           : ""
       );
-      setDurationMinutes(meeting.duration_minutes?.toString() || "");
+      setDurationMinutes(meeting.duration_minutes?.toString() || "60");
       setLocation(meeting.location || "");
-      setMeetingType(meeting.meeting_type || "internal");
-      setTimezone(meeting.timezone || "");
+      setMeetingType(meeting.type);
+      setTimezone(meeting.timezone || "UTC");
       setNotes(meeting.notes || "");
     }
   }, [open, meeting]);
 
-  const updateMeeting = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase
-        .from("meetings")
-        .update({
-          title: title.trim(),
-          description: description.trim() || null,
-          scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
-          duration_minutes: durationMinutes ? parseInt(durationMinutes) : null,
-          location: location.trim() || null,
-          meeting_type: meetingType,
-          timezone: timezone.trim() || null,
-          notes: notes.trim() || null,
-        })
-        .eq("id", meeting.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Meeting updated");
-      queryClient.invalidateQueries({ queryKey: ["meetings"] });
-      queryClient.invalidateQueries({ queryKey: ["meeting", meeting.id] });
-      onOpenChange(false);
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to update meeting", { description: error.message });
-    },
-  });
+  const updateMeeting = useUpdateMeetingV2();
 
   const handleSave = () => {
     if (!title.trim()) return;
-    updateMeeting.mutate();
+    updateMeeting.mutate({
+      id: meeting.id,
+      data: {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : meeting.scheduled_at,
+        duration_minutes: durationMinutes ? parseInt(durationMinutes) : 60,
+        location: location.trim() || undefined,
+        type: meetingType,
+        timezone: timezone.trim() || "UTC",
+        notes: notes.trim() || undefined,
+      },
+    });
+    onOpenChange(false);
   };
 
   return (
@@ -138,10 +119,11 @@ export default function EditMeetingDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium mb-1 block">Scheduled At</label>
-              <Input
-                type="datetime-local"
+              <DateTimePicker
                 value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
+                onChange={setScheduledAt}
+                timezone={timezone}
+                disabled={updateMeeting.isPending}
               />
             </div>
             <div>
@@ -172,9 +154,9 @@ export default function EditMeetingDialog({
               <SelectContent>
                 <SelectItem value="internal">Internal</SelectItem>
                 <SelectItem value="client">Client</SelectItem>
-                <SelectItem value="standup">Standup</SelectItem>
-                <SelectItem value="review">Review</SelectItem>
-                <SelectItem value="planning">Planning</SelectItem>
+                <SelectItem value="project">Project</SelectItem>
+                <SelectItem value="l10">L10</SelectItem>
+                <SelectItem value="one_on_one">One-on-One</SelectItem>
               </SelectContent>
             </Select>
           </div>

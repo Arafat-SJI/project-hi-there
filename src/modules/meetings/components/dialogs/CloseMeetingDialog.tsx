@@ -5,9 +5,6 @@
  */
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -18,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { useUpdateMeetingV2 } from "../../hooks/useMeetingsV2";
 
 interface CloseMeetingDialogProps {
   meetingId: string;
@@ -30,41 +28,25 @@ export default function CloseMeetingDialog({
   open,
   onOpenChange,
 }: CloseMeetingDialogProps) {
-  const queryClient = useQueryClient();
   const [closingNotes, setClosingNotes] = useState("");
-
-  const closeMeeting = useMutation({
-    mutationFn: async () => {
-      const updatePayload: Record<string, unknown> = {
-        status: "completed",
-        closed_at: new Date().toISOString(),
-      };
-
-      if (closingNotes.trim()) {
-        updatePayload.notes = closingNotes.trim();
-      }
-
-      const { error } = await supabase
-        .from("meetings")
-        .update(updatePayload)
-        .eq("id", meetingId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Meeting closed");
-      queryClient.invalidateQueries({ queryKey: ["meetings"] });
-      queryClient.invalidateQueries({ queryKey: ["meeting", meetingId] });
-      setClosingNotes("");
-      onOpenChange(false);
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to close meeting", { description: error.message });
-    },
-  });
+  const updateMeeting = useUpdateMeetingV2();
 
   const handleClose = () => {
-    closeMeeting.mutate();
+    updateMeeting.mutate(
+      {
+        id: meetingId,
+        data: {
+          status: "completed",
+          notes: closingNotes.trim() || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          setClosingNotes("");
+          onOpenChange(false);
+        },
+      }
+    );
   };
 
   return (
@@ -93,17 +75,17 @@ export default function CloseMeetingDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={closeMeeting.isPending}
+            disabled={updateMeeting.isPending}
           >
             Cancel
           </Button>
           <Button
             variant="destructive"
             onClick={handleClose}
-            disabled={closeMeeting.isPending}
+            disabled={updateMeeting.isPending}
           >
-            {closeMeeting.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-            {closeMeeting.isPending ? "Closing..." : "Close Meeting"}
+            {updateMeeting.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+            {updateMeeting.isPending ? "Closing..." : "Close Meeting"}
           </Button>
         </DialogFooter>
       </DialogContent>

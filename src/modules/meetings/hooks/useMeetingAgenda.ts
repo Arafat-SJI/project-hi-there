@@ -1,24 +1,24 @@
 /**
- * Meeting Agenda Hook
- *
- * CRUD operations for meeting agenda items with reordering support.
+ * Meeting Agenda Hook - CRUD operations for meeting_agenda_items
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { MeetingAgendaItem, AgendaItemFormData } from "../types";
+import type { MeetingAgendaItem } from "../types/meetings";
 
 const AGENDA_KEY = "meeting-agenda";
 
 /**
- * Fetch agenda items for a meeting, ordered by sort_order.
+ * Fetch agenda items for a meeting
  */
-export function useMeetingAgenda(meetingId: string) {
+export function useMeetingAgenda(meetingId: string | undefined) {
   return useQuery({
     queryKey: [AGENDA_KEY, meetingId],
     queryFn: async (): Promise<MeetingAgendaItem[]> => {
+      if (!meetingId) return [];
+
       const { data, error } = await supabase
         .from("meeting_agenda_items")
         .select("*")
@@ -26,14 +26,14 @@ export function useMeetingAgenda(meetingId: string) {
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
-      return (data || []) as unknown as MeetingAgendaItem[];
+      return (data || []) as MeetingAgendaItem[];
     },
     enabled: !!meetingId,
   });
 }
 
 /**
- * Add a new agenda item.
+ * Add an agenda item
  */
 export function useAddAgendaItem() {
   const queryClient = useQueryClient();
@@ -42,50 +42,39 @@ export function useAddAgendaItem() {
   return useMutation({
     mutationFn: async ({
       meetingId,
-      data,
+      content,
+      sortOrder,
     }: {
       meetingId: string;
-      data: AgendaItemFormData;
-    }) => {
-      // Get current max sort_order
-      const { data: existing } = await supabase
-        .from("meeting_agenda_items")
-        .select("sort_order")
-        .eq("meeting_id", meetingId)
-        .order("sort_order", { ascending: false })
-        .limit(1);
-
-      const nextOrder = existing?.[0]?.sort_order != null ? existing[0].sort_order + 1 : 0;
-
-      const { data: item, error } = await supabase
+      content: string;
+      sortOrder?: number;
+    }): Promise<MeetingAgendaItem> => {
+      const { data, error } = await supabase
         .from("meeting_agenda_items")
         .insert({
           meeting_id: meetingId,
-          title: data.title,
-          description: data.description || null,
-          duration_minutes: data.duration_minutes || null,
-          presenter_id: data.presenter_id || null,
-          sort_order: nextOrder,
+          content,
+          sort_order: sortOrder ?? 0,
           created_by: user?.id || null,
         })
         .select()
         .single();
 
       if (error) throw error;
-      return item;
+      return data as MeetingAgendaItem;
     },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [AGENDA_KEY, vars.meetingId] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [AGENDA_KEY, variables.meetingId] });
       toast.success("Agenda item added");
     },
     onError: (error: Error) => {
-      toast.error("Failed to add agenda item", { description: error.message });
+      toast.error(`Failed to add agenda item: ${error.message}`);
     },
   });
 }
 
 /**
- * Update an agenda item.
+ * Update an agenda item
  */
 export function useUpdateAgendaItem() {
   const queryClient = useQueryClient();
@@ -93,94 +82,58 @@ export function useUpdateAgendaItem() {
   return useMutation({
     mutationFn: async ({
       id,
-      meetingId,
-      data,
+      updates,
     }: {
       id: string;
-      meetingId: string;
-      data: Partial<AgendaItemFormData & { is_completed: boolean; notes: string }>;
-    }) => {
-      const { data: item, error } = await supabase
+      updates: Partial<Pick<MeetingAgendaItem, "content" | "sort_order" | "is_completed">>;
+    }): Promise<MeetingAgendaItem> => {
+      const { data, error } = await supabase
         .from("meeting_agenda_items")
-        .update({
-          ...(data.title !== undefined && { title: data.title }),
-          ...(data.description !== undefined && { description: data.description || null }),
-          ...(data.duration_minutes !== undefined && { duration_minutes: data.duration_minutes || null }),
-          ...(data.presenter_id !== undefined && { presenter_id: data.presenter_id || null }),
-          ...(data.is_completed !== undefined && { is_completed: data.is_completed }),
-          ...(data.notes !== undefined && { notes: data.notes || null }),
-        })
+        .update(updates)
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return item;
+      return data as MeetingAgendaItem;
     },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [AGENDA_KEY, vars.meetingId] });
+    onSuccess: (item) => {
+      queryClient.invalidateQueries({ queryKey: [AGENDA_KEY, item.meeting_id] });
+      toast.success("Agenda item updated");
     },
     onError: (error: Error) => {
-      toast.error("Failed to update agenda item", { description: error.message });
+      toast.error(`Failed to update agenda item: ${error.message}`);
     },
   });
 }
 
 /**
- * Delete an agenda item.
+ * Delete an agenda item
  */
 export function useDeleteAgendaItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, meetingId }: { id: string; meetingId: string }) => {
-      const { error } = await supabase
+    mutationFn: async (id: string): Promise<{ meeting_id: string }> => {
+      // Get meeting_id before deleting
+      const { data: item } = await supabase
         .from("meeting_agenda_items")
-        .delete()
-        .eq("id", id);
+        .select("meeting_id")
+        .eq("id", id)
+        .single();
+
+      const { error } = await supabase.from("meeting_agenda_items").delete().eq("id", id);
 
       if (error) throw error;
+      return { meeting_id: item?.meeting_id || "" };
     },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [AGENDA_KEY, vars.meetingId] });
-      toast.success("Agenda item removed");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to remove agenda item", { description: error.message });
-    },
-  });
-}
-
-/**
- * Reorder agenda items.
- */
-export function useReorderAgendaItems() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      meetingId,
-      items,
-    }: {
-      meetingId: string;
-      items: { id: string; sort_order: number }[];
-    }) => {
-      const updates = items.map(({ id, sort_order }) =>
-        supabase
-          .from("meeting_agenda_items")
-          .update({ sort_order })
-          .eq("id", id)
-      );
-
-      const results = await Promise.all(updates);
-      const firstError = results.find((r) => r.error);
-      if (firstError?.error) throw firstError.error;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [AGENDA_KEY, vars.meetingId] });
+    onSuccess: (_, id) => {
+      // Invalidate all agenda queries since we don't have meeting_id in the response
+      queryClient.invalidateQueries({ queryKey: [AGENDA_KEY] });
+      toast.success("Agenda item deleted");
     },
     onError: (error: Error) => {
-      toast.error("Failed to reorder agenda", { description: error.message });
+      toast.error(`Failed to delete agenda item: ${error.message}`);
     },
   });
 }
