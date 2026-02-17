@@ -266,7 +266,7 @@ export default function MeetingsSchedulePage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : view === "calendar" ? (
-        <MeetingsCalendar meetings={meetings} />
+        <MeetingsCalendar meetings={meetings as any} />
       ) : tab === "upcoming" && groupedByWeek ? (
         // Week-grouped view for upcoming
         <div className="space-y-4">
@@ -339,7 +339,7 @@ export default function MeetingsSchedulePage() {
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline">
-                                {typeLabels[meeting.type] || meeting.type}
+                                {typeLabels[(meeting as any).meeting_type] || (meeting as any).meeting_type || 'internal'}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -420,7 +420,7 @@ export default function MeetingsSchedulePage() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{typeLabels[meeting.type] || meeting.type}</Badge>
+                    <Badge variant="outline">{typeLabels[(meeting as any).meeting_type] || (meeting as any).meeting_type || 'internal'}</Badge>
                   </TableCell>
                   <TableCell>
                     {statusBadges[meeting.status] ? (

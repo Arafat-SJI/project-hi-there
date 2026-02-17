@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { MeetingAgendaItem } from "../types/meetings";
+import type { MeetingAgendaItem } from "../types/index";
 
 const AGENDA_KEY = "meeting-agenda";
 
@@ -19,7 +19,7 @@ export function useMeetingAgenda(meetingId: string | undefined) {
     queryFn: async (): Promise<MeetingAgendaItem[]> => {
       if (!meetingId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("meeting_agenda_items")
         .select("*")
         .eq("meeting_id", meetingId)
@@ -42,19 +42,27 @@ export function useAddAgendaItem() {
   return useMutation({
     mutationFn: async ({
       meetingId,
+      title,
       content,
+      description,
       sortOrder,
+      duration_minutes,
     }: {
       meetingId: string;
-      content: string;
+      title?: string;
+      content?: string;
+      description?: string;
       sortOrder?: number;
+      duration_minutes?: number;
     }): Promise<MeetingAgendaItem> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("meeting_agenda_items")
         .insert({
           meeting_id: meetingId,
-          content,
+          title: title || content || "Untitled",
+          description: description || null,
           sort_order: sortOrder ?? 0,
+          duration_minutes: duration_minutes || null,
           created_by: user?.id || null,
         })
         .select()
@@ -82,12 +90,14 @@ export function useUpdateAgendaItem() {
   return useMutation({
     mutationFn: async ({
       id,
+      meetingId,
       updates,
     }: {
       id: string;
-      updates: Partial<Pick<MeetingAgendaItem, "content" | "sort_order" | "is_completed">>;
+      meetingId?: string;
+      updates: Partial<Pick<MeetingAgendaItem, "title" | "description" | "sort_order" | "is_completed" | "duration_minutes">>;
     }): Promise<MeetingAgendaItem> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("meeting_agenda_items")
         .update(updates)
         .eq("id", id)
@@ -114,21 +124,22 @@ export function useDeleteAgendaItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string): Promise<{ meeting_id: string }> => {
+    mutationFn: async (idOrObj: string | { id: string; meetingId?: string }): Promise<{ meeting_id: string }> => {
+      const id = typeof idOrObj === 'string' ? idOrObj : idOrObj.id;
+      
       // Get meeting_id before deleting
-      const { data: item } = await supabase
+      const { data: item } = await (supabase as any)
         .from("meeting_agenda_items")
         .select("meeting_id")
         .eq("id", id)
         .single();
 
-      const { error } = await supabase.from("meeting_agenda_items").delete().eq("id", id);
+      const { error } = await (supabase as any).from("meeting_agenda_items").delete().eq("id", id);
 
       if (error) throw error;
       return { meeting_id: item?.meeting_id || "" };
     },
-    onSuccess: (_, id) => {
-      // Invalidate all agenda queries since we don't have meeting_id in the response
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [AGENDA_KEY] });
       toast.success("Agenda item deleted");
     },

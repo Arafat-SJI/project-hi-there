@@ -49,7 +49,7 @@ export default function AgendaColumn({
     addItem.mutate(
       {
         meetingId,
-        data: { title: newTitle.trim() },
+        title: newTitle.trim(),
       },
       {
         onSuccess: () => {
@@ -66,7 +66,7 @@ export default function AgendaColumn({
     updateItem.mutate({
       id,
       meetingId,
-      data: { is_completed: !item.is_completed },
+      updates: { is_completed: !item.is_completed },
     });
   };
 

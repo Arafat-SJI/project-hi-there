@@ -67,7 +67,7 @@ export default function CreateMeetingDialog({
     try {
       await createMeeting.mutateAsync({
         title: title.trim(),
-        type,
+        meeting_type: type,
         description: description.trim() || undefined,
         scheduled_at: new Date(scheduledAt).toISOString(),
         duration_minutes: parseInt(durationMinutes) || 60,

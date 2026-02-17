@@ -34,7 +34,7 @@ export function useMeetingFiles(filters?: MeetingFilesFilters) {
   return useQuery({
     queryKey: [MEETING_FILES_KEY, "list", filters],
     queryFn: async (): Promise<{ data: MeetingFile[]; totalCount: number }> => {
-      let query = supabase
+      let query = (supabase as any)
         .from("meeting_files")
         .select("*", { count: "exact" })
         .is("deleted_at", null)
@@ -107,7 +107,7 @@ export function useMeetingFile(slug: string | undefined) {
     queryFn: async (): Promise<MeetingFile | null> => {
       if (!slug) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("meeting_files")
         .select("*")
         .eq("slug", slug)
@@ -141,7 +141,7 @@ export function useUpdateMeetingFile() {
     }): Promise<MeetingFile> => {
       if (!user) throw new Error("User not authenticated");
 
-      const { data: file, error } = await supabase
+      const { data: file, error } = await (supabase as any)
         .from("meeting_files")
         .update(data)
         .eq("id", id)
@@ -177,41 +177,41 @@ export function useMeetingFilesStats() {
       weekStart.setHours(0, 0, 0, 0);
 
       // Total count
-      const { count: total } = await supabase
+      const { count: total } = await (supabase as any)
         .from("meeting_files")
         .select("*", { count: "exact", head: true })
         .is("deleted_at", null);
 
       // This week count
-      const { count: thisWeek } = await supabase
+      const { count: thisWeek } = await (supabase as any)
         .from("meeting_files")
         .select("*", { count: "exact", head: true })
         .is("deleted_at", null)
         .gte("meeting_start_time", weekStart.toISOString());
 
       // Categorized count
-      const { count: categorized } = await supabase
+      const { count: categorized } = await (supabase as any)
         .from("meeting_files")
         .select("*", { count: "exact", head: true })
         .is("deleted_at", null)
         .not("meeting_category", "is", null);
 
       // Verified count
-      const { count: verified } = await supabase
+      const { count: verified } = await (supabase as any)
         .from("meeting_files")
         .select("*", { count: "exact", head: true })
         .is("deleted_at", null)
         .eq("assignment_status", "verified");
 
       // Matched to project count
-      const { count: matchedToProject } = await supabase
+      const { count: matchedToProject } = await (supabase as any)
         .from("meeting_files")
         .select("*", { count: "exact", head: true })
         .is("deleted_at", null)
         .not("project_id", "is", null);
 
       // Embeddings complete count
-      const { count: embeddingsComplete } = await supabase
+      const { count: embeddingsComplete } = await (supabase as any)
         .from("meeting_files")
         .select("*", { count: "exact", head: true })
         .is("deleted_at", null)
