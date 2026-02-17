@@ -94,7 +94,7 @@ export function useCreateScorecard() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (data: { name: string; description?: string; frequency?: string }) => {
+    mutationFn: async (data: { name: string; description?: string; frequency?: string; pod_id?: string; is_active?: boolean }) => {
       const { data: scorecard, error } = await supabase
         .from("eos_scorecards")
         .insert({
@@ -103,6 +103,8 @@ export function useCreateScorecard() {
           frequency: data.frequency || "weekly",
           owner_id: user!.id,
           created_by: user!.id,
+          pod_id: data.pod_id || null,
+          is_active: data.is_active ?? true,
         })
         .select()
         .single();

@@ -1,19 +1,25 @@
 /**
- * EOS Accountability Admin — Manage accountability charts, responsibilities, and publishing.
+ * EOS Accountability Admin — Analytics, SLA targets, and org chart.
  *
- * Allows admins to:
- * - View all chart versions with publish/archive
- * - Add/edit/delete responsibilities on the current chart
- * - Publish a draft chart as the current active chart
- * - Create new chart versions
+ * - Analytics: approval rate and cycle time KPIs and trends by pod/role.
+ * - SLA targets: configure approval % and cycle time (days) per pod/role and fallback.
+ * - Org chart: chart versions, responsibilities, publish, GWC assessments.
  */
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -40,21 +46,495 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Network, CheckCircle2, Archive, Pencil, Trash2, UserPlus, ClipboardCheck } from "lucide-react";
+import { Loader2, Plus, Network, CheckCircle2, Archive, Pencil, Trash2, UserPlus, ClipboardCheck, Clock } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
 import {
   useAccountabilityCharts,
   useAccountabilityChart,
   useCreateChart,
   useAddResponsibility,
 } from "@/modules/eos/hooks/useAccountability";
+import { useEOSPods } from "@/modules/eos/hooks/useEOSPods";
+import { useSLATargets, useSaveSLATargets, type SaveSLATargetsInput } from "@/modules/eos/hooks/useSLATargets";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { AccountabilityChart, AccountabilityResponsibility, GWCAssessment } from "@/modules/eos/types";
+import type { AccountabilityResponsibility } from "@/modules/eos/types";
 import { ChartHistoryTimeline } from "@/modules/eos/components/accountability/ChartHistoryTimeline";
 import { EmployeeAccountabilityModal } from "@/modules/eos/components/accountability/EmployeeAccountabilityModal";
 import { GWCAssessmentDialog } from "@/modules/eos/components/accountability/GWCAssessmentDialog";
+
+const DEFAULT_ROLE_OPTIONS = ["Product Owner", "Tech Lead", "Project Manager"];
+
+// Mock monthly trend data for Analytics (Jan–Jun)
+const MOCK_APPROVAL_DATA = [
+  { month: "Jan", value: 72, sla: 90 },
+  { month: "Feb", value: 76, sla: 90 },
+  { month: "Mar", value: 82, sla: 90 },
+  { month: "Apr", value: 85, sla: 90 },
+  { month: "May", value: 88, sla: 90 },
+  { month: "Jun", value: 91.3, sla: 90 },
+];
+const MOCK_CYCLE_DATA = [
+  { month: "Jan", value: 6.2, sla: 5 },
+  { month: "Feb", value: 6, sla: 5 },
+  { month: "Mar", value: 5.8, sla: 5 },
+  { month: "Apr", value: 5.5, sla: 5 },
+  { month: "May", value: 5.4, sla: 5 },
+  { month: "Jun", value: 5.6, sla: 5 },
+];
+
+// Deterministic offset from filter key so chart/KPI values change per pod/role (mock filtering).
+function filterOffset(key: string): number {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0;
+  return (Math.abs(h) % 100) / 100; // 0..1
+}
+
+// ─── Analytics tab ────────────────────────────────────────────────────────
+function AnalyticsTab() {
+  const { data: pods = [] } = useEOSPods();
+  const [podFilter, setPodFilter] = useState<string>("all-pods");
+  const [roleFilter, setRoleFilter] = useState<string>("all-roles");
+  const approvalSLA = 90;
+  const cycleSLA = 5;
+
+  const filterKey = podFilter !== "all-pods" ? podFilter : roleFilter !== "all-roles" ? roleFilter : "all";
+  const offset = filterKey === "all" ? 0 : filterOffset(filterKey);
+
+  const approvalKpi = useMemo(() => {
+    const base = 91.3;
+    if (filterKey === "all") return base;
+    return Number((base - 8 + offset * 16).toFixed(1)); // vary ~83–99
+  }, [filterKey, offset]);
+
+  const cycleKpi = useMemo(() => {
+    const base = 5.6;
+    if (filterKey === "all") return base;
+    return Number((base - 1.5 + offset * 3).toFixed(1)); // vary ~4.1–7.1
+  }, [filterKey, offset]);
+
+  const approvalChartData = useMemo(() => {
+    if (filterKey === "all") return MOCK_APPROVAL_DATA;
+    return MOCK_APPROVAL_DATA.map((d, i) => ({
+      ...d,
+      value: Number((d.value - 6 + offset * 12 + i * 0.5).toFixed(1)),
+    })).map((d) => ({ ...d, value: Math.min(98, Math.max(62, d.value)) }));
+  }, [filterKey, offset]);
+
+  const cycleChartData = useMemo(() => {
+    if (filterKey === "all") return MOCK_CYCLE_DATA;
+    return MOCK_CYCLE_DATA.map((d, i) => ({
+      ...d,
+      value: Number((d.value - 1 + offset * 2 + i * 0.1).toFixed(1)),
+    })).map((d) => ({ ...d, value: Math.min(8, Math.max(3, d.value)) }));
+  }, [filterKey, offset]);
+
+  return (
+    <>
+      <div>
+        <h1 className="text-2xl font-bold text-primary">EOS Accountability Analytics</h1>
+        <p className="text-muted-foreground mt-1">
+          Track approval performance, pod cycle times, and SLA adherence to keep pods aligned.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="space-y-2">
+          <Label>Pod</Label>
+          <Select value={podFilter} onValueChange={setPodFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All pods" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all-pods">All pods</SelectItem>
+              {pods.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Role</Label>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all-roles">All roles</SelectItem>
+              {DEFAULT_ROLE_OPTIONS.map((r) => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 ml-auto">
+          {filterKey !== "all" && (
+            <span className="text-sm text-muted-foreground">
+              Showing: {podFilter !== "all-pods" ? pods.find((p) => p.id === podFilter)?.name ?? podFilter : roleFilter}
+            </span>
+          )}
+          <Badge className="bg-primary text-primary-foreground px-3 py-1.5">
+            <Clock className="h-3.5 w-3 mr-1.5" />
+            Approval: {approvalKpi}% (SLA {approvalSLA}%)
+          </Badge>
+          <Badge className="bg-destructive text-destructive-foreground px-3 py-1.5">
+            <Clock className="h-3.5 w-3 mr-1.5" />
+            Cycle: {cycleKpi} days (SLA {cycleSLA}d)
+          </Badge>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base text-center">Approval rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={approvalChartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis domain={[60, 100]} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip formatter={(v: number) => [`${v}%`, "Approval"]} labelFormatter={(l) => l} />
+                  <ReferenceLine y={approvalSLA} stroke="#3b82f6" strokeDasharray="6 4" label={{ value: "SLA", position: "insideTopRight", fontSize: 11, fill: "#3b82f6" }} />
+                  <Area type="monotone" dataKey="value" stroke="#64748b" fill="#64748b" fillOpacity={0.3} name="Approval" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex justify-end mt-1">
+              <Badge variant="secondary" className="text-xs">SLA {approvalSLA}%</Badge>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Pod cycle times</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={cycleChartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis domain={[0, 8]} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}d`} />
+                  <Tooltip formatter={(v: number) => [`${v} days`, "Cycle"]} labelFormatter={(l) => l} />
+                  <ReferenceLine y={cycleSLA} stroke="#3b82f6" strokeDasharray="6 4" label={{ value: "SLA", position: "insideTopRight", fontSize: 11, fill: "#3b82f6" }} />
+                  <Line type="monotone" dataKey="value" stroke="#64748b" strokeWidth={2} dot={{ r: 3 }} name="Cycle (days)" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex justify-end mt-1">
+              <Badge variant="secondary" className="text-xs">SLA {cycleSLA}d</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
+}
+
+// ─── SLA targets tab ──────────────────────────────────────────────────────
+function SLATargetsTab() {
+  const { data: pods = [] } = useEOSPods();
+  const { data: targets = [], isLoading } = useSLATargets();
+  const saveTargets = useSaveSLATargets();
+
+  const fallback = useMemo(() => targets.find((t) => t.pod_id == null && t.role_name == null), [targets]);
+  const podTargets = useMemo(() => targets.filter((t) => t.pod_id != null), [targets]);
+  const roleTargets = useMemo(() => targets.filter((t) => t.role_name != null), [targets]);
+
+  const [podForm, setPodForm] = useState<Record<string, { approval_rate_pct: string; cycle_time_days: string }>>({});
+  const [roleForm, setRoleForm] = useState<Record<string, { approval_rate_pct: string; cycle_time_days: string }>>({});
+  const [fallbackForm, setFallbackForm] = useState({ approval_rate_pct: "90", cycle_time_days: "5" });
+  const [selectedPodIds, setSelectedPodIds] = useState<Set<string>>(new Set());
+  const [selectedRoleNames, setSelectedRoleNames] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (fallback) {
+      setFallbackForm({
+        approval_rate_pct: String(fallback.approval_rate_pct),
+        cycle_time_days: String(fallback.cycle_time_days),
+      });
+    }
+  }, [fallback?.id, fallback?.approval_rate_pct, fallback?.cycle_time_days]);
+
+  const addPodTarget = (podId: string) => {
+    setSelectedPodIds((s) => new Set(s).add(podId));
+    setPodForm((f) => ({
+      ...f,
+      [podId]: {
+        approval_rate_pct: String(podTargets.find((t) => t.pod_id === podId)?.approval_rate_pct ?? 90),
+        cycle_time_days: String(podTargets.find((t) => t.pod_id === podId)?.cycle_time_days ?? 5),
+      },
+    }));
+  };
+  const addRoleTarget = (roleName: string) => {
+    setSelectedRoleNames((s) => new Set(s).add(roleName));
+    setRoleForm((f) => ({
+      ...f,
+      [roleName]: {
+        approval_rate_pct: String(roleTargets.find((t) => t.role_name === roleName)?.approval_rate_pct ?? 90),
+        cycle_time_days: String(roleTargets.find((t) => t.role_name === roleName)?.cycle_time_days ?? 5),
+      },
+    }));
+  };
+
+  const effectivePodIds = selectedPodIds.size > 0 ? selectedPodIds : new Set(podTargets.map((t) => t.pod_id!));
+  const effectiveRoleNames = selectedRoleNames.size > 0 ? selectedRoleNames : new Set(roleTargets.map((t) => t.role_name!));
+  const podMap = new Map(pods.map((p) => [p.id, p.name]));
+
+  const buildPayload = (): SaveSLATargetsInput => ({
+    fallback: {
+      approval_rate_pct: Number(fallbackForm.approval_rate_pct) || 90,
+      cycle_time_days: Number(fallbackForm.cycle_time_days) || 5,
+    },
+    pods: Array.from(effectivePodIds).map((podId) => ({
+      pod_id: podId,
+      approval_rate_pct: Number(podForm[podId]?.approval_rate_pct) || 90,
+      cycle_time_days: Number(podForm[podId]?.cycle_time_days) || 5,
+    })),
+    roles: Array.from(effectiveRoleNames).map((roleName) => ({
+      role_name: roleName,
+      approval_rate_pct: Number(roleForm[roleName]?.approval_rate_pct) || 90,
+      cycle_time_days: Number(roleForm[roleName]?.cycle_time_days) || 5,
+    })),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div>
+        <h1 className="text-2xl font-bold">SLA targets by pod and role</h1>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-medium">Pods</Label>
+            <Select
+              value=""
+              onValueChange={(id) => {
+                if (id && id !== "_none") addPodTarget(id);
+              }}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Add pod target" />
+              </SelectTrigger>
+              <SelectContent>
+                {pods.filter((p) => !effectivePodIds.has(p.id)).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+                {pods.filter((p) => !effectivePodIds.has(p.id)).length === 0 && <SelectItem value="_none" disabled>No more pods</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            {Array.from(effectivePodIds).map((podId) => {
+              const name = podMap.get(podId) ?? podId;
+              const form = podForm[podId] ?? {
+                approval_rate_pct: String(podTargets.find((t) => t.pod_id === podId)?.approval_rate_pct ?? 90),
+                cycle_time_days: String(podTargets.find((t) => t.pod_id === podId)?.cycle_time_days ?? 5),
+              };
+              return (
+                <Card key={podId} className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-3 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{name}</span>
+                        <Badge variant="secondary" className="text-xs">Target</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Approval rate (%)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={form.approval_rate_pct}
+                            onChange={(e) => setPodForm((f) => ({ ...f, [podId]: { ...form, approval_rate_pct: e.target.value } }))}
+                            className="h-9"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Cycle time (days)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.5}
+                            value={form.cycle_time_days}
+                            onChange={(e) => setPodForm((f) => ({ ...f, [podId]: { ...form, cycle_time_days: e.target.value } }))}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedPodIds((s) => { const n = new Set(s); n.delete(podId); return n; });
+                        setPodForm((f) => { const next = { ...f }; delete next[podId]; return next; });
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-medium">Roles</Label>
+            <Select
+              value=""
+              onValueChange={(name) => {
+                if (name && name !== "_none") addRoleTarget(name);
+              }}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Add role target" />
+              </SelectTrigger>
+              <SelectContent>
+                {DEFAULT_ROLE_OPTIONS.filter((r) => !effectiveRoleNames.has(r)).map((r) => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+                {DEFAULT_ROLE_OPTIONS.filter((r) => !effectiveRoleNames.has(r)).length === 0 && <SelectItem value="_none" disabled>No more roles</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            {Array.from(effectiveRoleNames).map((roleName) => {
+              const form = roleForm[roleName] ?? {
+                approval_rate_pct: String(roleTargets.find((t) => t.role_name === roleName)?.approval_rate_pct ?? 90),
+                cycle_time_days: String(roleTargets.find((t) => t.role_name === roleName)?.cycle_time_days ?? 5),
+              };
+              return (
+                <Card key={roleName} className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-3 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{roleName}</span>
+                        <Badge variant="secondary" className="text-xs">Target</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Approval rate (%)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={form.approval_rate_pct}
+                            onChange={(e) => setRoleForm((f) => ({ ...f, [roleName]: { ...form, approval_rate_pct: e.target.value } }))}
+                            className="h-9"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Cycle time (days)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.5}
+                            value={form.cycle_time_days}
+                            onChange={(e) => setRoleForm((f) => ({ ...f, [roleName]: { ...form, cycle_time_days: e.target.value } }))}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedRoleNames((s) => { const n = new Set(s); n.delete(roleName); return n; });
+                        setRoleForm((f) => { const next = { ...f }; delete next[roleName]; return next; });
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <Card className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Badge variant="secondary">Fallback</Badge>
+          <span className="text-sm text-muted-foreground">Used when a pod or role does not have a specific SLA.</span>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 max-w-md">
+          <div>
+            <Label className="text-xs">Default approval rate (%)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={fallbackForm.approval_rate_pct}
+              onChange={(e) => setFallbackForm((f) => ({ ...f, approval_rate_pct: e.target.value }))}
+              className="h-9"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Default cycle time (days)</Label>
+            <Input
+              type="number"
+              min={0}
+              step={0.5}
+              value={fallbackForm.cycle_time_days}
+              onChange={(e) => setFallbackForm((f) => ({ ...f, cycle_time_days: e.target.value }))}
+              className="h-9"
+            />
+          </div>
+        </div>
+      </Card>
+
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          onClick={() => {
+            setFallbackForm({ approval_rate_pct: "90", cycle_time_days: "5" });
+            setPodForm({});
+            setRoleForm({});
+            setSelectedPodIds(new Set());
+            setSelectedRoleNames(new Set());
+          }}
+        >
+          Reset
+        </Button>
+        <Button onClick={() => saveTargets.mutate(buildPayload())} disabled={saveTargets.isPending}>
+          {saveTargets.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save targets
+        </Button>
+      </div>
+    </>
+  );
+}
 
 const ACCOUNTABILITY_KEY = "eos-accountability";
 
@@ -227,6 +707,25 @@ export default function AdminEOSAccountability() {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="analytics" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="sla">SLA targets</TabsTrigger>
+          <TabsTrigger value="charts">Org chart</TabsTrigger>
+        </TabsList>
+
+        {/* ─── Analytics tab ───────────────────────────────────────────────── */}
+        <TabsContent value="analytics" className="space-y-6">
+          <AnalyticsTab />
+        </TabsContent>
+
+        {/* ─── SLA targets tab ────────────────────────────────────────────── */}
+        <TabsContent value="sla" className="space-y-6">
+          <SLATargetsTab />
+        </TabsContent>
+
+        {/* ─── Org chart tab (existing) ───────────────────────────────────── */}
+        <TabsContent value="charts" className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Accountability Charts</h1>
@@ -438,6 +937,9 @@ export default function AdminEOSAccountability() {
           </Table>
         </Card>
       )}
+
+        </TabsContent>
+      </Tabs>
 
       {/* New Chart Dialog */}
       <Dialog open={chartDialog} onOpenChange={setChartDialog}>

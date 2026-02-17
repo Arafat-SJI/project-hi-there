@@ -215,6 +215,7 @@ export interface EOSScorecard {
   name: string;
   description: string | null;
   owner_id: string | null;
+  pod_id: string | null;
   frequency: "weekly" | "monthly" | "quarterly";
   is_active: boolean;
   created_by: string | null;
@@ -237,6 +238,7 @@ export interface EOSScorecardMetric {
   week_of: string | null;
   status: "on_track" | "off_track" | "needs_attention";
   sort_order: number;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -286,6 +288,26 @@ export interface GWCAssessment {
   notes: string | null;
   assessment_date: string;
   created_at: string;
+}
+
+// ========================
+// SLA Targets (accountability analytics)
+// ========================
+
+export interface EOSSLATarget {
+  id: string;
+  pod_id: string | null;
+  role_name: string | null;
+  approval_rate_pct: number;
+  cycle_time_days: number;
+  created_at: string;
+  updated_at: string;
+  pod?: EOSPod | null;
+}
+
+export interface EOSSLATargetForm {
+  approval_rate_pct: number;
+  cycle_time_days: number;
 }
 
 // ========================
