@@ -44,6 +44,7 @@ import MCPServers from "@/pages/MCPServers";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement";
 import EmployeeProjection from "@/pages/admin/EmployeeProjection";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
+import SkillManagement from "@/pages/admin/SkillManagement";
 import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 import KnowledgeSources from "@/pages/admin/KnowledgeSources";
@@ -113,6 +114,7 @@ export const adminRoutes = (
     <Route path="/admin/productivity-import" element={<ProductivityImport />} />
     <Route path="/admin/team/employee_projection" element={<EmployeeProjection />} />
     <Route path="/admin/team/departments" element={<DepartmentManagement />} />
+    <Route path="/admin/skillmanagement" element={<SkillManagement />} />
 
     {/* Knowledge Admin */}
     <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />

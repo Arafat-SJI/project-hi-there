@@ -362,12 +362,12 @@ export const adminNavigation: NavGroup[] = [
         children: [
           {
             title: "POD Management",
-            href: "/eos/issues/pod-overview",
+            href: "/admin/team/employee_projection",
             icon: "Users",
           },
           {
             title: "Skill Management",
-            href: "/admin/eos",
+            href: "/admin/skillmanagement",
             icon: "Zap",
           },
           {
