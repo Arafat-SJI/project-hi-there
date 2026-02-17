@@ -24,23 +24,27 @@ import MeetingForm from "@/pages/MeetingForm";
 
 export const meetingsRoutes = (
   <Route element={<ModuleRoute module="meetings" requiresFeatureFlag="enableMeetings" />}>
-    {/* Schedule & detail */}
-    <Route path="/meetings" element={<MeetingsSchedulePage />} />
+    {/* Main redirect: /meetings -> /meetings/transcripts */}
+    <Route path="/meetings" element={<Navigate to="/meetings/transcripts" replace />} />
+
+    {/* All Meetings (Schedule) */}
     <Route path="/meetings/schedule" element={<MeetingsSchedulePage />} />
     <Route path="/meetings/schedule/:idOrSlug" element={<MeetingDetailV2Page />} />
-    <Route path="/meetings/series" element={<MeetingSeriesPage />} />
 
-    {/* Transcripts & AI features */}
+    {/* Transcripts */}
     <Route path="/meetings/transcripts" element={<MeetingTranscriptsPage />} />
+    <Route path="/meetings/transcripts/:slug" element={<TranscriptDetailPage />} />
+
+    {/* Additional features */}
+    <Route path="/meetings/series" element={<MeetingSeriesPage />} />
     <Route path="/meetings/transcripts/ai-match" element={<MeetingAiMatchResultsPage />} />
-    <Route path="/meetings/transcripts/:id" element={<TranscriptDetailPage />} />
     <Route path="/meetings/pending-assignments" element={<MeetingPendingAssignmentsPage />} />
 
     {/* Knowledge base integration */}
     <Route path="/knowledge/meetings" element={<KnowledgeMeetingsPage />} />
 
-    {/* Detail & redirect */}
-    <Route path="/meetings/:id" element={<MeetingDetailV2Page />} />
+    {/* Detail & redirect - UUID redirects to slug-based URL */}
+    <Route path="/meetings/:id" element={<MeetingIdRedirectPage />} />
 
     {/* Legacy create/edit forms */}
     <Route path="/meetings/new" element={<MeetingForm />} />

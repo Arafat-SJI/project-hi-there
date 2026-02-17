@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, Users } from "lucide-react";
@@ -6,11 +6,16 @@ import type { TaskStream } from "../../types/tasks";
 
 interface StreamCardProps {
   stream: TaskStream;
+  /** When provided, links use this base path (e.g. /admin/tasks/streams when in admin) */
+  basePath?: string;
 }
 
-export function StreamCard({ stream }: StreamCardProps) {
+export function StreamCard({ stream, basePath }: StreamCardProps) {
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith("/admin");
+  const to = basePath ?? (isAdmin ? "/admin/tasks/streams" : "/tasks/streams");
   return (
-    <Link to={`/tasks/streams/${stream.id}`}>
+    <Link to={`${to}/${stream.id}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-3">

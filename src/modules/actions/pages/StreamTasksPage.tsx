@@ -4,7 +4,7 @@
  * Shows tasks filtered to a specific stream.
  */
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, ArrowLeft } from "lucide-react";
 import { useTasksV2, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
@@ -17,6 +17,9 @@ import type { TaskFilters, TaskStatus } from "../types/tasks";
 export default function StreamTasksPage() {
   const { streamId } = useParams<{ streamId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith("/admin");
+  const streamsPath = isAdmin ? "/admin/tasks/streams" : "/tasks/streams";
   const [filters, setFilters] = useState<TaskFilters>({});
   const [showCreate, setShowCreate] = useState(false);
 
@@ -34,7 +37,7 @@ export default function StreamTasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/tasks/streams")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(streamsPath)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

@@ -7,8 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Users, Loader2, Building2, MapPin } from "lucide-react";
+import { Search, Users, Loader2, Building2, MapPin, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useEmployeeProfiles } from "@/modules/productivity/hooks/useEmployees";
+import { generateEmployeesCSV } from "@/lib/csv";
+import { toast } from "sonner";
 
 export default function EmployeeManagement() {
   const [search, setSearch] = useState("");
@@ -16,11 +19,26 @@ export default function EmployeeManagement() {
 
   const activeCount = employees.filter((e) => e.is_active).length;
 
+  const handleExportCSV = () => {
+    if (employees.length === 0) {
+      toast.error("No employees to export");
+      return;
+    }
+    generateEmployeesCSV(employees, `employees-export-${new Date().toISOString().slice(0, 10)}`);
+    toast.success("Employees exported successfully");
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Employee Management</h1>
-        <p className="text-muted-foreground">Manage employee profiles and settings</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Employee Management</h1>
+          <p className="text-muted-foreground">Manage employee profiles and settings</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={employees.length === 0}>
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

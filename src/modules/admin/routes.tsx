@@ -44,6 +44,7 @@ import MCPServers from "@/pages/MCPServers";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement";
 import EmployeeProjection from "@/pages/admin/EmployeeProjection";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
+import SkillManagement from "@/pages/admin/SkillManagement";
 import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 import KnowledgeSources from "@/pages/admin/KnowledgeSources";
@@ -63,6 +64,8 @@ import OKRsWorkspace from "@/pages/admin/eos/OKRsWorkspace";
 import ProductivityImport from "@/pages/admin/ProductivityImport";
 import OAuthClients from "@/pages/admin/OAuthClients";
 import ApiKeys from "@/pages/admin/ApiKeys";
+import StreamsPage from "@/modules/actions/pages/StreamsPage";
+import StreamTasksPage from "@/modules/actions/pages/StreamTasksPage";
 
 /**
  * Admin routes - require admin role
@@ -102,11 +105,16 @@ export const adminRoutes = (
     <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
     <Route path="/admin/mcp-servers" element={<MCPServers />} />
 
+    {/* Task Streams (Admin) */}
+    <Route path="/admin/tasks/streams" element={<StreamsPage />} />
+    <Route path="/admin/tasks/streams/:streamId" element={<StreamTasksPage />} />
+
     {/* Team & Resources */}
     <Route path="/admin/team/employees" element={<EmployeeManagement />} />
     <Route path="/admin/productivity-import" element={<ProductivityImport />} />
     <Route path="/admin/team/employee_projection" element={<EmployeeProjection />} />
     <Route path="/admin/team/departments" element={<DepartmentManagement />} />
+    <Route path="/admin/skillmanagement" element={<SkillManagement />} />
 
     {/* Knowledge Admin */}
     <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />

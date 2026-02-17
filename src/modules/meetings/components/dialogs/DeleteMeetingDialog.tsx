@@ -6,9 +6,6 @@
  */
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, AlertTriangle } from "lucide-react";
+import { useDeleteMeetingV2 } from "../../hooks/useMeetingsV2";
 
 interface DeleteMeetingDialogProps {
   meetingId: string;
@@ -36,62 +34,18 @@ export default function DeleteMeetingDialog({
   onOpenChange,
   onDeleted,
 }: DeleteMeetingDialogProps) {
-  const queryClient = useQueryClient();
   const [deleteScope, setDeleteScope] = useState<DeleteScope>("single");
-
-  const deleteMeeting = useMutation({
-    mutationFn: async () => {
-      if (isRecurring && deleteScope === "series") {
-        // First get the parent_meeting_id to find all related meetings
-        const { data: meeting, error: fetchError } = await (supabase as any)
-          .from("meetings")
-          .select("parent_meeting_id")
-          .eq("id", meetingId)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        const parentId = meeting?.parent_meeting_id || meetingId;
-
-        // Delete all meetings in the series
-        const { error: deleteChildrenError } = await (supabase as any)
-          .from("meetings")
-          .delete()
-          .eq("parent_meeting_id", parentId);
-
-        if (deleteChildrenError) throw deleteChildrenError;
-
-        // Delete the parent meeting itself
-        const { error: deleteParentError } = await supabase
-          .from("meetings")
-          .delete()
-          .eq("id", parentId);
-
-        if (deleteParentError) throw deleteParentError;
-      } else {
-        const { error } = await supabase
-          .from("meetings")
-          .delete()
-          .eq("id", meetingId);
-
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      toast.success(
-        deleteScope === "series" ? "Meeting series deleted" : "Meeting deleted"
-      );
-      queryClient.invalidateQueries({ queryKey: ["meetings"] });
-      onOpenChange(false);
-      onDeleted?.();
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to delete meeting", { description: error.message });
-    },
-  });
+  const deleteMeeting = useDeleteMeetingV2();
 
   const handleDelete = () => {
-    deleteMeeting.mutate();
+    // For now, only support single meeting deletion
+    // Series deletion can be added later if needed
+    deleteMeeting.mutate(meetingId, {
+      onSuccess: () => {
+        onOpenChange(false);
+        onDeleted?.();
+      },
+    });
   };
 
   return (

@@ -1,39 +1,45 @@
 /**
- * Meeting Takeaways Hook
- *
- * CRUD operations for meeting takeaways (decisions, action items, notes, follow-ups).
+ * Meeting Takeaways Hook - CRUD operations for meeting_takeaways
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { MeetingTakeaway, TakeawayFormData } from "../types";
+import type { MeetingTakeaway } from "../types/index";
 
 const TAKEAWAYS_KEY = "meeting-takeaways";
 
 /**
- * Fetch takeaways for a meeting.
+ * Fetch takeaways for a meeting
  */
-export function useMeetingTakeaways(meetingId: string) {
+export function useMeetingTakeaways(meetingId: string | undefined) {
   return useQuery({
     queryKey: [TAKEAWAYS_KEY, meetingId],
     queryFn: async (): Promise<MeetingTakeaway[]> => {
-      const { data, error } = await supabase
+      if (!meetingId) return [];
+
+      const { data, error } = await (supabase as any)
         .from("meeting_takeaways")
-        .select("*")
+        .select(`
+          *,
+          assignee:profiles!meeting_takeaways_assigned_to_fkey(id, full_name, email)
+        `)
         .eq("meeting_id", meetingId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as unknown as MeetingTakeaway[];
+      return (data || []).map((item: any) => ({
+        ...item,
+        assignee: item.assignee || null,
+      })) as MeetingTakeaway[];
     },
     enabled: !!meetingId,
   });
 }
 
 /**
- * Add a new takeaway.
+ * Add a takeaway
  */
 export function useAddTakeaway() {
   const queryClient = useQueryClient();
@@ -45,37 +51,50 @@ export function useAddTakeaway() {
       data,
     }: {
       meetingId: string;
-      data: TakeawayFormData;
-    }) => {
-      const { data: takeaway, error } = await supabase
+      data: {
+        content: string;
+        takeaway_type?: string;
+        agenda_item_id?: string;
+        assigned_to?: string;
+        due_date?: string;
+        priority?: string;
+        status?: string;
+      };
+    }): Promise<MeetingTakeaway> => {
+      if (!user) throw new Error("User not authenticated");
+
+      const { data: takeaway, error } = await (supabase as any)
         .from("meeting_takeaways")
         .insert({
           meeting_id: meetingId,
           content: data.content,
-          takeaway_type: data.takeaway_type,
+          takeaway_type: data.takeaway_type || "note",
           agenda_item_id: data.agenda_item_id || null,
           assigned_to: data.assigned_to || null,
           due_date: data.due_date || null,
-          created_by: user?.id || null,
+          priority: data.priority || "medium",
+          status: data.status || "open",
+          is_completed: false,
+          created_by: user.id,
         })
         .select()
         .single();
 
       if (error) throw error;
-      return takeaway;
+      return takeaway as MeetingTakeaway;
     },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [TAKEAWAYS_KEY, vars.meetingId] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [TAKEAWAYS_KEY, variables.meetingId] });
       toast.success("Takeaway added");
     },
     onError: (error: Error) => {
-      toast.error("Failed to add takeaway", { description: error.message });
+      toast.error(`Failed to add takeaway: ${error.message}`);
     },
   });
 }
 
 /**
- * Update a takeaway.
+ * Update a takeaway
  */
 export function useUpdateTakeaway() {
   const queryClient = useQueryClient();
@@ -83,65 +102,33 @@ export function useUpdateTakeaway() {
   return useMutation({
     mutationFn: async ({
       id,
-      meetingId,
-      data,
+      updates,
     }: {
       id: string;
-      meetingId: string;
-      data: Partial<TakeawayFormData & { is_completed: boolean }>;
-    }) => {
-      const { data: takeaway, error } = await supabase
+      updates: Partial<Pick<MeetingTakeaway, "content" | "assigned_to" | "due_date" | "status" | "is_completed" | "takeaway_type" | "priority">>;
+    }): Promise<MeetingTakeaway> => {
+      const { data, error } = await (supabase as any)
         .from("meeting_takeaways")
-        .update({
-          ...(data.content !== undefined && { content: data.content }),
-          ...(data.takeaway_type !== undefined && { takeaway_type: data.takeaway_type }),
-          ...(data.assigned_to !== undefined && { assigned_to: data.assigned_to || null }),
-          ...(data.due_date !== undefined && { due_date: data.due_date || null }),
-          ...(data.is_completed !== undefined && { is_completed: data.is_completed }),
-        })
+        .update(updates)
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
-      return takeaway;
+      return data as MeetingTakeaway;
     },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [TAKEAWAYS_KEY, vars.meetingId] });
+    onSuccess: (takeaway) => {
+      queryClient.invalidateQueries({ queryKey: [TAKEAWAYS_KEY, takeaway.meeting_id] });
+      toast.success("Takeaway updated");
     },
     onError: (error: Error) => {
-      toast.error("Failed to update takeaway", { description: error.message });
+      toast.error(`Failed to update takeaway: ${error.message}`);
     },
   });
 }
 
 /**
- * Delete a takeaway.
- */
-export function useDeleteTakeaway() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, meetingId }: { id: string; meetingId: string }) => {
-      const { error } = await supabase
-        .from("meeting_takeaways")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [TAKEAWAYS_KEY, vars.meetingId] });
-      toast.success("Takeaway removed");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to remove takeaway", { description: error.message });
-    },
-  });
-}
-
-/**
- * Toggle takeaway completion.
+ * Toggle takeaway completion status
  */
 export function useToggleTakeaway() {
   const queryClient = useQueryClient();
@@ -155,19 +142,62 @@ export function useToggleTakeaway() {
       id: string;
       meetingId: string;
       is_completed: boolean;
-    }) => {
-      const { error } = await supabase
+    }): Promise<MeetingTakeaway> => {
+      const { data, error } = await (supabase as any)
         .from("meeting_takeaways")
-        .update({ is_completed })
-        .eq("id", id);
+        .update({ is_completed, status: is_completed ? "completed" : "open" })
+        .eq("id", id)
+        .select()
+        .single();
 
       if (error) throw error;
+      return data as MeetingTakeaway;
     },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [TAKEAWAYS_KEY, vars.meetingId] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [TAKEAWAYS_KEY, variables.meetingId] });
+      toast.success("Takeaway updated");
     },
     onError: (error: Error) => {
-      toast.error("Failed to update takeaway", { description: error.message });
+      toast.error(`Failed to update takeaway: ${error.message}`);
+    },
+  });
+}
+
+/**
+ * Delete a takeaway
+ */
+export function useDeleteTakeaway() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      meetingId,
+    }: {
+      id: string;
+      meetingId?: string;
+    }): Promise<{ meeting_id: string }> => {
+      const { data: item } = await (supabase as any)
+        .from("meeting_takeaways")
+        .select("meeting_id")
+        .eq("id", id)
+        .single();
+
+      const { error } = await (supabase as any).from("meeting_takeaways").delete().eq("id", id);
+
+      if (error) throw error;
+      const finalMeetingId = meetingId || item?.meeting_id || "";
+      return { meeting_id: finalMeetingId };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: [TAKEAWAYS_KEY] });
+      if (result.meeting_id) {
+        queryClient.invalidateQueries({ queryKey: [TAKEAWAYS_KEY, result.meeting_id] });
+      }
+      toast.success("Takeaway deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete takeaway: ${error.message}`);
     },
   });
 }

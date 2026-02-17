@@ -106,15 +106,6 @@ export const navigationGroups: NavGroup[] = [
         icon: "CheckSquare",
         module: "actions",
         featureFlag: "enableTasks",
-        children: [
-          {
-            title: "Streams",
-            href: "/tasks/streams",
-            icon: "GitBranch",
-            module: "actions",
-            featureFlag: "enableTasks",
-          },
-        ],
       },
       {
         title: "Projects",
@@ -131,16 +122,9 @@ export const navigationGroups: NavGroup[] = [
     module: "meetings",
     items: [
       {
-        title: "Schedule",
-        href: "/meetings",
+        title: "All Meetings",
+        href: "/meetings/schedule",
         icon: "Calendar",
-        module: "meetings",
-        featureFlag: "enableMeetings",
-      },
-      {
-        title: "Series",
-        href: "/meetings/series",
-        icon: "Repeat",
         module: "meetings",
         featureFlag: "enableMeetings",
       },
@@ -148,6 +132,13 @@ export const navigationGroups: NavGroup[] = [
         title: "Transcripts",
         href: "/meetings/transcripts",
         icon: "ScrollText",
+        module: "meetings",
+        featureFlag: "enableMeetings",
+      },
+      {
+        title: "Series",
+        href: "/meetings/series",
+        icon: "Repeat",
         module: "meetings",
         featureFlag: "enableMeetings",
       },
@@ -244,7 +235,6 @@ export const navigationGroups: NavGroup[] = [
     id: "operations",
     title: "Operations",
     icon: "Settings2",
-    module: "productivity",
     items: [
       {
         title: "Productivity",
@@ -257,6 +247,12 @@ export const navigationGroups: NavGroup[] = [
         href: "/process",
         icon: "FileText",
         module: "productivity",
+      },
+      {
+        title: "Feedback",
+        href: "/feedback",
+        icon: "MessageCircle",
+        featureFlag: "enableFeedback",
       },
     ],
   },
@@ -294,6 +290,7 @@ export const navigationGroups: NavGroup[] = [
         href: "/ai-agents",
         icon: "Bot",
         featureFlag: "enableAIAgents",
+        adminOnly: true,
       },
       {
         title: "AI Chat",
@@ -322,13 +319,85 @@ export const mainNavigation: NavItem[] = [
 export const adminNavigation: NavGroup[] = [
   {
     id: "admin-dashboard",
-    title: "DASHBOARD",
+    title: "PEOPLE & PERFORMANCE",
     icon: "LayoutDashboard",
     items: [
       {
-        title: "Overview",
+        title: "Admin Dashboard",
         href: "/admin",
         icon: "LayoutDashboard",
+      },
+      {
+        title: "Employee Management",
+        href: "/admin/team/employees",
+        icon: "Users",
+      },
+      {
+        title: "Task Configuration",
+        href: "/admin/tasks/streams",
+        icon: "Settings",
+        headerOnly: true,
+        children: [
+          {
+            title: "Task Streams",
+            href: "/admin/tasks/streams",
+            icon: "GitBranch",
+          },
+        ],
+      },
+      {
+        title: "OKR & Scorecards",
+        href: "/admin/eos/scorecards",
+        icon: "Target",
+        headerOnly: true,
+        children: [
+          {
+            title: "Scorecard Settings",
+            href: "/admin/eos/scorecards",
+            icon: "BarChart3",
+          },
+        ],
+      },
+      {
+        title: "Accountability",
+        href: "/admin/eos/accountability",
+        icon: "Shield",
+        headerOnly: true,
+        children: [
+          {
+            title: "Chart Management",
+            href: "/admin/eos/accountability",
+            icon: "Network",
+          },
+          {
+            title: "V/TO Settings",
+            href: "/admin/eos/vto",
+            icon: "FileText",
+          },
+        ],
+      },
+      {
+        title: "Teams & PODs",
+        href: "/admin/team/employee_projection",
+        icon: "Layers",
+        headerOnly: true,
+        children: [
+          {
+            title: "POD Management",
+            href: "/admin/team/employee_projection",
+            icon: "Users",
+          },
+          {
+            title: "Skill Management",
+            href: "/admin/skillmanagement",
+            icon: "Zap",
+          },
+          {
+            title: "RP Settings",
+            href: "/admin/eos",
+            icon: "Settings",
+          },
+        ],
       },
     ],
   },
@@ -359,11 +428,6 @@ export const adminNavigation: NavGroup[] = [
     title: "TEAM & RESOURCES",
     icon: "Building2",
     items: [
-      {
-        title: "Employees",
-        href: "/admin/team/employees",
-        icon: "Users",
-      },
       {
         title: "Departments",
         href: "/admin/team/departments",

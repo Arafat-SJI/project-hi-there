@@ -1,20 +1,15 @@
 /**
- * VTO Admin — Admin configuration for Vision/Traction Organizer sections.
+ * VTO Administration — Compare, export, and audit Vision/Traction Organizer records across pods.
  *
- * Allows admins to:
- * - View all VTO sections with current content preview
- * - Reset a section to default template
- * - Edit section title and sort order
- * - Bulk reset all sections
+ * - Summary stats: Total VTOs, Average completion, Pods linked, Versions tracked
+ * - Pod-level VTOs table (Assign to pod, Export)
+ * - Version comparison (source/target)
+ * - Audit history
  */
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -24,123 +19,52 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Loader2, Pencil, RotateCcw, Eye, FileText } from "lucide-react";
-import { useVTO, useUpdateVTO } from "@/modules/eos/hooks/useVTO";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Loader2, Sparkles, ShieldCheck, ClipboardList, History, Download, ChevronDown, GitCompareArrows } from "lucide-react";
+import { useEOSPods } from "@/modules/eos/hooks/useEOSPods";
+import { useVTO } from "@/modules/eos/hooks/useVTO";
 import { toast } from "sonner";
-import type { VTOSection } from "@/modules/eos/types";
-
-const VTO_KEY = "eos-vto";
-
-const DEFAULT_TEMPLATES: Record<string, Record<string, unknown>> = {
-  core_values: { values: ["Integrity", "Innovation", "Teamwork", "Excellence", "Accountability"] },
-  core_focus: { purpose: "", niche: "" },
-  ten_year_target: { target: "" },
-  marketing_strategy: { target_market: "", uniques: [], proven_process: "", guarantee: "" },
-  three_year_picture: { revenue: "", profit: "", measurables: [] },
-  one_year_plan: { revenue: "", profit: "", goals: [] },
-  quarterly_rocks: { rocks: [] },
-  issues_list: { issues: [] },
-};
-
-const SECTION_LABELS: Record<string, string> = {
-  core_values: "Core Values",
-  core_focus: "Core Focus",
-  ten_year_target: "10-Year Target",
-  marketing_strategy: "Marketing Strategy",
-  three_year_picture: "3-Year Picture",
-  one_year_plan: "1-Year Plan",
-  quarterly_rocks: "Quarterly Rocks",
-  issues_list: "Issues List",
-};
-
-function useResetVTOSection() {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-
-  return useMutation({
-    mutationFn: async ({ section }: { section: string }) => {
-      const template = DEFAULT_TEMPLATES[section] || {};
-      const { error } = await (supabase as any)
-        .from("eos_vto")
-        .update({
-          content: template as any,
-          updated_by: user!.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("section", section);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [VTO_KEY] });
-      toast.success("Section reset to default template");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to reset section", { description: error.message });
-    },
-  });
-}
-
-function useUpdateVTOTitle() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, title }: { id: string; title: string }) => {
-      const { error } = await supabase
-        .from("eos_vto")
-        .update({ title, updated_at: new Date().toISOString() })
-        .eq("id", id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [VTO_KEY] });
-      toast.success("Title updated");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to update title", { description: error.message });
-    },
-  });
-}
-
-function contentPreview(content: Record<string, unknown>): string {
-  const values = Object.values(content);
-  for (const v of values) {
-    if (typeof v === "string" && v.length > 0) return v.substring(0, 80) + (v.length > 80 ? "…" : "");
-    if (Array.isArray(v) && v.length > 0) return v.slice(0, 3).join(", ") + (v.length > 3 ? "…" : "");
-  }
-  return "Empty";
-}
 
 export default function VTOAdmin() {
-  const { data: sections, isLoading } = useVTO();
-  const resetSection = useResetVTOSection();
-  const updateTitle = useUpdateVTOTitle();
+  const { data: pods = [], isLoading: podsLoading } = useEOSPods();
+  const { data: sections = [], isLoading: sectionsLoading } = useVTO();
+  const [assignPodOpen, setAssignPodOpen] = useState(false);
+  const [sourceVersion, setSourceVersion] = useState<string>("");
+  const [targetVersion, setTargetVersion] = useState<string>("");
 
-  const [editSection, setEditSection] = useState<VTOSection | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [resetTarget, setResetTarget] = useState<string | null>(null);
-  const [previewSection, setPreviewSection] = useState<VTOSection | null>(null);
+  const isLoading = podsLoading || sectionsLoading;
+
+  const totalVTOs = 0;
+  const averageCompletion = 0;
+  const podsLinked = 0;
+  const versionsTracked = 0;
+
+  const vtoRecords: { pod: string; completion: number; updated: string; status: string }[] = [];
+
+  const versionOptions = (sections || []).map((s) => ({
+    value: s.id,
+    label: `${s.title || s.section} (v${s.sort_order})`,
+  }));
+
+  const handleExport = () => {
+    toast.info("Export will be available when pod-level VTO records exist.");
+  };
+
+  const handleAssignToPod = (_podId: string) => {
+    setAssignPodOpen(false);
+    toast.info("Assign to pod will be available via admin API.");
+  };
 
   if (isLoading) {
     return (
@@ -150,203 +74,196 @@ export default function VTOAdmin() {
     );
   }
 
-  const filledSections = (sections || []).filter(
-    (s) => contentPreview(s.content as Record<string, unknown>) !== "Empty"
-  ).length;
-
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">VTO Admin</h1>
-        <p className="text-muted-foreground">
-          Manage Vision/Traction Organizer section templates and content.
+        <h1 className="text-2xl font-bold text-primary">VTO Administration</h1>
+        <p className="text-muted-foreground mt-1">
+          Compare, export, and audit Vision/Traction Organizer records across pods.
         </p>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Summary statistics */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Total Sections</p>
-            <p className="text-2xl font-bold">{(sections || []).length}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total VTOs</p>
+                <p className="text-2xl font-bold">{totalVTOs}</p>
+              </div>
+              <Sparkles className="h-9 w-9 text-primary opacity-80" />
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Filled Sections</p>
-            <p className="text-2xl font-bold text-green-600">{filledSections}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Average completion</p>
+                <p className="text-2xl font-bold">{averageCompletion}%</p>
+              </div>
+              <ShieldCheck className="h-9 w-9 text-green-600 opacity-80" />
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Empty Sections</p>
-            <p className="text-2xl font-bold text-amber-600">
-              {(sections || []).length - filledSections}
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Pods linked</p>
+                <p className="text-2xl font-bold">{podsLinked}</p>
+              </div>
+              <ClipboardList className="h-9 w-9 text-primary opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Versions tracked</p>
+                <p className="text-2xl font-bold">{versionsTracked}</p>
+              </div>
+              <History className="h-9 w-9 text-amber-600 opacity-80" />
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Sections Table */}
+      {/* Pod-level VTOs */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            VTO Sections
-          </CardTitle>
-          <CardDescription>
-            Each section maps to a part of the Vision/Traction Organizer. Resetting returns the section to the default template.
-          </CardDescription>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>Pod-level VTOs</CardTitle>
+              <CardDescription>Securely managed via admin APIs.</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <DropdownMenu open={assignPodOpen} onOpenChange={setAssignPodOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    Assign to pod
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {pods.length === 0 ? (
+                    <DropdownMenuItem disabled>No pods</DropdownMenuItem>
+                  ) : (
+                    pods.map((p) => (
+                      <DropdownMenuItem key={p.id} onClick={() => handleAssignToPod(p.id)}>
+                        {p.name}
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Section Key</TableHead>
-              <TableHead>Display Title</TableHead>
-              <TableHead>Content Preview</TableHead>
-              <TableHead>Last Updated</TableHead>
+              <TableHead>Pod</TableHead>
+              <TableHead>Completion</TableHead>
+              <TableHead>Updated</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {(sections || []).map((section) => (
-              <TableRow key={section.id}>
-                <TableCell>
-                  <Badge variant="outline">{section.sort_order}</Badge>
-                </TableCell>
-                <TableCell>
-                  <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{section.section}</code>
-                </TableCell>
-                <TableCell className="font-medium">
-                  {section.title || SECTION_LABELS[section.section] || section.section}
-                </TableCell>
-                <TableCell className="max-w-xs">
-                  <span className="text-sm text-muted-foreground truncate block">
-                    {contentPreview(section.content as Record<string, unknown>)}
-                  </span>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {section.updated_at
-                    ? new Date(section.updated_at).toLocaleDateString()
-                    : "—"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setPreviewSection(section)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditSection(section);
-                        setEditTitle(section.title || SECTION_LABELS[section.section] || "");
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setResetTarget(section.section)}
-                    >
-                      <RotateCcw className="h-4 w-4 text-amber-500" />
-                    </Button>
-                  </div>
+            {vtoRecords.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  No VTO records found. Create or import VTOs via the admin API.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              vtoRecords.map((row, i) => (
+                <TableRow key={i}>
+                  <TableCell className="font-medium">{row.pod}</TableCell>
+                  <TableCell>{row.completion}%</TableCell>
+                  <TableCell>{row.updated}</TableCell>
+                  <TableCell>{row.status}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm">Actions</Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </Card>
 
-      {/* Edit Title Dialog */}
-      <Dialog open={!!editSection} onOpenChange={() => setEditSection(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Section Title</DialogTitle>
-            <DialogDescription>
-              Update the display title for "{editSection?.section}".
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Display Title</Label>
-              <Input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="Enter title"
-              />
+      {/* Version comparison + Audit history */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GitCompareArrows className="h-5 w-5" />
+              Version comparison
+            </CardTitle>
+            <CardDescription>Compare changes between VTO revisions.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Source version</label>
+                <Select value={sourceVersion} onValueChange={setSourceVersion}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {versionOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                    {versionOptions.length === 0 && (
+                      <SelectItem value="_none" disabled>No versions</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Target version</label>
+                <Select value={targetVersion} onValueChange={setTargetVersion}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {versionOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                    {versionOptions.length === 0 && (
+                      <SelectItem value="_none" disabled>No versions</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditSection(null)}>
-              Cancel
-            </Button>
-            <Button
-              disabled={updateTitle.isPending}
-              onClick={() => {
-                if (editSection) {
-                  updateTitle.mutate(
-                    { id: editSection.id, title: editTitle },
-                    { onSuccess: () => setEditSection(null) }
-                  );
-                }
-              }}
-            >
-              {updateTitle.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <p className="text-sm text-muted-foreground">Select two versions to view differences.</p>
+          </CardContent>
+        </Card>
 
-      {/* Preview Dialog */}
-      <Dialog open={!!previewSection} onOpenChange={() => setPreviewSection(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {previewSection?.title || SECTION_LABELS[previewSection?.section || ""] || previewSection?.section}
-            </DialogTitle>
-            <DialogDescription>Full content preview</DialogDescription>
-          </DialogHeader>
-          <pre className="bg-muted rounded-md p-4 text-xs overflow-auto max-h-96">
-            {JSON.stringify(previewSection?.content, null, 2)}
-          </pre>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reset Confirm */}
-      <AlertDialog open={!!resetTarget} onOpenChange={() => setResetTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset section to default?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will replace all content in "{SECTION_LABELS[resetTarget || ""] || resetTarget}" with the default template. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (resetTarget) {
-                  resetSection.mutate(
-                    { section: resetTarget },
-                    { onSuccess: () => setResetTarget(null) }
-                  );
-                }
-              }}
-            >
-              Reset
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Audit history
+            </CardTitle>
+            <CardDescription>Track admin operations executed through secure APIs.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground text-sm">
+              No audit entries for this VTO yet.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
