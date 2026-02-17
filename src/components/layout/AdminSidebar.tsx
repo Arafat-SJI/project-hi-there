@@ -23,6 +23,7 @@ import {
   Brain,
   BarChart,
   ChevronDown,
+  ChevronRight,
   MessageSquare,
   Plug,
   Rocket,
@@ -32,6 +33,12 @@ import {
   BarChart3,
   FolderOpen,
   Upload,
+  GitBranch,
+  Target,
+  Crosshair,
+  Layers,
+  FileText,
+  Network,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,6 +63,12 @@ const iconMap: Record<string, LucideIcon> = {
   BarChart3,
   FolderOpen,
   Upload,
+  GitBranch,
+  Target,
+  Crosshair,
+  Layers,
+  FileText,
+  Network,
 };
 
 function resolveIcon(iconName: string): LucideIcon {
@@ -69,13 +82,14 @@ export function AdminSidebar() {
 
   // Track which groups are expanded
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
   // Initialize expanded state based on active route
   useEffect(() => {
     const initialExpanded: Record<string, boolean> = {};
     adminNavigation.forEach((group) => {
       const hasActiveItem = group.items.some((item) => location.pathname === item.href);
-      initialExpanded[group.title] = hasActiveItem || group.title === "DASHBOARD";
+      initialExpanded[group.title] = hasActiveItem || group.title === "PEOPLE & PERFORMANCE";
     });
     setExpandedGroups(initialExpanded);
   }, []);
@@ -83,10 +97,26 @@ export function AdminSidebar() {
   // Update expanded state when route changes
   useEffect(() => {
     adminNavigation.forEach((group) => {
-      const hasActiveItem = group.items.some((item) => location.pathname === item.href);
+      const hasActiveItem = group.items.some(
+        (item) =>
+          location.pathname === item.href ||
+          (item.children?.some(
+            (c) => location.pathname === c.href || location.pathname.startsWith(c.href + "/")
+          ))
+      );
       if (hasActiveItem) {
         setExpandedGroups((prev) => ({ ...prev, [group.title]: true }));
       }
+      group.items.forEach((item) => {
+        if (item.children?.length) {
+          const hasActiveChild = item.children.some(
+            (c) => location.pathname === c.href || location.pathname.startsWith(c.href + "/")
+          );
+          if (hasActiveChild) {
+            setExpandedItems((prev) => ({ ...prev, [`${group.title}-${item.title}`]: true }));
+          }
+        }
+      });
     });
   }, [location.pathname]);
 
@@ -94,6 +124,13 @@ export function AdminSidebar() {
     setExpandedGroups((prev) => ({
       ...prev,
       [groupTitle]: !prev[groupTitle],
+    }));
+  };
+
+  const toggleItem = (itemKey: string) => {
+    setExpandedItems((prev) => ({
+      ...prev,
+      [itemKey]: !prev[itemKey],
     }));
   };
 
@@ -140,6 +177,60 @@ export function AdminSidebar() {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-1">
                     {group.items.map((item) => {
+                      const hasChildren = item.children && item.children.length > 0;
+                      const isHeaderOnly = item.headerOnly && hasChildren;
+                      const itemKey = `${group.title}-${item.title}`;
+                      const hasActiveChild = hasChildren && item.children!.some((c) => location.pathname === c.href || location.pathname.startsWith(c.href + "/"));
+                      const isItemExpanded = expandedItems[itemKey] ?? hasActiveChild ?? false;
+
+                      if (isHeaderOnly) {
+                        return (
+                          <Collapsible
+                            key={itemKey}
+                            open={isItemExpanded}
+                            onOpenChange={() => toggleItem(itemKey)}
+                          >
+                            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-all duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                              <div className="flex items-center gap-3">
+                                {(() => {
+                                  const Icon = resolveIcon(item.icon);
+                                  return (
+                                    <Icon className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
+                                  );
+                                })()}
+                                <span>{item.title}</span>
+                              </div>
+                              {isItemExpanded ? (
+                                <ChevronDown className="h-4 w-4 shrink-0" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 shrink-0" />
+                              )}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-0.5 space-y-0.5 pl-3">
+                              {item.children!.map((child) => {
+                                const ChildIcon = resolveIcon(child.icon);
+                                const isChildActive = location.pathname === child.href || location.pathname.startsWith(child.href + "/");
+                                return (
+                                  <Link
+                                    key={child.href}
+                                    to={child.href}
+                                    className={cn(
+                                      "group flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-150",
+                                      isChildActive
+                                        ? "border-l-2 border-primary bg-primary/10 font-medium text-primary"
+                                        : "border-l-2 border-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                                    )}
+                                  >
+                                    <ChildIcon className="h-[14px] w-[14px] shrink-0" />
+                                    <span>{child.title}</span>
+                                  </Link>
+                                );
+                              })}
+                            </CollapsibleContent>
+                          </Collapsible>
+                        );
+                      }
+
                       const Icon = resolveIcon(item.icon);
                       const isActive = location.pathname === item.href;
                       const isIntegrations = item.href === '/admin/integrations';

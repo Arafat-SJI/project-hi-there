@@ -63,6 +63,8 @@ import OKRsWorkspace from "@/pages/admin/eos/OKRsWorkspace";
 import ProductivityImport from "@/pages/admin/ProductivityImport";
 import OAuthClients from "@/pages/admin/OAuthClients";
 import ApiKeys from "@/pages/admin/ApiKeys";
+import StreamsPage from "@/modules/actions/pages/StreamsPage";
+import StreamTasksPage from "@/modules/actions/pages/StreamTasksPage";
 
 /**
  * Admin routes - require admin role
@@ -101,6 +103,10 @@ export const adminRoutes = (
     <Route path="/admin/ai-models" element={<AIModelManagement />} />
     <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
     <Route path="/admin/mcp-servers" element={<MCPServers />} />
+
+    {/* Task Streams (Admin) */}
+    <Route path="/admin/tasks/streams" element={<StreamsPage />} />
+    <Route path="/admin/tasks/streams/:streamId" element={<StreamTasksPage />} />
 
     {/* Team & Resources */}
     <Route path="/admin/team/employees" element={<EmployeeManagement />} />
