@@ -45,6 +45,8 @@ interface MetricTrendChartProps {
   metrics: EOSScorecardMetric[];
   /** Optional chart height in pixels.  Defaults to 300. */
   height?: number;
+  /** Optional card title. Defaults to "Metric Trends". */
+  title?: string;
 }
 
 /**
@@ -115,6 +117,7 @@ function deriveConsistentTarget(
 export default function MetricTrendChart({
   metrics,
   height = 300,
+  title = "Metric Trends",
 }: MetricTrendChartProps) {
   /** Unique metric names used as individual line series. */
   const metricNames = useMemo(
@@ -187,7 +190,7 @@ export default function MetricTrendChart({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Metric Trends</CardTitle>
+          <CardTitle className="text-base">{title}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -205,7 +208,7 @@ export default function MetricTrendChart({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Metric Trends</CardTitle>
+        <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer

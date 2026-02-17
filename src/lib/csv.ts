@@ -25,6 +25,71 @@ export function generateProjectsCSV(
   generateProjectsCSVFromExport(projects, filename);
 }
 
+/** Generate and download employees CSV */
+export function generateEmployeesCSV(
+  employees: {
+    full_name: string;
+    email: string;
+    title?: string | null;
+    department?: { name: string } | null;
+    location?: string | null;
+    employment_type: string;
+    is_active: boolean;
+  }[],
+  filename = "employees"
+): void {
+  const headers = ["Name", "Email", "Title", "Department", "Location", "Type", "Status"];
+  const escape = (v: string | null | undefined) => {
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const rows = employees.map((e) => [
+    escape(e.full_name),
+    escape(e.email),
+    escape(e.title ?? null),
+    escape(e.department?.name ?? null),
+    escape(e.location ?? null),
+    escape(e.employment_type),
+    e.is_active ? "Active" : "Inactive",
+  ]);
+  const content = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  downloadCSV(content, filename);
+}
+
+/** Generate and download scorecard metrics CSV */
+export function generateScorecardMetricsCSV(
+  metrics: {
+    scorecard?: { name: string } | null;
+    name: string;
+    metric_type: string;
+    current_value: number;
+    target_value?: number | null;
+    unit?: string | null;
+    week_of?: string | null;
+    status: string;
+  }[],
+  filename = "scorecard-metrics"
+): void {
+  const headers = ["Scorecard", "Metric", "Type", "Current", "Target", "Week", "Status"];
+  const escape = (v: string | number | null | undefined) => {
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const rows = metrics.map((m) => [
+    escape(m.scorecard?.name ?? null),
+    escape(m.name),
+    escape(m.metric_type),
+    m.current_value,
+    m.target_value ?? "",
+    escape(m.week_of ? new Date(m.week_of).toLocaleDateString() : null),
+    escape(m.status.replace("_", " ")),
+  ]);
+  const content = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  downloadCSV(content, filename);
+}
+
 /** Generate and download deals CSV */
 export function generateDealsCSV(
   deals: { title: string; stage: string; value: number | null; probability: number; client_name?: string; owner_name?: string; expected_close_date?: string | null; updated_at?: string | null }[],
