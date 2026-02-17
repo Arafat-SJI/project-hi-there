@@ -131,28 +131,18 @@ export const navigationGroups: NavGroup[] = [
     module: "meetings",
     items: [
       {
-        title: "Meetings",
+        title: "All Meetings",
         href: "/meetings/schedule",
         icon: "Calendar",
         module: "meetings",
         featureFlag: "enableMeetings",
-        headerOnly: true,
-        children: [
-          {
-            title: "All Meetings",
-            href: "/meetings/schedule",
-            icon: "Calendar",
-            module: "meetings",
-            featureFlag: "enableMeetings",
-          },
-          {
-            title: "Transcripts",
-            href: "/meetings/transcripts",
-            icon: "ScrollText",
-            module: "meetings",
-            featureFlag: "enableMeetings",
-          },
-        ],
+      },
+      {
+        title: "Transcripts",
+        href: "/meetings/transcripts",
+        icon: "ScrollText",
+        module: "meetings",
+        featureFlag: "enableMeetings",
       },
       {
         title: "Series",
