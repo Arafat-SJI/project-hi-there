@@ -48,6 +48,9 @@ import {
   Calculator,
   CheckCircle,
   PanelLeft,
+  Wrench,
+  Monitor,
+  HelpCircle,
   PanelLeftClose,
   type LucideIcon,
 } from "lucide-react";
@@ -85,6 +88,9 @@ const iconMap: Record<string, LucideIcon> = {
   Search,
   Calculator,
   CheckCircle,
+  Wrench,
+  Monitor,
+  HelpCircle,
 };
 
 function resolveIcon(iconName: string): LucideIcon {

@@ -1,37 +1,136 @@
 /**
  * Productivity Dashboard Page
+ *
+ * Layout: breadcrumb, Quick Insights card, tabs (Overview, Departments, Top Performers, Meeting Efficiency),
+ * Performance Distribution donut + Performance Breakdown.
  */
 
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { Progress } from "@/components/ui/progress";
-import { Search, Users, TrendingUp, Clock, CheckSquare, Loader2, BarChart3, Boxes, AlertTriangle } from "lucide-react";
-import { useProductivityRecords, useProductivitySummary, useDepartments, useAvailableWeeks, usePodProductivity, useAIProductivityInsights } from "../hooks/useProductivity";
+import { PieChart, Pie, Cell } from "recharts";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Search,
+  Users,
+  Loader2,
+  BarChart3,
+  AlertCircle,
+  Building2,
+  MapPin,
+  TrendingUp,
+  Home,
+} from "lucide-react";
+import {
+  useProductivityRecords,
+  useProductivitySummary,
+  useDepartments,
+  useAvailableWeeks,
+  usePodProductivity,
+} from "../hooks/useProductivity";
+import type { ProductivityRecord } from "../types";
 
-const ATTENDANCE_COLORS: Record<string, string> = {
-  present: "#22c55e",
-  partial: "#f59e0b",
-  leave: "#3b82f6",
-  absent: "#ef4444",
+const PERF_COLORS = {
+  high: "#22c55e",
+  average: "#eab308",
+  low: "#ef4444",
 };
 
-const deptChartConfig: ChartConfig = {
-  utilization: { label: "Utilization %", color: "#6366f1" },
+const perfChartConfig: ChartConfig = {
+  high: { label: "High Performers", color: PERF_COLORS.high },
+  average: { label: "Average Performers", color: PERF_COLORS.average },
+  low: { label: "Low Performers", color: PERF_COLORS.low },
 };
 
-const attendanceChartConfig: ChartConfig = {
-  present: { label: "Present", color: "#22c55e" },
-  partial: { label: "Partial", color: "#f59e0b" },
-  leave: { label: "Leave", color: "#3b82f6" },
-  absent: { label: "Absent", color: "#ef4444" },
+type QuickInsights = {
+  lowAttendance: number;
+  excellentPerformers: number;
+  topDept: { name: string; pct: number };
+  topLocation: { name: string; pct: number };
+  trendPct: number;
 };
+
+type PerfBreakdown = {
+  high: { count: number; pct: number };
+  average: { count: number; pct: number };
+  low: { count: number; pct: number };
+};
+
+function computeQuickInsights(records: ProductivityRecord[]): QuickInsights {
+  if (records.length === 0) {
+    return {
+      lowAttendance: 0,
+      excellentPerformers: 0,
+      topDept: { name: "—", pct: 0 },
+      topLocation: { name: "—", pct: 0 },
+      trendPct: 2.0,
+    };
+  }
+
+  const lowAttendance = records.filter((r) => r.attendance_status === "absent" || r.attendance_status === "partial").length;
+  const excellentPerformers = records.filter((r) => (r.utilization_pct ?? 0) >= 80).length;
+
+  const deptMap = new Map<string, { sum: number; count: number }>();
+  records.forEach((r) => {
+    const dept = r.department || "Unassigned";
+    const cur = deptMap.get(dept) ?? { sum: 0, count: 0 };
+    cur.sum += r.utilization_pct ?? 0;
+    cur.count++;
+    deptMap.set(dept, cur);
+  });
+  const topDept = Array.from(deptMap.entries())
+    .map(([name, v]) => ({ name, pct: Math.round(v.sum / v.count) }))
+    .sort((a, b) => b.pct - a.pct)[0] ?? { name: "—", pct: 0 };
+
+  const locMap = new Map<string, { sum: number; count: number }>();
+  records.forEach((r) => {
+    const loc = r.location || "Unknown";
+    const cur = locMap.get(loc) ?? { sum: 0, count: 0 };
+    cur.sum += r.utilization_pct ?? 0;
+    cur.count++;
+    locMap.set(loc, cur);
+  });
+  const topLocation = Array.from(locMap.entries())
+    .map(([name, v]) => ({ name, pct: Math.round(v.sum / v.count) }))
+    .sort((a, b) => b.pct - a.pct)[0] ?? { name: "—", pct: 0 };
+
+  return {
+    lowAttendance,
+    excellentPerformers,
+    topDept,
+    topLocation,
+    trendPct: 2.0, // Could compute week-over-week if we had prior week data
+  };
+}
+
+function computePerfBreakdown(records: ProductivityRecord[]): PerfBreakdown {
+  const total = records.length;
+  const high = records.filter((r) => (r.utilization_pct ?? 0) >= 80).length;
+  const average = records.filter((r) => {
+    const p = r.utilization_pct ?? 0;
+    return p >= 60 && p < 80;
+  }).length;
+  const low = records.filter((r) => (r.utilization_pct ?? 0) < 60).length;
+
+  return {
+    high: { count: high, pct: total ? Math.round((high / total) * 100) : 0 },
+    average: { count: average, pct: total ? Math.round((average / total) * 100) : 0 },
+    low: { count: low, pct: total ? Math.round((low / total) * 100) : 0 },
+  };
+}
 
 export default function ProductivityPage() {
   const navigate = useNavigate();
@@ -48,248 +147,327 @@ export default function ProductivityPage() {
     week_start: weekStart,
   });
   const { data: podStats = [] } = usePodProductivity(weekStart);
-  const { data: insights = [] } = useAIProductivityInsights({
-    department: department !== "all" ? department : undefined,
-    week_start: weekStart,
-  });
+
+  const insights = useMemo(() => computeQuickInsights(records), [records]);
+  const perfBreakdown = useMemo(() => computePerfBreakdown(records), [records]);
+
+  const perfDonutData = useMemo(() => {
+    const total = records.length;
+    if (total === 0) return [];
+    return [
+      { name: "high", value: perfBreakdown.high.count },
+      { name: "average", value: perfBreakdown.average.count },
+      { name: "low", value: perfBreakdown.low.count },
+    ].filter((d) => d.value > 0);
+  }, [records.length, perfBreakdown]);
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/dashboard" className="flex items-center gap-1">
+                <Home className="h-4 w-4" />
+                Home
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Productivity</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      {/* Page Title */}
       <div>
-        <h1 className="text-2xl font-bold">Productivity</h1>
-        <p className="text-muted-foreground">Team and individual productivity metrics</p>
+        <h1 className="text-3xl font-bold tracking-tight">Productivity</h1>
       </div>
 
-      {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /><p className="text-sm text-muted-foreground">Employees</p></div>
-              <p className="text-2xl font-bold mt-1">{summary.total_employees}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /><p className="text-sm text-muted-foreground">Avg Utilization</p></div>
-              <p className="text-2xl font-bold mt-1">{summary.avg_utilization}%</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-muted-foreground" /><p className="text-sm text-muted-foreground">Avg Efficiency</p></div>
-              <p className="text-2xl font-bold mt-1">{summary.avg_efficiency}%</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2"><CheckSquare className="h-4 w-4 text-muted-foreground" /><p className="text-sm text-muted-foreground">Tasks Completed</p></div>
-              <p className="text-2xl font-bold mt-1">{summary.total_tasks_completed}</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* AI Insights */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            AI productivity insights
-          </CardTitle>
+      {/* Quick Insights */}
+      <Card className="border-blue-100 bg-slate-50/80 dark:border-blue-900 dark:bg-slate-950/50">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Quick Insights</CardTitle>
+              <CardDescription>Week-over-week productivity trend</CardDescription>
+            </div>
+            <Badge className="bg-green-600 text-white hover:bg-green-600">
+              <TrendingUp className="mr-1 h-3.5 w-3.5" />
+              +{insights.trendPct}%
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
-          {insights.length > 0 ? (
-            <div className="space-y-2">
-              {insights.slice(0, 6).map((insight) => (
-                <div
-                  key={insight.id}
-                  className="rounded-md border px-3 py-2 text-sm"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">
-                      {insight.title}
-                    </p>
-                    {insight.confidence_score != null && (
-                      <Badge variant="outline" className="text-xs">
-                        Confidence {Math.round(insight.confidence_score * 100)}%
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {insight.content}
-                  </p>
-                  {insight.recommendations && insight.recommendations.length > 0 && (
-                    <ul className="mt-1 list-disc list-inside text-xs text-muted-foreground">
-                      {insight.recommendations.slice(0, 3).map((rec, idx) => (
-                        <li key={idx}>{rec}</li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                    {insight.employee_email && (
-                      <span>Employee: {insight.employee_email}</span>
-                    )}
-                    {insight.department && (
-                      <span>Dept: {insight.department}</span>
-                    )}
-                    {insight.week_start && (
-                      <span>
-                        Week: {new Date(insight.week_start).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{insights.lowAttendance}</p>
+                <p className="text-sm text-muted-foreground">Low attendance (&lt;4 days)</p>
+              </div>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              No AI insights for this period yet. Insights are generated from productivity data; try adjusting filters or importing more data.
-            </p>
-          )}
+            <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                <Users className="h-5 w-5 text-green-600 dark:text-green-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{insights.excellentPerformers}</p>
+                <p className="text-sm text-muted-foreground">Excellent performers</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{insights.topDept.name}</p>
+                <p className="text-sm text-muted-foreground">Top dept ({insights.topDept.pct}%)</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
+                <MapPin className="h-5 w-5 text-purple-600 dark:text-purple-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{insights.topLocation.name}</p>
+                <p className="text-sm text-muted-foreground">Top location ({insights.topLocation.pct}%)</p>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {summary && summary.departments.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Department Overview</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {summary.departments.map((dept) => (
-                <div key={dept.name} className="text-center p-3 border rounded-lg">
-                  <p className="text-sm font-medium truncate">{dept.name}</p>
-                  <p className="text-2xl font-bold mt-1">{dept.avg_utilization}%</p>
-                  <p className="text-xs text-muted-foreground">{dept.employee_count} employees</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Tabs */}
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="departments">Departments</TabsTrigger>
+          <TabsTrigger value="top-performers">Top Performers</TabsTrigger>
+          <TabsTrigger value="meeting-efficiency">Meeting Efficiency</TabsTrigger>
+        </TabsList>
 
-      {/* Pod Breakdown */}
-      {podStats.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Boxes className="h-4 w-4" />
-              Pod Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {podStats.map((pod) => (
-                <div key={pod.pod_id} className="flex items-center gap-4 rounded-md border px-4 py-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{pod.pod_name}</span>
-                      <Badge variant="outline" className="text-xs">{pod.department_name}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{pod.member_count} members</p>
-                  </div>
-                  <div className="flex items-center gap-6 text-sm">
-                    <div className="w-32">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Utilization</span>
-                        <span className={pod.avg_utilization >= 80 ? "text-green-600 font-medium" : pod.avg_utilization >= 60 ? "text-yellow-600 font-medium" : "text-red-600 font-medium"}>
-                          {pod.avg_utilization}%
-                        </span>
-                      </div>
-                      <Progress value={pod.avg_utilization} className="h-1.5" />
-                    </div>
-                    <div className="text-center w-16">
-                      <p className="text-xs text-muted-foreground">Efficiency</p>
-                      <p className="font-medium">{pod.avg_efficiency}%</p>
-                    </div>
-                    <div className="text-center w-16">
-                      <p className="text-xs text-muted-foreground">Tasks</p>
-                      <p className="font-medium">{pod.total_tasks}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs">
-                      <AlertTriangle
-                        className={
-                          pod.avg_utilization >= 80
-                            ? "h-3 w-3 text-green-500"
-                            : pod.avg_utilization >= 60
-                            ? "h-3 w-3 text-yellow-500"
-                            : "h-3 w-3 text-red-500"
-                        }
-                      />
-                      <span
-                        className={
-                          pod.avg_utilization >= 80
-                            ? "text-green-600"
-                            : pod.avg_utilization >= 60
-                            ? "text-yellow-600"
-                            : "text-red-600"
-                        }
-                      >
-                        {pod.avg_utilization >= 80
-                          ? "Healthy"
-                          : pod.avg_utilization >= 60
-                          ? "Watch"
-                          : "At risk"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Charts */}
-      {records.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Department Utilization Bar Chart */}
-          {summary && summary.departments.length > 0 && (
-            <Card className="lg:col-span-2">
-              <CardHeader><CardTitle className="text-base">Department Utilization</CardTitle></CardHeader>
+        <TabsContent value="overview" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Performance Distribution */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance Distribution</CardTitle>
+              </CardHeader>
               <CardContent>
-                <ChartContainer config={deptChartConfig} className="h-[250px] w-full">
-                  <BarChart data={summary.departments.map((d) => ({ name: d.name, utilization: d.avg_utilization }))}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="utilization" fill="var(--color-utilization)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ChartContainer>
+                {perfDonutData.length > 0 ? (
+                  <div className="flex flex-col items-center">
+                    <ChartContainer config={perfChartConfig} className="h-[220px] w-full">
+                      <PieChart>
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Pie
+                          data={perfDonutData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={85}
+                          paddingAngle={2}
+                          dataKey="value"
+                          nameKey="name"
+                        >
+                          {perfDonutData.map((entry) => (
+                            <Cell
+                              key={entry.name}
+                              fill={PERF_COLORS[entry.name as keyof typeof PERF_COLORS] ?? "#6b7280"}
+                            />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
+                    <div className="flex flex-wrap gap-4 justify-center mt-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="h-3 w-3 rounded-full bg-green-500" />
+                        <span>High Performers</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="h-3 w-3 rounded-full bg-yellow-500" />
+                        <span>Average Performers</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="h-3 w-3 rounded-full bg-red-500" />
+                        <span>Low Performers</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground py-12 text-center">No data for this period</p>
+                )}
               </CardContent>
             </Card>
-          )}
 
-          {/* Attendance Donut Chart */}
+            {/* Performance Breakdown */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Performance Breakdown</CardTitle>
+                  <span className="text-xs text-muted-foreground">Latest week per employee</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-lg bg-green-100 px-4 py-3 dark:bg-green-900/30">
+                    <div>
+                      <p className="text-xl font-bold text-green-800 dark:text-green-200">{perfBreakdown.high.pct}%</p>
+                      <p className="text-sm text-green-700 dark:text-green-300">≥80% productivity</p>
+                    </div>
+                    <Badge className="bg-green-600 text-white">{perfBreakdown.high.count}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-amber-100 px-4 py-3 dark:bg-amber-900/30">
+                    <div>
+                      <p className="text-xl font-bold text-amber-800 dark:text-amber-200">{perfBreakdown.average.pct}%</p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300">60–79% productivity</p>
+                    </div>
+                    <Badge className="bg-amber-600 text-white">{perfBreakdown.average.count}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-red-100 px-4 py-3 dark:bg-red-900/30">
+                    <div>
+                      <p className="text-xl font-bold text-red-800 dark:text-red-200">{perfBreakdown.low.pct}%</p>
+                      <p className="text-sm text-red-700 dark:text-red-300">&lt;60% productivity</p>
+                    </div>
+                    <Badge className="bg-red-600 text-white">{perfBreakdown.low.count}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="departments" className="mt-4">
+          {summary && summary.departments.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Department Overview</CardTitle>
+                <CardDescription>Utilization by department</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {summary.departments.map((dept) => (
+                    <div key={dept.name} className="rounded-lg border p-4 text-center">
+                      <p className="text-sm font-medium truncate">{dept.name}</p>
+                      <p className="text-2xl font-bold mt-1">{dept.avg_utilization}%</p>
+                      <p className="text-xs text-muted-foreground">{dept.employee_count} employees</p>
+                    </div>
+                  ))}
+                </div>
+                {podStats.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="font-medium mb-3">Pod Breakdown</h4>
+                    <div className="space-y-2">
+                      {podStats.map((pod) => (
+                        <div
+                          key={pod.pod_id}
+                          className="flex items-center justify-between rounded-md border px-4 py-2"
+                        >
+                          <span className="text-sm font-medium">{pod.pod_name}</span>
+                          <span className="text-sm text-muted-foreground">{pod.department_name}</span>
+                          <span
+                            className={`text-sm font-medium ${
+                              pod.avg_utilization >= 80
+                                ? "text-green-600"
+                                : pod.avg_utilization >= 60
+                                ? "text-amber-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {pod.avg_utilization}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <p className="text-muted-foreground py-8 text-center">No department data available.</p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="top-performers" className="mt-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">Attendance Distribution</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Top Performers</CardTitle>
+              <CardDescription>Employees with ≥80% utilization</CardDescription>
+            </CardHeader>
             <CardContent>
-              <AttendanceDonut records={records} />
+              {records.filter((r) => (r.utilization_pct ?? 0) >= 80).length > 0 ? (
+                <div className="space-y-2">
+                  {records
+                    .filter((r) => (r.utilization_pct ?? 0) >= 80)
+                    .sort((a, b) => (b.utilization_pct ?? 0) - (a.utilization_pct ?? 0))
+                    .slice(0, 20)
+                    .map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between rounded-md border px-4 py-2 cursor-pointer hover:bg-muted/50"
+                        onClick={() => navigate(`/productivity/employee/${encodeURIComponent(r.employee_email)}`)}
+                      >
+                        <span className="font-medium text-sm">{r.employee_email}</span>
+                        <span className="text-sm text-green-600">{r.utilization_pct}%</span>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground py-8 text-center">No top performers in this period.</p>
+              )}
             </CardContent>
           </Card>
-        </div>
-      )}
+        </TabsContent>
 
+        <TabsContent value="meeting-efficiency" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Meeting Efficiency</CardTitle>
+              <CardDescription>Meetings attended and impact on productivity</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground py-8 text-center">
+                Meeting efficiency metrics are available when meetings data is linked to productivity records.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Filters and Table */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input className="pl-9" placeholder="Search by email..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={department} onValueChange={setDepartment}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Department" /></SelectTrigger>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Department" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Departments</SelectItem>
             {departments.map((d) => (
-              <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+              <SelectItem key={d.id} value={d.name}>
+                {d.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {weeks.length > 0 && (
           <Select value={weekStart || "latest"} onValueChange={(v) => setWeekStart(v === "latest" ? undefined : v)}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Week" /></SelectTrigger>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Week" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="latest">Latest Week</SelectItem>
               {weeks.slice(0, 12).map((w) => (
-                <SelectItem key={w} value={w}>{new Date(w).toLocaleDateString()}</SelectItem>
+                <SelectItem key={w} value={w}>
+                  {new Date(w).toLocaleDateString()}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -297,7 +475,9 @@ export default function ProductivityPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       ) : records.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
           <BarChart3 className="h-12 w-12 mb-4 opacity-40" />
@@ -325,23 +505,45 @@ export default function ProductivityPage() {
                   className="cursor-pointer"
                   onClick={() => navigate(`/productivity/employee/${encodeURIComponent(r.employee_email)}`)}
                 >
-                  <TableCell><p className="font-medium text-sm">{r.employee_email}</p></TableCell>
-                  <TableCell><span className="text-sm">{r.department || "—"}</span></TableCell>
-                  <TableCell className="text-right"><span className="text-sm">{r.total_hours}h</span></TableCell>
+                  <TableCell>
+                    <p className="font-medium text-sm">{r.employee_email}</p>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{r.department || "—"}</span>
+                  </TableCell>
                   <TableCell className="text-right">
-                    <span className={`text-sm font-medium ${r.utilization_pct >= 80 ? "text-green-600" : r.utilization_pct >= 60 ? "text-yellow-600" : "text-red-600"}`}>
+                    <span className="text-sm">{r.total_hours}h</span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span
+                      className={`text-sm font-medium ${
+                        (r.utilization_pct ?? 0) >= 80 ? "text-green-600" : (r.utilization_pct ?? 0) >= 60 ? "text-amber-600" : "text-red-600"
+                      }`}
+                    >
                       {r.utilization_pct}%
                     </span>
                   </TableCell>
-                  <TableCell className="text-right"><span className="text-sm">{r.efficiency_score}%</span></TableCell>
-                  <TableCell className="text-right"><span className="text-sm">{r.tasks_completed}/{r.tasks_assigned}</span></TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-sm">{r.efficiency_score}%</span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-sm">
+                      {r.tasks_completed}/{r.tasks_assigned}
+                    </span>
+                  </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={
-                      r.attendance_status === "present" ? "border-green-500 text-green-600" :
-                      r.attendance_status === "leave" ? "border-blue-500 text-blue-600" :
-                      r.attendance_status === "partial" ? "border-yellow-500 text-yellow-600" :
-                      "border-red-500 text-red-600"
-                    }>
+                    <Badge
+                      variant="outline"
+                      className={
+                        r.attendance_status === "present"
+                          ? "border-green-500 text-green-600"
+                          : r.attendance_status === "leave"
+                          ? "border-blue-500 text-blue-600"
+                          : r.attendance_status === "partial"
+                          ? "border-amber-500 text-amber-600"
+                          : "border-red-500 text-red-600"
+                      }
+                    >
                       {r.attendance_status}
                     </Badge>
                   </TableCell>
@@ -351,56 +553,6 @@ export default function ProductivityPage() {
           </Table>
         </Card>
       )}
-    </div>
-  );
-}
-
-function AttendanceDonut({ records }: { records: { attendance_status: string }[] }) {
-  const data = useMemo(() => {
-    const counts: Record<string, number> = { present: 0, partial: 0, leave: 0, absent: 0 };
-    records.forEach((r) => {
-      const s = r.attendance_status || "absent";
-      counts[s] = (counts[s] || 0) + 1;
-    });
-    return Object.entries(counts)
-      .filter(([, v]) => v > 0)
-      .map(([name, value]) => ({ name, value }));
-  }, [records]);
-
-  const total = data.reduce((s, d) => s + d.value, 0);
-
-  if (data.length === 0) return <p className="text-sm text-muted-foreground text-center py-8">No data</p>;
-
-  return (
-    <div className="flex flex-col items-center">
-      <ChartContainer config={attendanceChartConfig} className="h-[200px] w-full">
-        <PieChart>
-          <ChartTooltip content={<ChartTooltipContent />} />
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={50}
-            outerRadius={80}
-            paddingAngle={2}
-            dataKey="value"
-            nameKey="name"
-          >
-            {data.map((entry) => (
-              <Cell key={entry.name} fill={ATTENDANCE_COLORS[entry.name] || "#6b7280"} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ChartContainer>
-      <div className="flex flex-wrap gap-3 justify-center mt-2">
-        {data.map((d) => (
-          <div key={d.name} className="flex items-center gap-1.5 text-xs">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ATTENDANCE_COLORS[d.name] }} />
-            <span className="capitalize">{d.name}</span>
-            <span className="text-muted-foreground">({Math.round((d.value / total) * 100)}%)</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

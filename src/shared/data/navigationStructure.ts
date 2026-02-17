@@ -261,6 +261,29 @@ export const navigationGroups: NavGroup[] = [
     ],
   },
   {
+    id: "system-tools",
+    title: "System & Tools",
+    icon: "Wrench",
+    items: [
+      {
+        title: "Sessions",
+        href: "/sessions",
+        icon: "Monitor",
+      },
+      {
+        title: "Feedback",
+        href: "/feedback",
+        icon: "MessageCircle",
+        featureFlag: "enableFeedback",
+      },
+      {
+        title: "Help & Guides",
+        href: "/help",
+        icon: "HelpCircle",
+      },
+    ],
+  },
+  {
     id: "ai-command",
     title: "AI Command Center",
     icon: "Bot",
@@ -277,12 +300,6 @@ export const navigationGroups: NavGroup[] = [
         href: "/ai-chat",
         icon: "MessageSquare",
         featureFlag: "enableAIChat",
-      },
-      {
-        title: "Feedback",
-        href: "/feedback",
-        icon: "MessageCircle",
-        featureFlag: "enableFeedback",
       },
     ],
   },
