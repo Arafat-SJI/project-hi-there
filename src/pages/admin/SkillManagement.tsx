@@ -4,8 +4,8 @@
  * Manage employee skills and competencies
  */
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Search,
   RefreshCw,
@@ -125,9 +134,141 @@ function useSkillStats() {
   });
 }
 
+interface CreateSkillDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+function CreateSkillDialog({ open, onOpenChange }: CreateSkillDialogProps) {
+  const queryClient = useQueryClient();
+  const [skillName, setSkillName] = useState("");
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
+
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setSkillName("");
+      setCategory("");
+      setDescription("");
+    }
+  }, [open]);
+
+  const createSkill = useMutation({
+    mutationFn: async (data: { name: string; category?: string; description?: string }) => {
+      const { data: result, error } = await supabase
+        .from("skills")
+        .insert([
+          {
+            name: data.name,
+            category: data.category || null,
+            description: data.description || null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["skills"] });
+      queryClient.invalidateQueries({ queryKey: ["skill-stats"] });
+      toast.success("Skill created successfully");
+      setSkillName("");
+      setCategory("");
+      setDescription("");
+      onOpenChange(false);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to create skill: ${error.message}`);
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!skillName.trim()) {
+      toast.error("Skill name is required");
+      return;
+    }
+
+    try {
+      await createSkill.mutateAsync({
+        name: skillName.trim(),
+        category: category.trim() || undefined,
+        description: description.trim() || undefined,
+      });
+    } catch (error) {
+      // Error is handled by onError callback
+      console.error("Error creating skill:", error);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Create New Skill</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="skillName">
+              Skill Name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="skillName"
+              placeholder="e.g., React.js, Project Management"
+              value={skillName}
+              onChange={(e) => setSkillName(e.target.value)}
+              required
+              disabled={createSkill.isPending}
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Input
+              id="category"
+              placeholder="e.g., Technical, Management"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              disabled={createSkill.isPending}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Brief description of the skill (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              disabled={createSkill.isPending}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={createSkill.isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createSkill.isPending || !skillName.trim()}>
+              {createSkill.isPending ? "Creating..." : "Create Skill"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function SkillManagement() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const { data: skills = [], isLoading, refetch } = useSkills(
     search || undefined,
@@ -227,11 +368,17 @@ export default function SkillManagement() {
         <Button variant="outline" size="icon" onClick={handleRefresh}>
           <RefreshCw className="h-4 w-4" />
         </Button>
-        <Button>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Skill
         </Button>
       </div>
+
+      {/* Create Skill Dialog */}
+      <CreateSkillDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
 
       {/* Skills Table */}
       <Card>
