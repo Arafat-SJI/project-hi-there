@@ -25,11 +25,13 @@ export interface PromptTemplateFormData {
   is_active?: boolean;
 }
 
+const db = supabase as any;
+
 export function usePromptTemplates() {
   return useQuery({
     queryKey: queryKeys.ai.promptTemplates,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("prompt_templates")
         .select("*")
         .order("created_at", { ascending: false });
@@ -52,7 +54,7 @@ export function useCreatePromptTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: PromptTemplateFormData) => {
-      const { data: row, error } = await supabase
+      const { data: row, error } = await db
         .from("prompt_templates")
         .insert({
           name: data.name,
@@ -95,7 +97,7 @@ export function useUpdatePromptTemplate() {
       if (data.template_content != null) payload.template_content = data.template_content;
       if (data.is_active != null) payload.is_active = data.is_active;
 
-      const { data: row, error } = await supabase
+      const { data: row, error } = await db
         .from("prompt_templates")
         .update(payload)
         .eq("id", id)
@@ -118,7 +120,7 @@ export function useDeletePromptTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("prompt_templates").delete().eq("id", id);
+      const { error } = await db.from("prompt_templates").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -136,18 +138,18 @@ export function useDuplicatePromptTemplate() {
   return useMutation({
     mutationFn: async (template: PromptTemplate) => {
       const baseSlug = template.slug.replace(/-copy(-\d+)?$/, "") + "-copy";
-      const { data: existing } = await supabase
+      const { data: existing } = await db
         .from("prompt_templates")
         .select("slug")
         .ilike("slug", `${baseSlug}%`);
-      const slugs = new Set((existing ?? []).map((r) => r.slug));
+      const slugs = new Set((existing ?? []).map((r: any) => r.slug));
       let slug = baseSlug;
       let n = 1;
       while (slugs.has(slug)) {
         slug = `${baseSlug}-${n}`;
         n++;
       }
-      const { data: row, error } = await supabase
+      const { data: row, error } = await db
         .from("prompt_templates")
         .insert({
           name: `${template.name} (Copy)`,
