@@ -70,6 +70,7 @@ import StreamsPage from "@/modules/actions/pages/StreamsPage";
 import StreamTasksPage from "@/modules/actions/pages/StreamTasksPage";
 import AIDashboard from "@/pages/admin/ai/AIDashboard";
 import AgentAnalytics from "@/pages/admin/ai/AgentAnalytics";
+import AgentCategories from "@/pages/admin/ai/AgentCategories";
 import AIAgents from "@/pages/AIAgents";
 
 /**
@@ -81,6 +82,7 @@ export const adminRoutes = (
     <Route path="/admin" element={<Admin />} />
     <Route path="/admin/ai" element={<AIDashboard />} />
     <Route path="/admin/ai/agent-analytics" element={<AgentAnalytics />} />
+    <Route path="/admin/ai/agent-categories" element={<AgentCategories />} />
     <Route path="/admin/ai/agents" element={<AIAgents />} />
     <Route path="/admin/implementation-status" element={<ImplementationStatus />} />
 
