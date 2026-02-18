@@ -3,7 +3,7 @@
  * Provides all queries and mutations for managing RP teams (pods with show_in_resource_projection)
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getSupabaseErrorMessage } from "@/lib/supabase-helpers";
+import { getSupabaseErrorMessage, typedQuery } from "@/lib/supabase-helpers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -374,7 +374,7 @@ export function useTeamActiveAllocations(teamId: string | undefined) {
       // Try to query projection_rows table
       // If it doesn't exist, return empty array (graceful degradation)
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("projection_rows")
           .select("id, project_id, resource_id")
           .eq("team_id", teamId);
