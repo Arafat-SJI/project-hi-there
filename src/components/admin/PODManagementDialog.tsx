@@ -87,7 +87,7 @@ export function PODManagementDialog({
     queryKey: ['pod-members-for-dialog', podId],
     queryFn: async (): Promise<string[]> => {
       if (!podId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('pod_employees')
         .select('employee_id')
         .eq('pod_id', podId)
@@ -104,7 +104,7 @@ export function PODManagementDialog({
     queryKey: ['pod-permissions-for-dialog', podId],
     queryFn: async (): Promise<string[]> => {
       if (!podId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('pod_permissions')
         .select('module_id')
         .eq('pod_id', podId);

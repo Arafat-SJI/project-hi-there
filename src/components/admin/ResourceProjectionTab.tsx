@@ -48,7 +48,7 @@ export function ResourceProjectionTab({
     queryFn: async () => {
       if (!currentMembers || currentMembers.length === 0) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('employee_profiles')
         .select('id, email, full_name, title, department, location')
         .in('id', currentMembers);

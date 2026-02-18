@@ -33,7 +33,7 @@ export function PODMembersViewer({ podId, open, onOpenChange }: PODMembersViewer
       if (!podId) return [];
 
       // Get pod_employees
-      const { data: podEmployees, error: peError } = await supabase
+      const { data: podEmployees, error: peError } = await (supabase as any)
         .from('pod_employees')
         .select('*')
         .eq('pod_id', podId)

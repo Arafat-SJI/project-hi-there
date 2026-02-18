@@ -811,6 +811,13 @@ export type Database = {
             referencedRelation: "pods"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ai_productivity_insights_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ai_providers: {
@@ -1986,6 +1993,51 @@ export type Database = {
             columns: ["unified_document_id"]
             isOneToOne: false
             referencedRelation: "unified_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_pods: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          is_primary: boolean | null
+          pod_id: string
+          synced_from_hr: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_primary?: boolean | null
+          pod_id: string
+          synced_from_hr?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_primary?: boolean | null
+          pod_id?: string
+          synced_from_hr?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_pods_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_pods_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -4042,6 +4094,13 @@ export type Database = {
             referencedRelation: "pods"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "meeting_files_suggested_pod_id_fkey"
+            columns: ["suggested_pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       meeting_participants: {
@@ -4404,6 +4463,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "meetings_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "meetings_series_id_fkey"
             columns: ["series_id"]
             isOneToOne: false
@@ -4717,6 +4783,60 @@ export type Database = {
           },
         ]
       }
+      pod_employees: {
+        Row: {
+          created_at: string | null
+          employee_id: string | null
+          has_login: boolean | null
+          id: string
+          is_active: boolean | null
+          pod_id: string
+          role: string | null
+          source: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id?: string | null
+          has_login?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          pod_id: string
+          role?: string | null
+          source?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string | null
+          has_login?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          pod_id?: string
+          role?: string | null
+          source?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pod_employees_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pod_employees_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pod_members: {
         Row: {
           id: string
@@ -4747,37 +4867,96 @@ export type Database = {
             referencedRelation: "pods"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pod_members_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pod_permissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          module_id: string
+          pod_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          module_id: string
+          pod_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          module_id?: string
+          pod_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pod_permissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pod_permissions_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pod_permissions_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pods: {
         Row: {
+          color: string | null
           created_at: string | null
+          created_by: string | null
           department_id: string | null
           description: string | null
           id: string
           is_active: boolean | null
           lead_id: string | null
           name: string
+          show_in_resource_projection: boolean | null
           updated_at: string | null
         }
         Insert: {
+          color?: string | null
           created_at?: string | null
+          created_by?: string | null
           department_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
           lead_id?: string | null
           name: string
+          show_in_resource_projection?: boolean | null
           updated_at?: string | null
         }
         Update: {
+          color?: string | null
           created_at?: string | null
+          created_by?: string | null
           department_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
           lead_id?: string | null
           name?: string
+          show_in_resource_projection?: boolean | null
           updated_at?: string | null
         }
         Relationships: [
@@ -6783,6 +6962,24 @@ export type Database = {
           },
         ]
       }
+      pods_with_stats: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          has_login_count: number | null
+          hr_synced_count: number | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          no_login_count: number | null
+          rp_members_count: number | null
+          show_in_resource_projection: boolean | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       user_preference_coverage: {
         Row: {
           avg_confidence: number | null
@@ -6967,6 +7164,15 @@ export type Database = {
       replace_template_variables: {
         Args: { template_body: string; variables_json: Json }
         Returns: string
+      }
+      sync_pod_employees_from_hr: {
+        Args: never
+        Returns: {
+          employees_synced: number
+          employees_with_login: number
+          employees_without_login: number
+          pod_id: string
+        }[]
       }
       update_plan_status_if_all_steps_done: {
         Args: { p_plan_id: string }
