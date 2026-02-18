@@ -39,6 +39,12 @@ import {
   Layers,
   FileText,
   Network,
+  Bot,
+  Search,
+  BookOpen,
+  Globe,
+  RefreshCw,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -69,6 +75,12 @@ const iconMap: Record<string, LucideIcon> = {
   Layers,
   FileText,
   Network,
+  Bot,
+  Search,
+  BookOpen,
+  Globe,
+  RefreshCw,
+  Sparkles,
 };
 
 function resolveIcon(iconName: string): LucideIcon {
@@ -207,13 +219,29 @@ export function AdminSidebar() {
                               )}
                             </CollapsibleTrigger>
                             <CollapsibleContent className="mt-0.5 space-y-0.5 pl-3">
-                              {item.children!.map((child) => {
-                                const ChildIcon = resolveIcon(child.icon);
-                                const isChildActive = location.pathname === child.href || location.pathname.startsWith(child.href + "/");
+                              {(() => {
+                                const path = location.pathname;
+                                const matching = item.children!.filter(
+                                  (c) => path === (c.href.startsWith("/") ? c.href : `/${c.href}`) || path.startsWith((c.href.startsWith("/") ? c.href : `/${c.href}`) + "/")
+                                );
+                                const bestMatchHref =
+                                  matching.length > 0
+                                    ? matching.reduce(
+                                        (best, c) => {
+                                          const h = c.href.startsWith("/") ? c.href : `/${c.href}`;
+                                          return h.length > best.length ? h : best;
+                                        },
+                                        matching[0].href.startsWith("/") ? matching[0].href : `/${matching[0].href}`
+                                      )
+                                    : "";
+                                return item.children!.map((child) => {
+                                  const ChildIcon = resolveIcon(child.icon);
+                                  const childHref = child.href.startsWith("/") ? child.href : `/${child.href}`;
+                                  const isChildActive = bestMatchHref ? childHref === bestMatchHref : path === childHref || path.startsWith(childHref + "/");
                                 return (
                                   <Link
-                                    key={child.href}
-                                    to={child.href}
+                                    key={`${group.id}-${item.title}-${child.title}`}
+                                    to={childHref}
                                     className={cn(
                                       "group flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-150",
                                       isChildActive
@@ -225,7 +253,8 @@ export function AdminSidebar() {
                                     <span>{child.title}</span>
                                   </Link>
                                 );
-                              })}
+                                });
+                              })()}
                             </CollapsibleContent>
                           </Collapsible>
                         );

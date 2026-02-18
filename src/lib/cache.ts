@@ -105,6 +105,10 @@ export const queryKeys = {
     agents: ["ai", "agents"] as const,
     agent: (id: string) => ["ai", "agent", id] as const,
     runs: (agentId: string) => ["ai", "runs", agentId] as const,
+    dashboardStats: ["ai", "dashboardStats"] as const,
+    agentAnalytics: (days: number) => ["ai", "agentAnalytics", days] as const,
+    agentAnalyticsDetail: (agentId: string, days: number) =>
+      ["ai", "agentAnalyticsDetail", agentId, days] as const,
     chat: (sessionId: string) => ["ai", "chat", sessionId] as const,
     embeddings: (sourceId: string) => ["ai", "embeddings", sourceId] as const,
     // Conversation threading

@@ -67,6 +67,9 @@ import OAuthClients from "@/pages/admin/OAuthClients";
 import ApiKeys from "@/pages/admin/ApiKeys";
 import StreamsPage from "@/modules/actions/pages/StreamsPage";
 import StreamTasksPage from "@/modules/actions/pages/StreamTasksPage";
+import AIDashboard from "@/pages/admin/ai/AIDashboard";
+import AgentAnalytics from "@/pages/admin/ai/AgentAnalytics";
+import AIAgents from "@/pages/AIAgents";
 
 /**
  * Admin routes - require admin role
@@ -75,6 +78,10 @@ export const adminRoutes = (
   <>
     {/* Dashboard */}
     <Route path="/admin" element={<Admin />} />
+    <Route path="/admin/ai" element={<AIDashboard />} />
+    <Route path="/admin/ai/agent-analytics" element={<AgentAnalytics />} />
+    <Route path="/admin/ai/agent-analytics/:agentId" element={<AgentAnalytics />} />
+    <Route path="/admin/ai/agents" element={<AIAgents />} />
     <Route path="/admin/implementation-status" element={<ImplementationStatus />} />
 
     {/* Users & Access */}
