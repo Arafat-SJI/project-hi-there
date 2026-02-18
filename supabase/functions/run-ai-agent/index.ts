@@ -75,15 +75,20 @@ serve(async (req) => {
     // Get user personalization if exists
     let additionalPrompt = ''
     if (user_id) {
-      const { data: personalization } = await supabaseClient
-        .from('user_agent_personalizations')
-        .select('additional_prompt')
-        .eq('user_id', user_id)
-        .eq('agent_id', agent.id)
-        .eq('is_enabled', true)
-        .single()
+      try {
+        const { data: personalization } = await supabaseClient
+          .from('user_agent_personalizations')
+          .select('additional_prompt')
+          .eq('user_id', user_id)
+          .eq('agent_id', agent.id)
+          .eq('is_enabled', true)
+          .single()
 
-      additionalPrompt = personalization?.additional_prompt || ''
+        additionalPrompt = personalization?.additional_prompt || ''
+      } catch {
+        // Table may not exist yet, skip personalization
+        console.warn('user_agent_personalizations query failed, skipping')
+      }
     }
 
     const startTime = Date.now()
@@ -112,7 +117,9 @@ serve(async (req) => {
     })
 
     if (!openaiResponse.ok) {
-      throw new Error('AI agent execution failed')
+      const errorText = await openaiResponse.text()
+      console.error('OpenAI API error:', openaiResponse.status, errorText)
+      throw new Error(`AI agent execution failed: ${openaiResponse.status} - ${errorText}`)
     }
 
     const data = await openaiResponse.json()
@@ -120,14 +127,14 @@ serve(async (req) => {
     const latency = Date.now() - startTime
 
     // Log agent run
-    const { data: run } = await supabaseClient
+    const { data: run, error: runError } = await supabaseClient
       .from('ai_agent_runs')
       .insert([{
         agent_id: agent.id,
         user_id: user_id || null,
         status: 'completed',
-        execution_context,
-        output: { response: output },
+        context: execution_context,
+        output: output,
         token_metrics: data.usage,
         latency_ms: latency,
         provider_used: 'openai',
@@ -136,9 +143,13 @@ serve(async (req) => {
       .select()
       .single()
 
+    if (runError) {
+      console.error('Failed to log agent run:', runError)
+    }
+
     return new Response(
       JSON.stringify({
-        run_id: run.id,
+        run_id: run?.id || null,
         status: 'completed',
         output,
         token_usage: data.usage,
