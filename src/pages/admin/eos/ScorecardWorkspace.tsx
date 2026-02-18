@@ -397,7 +397,7 @@ export default function ScorecardWorkspace() {
   return (
     <div className="space-y-6">
       {/* Header with tabs on right */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-primary">Scorecard Admin Workspace</h1>
@@ -615,7 +615,7 @@ export default function ScorecardWorkspace() {
                       <TableCell>{podName}</TableCell>
                       <TableCell>{notes.role ?? "—"}</TableCell>
                       <TableCell>
-                        {m.status == null || m.status === "pending" || m.status === "needs_attention" ? (
+                        {m.status == null || (m.status as string) === "pending" || m.status === "needs_attention" ? (
                           <Badge variant="outline">Pending</Badge>
                         ) : m.status === "on_track" ? (
                           <Badge className="bg-green-600/10 text-green-700 border-green-200">
