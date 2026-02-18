@@ -378,13 +378,13 @@ export const adminNavigation: NavGroup[] = [
       },
       {
         title: "Teams & PODs",
-        href: "/admin/team/employee_projection",
+        href: "/admin/team/pods",
         icon: "Layers",
         headerOnly: true,
         children: [
           {
             title: "POD Management",
-            href: "/admin/team/employee_projection",
+            href: "/admin/team/pods",
             icon: "Users",
           },
           {
