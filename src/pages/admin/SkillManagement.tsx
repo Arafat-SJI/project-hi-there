@@ -67,7 +67,7 @@ function useSkills(search?: string, category?: string) {
   return useQuery({
     queryKey: ["skills", search, category],
     queryFn: async (): Promise<Skill[]> => {
-      let query = supabase
+      let query = (supabase as any)
         .from("skills")
         .select(`
           *,
@@ -99,27 +99,27 @@ function useSkillStats() {
     queryKey: ["skill-stats"],
     queryFn: async () => {
       // Total skills
-      const { count: totalSkills } = await supabase
+      const { count: totalSkills } = await (supabase as any)
         .from("skills")
         .select("*", { count: "exact", head: true });
 
       // Categories count
-      const { data: categories } = await supabase
+      const { data: categories } = await (supabase as any)
         .from("skills")
         .select("category")
         .not("category", "is", null);
-      const uniqueCategories = new Set(categories?.map((c) => c.category) || []).size;
+      const uniqueCategories = new Set(categories?.map((c: any) => c.category) || []).size;
 
       // Employees with skills
-      const { count: employeesWithSkills } = await supabase
+      const { count: employeesWithSkills } = await (supabase as any)
         .from("employee_skills")
         .select("employee_id", { count: "exact", head: true });
 
       // Average skills per employee
-      const { data: employeeSkills } = await supabase
+      const { data: employeeSkills } = await (supabase as any)
         .from("employee_skills")
         .select("employee_id");
-      const employeeCount = new Set(employeeSkills?.map((es) => es.employee_id) || []).size;
+      const employeeCount = new Set(employeeSkills?.map((es: any) => es.employee_id) || []).size;
       const avgPerSkill = employeeCount > 0 && totalSkills
         ? Math.round((totalSkills / employeeCount) * 10) / 10
         : 0;

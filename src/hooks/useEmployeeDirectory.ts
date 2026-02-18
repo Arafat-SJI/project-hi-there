@@ -41,7 +41,7 @@ export function useEmployeeDirectory() {
 
       if (employeesError) {
         // Fallback: try Employee table if employee_profiles doesn't exist
-        const { data: employeeData, error: employeeError } = await supabase
+        const { data: employeeData, error: employeeError } = await (supabase as any)
           .from('Employee')
           .select('id, email, name, title, location, department')
           .eq('status', 'active')

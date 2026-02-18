@@ -38,7 +38,7 @@ export function usePodHealth() {
 
       if (podsError) throw podsError;
 
-      const { data: podEmployees } = await supabase
+      const { data: podEmployees } = await (supabase as any)
         .from('pod_employees')
         .select('pod_id, employee_id, user_id')
         .eq('is_active', true);
@@ -53,10 +53,10 @@ export function usePodHealth() {
       }
 
       // Get employee emails for productivity lookup
-      const employeeIds = [...new Set(podEmployees.map((pe) => pe.employee_id).filter(Boolean))];
+      const employeeIds = [...new Set(podEmployees.map((pe: any) => pe.employee_id).filter(Boolean))] as string[];
       
       // Try to get employee emails from employee_profiles
-      const { data: employees } = await supabase
+      const { data: employees } = await (supabase as any)
         .from('employee_profiles')
         .select('id, email')
         .in('id', employeeIds);
@@ -147,7 +147,7 @@ export function usePodHealthRecords() {
   return useQuery({
     queryKey: podHealthKeys.records(),
     queryFn: async (): Promise<PodHealthRecord[]> => {
-      const { data: pods, error: podsError } = await supabase
+      const { data: pods, error: podsError } = await (supabase as any)
         .from('pods')
         .select('id, name, color')
         .eq('is_active', true)
@@ -155,7 +155,7 @@ export function usePodHealthRecords() {
 
       if (podsError) throw podsError;
 
-      const { data: podEmployees } = await supabase
+      const { data: podEmployees } = await (supabase as any)
         .from('pod_employees')
         .select('pod_id, employee_id, user_id, role')
         .eq('is_active', true);
@@ -168,8 +168,8 @@ export function usePodHealthRecords() {
       });
 
       // Get employee emails
-      const employeeIds = [...new Set(podEmployees?.map((pe) => pe.employee_id).filter(Boolean) || [])];
-      const { data: employees } = await supabase
+      const employeeIds = [...new Set(podEmployees?.map((pe: any) => pe.employee_id).filter(Boolean) || [])] as string[];
+      const { data: employees } = await (supabase as any)
         .from('employee_profiles')
         .select('id, email, full_name')
         .in('id', employeeIds);
@@ -266,7 +266,7 @@ export function usePodMemberPerformance(podId: string | undefined) {
     queryFn: async (): Promise<PodMemberPerformance[]> => {
       if (!podId) return [];
 
-      const { data: podEmployees, error: peError } = await supabase
+      const { data: podEmployees, error: peError } = await (supabase as any)
         .from('pod_employees')
         .select('employee_id, user_id, role')
         .eq('pod_id', podId)
@@ -276,7 +276,7 @@ export function usePodMemberPerformance(podId: string | undefined) {
       if (!podEmployees || podEmployees.length === 0) return [];
 
       const employeeIds = podEmployees.map((pe) => pe.employee_id).filter(Boolean);
-      const { data: employees } = await supabase
+      const { data: employees } = await (supabase as any)
         .from('employee_profiles')
         .select('id, email, full_name, department, location')
         .in('id', employeeIds);

@@ -47,8 +47,8 @@ export function useSaveSLATargets() {
 
   return useMutation({
     mutationFn: async (input: SaveSLATargetsInput) => {
-      const { data: existing } = await supabase
-        .from("eos_sla_targets" as never)
+      const { data: existing } = await (supabase as any)
+        .from("eos_sla_targets")
         .select("id, pod_id, role_name");
 
       const existingRows = (existing || []) as { id: string; pod_id: string | null; role_name: string | null }[];
@@ -56,8 +56,8 @@ export function useSaveSLATargets() {
       // Upsert fallback
       const fallbackRow = existingRows.find((r) => r.pod_id == null && r.role_name == null);
       if (fallbackRow) {
-        await supabase
-          .from("eos_sla_targets" as never)
+        await (supabase as any)
+          .from("eos_sla_targets")
           .update({
             approval_rate_pct: input.fallback.approval_rate_pct,
             cycle_time_days: input.fallback.cycle_time_days,
@@ -65,7 +65,7 @@ export function useSaveSLATargets() {
           })
           .eq("id", fallbackRow.id);
       } else {
-        await supabase.from("eos_sla_targets" as never).insert({
+        await (supabase as any).from("eos_sla_targets").insert({
           pod_id: null,
           role_name: null,
           approval_rate_pct: input.fallback.approval_rate_pct,
@@ -87,9 +87,9 @@ export function useSaveSLATargets() {
           updated_at: new Date().toISOString(),
         };
         if (row) {
-          await supabase.from("eos_sla_targets" as never).update(payload).eq("id", row.id);
+          await (supabase as any).from("eos_sla_targets").update(payload).eq("id", row.id);
         } else {
-          await supabase.from("eos_sla_targets" as never).insert({
+          await (supabase as any).from("eos_sla_targets").insert({
             pod_id: p.pod_id,
             role_name: null,
             ...payload,
@@ -98,7 +98,7 @@ export function useSaveSLATargets() {
       }
       for (const podId of existingPodIds) {
         if (!inputPodIds.has(podId)) {
-          await supabase.from("eos_sla_targets" as never).delete().eq("pod_id", podId);
+          await (supabase as any).from("eos_sla_targets").delete().eq("pod_id", podId);
         }
       }
 
@@ -116,9 +116,9 @@ export function useSaveSLATargets() {
           updated_at: new Date().toISOString(),
         };
         if (row) {
-          await supabase.from("eos_sla_targets" as never).update(payload).eq("id", row.id);
+          await (supabase as any).from("eos_sla_targets").update(payload).eq("id", row.id);
         } else {
-          await supabase.from("eos_sla_targets" as never).insert({
+          await (supabase as any).from("eos_sla_targets").insert({
             pod_id: null,
             role_name: r.role_name,
             ...payload,
@@ -127,7 +127,7 @@ export function useSaveSLATargets() {
       }
       for (const roleName of existingRoleNames) {
         if (!inputRoleNames.has(roleName)) {
-          await supabase.from("eos_sla_targets" as never).delete().eq("role_name", roleName);
+          await (supabase as any).from("eos_sla_targets").delete().eq("role_name", roleName);
         }
       }
     },

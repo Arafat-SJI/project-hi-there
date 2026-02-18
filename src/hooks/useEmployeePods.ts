@@ -28,7 +28,7 @@ export function useEmployeePods(podId: string | undefined) {
     queryKey: employeePodKeys.pod(podId || ''),
     queryFn: async (): Promise<EmployeePod[]> => {
       if (!podId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('employee_pods')
         .select('*')
         .eq('pod_id', podId)
