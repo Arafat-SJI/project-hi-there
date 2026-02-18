@@ -44,7 +44,7 @@ import MCPServers from "@/pages/MCPServers";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement";
 import EmployeeProjection from "@/pages/admin/EmployeeProjection";
 import RPTeamSettings from "@/pages/admin/RPTeamSettings";
-import PODManagement from "@/pages/admin/PODManagement";
+import PODManagement from "@/pages/admin/PodManagement";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import SkillManagement from "@/pages/admin/SkillManagement";
 import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";

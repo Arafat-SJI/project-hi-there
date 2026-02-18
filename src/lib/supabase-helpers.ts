@@ -27,8 +27,8 @@ export function typedQuery<T extends keyof Database["public"]["Tables"]>(table: 
 export async function typedInsert<T extends keyof Database["public"]["Tables"]>(
   table: T,
   data: TablesInsert<T>
-): Promise<{ data: TablesRow<T> | null; error: unknown }> {
-  const { data: inserted, error } = await supabase
+): Promise<{ data: any | null; error: unknown }> {
+  const { data: inserted, error } = await (supabase as any)
     .from(table)
     .insert(data)
     .select()
@@ -44,8 +44,8 @@ export async function typedUpdate<T extends keyof Database["public"]["Tables"]>(
   table: T,
   id: string,
   data: TablesUpdate<T>
-): Promise<{ data: TablesRow<T> | null; error: unknown }> {
-  const { data: updated, error } = await supabase
+): Promise<{ data: any | null; error: unknown }> {
+  const { data: updated, error } = await (supabase as any)
     .from(table)
     .update(data)
     .eq("id", id)

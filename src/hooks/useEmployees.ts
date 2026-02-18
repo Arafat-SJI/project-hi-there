@@ -23,7 +23,7 @@ export function useEmployees() {
   return useQuery({
     queryKey: ["employees"],
     queryFn: async (): Promise<Employee[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("Employee")
         .select("*")
         .is("deleted_at", null)
