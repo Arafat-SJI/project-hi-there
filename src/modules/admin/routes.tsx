@@ -72,6 +72,7 @@ import AIDashboard from "@/pages/admin/ai/AIDashboard";
 import AgentAnalytics from "@/pages/admin/ai/AgentAnalytics";
 import PromptTemplateManagement from "@/pages/admin/ai/PromptTemplateManagement";
 import AIAgents from "@/pages/AIAgents";
+import AgentCategories from "@/pages/admin/ai/AgentCategories";
 
 /**
  * Admin routes - require admin role
