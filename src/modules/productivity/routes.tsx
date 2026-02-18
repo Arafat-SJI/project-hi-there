@@ -11,11 +11,13 @@ import ProductivityPage from "./pages/ProductivityPage";
 import EmployeeDetailPage from "./pages/EmployeeDetailPage";
 import ProcessPage from "./pages/ProcessPage";
 import ProcessFormPage from "./pages/ProcessFormPage";
+import PodManagement from "@/pages/PodManagement";
 
 export const productivityRoutes = (
   <Route element={<ModuleRoute module="productivity" />}>
     <Route path="/productivity" element={<ProductivityPage />} />
     <Route path="/productivity/employee/:email" element={<EmployeeDetailPage />} />
+    <Route path="/pod/management" element={<PodManagement />} />
     <Route path="/process" element={<ProcessPage />} />
     <Route path="/process/new" element={<ProcessFormPage />} />
     <Route path="/process/:category" element={<ProcessPage />} />

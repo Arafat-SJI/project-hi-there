@@ -43,7 +43,7 @@ import DeploymentStatus from "@/pages/DeploymentStatus";
 import MCPServers from "@/pages/MCPServers";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement";
 import EmployeeProjection from "@/pages/admin/EmployeeProjection";
-import PodManagement from "@/pages/admin/PodManagement";
+import PODManagement from "@/pages/admin/PODManagement";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import SkillManagement from "@/pages/admin/SkillManagement";
 import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
@@ -113,7 +113,7 @@ export const adminRoutes = (
     {/* Team & Resources */}
     <Route path="/admin/team/employees" element={<EmployeeManagement />} />
     <Route path="/admin/productivity-import" element={<ProductivityImport />} />
-    <Route path="/admin/team/pods" element={<PodManagement />} />
+    <Route path="/admin/team/pods" element={<PODManagement />} />
     <Route path="/admin/team/employee_projection" element={<EmployeeProjection />} />
     <Route path="/admin/team/departments" element={<DepartmentManagement />} />
     <Route path="/admin/skillmanagement" element={<SkillManagement />} />
