@@ -109,7 +109,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: JSON.stringify(execution_context)
+            content: execution_context != null ? JSON.stringify(execution_context) : 'No context provided. Please respond with a default helpful message.'
           }
         ],
         temperature: 0.7,
