@@ -1,10 +1,10 @@
 /**
  * AI Agent Analytics – cost tracking and performance metrics.
- * Route: /admin/ai/agent-analytics and /admin/ai/agent-analytics/:agentId
+ * Route: /admin/ai/agent-analytics
+ * All content (Cost by Agent + Cost by Provider & Model) on a single page.
  */
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DollarSign,
@@ -21,12 +20,9 @@ import {
   Clock,
   CheckCircle2,
   TrendingUp,
-  ArrowLeft,
-  Bot,
 } from "lucide-react";
 import {
   useAgentAnalytics,
-  useAgentAnalyticsDetail,
   formatCostMicro,
   formatTokens,
   type DateRangeDays,
@@ -46,161 +42,10 @@ const COST_OPTIMIZATION_TIPS = [
 ];
 
 export default function AgentAnalytics() {
-  const { agentId } = useParams<{ agentId?: string }>();
-  const navigate = useNavigate();
   const [dateRange, setDateRange] = useState<DateRangeDays>(30);
 
-  const { data: analytics, isLoading: loadingOverview } = useAgentAnalytics(dateRange);
-  const { data: detail, isLoading: loadingDetail } = useAgentAnalyticsDetail(
-    agentId,
-    dateRange
-  );
-
-  const isDetailView = !!agentId;
-  const isLoading = isDetailView ? loadingDetail : loadingOverview;
+  const { data: analytics, isLoading } = useAgentAnalytics(dateRange);
   const dateLabel = DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label ?? "Last 30 days";
-
-  if (isDetailView && !loadingDetail && !detail) {
-    return (
-      <div className="space-y-6">
-        <Button variant="ghost" onClick={() => navigate("/admin/ai/agent-analytics")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Agent Analytics
-        </Button>
-        <p className="text-muted-foreground">Agent not found.</p>
-      </div>
-    );
-  }
-
-  if (isDetailView && detail) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/admin/ai/agent-analytics")}
-              aria-label="Back to Agent Analytics"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-primary">
-                Agent Analytics
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Cost tracking and performance metrics
-              </p>
-            </div>
-          </div>
-          <Select
-            value={String(dateRange)}
-            onValueChange={(v) => setDateRange(Number(v) as DateRangeDays)}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Date range" />
-            </SelectTrigger>
-            <SelectContent>
-              {DATE_RANGE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={String(opt.value)}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Agent summary card */}
-        <Card className="bg-muted/40">
-          <CardContent className="flex flex-row items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-primary/10 p-2">
-                <Bot className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold">{detail.agentName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {detail.runs} runs • {detail.successRatePct.toFixed(1)}% success
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="font-medium">{formatCostMicro(detail.totalCostMicro)}</p>
-              <p className="text-sm text-muted-foreground">
-                {formatCostMicro(detail.costPerRunMicro)} / run
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Cost by Provider & Model — matches reference: title, subtitle, card list with icon, runs • tokens, cost */}
-        <div className="space-y-3">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight">Cost by Provider & Model</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Performance and cost comparison across AI providers
-            </p>
-          </div>
-          {loadingDetail ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-[72px] w-full rounded-lg" />
-              ))}
-            </div>
-          ) : (
-            <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
-              {detail?.costByProviderModel.map((row) => (
-                <div
-                  key={`${row.provider}-${row.model}`}
-                  className="flex flex-row items-center justify-between rounded-lg border border-border bg-card px-4 py-3 shadow-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400">
-                      <Zap className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground">
-                        {row.provider} - {row.model}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {row.runs} runs • {formatTokens(row.tokens)} tokens
-                      </p>
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="font-semibold text-foreground">
-                      {formatCostMicro(row.totalCostMicro)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatCostMicro(row.costPerRunMicro)} / run
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Cost Optimization Tips */}
-        <Card className="border-green-200 bg-green-50/50 dark:border-green-900/50 dark:bg-green-950/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 font-medium text-green-800 dark:text-green-200">
-              <TrendingUp className="h-4 w-4" />
-              Cost Optimization Tips:
-            </div>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-green-800/90 dark:text-green-200/90">
-              {COST_OPTIMIZATION_TIPS.map((tip, i) => (
-                <li key={i}>{tip}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  /* Overview: KPIs + Cost by Agent */
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -325,13 +170,7 @@ export default function AgentAnalytics() {
         ) : (
           <div className="max-h-[500px] space-y-2 overflow-y-auto">
             {(analytics?.costByAgent ?? []).map((row) => (
-              <Card
-                key={row.agentId}
-                className="cursor-pointer transition-colors hover:bg-muted/50"
-                onClick={() =>
-                  navigate(`/admin/ai/agent-analytics/${row.agentId}`)
-                }
-              >
+              <Card key={row.agentId} className="transition-colors">
                 <CardContent className="flex flex-row items-center justify-between p-4">
                   <div className="flex items-center gap-3">
                     <div className="rounded-lg bg-primary/10 p-2">
@@ -358,6 +197,67 @@ export default function AgentAnalytics() {
           </div>
         )}
       </div>
+
+      {/* Cost by Provider & Model — always visible */}
+      <div className="space-y-3">
+        <h2 className="text-xl font-bold tracking-tight">
+          Cost by Provider & Model
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Performance and cost comparison across AI providers
+        </p>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-[72px] w-full rounded-lg" />
+            ))}
+          </div>
+        ) : (
+          <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+            {(analytics?.costByProviderModel ?? []).map((row) => (
+              <div
+                key={`${row.provider}-${row.model}`}
+                className="flex flex-row items-center justify-between rounded-lg border border-border bg-card px-4 py-3 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400">
+                    <Zap className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground">
+                      {row.provider} - {row.model}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {row.runs} runs • {formatTokens(row.tokens)} tokens
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-semibold text-foreground">
+                    {formatCostMicro(row.totalCostMicro)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatCostMicro(row.costPerRunMicro)} / run
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <Card className="border-green-200 bg-green-50/50 dark:border-green-900/50 dark:bg-green-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 font-medium text-green-800 dark:text-green-200">
+            <TrendingUp className="h-4 w-4" />
+            Cost Optimization Tips:
+          </div>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-green-800/90 dark:text-green-200/90">
+            {COST_OPTIMIZATION_TIPS.map((tip, i) => (
+              <li key={i}>{tip}</li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   );
 }

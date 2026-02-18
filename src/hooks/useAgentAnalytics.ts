@@ -38,6 +38,7 @@ export interface ProviderModelRow {
 export interface AgentAnalyticsData {
   summary: AgentAnalyticsSummary;
   costByAgent: AgentCostRow[];
+  costByProviderModel: ProviderModelRow[];
 }
 
 export interface AgentAnalyticsDetailData {
@@ -131,6 +132,39 @@ async function fetchAgentAnalytics(days: number): Promise<AgentAnalyticsData> {
   // Sort by runs descending
   costByAgent.sort((a, b) => b.runs - a.runs);
 
+  const providerModelMap = new Map<
+    string,
+    { runs: number; tokens: number }
+  >();
+  for (const r of rows) {
+    const provider = r.provider_used ?? "unknown";
+    const model = r.model_used ?? "unknown";
+    const key = `${provider} - ${model}`;
+    if (!providerModelMap.has(key)) {
+      providerModelMap.set(key, { runs: 0, tokens: 0 });
+    }
+    const rec = providerModelMap.get(key)!;
+    rec.runs += 1;
+    const metrics = r.token_metrics as { total_tokens?: number } | null;
+    if (metrics?.total_tokens != null) rec.tokens += Number(metrics.total_tokens);
+  }
+
+  const costByProviderModel: ProviderModelRow[] = Array.from(
+    providerModelMap.entries()
+  ).map(([key, { runs: runCount, tokens }]) => {
+    const [provider, model] = key.split(" - ");
+    const totalCostMicro = 0;
+    return {
+      provider: provider ?? "unknown",
+      model: model ?? "unknown",
+      runs: runCount,
+      tokens,
+      totalCostMicro,
+      costPerRunMicro: runCount ? totalCostMicro / runCount : 0,
+    };
+  });
+  costByProviderModel.sort((a, b) => b.runs - a.runs);
+
   const summary: AgentAnalyticsSummary = {
     totalCostMicro: 0,
     totalRuns,
@@ -139,7 +173,7 @@ async function fetchAgentAnalytics(days: number): Promise<AgentAnalyticsData> {
     completionRatePct: totalRuns ? (100 * completedCount) / totalRuns : 0,
   };
 
-  return { summary, costByAgent };
+  return { summary, costByAgent, costByProviderModel };
 }
 
 async function fetchAgentAnalyticsDetail(
