@@ -1,45 +1,47 @@
 # Agent Registry for SJ Control Tower Framework
 
 ## Overview
+
 This project has 11 specialized agents for delegating complex tasks. Claude Code automatically selects the appropriate agent based on the user's request. Each agent is deeply customized with this project's actual code patterns, file structure, database schema, and conventions.
 
 ## Agent Roster
 
-| # | Agent | Purpose | Tools | Mode |
-|---|-------|---------|-------|------|
-| 1 | react-frontend-dev | UI components, pages, hooks, forms, routing, styling | Read, Write, Edit, Bash, Glob, Grep | Builder |
-| 2 | supabase-backend-dev | Database, Edge Functions, RLS, auth, migrations | Read, Write, Edit, Bash, Glob, Grep | Builder |
-| 3 | code-reviewer | Code quality enforcement, convention checks | Read, Grep, Glob | Read-only |
-| 4 | debugger | Bug investigation, error analysis, RLS debugging | Read, Edit, Bash, Glob, Grep | Investigator |
-| 5 | documentation-engineer | Specs, docs, implementation guides, CLAUDE.md | Read, Write, Edit, Glob, Grep | Writer |
-| 6 | performance-engineer | Performance optimization, profiling, bundle analysis | Read, Edit, Bash, Glob, Grep | Optimizer |
-| 7 | refactoring-specialist | Safe code restructuring, tech debt cleanup | Read, Write, Edit, Bash, Glob, Grep | Builder |
-| 8 | security-auditor | Security scanning, vulnerability detection, RLS audit | Read, Grep, Glob | Read-only |
-| 9 | typescript-pro | Type safety, generics, zero `any`, Zod alignment | Read, Write, Edit, Glob, Grep | Builder |
-| 10 | test-automator | Unit tests, integration tests, RLS tests, Vitest setup | Read, Write, Edit, Bash, Glob, Grep | Builder |
-| 11 | edge-function-doctor | Edge Function audit, fix, creation, non-2xx diagnosis | Read, Write, Edit, Bash, Glob, Grep | Specialist |
+| #   | Agent                  | Purpose                                                | Tools                               | Mode         |
+| --- | ---------------------- | ------------------------------------------------------ | ----------------------------------- | ------------ |
+| 1   | react-frontend-dev     | UI components, pages, hooks, forms, routing, styling   | Read, Write, Edit, Bash, Glob, Grep | Builder      |
+| 2   | supabase-backend-dev   | Database, Edge Functions, RLS, auth, migrations        | Read, Write, Edit, Bash, Glob, Grep | Builder      |
+| 3   | code-reviewer          | Code quality enforcement, convention checks            | Read, Grep, Glob                    | Read-only    |
+| 4   | debugger               | Bug investigation, error analysis, RLS debugging       | Read, Edit, Bash, Glob, Grep        | Investigator |
+| 5   | documentation-engineer | Specs, docs, implementation guides, CLAUDE.md          | Read, Write, Edit, Glob, Grep       | Writer       |
+| 6   | performance-engineer   | Performance optimization, profiling, bundle analysis   | Read, Edit, Bash, Glob, Grep        | Optimizer    |
+| 7   | refactoring-specialist | Safe code restructuring, tech debt cleanup             | Read, Write, Edit, Bash, Glob, Grep | Builder      |
+| 8   | security-auditor       | Security scanning, vulnerability detection, RLS audit  | Read, Grep, Glob                    | Read-only    |
+| 9   | typescript-pro         | Type safety, generics, zero `any`, Zod alignment       | Read, Write, Edit, Glob, Grep       | Builder      |
+| 10  | test-automator         | Unit tests, integration tests, RLS tests, Vitest setup | Read, Write, Edit, Bash, Glob, Grep | Builder      |
+| 11  | edge-function-doctor   | Edge Function audit, fix, creation, non-2xx diagnosis  | Read, Write, Edit, Bash, Glob, Grep | Specialist   |
 
 ## Auto-Delegation Rules
 
 ### Single-Agent Triggers
 
-| User Says | Invoke |
-|-----------|--------|
-| "Fix bug / error / broken / crash / blank screen / not working" | **debugger** |
-| "Review code / check quality / before PR / audit code" | **code-reviewer** |
-| "Write spec / create docs / implementation guide / update docs" | **documentation-engineer** |
-| "Create component / page / form / UI / hook / routing" | **react-frontend-dev** |
-| "Create table / migration / RLS / database" | **supabase-backend-dev** |
-| "Edge Function / non-2xx / CORS error / 500/503/504/546 / function deploy" | **edge-function-doctor** |
-| "Page is slow / optimize / performance / bundle size / re-renders" | **performance-engineer** |
-| "Refactor / clean up / split component / tech debt / extract hook" | **refactoring-specialist** |
-| "Security review / audit / check vulnerabilities / RLS audit" | **security-auditor** |
-| "Fix types / remove any / type error / generics / strict types" | **typescript-pro** |
-| "Write tests / add coverage / test this / unit test / integration test" | **test-automator** |
+| User Says                                                                  | Invoke                     |
+| -------------------------------------------------------------------------- | -------------------------- |
+| "Fix bug / error / broken / crash / blank screen / not working"            | **debugger**               |
+| "Review code / check quality / before PR / audit code"                     | **code-reviewer**          |
+| "Write spec / create docs / implementation guide / update docs"            | **documentation-engineer** |
+| "Create component / page / form / UI / hook / routing"                     | **react-frontend-dev**     |
+| "Create table / migration / RLS / database"                                | **supabase-backend-dev**   |
+| "Edge Function / non-2xx / CORS error / 500/503/504/546 / function deploy" | **edge-function-doctor**   |
+| "Page is slow / optimize / performance / bundle size / re-renders"         | **performance-engineer**   |
+| "Refactor / clean up / split component / tech debt / extract hook"         | **refactoring-specialist** |
+| "Security review / audit / check vulnerabilities / RLS audit"              | **security-auditor**       |
+| "Fix types / remove any / type error / generics / strict types"            | **typescript-pro**         |
+| "Write tests / add coverage / test this / unit test / integration test"    | **test-automator**         |
 
 ### Multi-Agent Workflows
 
 #### New Feature (full workflow)
+
 1. **documentation-engineer** → write spec first (specs before code, always)
 2. **supabase-backend-dev** → create tables, RLS policies, Edge Functions
 3. **react-frontend-dev** → build UI components, pages, hooks
@@ -49,12 +51,14 @@ This project has 11 specialized agents for delegating complex tasks. Claude Code
 7. **security-auditor** → security review (if feature handles sensitive data)
 
 #### Bug Fix
+
 1. **debugger** → investigate root cause (follows sj-bug-fix-workflow skill)
 2. **react-frontend-dev** OR **supabase-backend-dev** → apply the fix
 3. **test-automator** → write regression test
 4. **code-reviewer** → verify fix quality
 
 #### Refactor Sprint
+
 1. **code-reviewer** → identify all issues and anti-patterns
 2. **refactoring-specialist** → restructure code safely (zero behavior change)
 3. **typescript-pro** → improve types and eliminate `any`
@@ -63,12 +67,14 @@ This project has 11 specialized agents for delegating complex tasks. Claude Code
 6. **code-reviewer** → final check
 
 #### Pre-Release Checklist
+
 1. **code-reviewer** → full quality scan
 2. **security-auditor** → security audit (especially RLS coverage)
 3. **performance-engineer** → performance check (bundle, queries, re-renders)
 4. **test-automator** → run/verify all tests pass
 
 #### Tech Debt Cleanup
+
 1. **code-reviewer** → identify debt areas
 2. **typescript-pro** → fix all type issues (`any`, missing interfaces)
 3. **refactoring-specialist** → restructure messy code
@@ -76,6 +82,7 @@ This project has 11 specialized agents for delegating complex tasks. Claude Code
 5. **test-automator** → add missing test coverage
 
 #### New Edge Function
+
 1. **edge-function-doctor** → verify config.toml entry exists FIRST (create if missing)
 2. **supabase-backend-dev** → create function using gold standard template
 3. **edge-function-doctor** → audit new function against mandatory checklist
@@ -83,6 +90,7 @@ This project has 11 specialized agents for delegating complex tasks. Claude Code
 5. **security-auditor** → verify auth requirements and input validation
 
 #### Database Schema Change
+
 1. **documentation-engineer** → document schema change spec
 2. **supabase-backend-dev** → write migration, RLS policies, indexes, FK constraints
 3. **supabase-backend-dev** → regenerate Supabase types (`types.ts`)
