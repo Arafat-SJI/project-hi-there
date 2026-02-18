@@ -104,6 +104,7 @@ export const queryKeys = {
   ai: {
     agents: ["ai", "agents"] as const,
     agent: (id: string) => ["ai", "agent", id] as const,
+    agentCategories: ["ai", "agentCategories"] as const,
     runs: (agentId: string) => ["ai", "runs", agentId] as const,
     dashboardStats: ["ai", "dashboardStats"] as const,
     agentAnalytics: (days: number) => ["ai", "agentAnalytics", days] as const,
@@ -216,6 +217,7 @@ export const invalidateKeys = {
   },
   ai: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agents });
+    queryClient.invalidateQueries({ queryKey: queryKeys.ai.agentCategories });
   },
   conversations: (queryClient: any, agentId?: string) => {
     if (agentId) {
