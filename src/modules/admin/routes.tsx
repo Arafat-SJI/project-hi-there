@@ -82,7 +82,7 @@ export const adminRoutes = (
     <Route path="/admin" element={<Admin />} />
     <Route path="/admin/ai" element={<AIDashboard />} />
     <Route path="/admin/ai/agent-analytics" element={<AgentAnalytics />} />
-    <Route path="/admin/ai/agent-analytics/:agentId" element={<AgentAnalytics />} />
+    <Route path="/admin/ai/agent-categories" element={<AgentCategories />} />
     <Route path="/admin/ai/agents" element={<AIAgents />} />
     <Route path="/admin/ai/prompt-templates" element={<PromptTemplateManagement />} />
     <Route path="/admin/implementation-status" element={<ImplementationStatus />} />

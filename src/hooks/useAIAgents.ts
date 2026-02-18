@@ -328,13 +328,16 @@ export function useRunAgent() {
 
         if (error) throw error;
 
-        // Update run with result
+        // Update run with result (include provider/model from run-ai-agent)
         const { error: updateError } = await supabase
           .from("ai_agent_runs")
           .update({
             output: data.output,
             status: "completed",
             latency_ms: executionTime,
+            token_metrics: data.token_usage ?? null,
+            provider_used: "openai",
+            model_used: "gpt-4o-mini",
             updated_at: new Date().toISOString(),
           })
           .eq("id", run.id);
