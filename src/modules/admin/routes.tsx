@@ -43,6 +43,7 @@ import DeploymentStatus from "@/pages/DeploymentStatus";
 import MCPServers from "@/pages/MCPServers";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement";
 import EmployeeProjection from "@/pages/admin/EmployeeProjection";
+import RPTeamSettings from "@/pages/admin/RPTeamSettings";
 import PODManagement from "@/pages/admin/PODManagement";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import SkillManagement from "@/pages/admin/SkillManagement";
@@ -114,7 +115,7 @@ export const adminRoutes = (
     <Route path="/admin/team/employees" element={<EmployeeManagement />} />
     <Route path="/admin/productivity-import" element={<ProductivityImport />} />
     <Route path="/admin/team/pods" element={<PODManagement />} />
-    <Route path="/admin/team/employee_projection" element={<EmployeeProjection />} />
+    <Route path="/admin/team/employee_projection" element={<RPTeamSettings />} />
     <Route path="/admin/team/departments" element={<DepartmentManagement />} />
     <Route path="/admin/skillmanagement" element={<SkillManagement />} />
 

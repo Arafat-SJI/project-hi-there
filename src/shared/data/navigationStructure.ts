@@ -394,7 +394,7 @@ export const adminNavigation: NavGroup[] = [
           },
           {
             title: "RP Settings",
-            href: "/admin/eos",
+            href: "/admin/team/employee_projection",
             icon: "Settings",
           },
         ],
