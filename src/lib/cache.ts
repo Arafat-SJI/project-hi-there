@@ -117,6 +117,8 @@ export const queryKeys = {
     conversation: (conversationId: string) => ["ai", "conversation", conversationId] as const,
     messages: (conversationId: string) => ["ai", "messages", conversationId] as const,
     allConversations: ["ai", "allConversations"] as const,
+    promptTemplates: ["ai", "promptTemplates"] as const,
+    promptTemplate: (id: string) => ["ai", "promptTemplate", id] as const,
   },
 
   // Admin
@@ -218,6 +220,9 @@ export const invalidateKeys = {
   ai: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agents });
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agentCategories });
+  },
+  promptTemplates: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.ai.promptTemplates });
   },
   conversations: (queryClient: any, agentId?: string) => {
     if (agentId) {
