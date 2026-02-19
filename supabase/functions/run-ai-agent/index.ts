@@ -50,7 +50,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const { agent_id, agent_slug, execution_context, user_id } = body
+    const { agent_id, agent_slug, execution_context, input: bodyInput, user_id } = body
 
     if (!agent_id && !agent_slug) {
       return new Response(
@@ -93,6 +93,14 @@ serve(async (req) => {
 
     const startTime = Date.now()
 
+    // User message: prefer explicit input (Run Agent modal), then execution_context (programmatic calls)
+    const userMessage =
+      typeof bodyInput === 'string' && bodyInput.trim().length > 0
+        ? bodyInput.trim()
+        : execution_context != null
+          ? (typeof execution_context === 'string' ? execution_context : JSON.stringify(execution_context))
+          : 'No context provided. Please respond with a default helpful message.'
+
     // Execute agent with OpenAI
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -109,7 +117,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: execution_context != null ? JSON.stringify(execution_context) : 'No context provided. Please respond with a default helpful message.'
+            content: userMessage
           }
         ],
         temperature: 0.7,
@@ -126,14 +134,14 @@ serve(async (req) => {
     const output = data.choices[0].message.content
     const latency = Date.now() - startTime
 
-    // Log agent run
+    // Log agent run (context stores what was sent as user message for audit)
     const { data: run, error: runError } = await supabaseClient
       .from('ai_agent_runs')
       .insert([{
         agent_id: agent.id,
         user_id: user_id || null,
         status: 'completed',
-        context: execution_context,
+        context: typeof bodyInput === 'string' && bodyInput.trim().length > 0 ? bodyInput : execution_context,
         output: output,
         token_metrics: data.usage,
         latency_ms: latency,
