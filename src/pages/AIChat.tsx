@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -9,9 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Brain, MessageSquare, AlertCircle } from "lucide-react";
+import { Brain, MessageSquare, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { AgentConversationView } from "@/components/ai/AgentConversationView";
+import { AgentConversationList } from "@/components/ai/AgentConversationList";
+import {
+  useAgentConversations,
+  useCreateConversation,
+} from "@/hooks/useAgentConversations";
+import { toast } from "sonner";
 
 interface AIAgent {
   id: string;
@@ -29,6 +37,7 @@ export default function AIChat() {
   const [loadingAgents, setLoadingAgents] = useState(true);
 
   const selectedAgentId = searchParams.get("agent") || "";
+  const selectedConversationId = searchParams.get("conversation") || null;
 
   useEffect(() => {
     fetchAgents();
@@ -36,7 +45,12 @@ export default function AIChat() {
 
   useEffect(() => {
     if (!selectedAgentId && agents.length > 0) {
-      setSearchParams({ agent: agents[0].id });
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("agent", agents[0].id);
+        next.delete("conversation");
+        return next;
+      });
     }
   }, [agents, selectedAgentId, setSearchParams]);
 
@@ -62,6 +76,39 @@ export default function AIChat() {
   };
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+
+  const { data: conversations } = useAgentConversations(selectedAgentId || undefined);
+  const createConversation = useCreateConversation();
+
+  const handleSelectConversation = (conversationId: string | null) => {
+    if (!selectedAgentId) return;
+    if (conversationId) {
+      setSearchParams({ agent: selectedAgentId, conversation: conversationId });
+    } else {
+      setSearchParams({ agent: selectedAgentId });
+    }
+  };
+
+  const handleNewConversation = async () => {
+    if (!selectedAgentId) return;
+    try {
+      const conversation = await createConversation.mutateAsync({
+        agent_id: selectedAgentId,
+      });
+      if (conversation?.id) {
+        setSearchParams({ agent: selectedAgentId, conversation: conversation.id });
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof (err as { message?: string })?.message === "string"
+            ? (err as { message: string }).message
+            : "Failed to start conversation";
+      console.error("Create conversation error:", err);
+      toast.error(message);
+    }
+  };
 
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col">
@@ -114,17 +161,82 @@ export default function AIChat() {
         </Card>
       )}
 
-      {/* Notice about AI Chat not being fully configured */}
-      <Card className="flex-1 flex items-center justify-center">
-        <div className="text-center p-8">
-          <AlertCircle className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">AI Chat Not Configured</h3>
-          <p className="text-muted-foreground max-w-md">
-            The AI Chat feature requires additional database tables (agent_conversations, agent_messages) 
-            to be created. Please run the necessary migrations to enable this feature.
-          </p>
+      {/* Chat area: only when an agent is selected */}
+      {!selectedAgentId && agents.length > 0 && (
+        <Card className="flex-1 flex items-center justify-center">
+          <div className="text-center p-8 text-muted-foreground">
+            <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>Select an agent above to start chatting.</p>
+          </div>
+        </Card>
+      )}
+
+      {!selectedAgentId && loadingAgents && (
+        <Card className="flex-1 flex items-center justify-center">
+          <div className="text-center p-8 text-muted-foreground">
+            Loading agents…
+          </div>
+        </Card>
+      )}
+
+      {selectedAgentId && selectedAgent && (
+        <div className="flex-1 flex gap-4 min-h-0">
+          {/* Conversation list sidebar */}
+          <div className="w-64 flex-shrink-0 hidden sm:block">
+            <AgentConversationList
+              agentId={selectedAgentId}
+              agentName={selectedAgent.name}
+              selectedConversationId={selectedConversationId}
+              onSelectConversation={handleSelectConversation}
+              onNewConversation={handleNewConversation}
+            />
+          </div>
+
+          {/* Main chat area */}
+          <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {selectedConversationId ? (
+              <AgentConversationView
+                conversationId={selectedConversationId}
+                agentId={selectedAgentId}
+              />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-8">
+                <MessageSquare className="h-14 w-14 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Start a conversation</h3>
+                <p className="text-muted-foreground text-center max-w-sm mb-6">
+                  Start a new chat with {selectedAgent.name} or pick an existing
+                  conversation from the list.
+                </p>
+                <Button onClick={handleNewConversation} disabled={createConversation.isPending}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New conversation
+                </Button>
+                {conversations && conversations.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-4">
+                    Or select a conversation from the sidebar
+                  </p>
+                )}
+              </div>
+            )}
+          </Card>
         </div>
-      </Card>
+      )}
+
+      {selectedAgentId && !selectedAgent && agents.length > 0 && (
+        <Card className="flex-1 flex items-center justify-center">
+          <div className="text-center p-8 text-muted-foreground">
+            Selected agent not found. Choose another from the list above.
+          </div>
+        </Card>
+      )}
+
+      {agents.length === 0 && !loadingAgents && (
+        <Card className="flex-1 flex items-center justify-center">
+          <div className="text-center p-8 text-muted-foreground">
+            No AI agents are available. Contact your administrator to enable agents.
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
