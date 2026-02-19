@@ -143,6 +143,59 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_conversations: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          is_archived: boolean
+          is_pinned: boolean
+          last_message_at: string | null
+          message_count: number
+          metadata: Json
+          summary: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
+          last_message_at?: string | null
+          message_count?: number
+          metadata?: Json
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          is_pinned?: boolean
+          last_message_at?: string | null
+          message_count?: number
+          metadata?: Json
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_conversations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_execution_plans: {
         Row: {
           agent_id: string
@@ -486,6 +539,65 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_messages: {
+        Row: {
+          citations: Json
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          latency_ms: number | null
+          metadata: Json
+          model_used: string | null
+          provider_used: string | null
+          role: string
+          tokens_input: number | null
+          tokens_output: number | null
+          tool_calls: Json | null
+          tool_results: Json | null
+        }
+        Insert: {
+          citations?: Json
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json
+          model_used?: string | null
+          provider_used?: string | null
+          role?: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_calls?: Json | null
+          tool_results?: Json | null
+        }
+        Update: {
+          citations?: Json
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json
+          model_used?: string | null
+          provider_used?: string | null
+          role?: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_calls?: Json | null
+          tool_results?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "agent_conversations"
             referencedColumns: ["id"]
           },
         ]
