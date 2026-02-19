@@ -225,6 +225,13 @@ export function useSendMessage() {
       });
       if (insertAssistantError) throw insertAssistantError;
 
+      // Sync conversation stats from actual message count (sidebar shows correct count)
+      try {
+        await db.rpc("refresh_conversation_stats", { p_conversation_id: conversation_id });
+      } catch {
+        // RPC may not exist yet; triggers may have updated stats
+      }
+
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.messages(conversation_id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversation(conversation_id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(agent_id) });

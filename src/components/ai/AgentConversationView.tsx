@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { format } from "date-fns";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,6 +34,7 @@ import {
   AgentMessage,
 } from "@/hooks/useAgentConversations";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface AIModel {
   id: string;
@@ -110,12 +113,19 @@ export function AgentConversationView({
     const messageContent = input;
     setInput("");
 
-    await sendMessage.mutateAsync({
-      conversation_id: conversationId,
-      agent_id: agentId,
-      content: messageContent,
-      model_id: selectedModel || undefined,
-    });
+    try {
+      await sendMessage.mutateAsync({
+        conversation_id: conversationId,
+        agent_id: agentId,
+        content: messageContent,
+        model_id: selectedModel || undefined,
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to send message. Please try again.";
+      toast.error(message);
+      setInput(messageContent);
+    }
   };
 
   const handleCopyMessage = async (message: AgentMessage) => {
@@ -263,7 +273,15 @@ export function AgentConversationView({
                       : "bg-muted"
                   )}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.role === "assistant" ? (
+                    <div className="text-sm prose prose-sm prose-slate dark:prose-invert max-w-none prose-p:my-1.5 prose-ul:my-1.5 prose-table:text-xs prose-headings:mb-1 prose-headings:mt-2 prose-strong:font-semibold">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  )}
 
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-xs opacity-70">
