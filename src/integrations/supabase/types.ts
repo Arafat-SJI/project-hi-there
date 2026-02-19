@@ -7413,6 +7413,10 @@ export type Database = {
         Args: { p_contact_id: string }
         Returns: undefined
       }
+      refresh_conversation_stats: {
+        Args: { p_conversation_id: string }
+        Returns: undefined
+      }
       replace_template_variables: {
         Args: { template_body: string; variables_json: Json }
         Returns: string
