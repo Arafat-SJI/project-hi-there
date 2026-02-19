@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/cache";
 import { API } from "@/shared/config/api";
 
+// Type-bridge: tables exist in DB but not yet in generated types
+const db = supabase as any;
+
 // Types
 export interface AgentConversation {
   id: string;
@@ -68,7 +71,7 @@ export function useAgentConversations(agentId: string | undefined) {
     queryKey: queryKeys.ai.conversations(agentId ?? ""),
     queryFn: async (): Promise<AgentConversation[]> => {
       if (!agentId || !user?.id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("agent_conversations")
         .select(
           "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description, welcome_message, conversation_starters)"
@@ -91,7 +94,7 @@ export function useAgentConversation(conversationId: string | null) {
     queryKey: queryKeys.ai.conversation(conversationId ?? ""),
     queryFn: async (): Promise<AgentConversation | null> => {
       if (!conversationId) return null;
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("agent_conversations")
         .select(
           "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description, welcome_message, conversation_starters)"
@@ -114,7 +117,7 @@ export function useAgentMessages(conversationId: string | null) {
     queryKey: queryKeys.ai.messages(conversationId ?? ""),
     queryFn: async (): Promise<AgentMessage[]> => {
       if (!conversationId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("agent_messages")
         .select("*")
         .eq("conversation_id", conversationId)
@@ -147,7 +150,7 @@ export function useCreateConversation() {
       data: CreateConversationData
     ): Promise<AgentConversation | null> => {
       if (!user?.id) throw new Error("Not authenticated");
-      const { data: row, error } = await supabase
+      const { data: row, error } = await db
         .from("agent_conversations")
         .insert({
           agent_id: data.agent_id,
@@ -174,7 +177,7 @@ export function useSendMessage() {
       if (!user?.id) throw new Error("Not authenticated");
 
       // 1. Insert user message
-      const { error: insertUserError } = await supabase.from("agent_messages").insert({
+      const { error: insertUserError } = await db.from("agent_messages").insert({
         conversation_id,
         role: "user",
         content,
@@ -210,7 +213,7 @@ export function useSendMessage() {
       if (result?.error) throw new Error(typeof result.error === "string" ? result.error : "Chat failed");
 
       // 3. Insert assistant message
-      const { error: insertAssistantError } = await supabase.from("agent_messages").insert({
+      const { error: insertAssistantError } = await db.from("agent_messages").insert({
         conversation_id,
         role: "assistant",
         content: result.response ?? "",
@@ -236,7 +239,7 @@ export function useUpdateConversation() {
       id: string;
       data: Partial<Pick<AgentConversation, "title" | "is_archived" | "is_pinned">>;
     }) => {
-      const { data: row, error } = await supabase
+      const { data: row, error } = await db
         .from("agent_conversations")
         .update(params.data)
         .eq("id", params.id)
@@ -253,7 +256,7 @@ export function useDeleteConversation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { id: string; agentId: string }) => {
-      const { error } = await supabase.from("agent_conversations").delete().eq("id", params.id);
+      const { error } = await db.from("agent_conversations").delete().eq("id", params.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(params.agentId) });
     },
@@ -264,7 +267,7 @@ export function useArchiveConversation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { id: string; agentId: string }) => {
-      const { error } = await supabase
+      const { error } = await db
         .from("agent_conversations")
         .update({ is_archived: true })
         .eq("id", params.id);
@@ -278,7 +281,7 @@ export function useTogglePinConversation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { id: string; agentId: string; isPinned: boolean }) => {
-      const { error } = await supabase
+      const { error } = await db
         .from("agent_conversations")
         .update({ is_pinned: params.isPinned })
         .eq("id", params.id);
@@ -294,7 +297,7 @@ export function useArchivedConversations(agentId: string | undefined) {
     queryKey: [...queryKeys.ai.conversations(agentId ?? ""), "archived"],
     queryFn: async (): Promise<AgentConversation[]> => {
       if (!agentId || !user?.id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("agent_conversations")
         .select(
           "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description)"
@@ -316,7 +319,7 @@ export function useRestoreConversation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { id: string; agentId: string }) => {
-      const { error } = await supabase
+      const { error } = await db
         .from("agent_conversations")
         .update({ is_archived: false })
         .eq("id", params.id);
