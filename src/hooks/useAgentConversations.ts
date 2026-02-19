@@ -1,7 +1,12 @@
-// Agent conversation hooks - disabled (tables not yet created)
-// These hooks will be enabled once agent_conversations and agent_messages tables exist
+/**
+ * Agent conversation hooks - conversation threading with agent_conversations / agent_messages
+ */
 
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/lib/cache";
+import { API } from "@/shared/config/api";
 
 // Types
 export interface AgentConversation {
@@ -23,6 +28,8 @@ export interface AgentConversation {
     slug: string;
     avatar: string | null;
     description: string | null;
+    welcome_message?: string | null;
+    conversation_starters?: string[] | null;
   };
 }
 
@@ -55,35 +62,76 @@ export interface SendMessageData {
   model_id?: string;
 }
 
-// Stub hooks that return empty/disabled state
-export function useAgentConversations(_agentId?: string) {
+export function useAgentConversations(agentId: string | undefined) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["agent-conversations-disabled"],
-    queryFn: async () => [] as AgentConversation[],
-    enabled: false,
+    queryKey: queryKeys.ai.conversations(agentId ?? ""),
+    queryFn: async (): Promise<AgentConversation[]> => {
+      if (!agentId || !user?.id) return [];
+      const { data, error } = await supabase
+        .from("agent_conversations")
+        .select(
+          "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description, welcome_message, conversation_starters)"
+        )
+        .eq("agent_id", agentId)
+        .eq("user_id", user.id)
+        .eq("is_archived", false)
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .limit(50);
+
+      if (error) throw error;
+      return (data ?? []) as AgentConversation[];
+    },
+    enabled: !!agentId && !!user?.id,
   });
 }
 
-export function useAgentConversation(_conversationId: string | null) {
+export function useAgentConversation(conversationId: string | null) {
   return useQuery({
-    queryKey: ["agent-conversation-disabled"],
-    queryFn: async () => null as AgentConversation | null,
-    enabled: false,
+    queryKey: queryKeys.ai.conversation(conversationId ?? ""),
+    queryFn: async (): Promise<AgentConversation | null> => {
+      if (!conversationId) return null;
+      const { data, error } = await supabase
+        .from("agent_conversations")
+        .select(
+          "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description, welcome_message, conversation_starters)"
+        )
+        .eq("id", conversationId)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") return null;
+        throw error;
+      }
+      return data as AgentConversation;
+    },
+    enabled: !!conversationId,
   });
 }
 
-export function useAgentMessages(_conversationId: string | null) {
+export function useAgentMessages(conversationId: string | null) {
   return useQuery({
-    queryKey: ["agent-messages-disabled"],
-    queryFn: async () => [] as AgentMessage[],
-    enabled: false,
+    queryKey: queryKeys.ai.messages(conversationId ?? ""),
+    queryFn: async (): Promise<AgentMessage[]> => {
+      if (!conversationId) return [];
+      const { data, error } = await supabase
+        .from("agent_messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return (data ?? []) as AgentMessage[];
+    },
+    enabled: !!conversationId,
   });
 }
 
-export function useAgentMessagesInfinite(_conversationId: string | null, _pageSize = 50) {
+export function useAgentMessagesInfinite(conversationId: string | null, _pageSize = 50) {
+  const query = useAgentMessages(conversationId);
   return {
-    data: undefined,
-    isLoading: false,
+    data: query.data,
+    isLoading: query.isLoading,
     fetchNextPage: () => {},
     hasNextPage: false,
     isFetchingNextPage: false,
@@ -91,66 +139,189 @@ export function useAgentMessagesInfinite(_conversationId: string | null, _pageSi
 }
 
 export function useCreateConversation() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: async (_data: CreateConversationData): Promise<AgentConversation | null> => {
-      console.warn("Agent conversations not enabled - database tables not configured");
-      return null;
+    mutationFn: async (
+      data: CreateConversationData
+    ): Promise<AgentConversation | null> => {
+      if (!user?.id) throw new Error("Not authenticated");
+      const { data: row, error } = await supabase
+        .from("agent_conversations")
+        .insert({
+          agent_id: data.agent_id,
+          user_id: user.id,
+          title: data.title ?? null,
+        })
+        .select("id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at")
+        .single();
+
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(data.agent_id) });
+      return row as AgentConversation;
     },
   });
 }
 
 export function useSendMessage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: async (_data: SendMessageData) => {
-      throw new Error("Agent conversations not enabled");
+    mutationFn: async (params: SendMessageData) => {
+      const { conversation_id, agent_id, content, model_id } = params;
+      if (!user?.id) throw new Error("Not authenticated");
+
+      // 1. Insert user message
+      const { error: insertUserError } = await supabase.from("agent_messages").insert({
+        conversation_id,
+        role: "user",
+        content,
+      });
+      if (insertUserError) throw insertUserError;
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.messages(conversation_id) });
+
+      // 2. Call agent-conversation-chat
+      const { data: chatData, error: chatError } = await supabase.functions.invoke(
+        API.AI.AGENT_CONVERSATION,
+        {
+          body: {
+            conversation_id,
+            agent_id,
+            message: content,
+            user_id: user.id,
+            model_id: model_id ?? undefined,
+          },
+        }
+      );
+
+      if (chatError) throw chatError;
+      const result = chatData as {
+        response?: string;
+        model_used?: string;
+        provider_used?: string;
+        tokens_input?: number;
+        tokens_output?: number;
+        latency_ms?: number;
+        error?: string;
+      };
+      if (result?.error) throw new Error(typeof result.error === "string" ? result.error : "Chat failed");
+
+      // 3. Insert assistant message
+      const { error: insertAssistantError } = await supabase.from("agent_messages").insert({
+        conversation_id,
+        role: "assistant",
+        content: result.response ?? "",
+        model_used: result.model_used ?? null,
+        provider_used: result.provider_used ?? null,
+        tokens_input: result.tokens_input ?? null,
+        tokens_output: result.tokens_output ?? null,
+        latency_ms: result.latency_ms ?? null,
+      });
+      if (insertAssistantError) throw insertAssistantError;
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.messages(conversation_id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversation(conversation_id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(agent_id) });
     },
   });
 }
 
 export function useUpdateConversation() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (_params: { id: string; data: Partial<Pick<AgentConversation, "title" | "is_archived" | "is_pinned">> }) => {
-      throw new Error("Agent conversations not enabled");
+    mutationFn: async (params: {
+      id: string;
+      data: Partial<Pick<AgentConversation, "title" | "is_archived" | "is_pinned">>;
+    }) => {
+      const { data: row, error } = await supabase
+        .from("agent_conversations")
+        .update(params.data)
+        .eq("id", params.id)
+        .select()
+        .single();
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversation(params.id) });
+      return row;
     },
   });
 }
 
 export function useDeleteConversation() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (_params: { id: string; agentId: string }) => {
-      throw new Error("Agent conversations not enabled");
+    mutationFn: async (params: { id: string; agentId: string }) => {
+      const { error } = await supabase.from("agent_conversations").delete().eq("id", params.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(params.agentId) });
     },
   });
 }
 
 export function useArchiveConversation() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (_params: { id: string; agentId: string }) => {
-      throw new Error("Agent conversations not enabled");
+    mutationFn: async (params: { id: string; agentId: string }) => {
+      const { error } = await supabase
+        .from("agent_conversations")
+        .update({ is_archived: true })
+        .eq("id", params.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(params.agentId) });
     },
   });
 }
 
 export function useTogglePinConversation() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (_params: { id: string; agentId: string; isPinned: boolean }) => {
-      throw new Error("Agent conversations not enabled");
+    mutationFn: async (params: { id: string; agentId: string; isPinned: boolean }) => {
+      const { error } = await supabase
+        .from("agent_conversations")
+        .update({ is_pinned: params.isPinned })
+        .eq("id", params.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(params.agentId) });
     },
   });
 }
 
-export function useArchivedConversations(_agentId?: string) {
+export function useArchivedConversations(agentId: string | undefined) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["archived-conversations-disabled"],
-    queryFn: async () => [] as AgentConversation[],
-    enabled: false,
+    queryKey: [...queryKeys.ai.conversations(agentId ?? ""), "archived"],
+    queryFn: async (): Promise<AgentConversation[]> => {
+      if (!agentId || !user?.id) return [];
+      const { data, error } = await supabase
+        .from("agent_conversations")
+        .select(
+          "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description)"
+        )
+        .eq("agent_id", agentId)
+        .eq("user_id", user.id)
+        .eq("is_archived", true)
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .limit(50);
+
+      if (error) throw error;
+      return (data ?? []) as AgentConversation[];
+    },
+    enabled: !!agentId && !!user?.id,
   });
 }
 
 export function useRestoreConversation() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (_params: { id: string; agentId: string }) => {
-      throw new Error("Agent conversations not enabled");
+    mutationFn: async (params: { id: string; agentId: string }) => {
+      const { error } = await supabase
+        .from("agent_conversations")
+        .update({ is_archived: false })
+        .eq("id", params.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(params.agentId) });
     },
   });
 }
