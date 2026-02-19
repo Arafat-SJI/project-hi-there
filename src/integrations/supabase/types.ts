@@ -755,6 +755,7 @@ export type Database = {
           conversation_starters: Json | null
           created_at: string
           data_sources: Json | null
+          deleted_at: string | null
           description: string | null
           id: string
           is_enabled: boolean | null
@@ -774,6 +775,7 @@ export type Database = {
           conversation_starters?: Json | null
           created_at?: string
           data_sources?: Json | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           is_enabled?: boolean | null
@@ -793,6 +795,7 @@ export type Database = {
           conversation_starters?: Json | null
           created_at?: string
           data_sources?: Json | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           is_enabled?: boolean | null
