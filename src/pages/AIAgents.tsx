@@ -1,4 +1,6 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   useAIAgents,
   useCreateAgent,
@@ -150,7 +152,16 @@ export default function AIAgents() {
 
   const openRunDialog = (agent: AIAgent) => {
     setSelectedAgent(agent);
+    setRunInput("");
     setRunDialogOpen(true);
+  };
+
+  const handleRunDialogOpenChange = (open: boolean) => {
+    setRunDialogOpen(open);
+    if (!open) {
+      setRunInput("");
+      setSelectedAgent(null);
+    }
   };
 
   const openHistoryDialog = () => {
@@ -498,7 +509,7 @@ export default function AIAgents() {
       )}
 
       {/* Run Agent Dialog */}
-      <Dialog open={runDialogOpen} onOpenChange={setRunDialogOpen}>
+      <Dialog open={runDialogOpen} onOpenChange={handleRunDialogOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Run Agent: {selectedAgent?.name}</DialogTitle>
@@ -521,10 +532,7 @@ export default function AIAgents() {
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setRunDialogOpen(false);
-                  setRunInput("");
-                }}
+                onClick={() => handleRunDialogOpenChange(false)}
                 disabled={runAgent.isPending}
               >
                 Cancel
@@ -583,7 +591,11 @@ export default function AIAgents() {
                       {run.output && (
                         <div>
                           <Label className="text-xs text-muted-foreground">Output:</Label>
-                          <p className="text-sm mt-1">{run.output}</p>
+                          <div className="mt-1 text-sm prose prose-slate dark:prose-invert max-w-none prose-p:my-1.5 prose-ul:my-1.5 prose-table:text-xs prose-headings:mb-1 prose-headings:mt-2">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {run.output}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       )}
                       {run.error_message && (
