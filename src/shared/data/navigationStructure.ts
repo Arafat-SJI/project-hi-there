@@ -433,7 +433,7 @@ export const adminNavigation: NavGroup[] = [
           { title: "Memory Dashboard", href: "/admin/memory/dashboard", icon: "LayoutDashboard" },
           { title: "User Memory Stats", href: "/admin/memory/user-stats", icon: "BarChart3" },
           { title: "Search Analytics", href: "/admin/memory/search", icon: "BarChart3" },
-          { title: "Team Learning Patterns", href: "/admin/memory/dashboard", icon: "Users" },
+          { title: "Team Learning Patterns", href: "/admin/memory/team-learning-patterns", icon: "Users" },
         ],
       },
       {
