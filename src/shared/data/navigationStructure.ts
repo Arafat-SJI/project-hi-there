@@ -421,7 +421,7 @@ export const adminNavigation: NavGroup[] = [
         headerOnly: true,
         children: [
           { title: "Search", href: "/admin/ai/semantic-search", icon: "Search" },
-          { title: "Embeddings", href: "/admin/knowledge/embeddings", icon: "Brain" },
+          { title: "Embeddings", href: "/admin/ai/embeddings", icon: "Brain" },
         ],
       },
       {
