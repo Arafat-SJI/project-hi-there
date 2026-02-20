@@ -119,7 +119,7 @@ verify_jwt = false
 
 # Admin: user memory stats (auth + admin check in-code)
 [functions.user-memory-stats]
-verify_jwt = true
+verify_jwt = false
 
 # User Drive functions - authentication validated in-code for ES256 compatibility
 [functions.user-drive-list]
