@@ -117,6 +117,10 @@ verify_jwt = false
 [functions.user-oauth-disconnect]
 verify_jwt = false
 
+# Admin: user memory stats (auth + admin check in-code)
+[functions.user-memory-stats]
+verify_jwt = true
+
 # User Drive functions - authentication validated in-code for ES256 compatibility
 [functions.user-drive-list]
 verify_jwt = false

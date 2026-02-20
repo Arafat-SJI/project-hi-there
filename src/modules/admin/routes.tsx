@@ -78,6 +78,7 @@ import DealCoaching from "@/pages/admin/ai/DealCoaching";
 import AdminSemanticSearch from "@/pages/admin/ai/AdminSemanticSearch";
 import EmbeddingPipelineDashboard from "@/pages/admin/ai/EmbeddingPipelineDashboard";
 import MemoryDashboard from "@/pages/admin/memory/MemoryDashboard";
+import UserMemoryStats from "@/pages/admin/memory/UserMemoryStats";
 
 /**
  * Admin routes - require admin role
@@ -100,6 +101,7 @@ export const adminRoutes = (
     {/* Memory Dashboard – admin only, data from Supabase only */}
     <Route path="/admin/memory" element={<Navigate to="/admin/memory/dashboard" replace />} />
     <Route path="/admin/memory/dashboard" element={<MemoryDashboard />} />
+    <Route path="/admin/memory/user-stats" element={<UserMemoryStats />} />
 
     {/* Users & Access */}
     <Route path="/admin/users" element={<UserManagement />} />
