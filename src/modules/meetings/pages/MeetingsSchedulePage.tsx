@@ -1,15 +1,13 @@
 /**
- * Meetings Schedule Page (All Meetings)
+ * Meetings Schedule Page
  *
- * Meeting list with KPI cards, tab filters (Today/Upcoming/Open/Past),
- * search, type filter, "My meetings only" checkbox, list/calendar toggle,
- * and week grouping for upcoming meetings.
- * Uses meetings_v2 table via useMeetingsV2 hook.
+ * List/calendar view with KPIs, search, type filter, "My meetings only",
+ * tabs (Today | Upcoming | Open | Past). Data from meetings_v2 via useMeetingsV2.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, startOfWeek, endOfWeek, isSameWeek, parseISO } from "date-fns";
+import { format, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Collapsible,
   CollapsibleContent,
@@ -46,17 +44,22 @@ import {
   Loader2,
   ChevronDown,
   ChevronRight,
+  CheckCircle,
 } from "lucide-react";
 import { useMeetingsV2 } from "../hooks/useMeetingsV2";
-import { useAuth } from "@/contexts/AuthContext";
+import { useCalendarMeetingsV2 } from "../hooks/useCalendarMeetings";
 import { MeetingsCalendar } from "../components/calendar/MeetingsCalendar";
 import CreateMeetingDialog from "../components/dialogs/CreateMeetingDialog";
-import type { MeetingV2, MeetingType } from "../types/meetings";
+import type { MeetingV2Schedule, MeetingType } from "../types/meetings";
 
+const VIEW_MODE_KEY = "meetings-view-mode";
 type ViewMode = "list" | "calendar";
 type TabFilter = "today" | "upcoming" | "open" | "past";
 
-const statusBadges: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const statusBadges: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
   scheduled: { label: "Scheduled", variant: "default" },
   in_progress: { label: "In Progress", variant: "secondary" },
   completed: { label: "Completed", variant: "outline" },
@@ -71,153 +74,207 @@ const typeLabels: Record<MeetingType, string> = {
   one_on_one: "One-on-One",
 };
 
+function getStoredViewMode(): ViewMode {
+  try {
+    const v = localStorage.getItem(VIEW_MODE_KEY);
+    if (v === "list" || v === "calendar") return v;
+  } catch {
+    /* ignore */
+  }
+  return "list";
+}
+
+function setStoredViewMode(mode: ViewMode): void {
+  try {
+    localStorage.setItem(VIEW_MODE_KEY, mode);
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function MeetingsSchedulePage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [view, setView] = useState<ViewMode>("list");
-  const [tab, setTab] = useState<TabFilter>("upcoming");
+  const [view, setView] = useState<ViewMode>(getStoredViewMode);
+  const [tab, setTab] = useState<TabFilter>("today");
   const [typeFilter, setTypeFilter] = useState<MeetingType | "all">("all");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [myMeetingsOnly, setMyMeetingsOnly] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+
+  useEffect(() => {
+    setStoredViewMode(view);
+  }, [view]);
 
   const { data: meetings = [], isLoading } = useMeetingsV2({
     tab,
     type: typeFilter !== "all" ? typeFilter : undefined,
-    search: search || undefined,
+    search: appliedSearch || undefined,
     my_meetings_only: myMeetingsOnly,
   });
 
-  // Calculate KPIs
+  const calendarYear = calendarMonth.getFullYear();
+  const calendarMonthNum = calendarMonth.getMonth() + 1;
+  const { data: calendarByDate = {} } = useCalendarMeetingsV2(
+    calendarYear,
+    calendarMonthNum
+  );
+  const calendarMeetingsList = useMemo(
+    () => Object.values(calendarByDate).flat(),
+    [calendarByDate]
+  );
+
   const kpis = useMemo(() => {
     const total = meetings.length;
     const completed = meetings.filter((m) => m.status === "completed").length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const upcoming = meetings.filter((m) => {
-      if (!m.scheduled_at) return false;
-      return new Date(m.scheduled_at) > new Date();
-    }).length;
-
+    const upcoming = meetings.filter(
+      (m) => m.status === "scheduled" && m.scheduled_at && new Date(m.scheduled_at) >= new Date()
+    ).length;
     return { total, completionRate, upcoming };
   }, [meetings]);
 
-  // Group upcoming meetings by week
   const groupedByWeek = useMemo(() => {
     if (tab !== "upcoming") return null;
-
-    const groups: Record<string, MeetingV2[]> = {};
+    const groups: Record<string, MeetingV2Schedule[]> = {};
     const now = new Date();
-
-    meetings.forEach((meeting) => {
-      if (!meeting.scheduled_at) return;
-      const meetingDate = parseISO(meeting.scheduled_at);
+    meetings.forEach((m) => {
+      if (!m.scheduled_at) return;
+      const meetingDate = parseISO(m.scheduled_at);
       if (meetingDate <= now) return;
-
-      const weekStart = startOfWeek(meetingDate, { weekStartsOn: 1 }); // Monday
+      const weekStart = startOfWeek(meetingDate, { weekStartsOn: 1 });
       const weekKey = format(weekStart, "yyyy-MM-dd");
-
-      if (!groups[weekKey]) {
-        groups[weekKey] = [];
-      }
-      groups[weekKey].push(meeting);
+      if (!groups[weekKey]) groups[weekKey] = [];
+      groups[weekKey].push(m);
     });
-
-    // Sort weeks and meetings within each week
     return Object.entries(groups)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([weekKey, weekMeetings]) => ({
         weekKey,
         weekStart: parseISO(weekKey),
-        meetings: weekMeetings.sort((a, b) => {
-          if (!a.scheduled_at || !b.scheduled_at) return 0;
-          return a.scheduled_at.localeCompare(b.scheduled_at);
-        }),
+        meetings: weekMeetings.sort((a, b) =>
+          (a.scheduled_at || "").localeCompare(b.scheduled_at || "")
+        ),
       }));
   }, [meetings, tab]);
 
   const toggleWeek = (weekKey: string) => {
     setExpandedWeeks((prev) => {
       const next = new Set(prev);
-      if (next.has(weekKey)) {
-        next.delete(weekKey);
-      } else {
-        next.add(weekKey);
-      }
+      if (next.has(weekKey)) next.delete(weekKey);
+      else next.add(weekKey);
       return next;
     });
   };
 
-  const handleMeetingClick = (meeting: MeetingV2) => {
+  const handleMeetingClick = (meeting: MeetingV2Schedule) => {
     const path = meeting.slug
       ? `/meetings/schedule/${meeting.slug}`
       : `/meetings/schedule/${meeting.id}`;
     navigate(path);
   };
 
+  const handleSearchSubmit = () => {
+    setAppliedSearch(searchInput.trim());
+  };
+
+  const isEmpty =
+    !isLoading &&
+    meetings.length === 0 &&
+    (view !== "calendar" || calendarMeetingsList.length === 0);
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header: title + subtitle left; List | Calendar | New Meeting right */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">All Meetings</h1>
-          <p className="text-muted-foreground">Schedule and manage your meetings</p>
+          <h1 className="text-2xl font-bold tracking-tight">Meetings</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Manage and track all your meetings in one place
+          </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Meeting
-        </Button>
+        <div className="flex items-center gap-2 mt-2 sm:mt-0">
+          <div className="flex border rounded-md">
+            <Button
+              variant={view === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("list")}
+              className="gap-1.5"
+            >
+              <List className="h-4 w-4" />
+              List
+            </Button>
+            <Button
+              variant={view === "calendar" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("calendar")}
+              className="gap-1.5"
+            >
+              <Calendar className="h-4 w-4" />
+              Calendar
+            </Button>
+          </div>
+          <Button onClick={() => setCreateDialogOpen(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            New Meeting
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total Meetings</p>
-            <p className="text-3xl font-bold">{kpis.total}</p>
+          <CardContent className="pt-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Meetings</p>
+              <p className="text-3xl font-bold">{kpis.total}</p>
+            </div>
+            <Calendar className="h-8 w-8 text-muted-foreground" />
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Completion Rate</p>
-            <p className="text-3xl font-bold">{kpis.completionRate}%</p>
+          <CardContent className="pt-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Completion Rate</p>
+              <p className="text-3xl font-bold">{kpis.completionRate}%</p>
+            </div>
+            <CheckCircle className="h-8 w-8 text-muted-foreground" />
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Upcoming</p>
-            <p className="text-3xl font-bold">{kpis.upcoming}</p>
+          <CardContent className="pt-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Upcoming</p>
+              <p className="text-3xl font-bold">{kpis.upcoming}</p>
+            </div>
+            <Clock className="h-8 w-8 text-muted-foreground" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and View Toggle */}
+      {/* Search and filters: search (icon inside) + button + All Types + My meetings only */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* Tab Filters */}
-        <Tabs value={tab} onValueChange={(v) => setTab(v as TabFilter)}>
-          <TabsList>
-            <TabsTrigger value="today">Today</TabsTrigger>
-            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-            <TabsTrigger value="open">Open</TabsTrigger>
-            <TabsTrigger value="past">Past</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {/* Search */}
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            className="pl-9"
             placeholder="Search meetings..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
+            className="pl-9"
           />
         </div>
-
-        {/* Type Filter */}
-        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as MeetingType | "all")}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Type" />
+        <Button type="button" variant="secondary" size="icon" onClick={handleSearchSubmit}>
+          <Search className="h-4 w-4" />
+        </Button>
+        <Select
+          value={typeFilter}
+          onValueChange={(v) => setTypeFilter(v as MeetingType | "all")}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="All Types" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
@@ -228,37 +285,26 @@ export default function MeetingsSchedulePage() {
             <SelectItem value="one_on_one">One-on-One</SelectItem>
           </SelectContent>
         </Select>
-
-        {/* My Meetings Only */}
         <div className="flex items-center space-x-2">
           <Checkbox
             id="my-meetings"
             checked={myMeetingsOnly}
-            onCheckedChange={(checked) => setMyMeetingsOnly(checked === true)}
+            onCheckedChange={(c) => setMyMeetingsOnly(c === true)}
           />
           <Label htmlFor="my-meetings" className="text-sm font-normal cursor-pointer">
             My meetings only
           </Label>
         </div>
-
-        {/* View Toggle */}
-        <div className="flex border rounded-md">
-          <Button
-            variant={view === "list" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setView("list")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={view === "calendar" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setView("calendar")}
-          >
-            <Calendar className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
+
+      {/* Tabs: Today | Upcoming | Open | Past */}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabFilter)}>
+        <TabsList>
+          <TabsTrigger value="today">Today</TabsTrigger>
+          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+          <TabsTrigger value="open">Open</TabsTrigger>
+          <TabsTrigger value="past">Past</TabsTrigger>
+        </TabsList>
 
       {/* Content */}
       {isLoading ? (
@@ -266,17 +312,23 @@ export default function MeetingsSchedulePage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : view === "calendar" ? (
-        <MeetingsCalendar meetings={meetings as any} />
-      ) : tab === "upcoming" && groupedByWeek ? (
-        // Week-grouped view for upcoming
+        <MeetingsCalendar
+          meetings={calendarMeetingsList}
+          controlledMonth={calendarMonth}
+          onMonthChange={setCalendarMonth}
+        />
+      ) : tab === "upcoming" && groupedByWeek && groupedByWeek.length > 0 ? (
         <div className="space-y-4">
           {groupedByWeek.map(({ weekKey, weekStart, meetings: weekMeetings }) => {
             const isExpanded = expandedWeeks.has(weekKey);
             const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
             const weekLabel = `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
-
             return (
-              <Collapsible key={weekKey} open={isExpanded} onOpenChange={() => toggleWeek(weekKey)}>
+              <Collapsible
+                key={weekKey}
+                open={isExpanded}
+                onOpenChange={() => toggleWeek(weekKey)}
+              >
                 <Card>
                   <CollapsibleTrigger className="w-full">
                     <div className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
@@ -310,14 +362,7 @@ export default function MeetingsSchedulePage() {
                             onClick={() => handleMeetingClick(meeting)}
                           >
                             <TableCell>
-                              <div>
-                                <p className="font-medium">{meeting.title}</p>
-                                {meeting.clients?.name && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {meeting.clients.name}
-                                  </p>
-                                )}
-                              </div>
+                              <p className="font-medium">{meeting.title}</p>
                             </TableCell>
                             <TableCell>
                               {meeting.scheduled_at ? (
@@ -328,7 +373,7 @@ export default function MeetingsSchedulePage() {
                                   </p>
                                 </div>
                               ) : (
-                                <span className="text-sm text-muted-foreground">Not scheduled</span>
+                                <span className="text-sm text-muted-foreground">—</span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -339,7 +384,7 @@ export default function MeetingsSchedulePage() {
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline">
-                                {typeLabels[(meeting as any).meeting_type] || (meeting as any).meeting_type || 'internal'}
+                                {typeLabels[meeting.type] ?? meeting.type}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -360,21 +405,23 @@ export default function MeetingsSchedulePage() {
               </Collapsible>
             );
           })}
-          {groupedByWeek.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Calendar className="h-12 w-12 mb-4 opacity-40" />
-              <p className="text-lg font-medium">No upcoming meetings</p>
-            </div>
-          )}
         </div>
-      ) : meetings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-          <Calendar className="h-12 w-12 mb-4 opacity-40" />
-          <p className="text-lg font-medium">No meetings found</p>
-          <p className="text-sm">Create a meeting to get started.</p>
+      ) : isEmpty || (view === "list" && meetings.length === 0) ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Calendar className="h-16 w-16 text-muted-foreground/50 mb-4" />
+          <p className="text-lg font-semibold">No meetings found</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Get started by creating your first meeting
+          </p>
+          <Button
+            className="mt-4"
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Meeting
+          </Button>
         </div>
-      ) : (
-        // Regular list view for other tabs
+      ) : view === "list" ? (
         <Card>
           <Table>
             <TableHeader>
@@ -394,12 +441,7 @@ export default function MeetingsSchedulePage() {
                   onClick={() => handleMeetingClick(meeting)}
                 >
                   <TableCell>
-                    <div>
-                      <p className="font-medium">{meeting.title}</p>
-                      {meeting.clients?.name && (
-                        <p className="text-xs text-muted-foreground">{meeting.clients.name}</p>
-                      )}
-                    </div>
+                    <p className="font-medium">{meeting.title}</p>
                   </TableCell>
                   <TableCell>
                     {meeting.scheduled_at ? (
@@ -410,7 +452,7 @@ export default function MeetingsSchedulePage() {
                         </p>
                       </div>
                     ) : (
-                      <span className="text-sm text-muted-foreground">Not scheduled</span>
+                      <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -420,7 +462,7 @@ export default function MeetingsSchedulePage() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{typeLabels[(meeting as any).meeting_type] || (meeting as any).meeting_type || 'internal'}</Badge>
+                    <Badge variant="outline">{typeLabels[meeting.type] ?? meeting.type}</Badge>
                   </TableCell>
                   <TableCell>
                     {statusBadges[meeting.status] ? (
@@ -436,9 +478,10 @@ export default function MeetingsSchedulePage() {
             </TableBody>
           </Table>
         </Card>
-      )}
+      ) : null}
 
-      {/* Create Meeting Dialog */}
+      </Tabs>
+
       <CreateMeetingDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
     </div>
   );
