@@ -86,7 +86,7 @@ export function useAIAgents() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as AIAgent[];
+      return (data || []) as unknown as AIAgent[];
     },
   });
 }
@@ -103,7 +103,7 @@ export function useAIAgent(id: string) {
         .single();
 
       if (error) throw error;
-      return data as AIAgent;
+      return data as unknown as AIAgent;
     },
     enabled: !!id,
   });
@@ -174,7 +174,7 @@ export function useCreateAgent() {
         .single();
 
       if (error) throw error;
-      return agent as AIAgent;
+      return agent as unknown as AIAgent;
     },
     onSuccess: () => {
       invalidateKeys.ai(queryClient);
@@ -228,7 +228,7 @@ export function useUpdateAgent() {
         .single();
 
       if (error) throw error;
-      return agent as AIAgent;
+      return agent as unknown as AIAgent;
     },
     onSuccess: () => {
       invalidateKeys.ai(queryClient);
