@@ -410,7 +410,7 @@ export const adminNavigation: NavGroup[] = [
           { title: "Agent Analytics", href: "/admin/ai/agent-analytics", icon: "BarChart3" },
           { title: "Agent Categories", href: "/admin/ai-models", icon: "FolderOpen" },
           { title: "Prompt Templates", href: "/admin/ai/prompt-templates", icon: "FileText" },
-          { title: "Email Drafting", href: "/admin/ai-usage", icon: "MessageSquare" },
+          { title: "Email Drafting", href: "/admin/ai/email-drafting", icon: "MessageSquare" },
           { title: "Deal Coaching", href: "/admin/ai-usage", icon: "Target" },
         ],
       },
