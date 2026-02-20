@@ -79,6 +79,7 @@ import AdminSemanticSearch from "@/pages/admin/ai/AdminSemanticSearch";
 import EmbeddingPipelineDashboard from "@/pages/admin/ai/EmbeddingPipelineDashboard";
 import MemoryDashboard from "@/pages/admin/memory/MemoryDashboard";
 import UserMemoryStats from "@/pages/admin/memory/UserMemoryStats";
+import TeamLearningPatterns from "@/pages/admin/memory/TeamLearningPatterns";
 import SemanticSearchAnalytics from "@/pages/admin/memory/SemanticSearchAnalytics";
 
 /**
@@ -102,6 +103,7 @@ export const adminRoutes = (
     {/* Memory Dashboard – admin only, data from Supabase only */}
     <Route path="/admin/memory" element={<Navigate to="/admin/memory/dashboard" replace />} />
     <Route path="/admin/memory/dashboard" element={<MemoryDashboard />} />
+    <Route path="/admin/memory/team-learning-patterns" element={<TeamLearningPatterns />} />
     <Route path="/admin/memory/user-stats" element={<UserMemoryStats />} />
     <Route path="/admin/memory/search" element={<SemanticSearchAnalytics />} />
 
