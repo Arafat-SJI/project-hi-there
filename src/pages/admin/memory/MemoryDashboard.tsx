@@ -111,13 +111,13 @@ export default function MemoryDashboard() {
         ...(emailData as { relevance_score?: number | null }[]),
         ...(dealData as { relevance_score?: number | null }[]),
       ];
-      const avgRelevancePct = allRelevanceRows.length > 0 ? avgRelevancePct(allRelevanceRows) : 0;
+      const avgRelevanceVal = allRelevanceRows.length > 0 ? avgRelevancePct(allRelevanceRows) : 0;
       const scopeDist = scopeDistribution(hierarchyData as { scope_type?: string | null }[]);
       const hierarchyEntries = scopeDist.personal + scopeDist.agent + scopeDist.organizational;
 
       return {
         totalMemories,
-        avgRelevancePct,
+        avgRelevancePct: avgRelevanceVal,
         hierarchyEntries,
         scopeDistribution: scopeDist,
         totalEmbeddings: embeddingsCount,

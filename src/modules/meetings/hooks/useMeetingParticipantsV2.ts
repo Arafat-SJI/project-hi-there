@@ -1,5 +1,5 @@
 /**
- * Meeting Participants V2 - meeting_participants_v2 table
+ * Meeting Participants V2 - meeting_participants table
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -20,13 +20,15 @@ export interface MeetingParticipantV2Row {
   updated_at: string;
 }
 
+const db = supabase as any;
+
 export function useMeetingParticipantsV2(meetingId: string | undefined) {
   return useQuery({
     queryKey: ["meetings-v2", "participants", meetingId],
     queryFn: async (): Promise<MeetingParticipantV2Row[]> => {
       if (!meetingId) return [];
-      const { data, error } = await supabase
-        .from("meeting_participants_v2")
+      const { data, error } = await db
+        .from("meeting_participants")
         .select("*")
         .eq("meeting_id", meetingId)
         .order("created_at", { ascending: true });

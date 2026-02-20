@@ -129,7 +129,7 @@ export default function EmbeddingPipelineDashboard() {
 
   const handleRetryFailed = async () => {
     try {
-      await retryFailed.mutateAsync();
+      await retryFailed.mutateAsync(undefined);
       toast({ title: "Retry Failed", description: "Failed items reset to pending. Trigger Process Meetings or Process Knowledge Files to run." });
       processMeetings();
     } catch (e) {

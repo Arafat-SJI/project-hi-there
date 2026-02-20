@@ -1,5 +1,5 @@
 /**
- * Meetings V2 Hook - CRUD for meetings_v2 table
+ * Meetings V2 Hook - CRUD for meetings table
  *
  * List with tab filters (today/upcoming/open/past), search, type, "my meetings only".
  * Single meeting by id or slug. Create/update/delete with cache invalidation.
@@ -49,20 +49,22 @@ function startOfTomorrow(): Date {
   return startOfDay(t);
 }
 
+const db = supabase as any;
+
 /**
  * Fetch meeting IDs where the user is a participant (for "my meetings" filter).
  */
 async function getParticipantMeetingIds(userId: string): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("meeting_participants_v2")
+  const { data, error } = await db
+    .from("meeting_participants")
     .select("meeting_id")
     .eq("user_id", userId);
   if (error) return [];
-  return (data || []).map((r) => r.meeting_id);
+  return (data || []).map((r: any) => r.meeting_id);
 }
 
 /**
- * Fetch meetings from meetings_v2 with filters and optional participant filter.
+ * Fetch meetings with filters and optional participant filter.
  */
 export function useMeetingsV2(filters?: MeetingsV2Filters) {
   const { user } = useAuth();
@@ -70,8 +72,8 @@ export function useMeetingsV2(filters?: MeetingsV2Filters) {
   return useQuery({
     queryKey: [MEETINGS_V2_KEY, "list", filters],
     queryFn: async (): Promise<MeetingV2Schedule[]> => {
-      let query = supabase
-        .from("meetings_v2")
+      let query = db
+        .from("meetings")
         .select("*")
         .order("scheduled_at", { ascending: true })
         .limit(LIST_LIMIT);
@@ -106,7 +108,7 @@ export function useMeetingsV2(filters?: MeetingsV2Filters) {
       }
 
       if (filters?.type && filters.type !== "all") {
-        query = query.eq("type", filters.type);
+        query = query.eq("meeting_type", filters.type);
       }
 
       if (filters?.search?.trim()) {
@@ -137,10 +139,10 @@ export function useMeetingsV2(filters?: MeetingsV2Filters) {
         const participantIds = await getParticipantMeetingIds(user.id);
         if (participantIds.length > 0) {
           query = query.or(
-            `created_by.eq.${user.id},id.in.(${participantIds.join(",")})`
+            `organizer_id.eq.${user.id},id.in.(${participantIds.join(",")})`
           );
         } else {
-          query = query.eq("created_by", user.id);
+          query = query.eq("organizer_id", user.id);
         }
       }
 
@@ -157,7 +159,7 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
- * Fetch a single meeting by ID or slug from meetings_v2.
+ * Fetch a single meeting by ID or slug.
  */
 export function useMeetingV2(idOrSlug: string | undefined) {
   const { user } = useAuth();
@@ -168,8 +170,8 @@ export function useMeetingV2(idOrSlug: string | undefined) {
       if (!idOrSlug) return null;
 
       const isUuid = UUID_REGEX.test(idOrSlug);
-      const { data, error } = await supabase
-        .from("meetings_v2")
+      const { data, error } = await db
+        .from("meetings")
         .select("*")
         .match(isUuid ? { id: idOrSlug } : { slug: idOrSlug })
         .maybeSingle();
@@ -183,7 +185,7 @@ export function useMeetingV2(idOrSlug: string | undefined) {
 }
 
 /**
- * Create a new meeting in meetings_v2.
+ * Create a new meeting.
  */
 export function useCreateMeetingV2() {
   const queryClient = useQueryClient();
@@ -201,7 +203,7 @@ export function useCreateMeetingV2() {
 
       const row = {
         title: data.title,
-        type: data.meeting_type || "internal",
+        meeting_type: data.meeting_type || "internal",
         description: data.description || null,
         scheduled_at: data.scheduled_at,
         duration_minutes: data.duration_minutes ?? 60,
@@ -216,12 +218,12 @@ export function useCreateMeetingV2() {
         recurrence_pattern: data.recurrence_pattern || null,
         recurrence_end_date: data.recurrence_end_date || null,
         parent_meeting_id: data.parent_meeting_id || null,
-        created_by: user.id,
+        organizer_id: user.id,
         slug: slug || null,
       };
 
-      const { data: meeting, error } = await supabase
-        .from("meetings_v2")
+      const { data: meeting, error } = await db
+        .from("meetings")
         .insert(row)
         .select()
         .single();
@@ -240,7 +242,7 @@ export function useCreateMeetingV2() {
 }
 
 /**
- * Update an existing meeting in meetings_v2.
+ * Update an existing meeting.
  */
 export function useUpdateMeetingV2() {
   const queryClient = useQueryClient();
@@ -264,12 +266,9 @@ export function useUpdateMeetingV2() {
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, "") || null;
       }
-      if (data.meeting_type !== undefined) {
-        updatePayload.type = data.meeting_type;
-      }
 
-      const { data: meeting, error } = await supabase
-        .from("meetings_v2")
+      const { data: meeting, error } = await db
+        .from("meetings")
         .update(updatePayload)
         .eq("id", id)
         .select()
@@ -293,7 +292,7 @@ export function useUpdateMeetingV2() {
 }
 
 /**
- * Delete a meeting from meetings_v2.
+ * Delete a meeting.
  */
 export function useDeleteMeetingV2() {
   const queryClient = useQueryClient();
@@ -303,7 +302,7 @@ export function useDeleteMeetingV2() {
     mutationFn: async (id: string): Promise<void> => {
       if (!user) throw new Error("User not authenticated");
 
-      const { error } = await supabase.from("meetings_v2").delete().eq("id", id);
+      const { error } = await db.from("meetings").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -327,8 +326,8 @@ export function useCloseMeetingV2() {
     mutationFn: async (id: string): Promise<MeetingV2Schedule> => {
       if (!user) throw new Error("User not authenticated");
 
-      const { data: meeting, error } = await supabase
-        .from("meetings_v2")
+      const { data: meeting, error } = await db
+        .from("meetings")
         .update({ status: "completed" })
         .eq("id", id)
         .select()

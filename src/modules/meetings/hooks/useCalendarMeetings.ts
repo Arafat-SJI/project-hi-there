@@ -1,7 +1,7 @@
 /**
- * Calendar Meetings Hook (meetings_v2)
+ * Calendar Meetings Hook (meetings table)
  *
- * Fetches meetings_v2 for a month range and returns a map of local date (yyyy-MM-dd)
+ * Fetches meetings for a month range and returns a map of local date (yyyy-MM-dd)
  * to meetings array for calendar view.
  */
 
@@ -11,9 +11,10 @@ import { cacheConfig } from "@/lib/cache";
 import type { MeetingV2Schedule } from "../types/meetings";
 
 const MEETINGS_V2_KEY = "meetings-v2";
+const db = supabase as any;
 
 /**
- * Fetch meetings_v2 for a given month and return a map of date string (yyyy-MM-dd)
+ * Fetch meetings for a given month and return a map of date string (yyyy-MM-dd)
  * to meetings array, using local time for grouping.
  */
 export function useCalendarMeetingsV2(year: number, month: number) {
@@ -25,8 +26,8 @@ export function useCalendarMeetingsV2(year: number, month: number) {
   return useQuery({
     queryKey: [MEETINGS_V2_KEY, "calendar", year, month],
     queryFn: async (): Promise<Record<string, MeetingV2Schedule[]>> => {
-      const { data, error } = await supabase
-        .from("meetings_v2")
+      const { data, error } = await db
+        .from("meetings")
         .select("*")
         .gte("scheduled_at", startIso)
         .lte("scheduled_at", endIso)
@@ -51,15 +52,14 @@ export function useCalendarMeetingsV2(year: number, month: number) {
 }
 
 /**
- * Legacy: fetch meetings (legacy table) within a date range.
- * Prefer useCalendarMeetingsV2 for schedule page.
+ * Legacy: fetch meetings within a date range.
  */
 export function useCalendarMeetings(startDate: string, endDate: string) {
   return useQuery({
     queryKey: ["calendar-meetings", startDate, endDate],
     queryFn: async (): Promise<MeetingV2Schedule[]> => {
-      const { data, error } = await supabase
-        .from("meetings_v2")
+      const { data, error } = await db
+        .from("meetings")
         .select("*")
         .gte("scheduled_at", startDate)
         .lte("scheduled_at", endDate)
@@ -73,7 +73,7 @@ export function useCalendarMeetings(startDate: string, endDate: string) {
 }
 
 /**
- * Convenience: fetch meetings_v2 for a given month (returns list, not map).
+ * Convenience: fetch meetings for a given month (returns list, not map).
  */
 export function useMeetingsForMonth(year: number, month: number) {
   const startDate = new Date(year, month - 1, 1).toISOString();
