@@ -221,8 +221,12 @@ export function AdminSidebar() {
                             <CollapsibleContent className="mt-0.5 space-y-0.5 pl-3">
                               {(() => {
                                 const path = location.pathname;
+                                const normalizedPath = path.replace(/\/$/, "") || "/";
                                 const matching = item.children!.filter(
-                                  (c) => path === (c.href.startsWith("/") ? c.href : `/${c.href}`) || path.startsWith((c.href.startsWith("/") ? c.href : `/${c.href}`) + "/")
+                                  (c) => {
+                                    const h = c.href.startsWith("/") ? c.href : `/${c.href}`;
+                                    return normalizedPath === h || normalizedPath.startsWith(h + "/");
+                                  }
                                 );
                                 const bestMatchHref =
                                   matching.length > 0
@@ -234,10 +238,20 @@ export function AdminSidebar() {
                                         matching[0].href.startsWith("/") ? matching[0].href : `/${matching[0].href}`
                                       )
                                     : "";
-                                return item.children!.map((child) => {
+                                const firstMatchIndex =
+                                  bestMatchHref
+                                    ? item.children!.findIndex(
+                                        (c) =>
+                                          (c.href.startsWith("/") ? c.href : `/${c.href}`) === bestMatchHref
+                                      )
+                                    : -1;
+                                return item.children!.map((child, index) => {
                                   const ChildIcon = resolveIcon(child.icon);
                                   const childHref = child.href.startsWith("/") ? child.href : `/${child.href}`;
-                                  const isChildActive = bestMatchHref ? childHref === bestMatchHref : path === childHref || path.startsWith(childHref + "/");
+                                  const matchesPath = normalizedPath === childHref || normalizedPath.startsWith(childHref + "/");
+                                  const isChildActive =
+                                    matchesPath &&
+                                    (firstMatchIndex < 0 || index === firstMatchIndex);
                                 return (
                                   <Link
                                     key={`${group.id}-${item.title}-${child.title}`}

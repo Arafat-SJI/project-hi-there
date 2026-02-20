@@ -129,6 +129,7 @@ export const queryKeys = {
     user: (id: string) => ["admin", "user", id] as const,
     roles: ["admin", "roles"] as const,
     permissions: ["admin", "permissions"] as const,
+    memoryDashboard: ["admin", "memoryDashboard"] as const,
   },
 
   // SendGrid

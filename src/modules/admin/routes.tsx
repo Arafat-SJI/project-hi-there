@@ -4,7 +4,7 @@
  * All /admin/* routes. Protected by AdminRoute guard.
  * These routes grow incrementally as new modules are added.
  */
-import { Route } from "react-router-dom";
+import { Route, Navigate } from "react-router-dom";
 
 // Admin pages
 import Admin from "@/pages/Admin";
@@ -77,6 +77,7 @@ import EmailDraftingPerformance from "@/pages/admin/ai/EmailDraftingPerformance"
 import DealCoaching from "@/pages/admin/ai/DealCoaching";
 import AdminSemanticSearch from "@/pages/admin/ai/AdminSemanticSearch";
 import EmbeddingPipelineDashboard from "@/pages/admin/ai/EmbeddingPipelineDashboard";
+import MemoryDashboard from "@/pages/admin/memory/MemoryDashboard";
 
 /**
  * Admin routes - require admin role
@@ -95,6 +96,10 @@ export const adminRoutes = (
     <Route path="/admin/ai/semantic-search" element={<AdminSemanticSearch />} />
     <Route path="/admin/ai/embeddings" element={<EmbeddingPipelineDashboard />} />
     <Route path="/admin/implementation-status" element={<ImplementationStatus />} />
+
+    {/* Memory Dashboard – admin only, data from Supabase only */}
+    <Route path="/admin/memory" element={<Navigate to="/admin/memory/dashboard" replace />} />
+    <Route path="/admin/memory/dashboard" element={<MemoryDashboard />} />
 
     {/* Users & Access */}
     <Route path="/admin/users" element={<UserManagement />} />

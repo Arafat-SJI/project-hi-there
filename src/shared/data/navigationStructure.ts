@@ -426,14 +426,14 @@ export const adminNavigation: NavGroup[] = [
       },
       {
         title: "User Memory",
-        href: "/admin/knowledge/memory-analytics",
+        href: "/admin/memory/dashboard",
         icon: "Brain",
         headerOnly: true,
         children: [
-          { title: "Memory Dashboard", href: "/admin/knowledge/memory-analytics", icon: "LayoutDashboard" },
-          { title: "User Memory Stats", href: "/admin/knowledge/memory-analytics", icon: "BarChart3" },
+          { title: "Memory Dashboard", href: "/admin/memory/dashboard", icon: "LayoutDashboard" },
+          { title: "User Memory Stats", href: "/admin/memory/dashboard", icon: "BarChart3" },
           { title: "Search Analytics", href: "/admin/knowledge/analytics", icon: "BarChart3" },
-          { title: "Team Learning Patterns", href: "/admin/knowledge/memory-analytics", icon: "Users" },
+          { title: "Team Learning Patterns", href: "/admin/memory/dashboard", icon: "Users" },
         ],
       },
       {
