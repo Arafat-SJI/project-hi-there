@@ -416,11 +416,11 @@ export const adminNavigation: NavGroup[] = [
       },
       {
         title: "Semantic Search",
-        href: "/admin/knowledge/embeddings",
+        href: "/admin/ai/semantic-search",
         icon: "Search",
         headerOnly: true,
         children: [
-          { title: "Search", href: "/admin/knowledge/embeddings", icon: "Search" },
+          { title: "Search", href: "/admin/ai/semantic-search", icon: "Search" },
           { title: "Embeddings", href: "/admin/knowledge/embeddings", icon: "Brain" },
         ],
       },

@@ -36,6 +36,7 @@ export { useNotifications } from './useNotifications';
 export { useAIAgents } from './useAIAgents';
 export { useAIChatAssistant } from './useAIChatAssistant';
 export { useSemanticSearch } from './useSemanticSearch';
+export { useAdminSemanticSearch } from './useAdminSemanticSearch';
 export { useSyncModels, useSyncAllModels } from './useModelSync';
 
 // ============================================
