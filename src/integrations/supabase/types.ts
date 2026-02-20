@@ -7391,6 +7391,31 @@ export type Database = {
           user_id: string
         }[]
       }
+      match_embeddings_admin: {
+        Args: {
+          filter_client_name?: string
+          filter_entity_type?: string
+          filter_project_manager?: string
+          filter_project_name?: string
+          filter_user_id?: string
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          client_name: string
+          content: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json
+          project_manager: string
+          project_name: string
+          similarity: number
+          unified_document_id: string
+          user_id: string
+        }[]
+      }
       process_sendgrid_event: {
         Args: {
           p_clicked_url?: string
