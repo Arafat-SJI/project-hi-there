@@ -10,10 +10,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { Meeting } from "@/hooks/useMeetings";
+interface CalendarMeetingItem {
+  id: string;
+  title: string;
+  scheduled_at: string | null;
+  slug?: string | null;
+}
 
 interface MeetingsCalendarProps {
-  meetings: Meeting[];
+  meetings: CalendarMeetingItem[];
+  getMeetingLink?: (meeting: CalendarMeetingItem) => string;
+  /** When provided, calendar month is controlled by parent (for syncing with data fetch) */
+  controlledMonth?: Date;
+  onMonthChange?: (date: Date) => void;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -22,9 +31,23 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-export function MeetingsCalendar({ meetings }: MeetingsCalendarProps) {
+function toLocalDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function MeetingsCalendar({
+  meetings,
+  getMeetingLink = (m) => `/meetings/schedule/${m.slug || m.id}`,
+  controlledMonth,
+  onMonthChange,
+}: MeetingsCalendarProps) {
   const navigate = useNavigate();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [internalDate, setInternalDate] = useState(new Date());
+  const currentDate = controlledMonth ?? internalDate;
+  const setCurrentDate = (d: Date) => {
+    if (onMonthChange) onMonthChange(d);
+    else setInternalDate(d);
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -58,19 +81,20 @@ export function MeetingsCalendar({ meetings }: MeetingsCalendarProps) {
     return days;
   }, [year, month]);
 
-  // Index meetings by date
+  // Index meetings by date (local yyyy-MM-dd)
   const meetingsByDate = useMemo(() => {
-    const map: Record<string, Meeting[]> = {};
+    const map: Record<string, CalendarMeetingItem[]> = {};
     meetings.forEach((m) => {
       if (!m.scheduled_at) return;
-      const dateKey = new Date(m.scheduled_at).toISOString().split("T")[0];
+      const d = new Date(m.scheduled_at);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       if (!map[dateKey]) map[dateKey] = [];
       map[dateKey].push(m);
     });
     return map;
   }, [meetings]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalDateKey(new Date());
 
   const goToPrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const goToNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
@@ -110,7 +134,7 @@ export function MeetingsCalendar({ meetings }: MeetingsCalendarProps) {
         {/* Day cells */}
         <div className="grid grid-cols-7">
           {calendarDays.map(({ date, isCurrentMonth }, i) => {
-            const dateKey = date.toISOString().split("T")[0];
+            const dateKey = toLocalDateKey(date);
             const dayMeetings = meetingsByDate[dateKey] || [];
             const isToday = dateKey === today;
 
@@ -144,7 +168,7 @@ export function MeetingsCalendar({ meetings }: MeetingsCalendarProps) {
                     <button
                       key={m.id}
                       className="w-full text-left text-[11px] px-1 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 truncate block"
-                      onClick={() => navigate(`/meetings/${m.id}`)}
+                      onClick={() => navigate(getMeetingLink(m))}
                     >
                       {m.scheduled_at
                         ? new Date(m.scheduled_at).toLocaleTimeString([], {

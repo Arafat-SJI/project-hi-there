@@ -1,58 +1,82 @@
 /**
- * Calendar Meetings Hook
+ * Calendar Meetings Hook (meetings_v2)
  *
- * Fetches meetings within a date range for calendar views.
- * Also provides a convenience hook for fetching meetings by month.
+ * Fetches meetings_v2 for a month range and returns a map of local date (yyyy-MM-dd)
+ * to meetings array for calendar view.
  */
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { cacheConfig } from "@/lib/cache";
+import type { MeetingV2Schedule } from "../types/meetings";
 
-const CALENDAR_MEETINGS_KEY = "calendar-meetings";
+const MEETINGS_V2_KEY = "meetings-v2";
 
-interface CalendarMeeting {
-  id: string;
-  title: string;
-  scheduled_at: string | null;
-  duration_minutes: number | null;
-  status: string | null;
-  slug: string | null;
-  client_id: string | null;
-  meeting_type: string | null;
-  clients: { name: string } | null;
+/**
+ * Fetch meetings_v2 for a given month and return a map of date string (yyyy-MM-dd)
+ * to meetings array, using local time for grouping.
+ */
+export function useCalendarMeetingsV2(year: number, month: number) {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+  const startIso = startDate.toISOString();
+  const endIso = endDate.toISOString();
+
+  return useQuery({
+    queryKey: [MEETINGS_V2_KEY, "calendar", year, month],
+    queryFn: async (): Promise<Record<string, MeetingV2Schedule[]>> => {
+      const { data, error } = await supabase
+        .from("meetings_v2")
+        .select("*")
+        .gte("scheduled_at", startIso)
+        .lte("scheduled_at", endIso)
+        .order("scheduled_at", { ascending: true });
+
+      if (error) throw error;
+      const list = (data || []) as MeetingV2Schedule[];
+
+      const byDate: Record<string, MeetingV2Schedule[]> = {};
+      list.forEach((m) => {
+        if (!m.scheduled_at) return;
+        const d = new Date(m.scheduled_at);
+        const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        if (!byDate[dateKey]) byDate[dateKey] = [];
+        byDate[dateKey].push(m);
+      });
+      return byDate;
+    },
+    enabled: !!year && !!month,
+    staleTime: cacheConfig.staleTime.short,
+  });
 }
 
 /**
- * Fetch meetings within a date range for calendar display.
+ * Legacy: fetch meetings (legacy table) within a date range.
+ * Prefer useCalendarMeetingsV2 for schedule page.
  */
 export function useCalendarMeetings(startDate: string, endDate: string) {
   return useQuery({
-    queryKey: [CALENDAR_MEETINGS_KEY, startDate, endDate],
-    queryFn: async (): Promise<CalendarMeeting[]> => {
+    queryKey: ["calendar-meetings", startDate, endDate],
+    queryFn: async (): Promise<MeetingV2Schedule[]> => {
       const { data, error } = await supabase
-        .from("meetings")
-        .select(
-          "id, title, scheduled_at, duration_minutes, status, slug, client_id, meeting_type, clients(name)"
-        )
+        .from("meetings_v2")
+        .select("*")
         .gte("scheduled_at", startDate)
         .lte("scheduled_at", endDate)
         .order("scheduled_at", { ascending: true });
 
       if (error) throw error;
-      return (data || []) as unknown as CalendarMeeting[];
+      return (data || []) as MeetingV2Schedule[];
     },
     enabled: !!startDate && !!endDate,
   });
 }
 
 /**
- * Convenience hook to fetch all meetings for a given month.
- * Computes the start and end dates from the year and month,
- * then delegates to useCalendarMeetings.
+ * Convenience: fetch meetings_v2 for a given month (returns list, not map).
  */
 export function useMeetingsForMonth(year: number, month: number) {
   const startDate = new Date(year, month - 1, 1).toISOString();
   const endDate = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
-
   return useCalendarMeetings(startDate, endDate);
 }
