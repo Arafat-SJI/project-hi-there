@@ -130,6 +130,36 @@ serve(async (req) => {
       max_tokens: 1500,
     }, model.model_id)
 
+    // Log run to ai_agent_runs for admin Deal Coaching dashboard (deals coached, adoption)
+    const { data: coachAgent } = await supabase
+      .from("ai_agents")
+      .select("id")
+      .eq("slug", "deal-coach")
+      .limit(1)
+      .single()
+    if (coachAgent?.id) {
+      const authHeader = req.headers.get("Authorization")
+      let userId: string | null = null
+      if (authHeader?.startsWith("Bearer ")) {
+        try {
+          const token = authHeader.slice(7)
+          const payload = JSON.parse(atob(token.split(".")[1] ?? "{}"))
+          if (payload.sub) userId = payload.sub
+        } catch {
+          // ignore
+        }
+      }
+      await supabase.from("ai_agent_runs").insert({
+        agent_id: coachAgent.id,
+        user_id: userId,
+        status: "completed",
+        input: question,
+        output: result.content,
+        metadata: { deal_id },
+        context: { deal_id, question },
+      })
+    }
+
     return new Response(
       JSON.stringify({ response: result.content, model: model?.model_id || 'unknown' }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
