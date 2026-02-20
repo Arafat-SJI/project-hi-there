@@ -362,7 +362,7 @@ function useEmbeddingList(
         failed: rows.filter((r) => r.status === "failed").length,
       };
 
-      return { rows: paginated, total, mergedCounts };
+      return { rows: paginated, total } as { rows: EmbeddingSourceRow[]; total: number; mergedCounts?: typeof mergedCounts };
     },
   });
 }
@@ -388,7 +388,7 @@ export default function EmbeddingsExplorer() {
   const totalPages = listData
     ? Math.max(1, Math.ceil(listData.total / PAGE_SIZE))
     : 1;
-  const counts = listData?.mergedCounts ?? stats
+  const counts = (listData as any)?.mergedCounts ?? (stats
     ? {
         all: stats.total,
         pending: stats.pending,
@@ -396,7 +396,7 @@ export default function EmbeddingsExplorer() {
         completed: stats.completed,
         failed: stats.failed,
       }
-    : null;
+    : null);
 
   const processMeetings = useMutation({
     mutationFn: async () => {
