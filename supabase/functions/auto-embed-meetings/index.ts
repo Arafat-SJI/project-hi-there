@@ -12,28 +12,52 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured')
-    }
-
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Get unprocessed meeting transcripts
-    const { data: files } = await supabaseClient
+    const { data: setting } = await supabaseClient
+      .from('system_settings')
+      .select('value')
+      .eq('category', 'ai')
+      .eq('key', 'embedding_processing_enabled')
+      .maybeSingle()
+    const enabled = setting?.value === true || setting?.value === 'true' || setting?.value === '"true"'
+    if (!enabled) {
+      return new Response(
+        JSON.stringify({ error: 'Embedding pipeline is disabled', code: 'PIPELINE_DISABLED' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+      )
+    }
+
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured')
+    }
+
+    const body = await req.json().catch(() => ({}))
+    const batchSize = Math.min(Math.max(1, Number(body?.batch_size) || 10), 50)
+    const retryFailed = Boolean(body?.retry_failed)
+
+    let query = supabaseClient
       .from('zoom_files')
       .select('*')
       .eq('is_processed', true)
-      .eq('has_embeddings', false)
       .not('transcript_text', 'is', null)
-      .limit(10)
+      .limit(batchSize)
+
+    if (retryFailed) {
+      query = query.or('has_embeddings.eq.false,processing_status.eq.failed')
+    } else {
+      query = query.eq('has_embeddings', false)
+    }
+
+    const { data: files } = await query
 
     if (!files || files.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No files to process' }),
+        JSON.stringify({ message: 'No files to process', processed_count: 0, total_found: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
@@ -60,13 +84,17 @@ serve(async (req) => {
       })
 
       if (response.ok) {
-        // Mark as having embeddings
         await supabaseClient
           .from('zoom_files')
-          .update({ has_embeddings: true })
+          .update({ has_embeddings: true, processing_status: 'completed' })
           .eq('id', file.id)
 
         processedCount++
+      } else {
+        await supabaseClient
+          .from('zoom_files')
+          .update({ processing_status: 'failed' })
+          .eq('id', file.id)
       }
 
       // Small delay to avoid rate limiting

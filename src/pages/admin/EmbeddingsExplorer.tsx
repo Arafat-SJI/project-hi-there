@@ -1,3 +1,7 @@
+/**
+ * Embedding Pipeline Dashboard – Monitor and manage vector embeddings for semantic search.
+ * Matches admin Semantic Search → Embeddings layout with real data from embedding_queue and embeddings.
+ */
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,147 +22,347 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import {
-  Brain,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import {
   Database,
   RefreshCw,
   Loader2,
   CheckCircle2,
   AlertCircle,
   Clock,
-  Search,
-  Zap,
-  BarChart3,
   FileText,
-  TrendingUp,
+  Video,
+  Play,
+  RotateCw,
+  Eye,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatDateTime } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
-interface EmbeddingQueueItem {
+const PAGE_SIZE = 20;
+const EMBEDDING_ENTITY_TYPE_MAP: Record<string, string> = {
+  meeting: "meeting_transcript",
+  file: "knowledge_file",
+  entry: "knowledge_entry",
+  user_file: "user_knowledge_file",
+};
+const SOURCE_LABELS: Record<string, string> = {
+  meeting: "Meeting",
+  meeting_transcript: "Meeting",
+  file: "Doc",
+  knowledge_file: "Doc",
+  entry: "Entry",
+  knowledge_entry: "Entry",
+  user_file: "User file",
+  user_knowledge_file: "User file",
+};
+
+interface EmbeddingQueueRow {
   id: string;
   entity_type: string;
   entity_id: string;
-  priority: number | null;
   status: string | null;
   attempts: number | null;
   max_attempts: number | null;
   error_message: string | null;
-  scheduled_at: string | null;
-  started_at: string | null;
+  created_at: string | null;
   completed_at: string | null;
-  created_at: string | null;
 }
 
-interface VectorSearchLog {
+interface EmbeddingSourceRow {
   id: string;
-  user_id: string | null;
-  query: string;
-  result_count: number | null;
-  top_score: number | null;
-  search_type: string | null;
-  duration_ms: number | null;
-  created_at: string | null;
+  entity_type: string;
+  entity_id: string;
+  status: string;
+  name: string;
+  context: string;
+  chunks: number;
+  date: string | null;
+  queueId: string | null;
+  /** For meetings, link to meeting detail */
+  meetingId?: string | null;
 }
 
-function useEmbeddingOverview() {
+interface PipelineStats {
+  pending: number;
+  processing: number;
+  completed: number;
+  failed: number;
+  total: number;
+  totalChunks: number;
+}
+
+function usePipelineStats() {
   return useQuery({
-    queryKey: ["admin-embedding-overview"],
-    queryFn: async () => {
-      // Count total knowledge embeddings
-      const { count: embeddingCount } = await supabase
-        .from("knowledge_embeddings")
-        .select("*", { count: "exact", head: true });
-
-      // Count total entries
-      const { count: entryCount } = await supabase
-        .from("knowledge_entries")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "published");
-
-      // Count entries that have at least one embedding
-      const { data: entriesWithEmb } = await supabase
-        .from("knowledge_embeddings")
-        .select("entry_id");
-
-      const uniqueEntryIds = new Set(
-        entriesWithEmb?.filter((e) => e.entry_id).map((e) => e.entry_id) || []
-      );
-
-      // Count knowledge files
-      const { count: fileCount } = await supabase
-        .from("knowledge_files")
-        .select("*", { count: "exact", head: true });
-
-      const { count: indexedFileCount } = await supabase
-        .from("knowledge_files")
-        .select("*", { count: "exact", head: true })
-        .eq("processing_status", "completed");
-
-      // Embedding queue stats
-      const { data: queueItems } = await supabase
-        .from("embedding_queue")
-        .select("status");
-
-      const queuePending = queueItems?.filter((q) => q.status === "pending").length || 0;
-      const queueProcessing = queueItems?.filter((q) => q.status === "processing").length || 0;
-      const queueCompleted = queueItems?.filter((q) => q.status === "completed").length || 0;
-      const queueFailed = queueItems?.filter((q) => q.status === "failed").length || 0;
-
-      // Vector search log count
-      const { count: searchCount } = await supabase
-        .from("vector_search_logs")
-        .select("*", { count: "exact", head: true });
-
+    queryKey: ["admin-embedding-pipeline-stats"],
+    queryFn: async (): Promise<PipelineStats> => {
+      const [queueRes, chunksRes] = await Promise.all([
+        supabase.from("embedding_queue").select("status"),
+        supabase.from("embeddings").select("id", { count: "exact", head: true }),
+      ]);
+      const queueItems = queueRes.data ?? [];
+      const totalChunks = chunksRes.count ?? 0;
+      const pending = queueItems.filter((q) => q.status === "pending").length;
+      const processing = queueItems.filter((q) => q.status === "processing").length;
+      const completed = queueItems.filter((q) => q.status === "completed").length;
+      const failed = queueItems.filter((q) => q.status === "failed").length;
+      const total = queueItems.length;
       return {
-        totalEmbeddings: embeddingCount || 0,
-        totalEntries: entryCount || 0,
-        entriesWithEmbeddings: uniqueEntryIds.size,
-        totalFiles: fileCount || 0,
-        indexedFiles: indexedFileCount || 0,
-        queue: {
-          pending: queuePending,
-          processing: queueProcessing,
-          completed: queueCompleted,
-          failed: queueFailed,
-          total: (queueItems?.length || 0),
-        },
-        totalSearches: searchCount || 0,
+        pending,
+        processing,
+        completed,
+        failed,
+        total,
+        totalChunks,
       };
     },
   });
 }
 
-function useEmbeddingQueue() {
+function useEmbeddingList(
+  statusFilter: string,
+  sourceFilter: string,
+  search: string,
+  page: number
+) {
   return useQuery({
-    queryKey: ["admin-embedding-queue"],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryKey: [
+      "admin-embedding-list",
+      statusFilter,
+      sourceFilter,
+      search,
+      page,
+    ],
+    queryFn: async (): Promise<{
+      rows: EmbeddingSourceRow[];
+      total: number;
+    }> => {
+      // 1) All queue rows
+      const { data: queueRows, error: queueErr } = await supabase
         .from("embedding_queue")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
+        .select("id, entity_type, entity_id, status, created_at, completed_at")
+        .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return (data ?? []) as EmbeddingQueueItem[];
-    },
-  });
-}
+      if (queueErr) throw queueErr;
+      const queue = (queueRows ?? []) as EmbeddingQueueRow[];
 
-function useVectorSearchLogs() {
-  return useQuery({
-    queryKey: ["admin-vector-search-logs"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vector_search_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
+      // 2) Chunk counts and distinct sources from embeddings (for fallback when queue is empty)
+      const { data: embData } = await supabase
+        .from("embeddings")
+        .select("entity_type, entity_id, created_at");
 
-      if (error) throw error;
-      return (data ?? []) as VectorSearchLog[];
+      const chunkMap = new Map<string, number>();
+      const embLatest = new Map<string, string>();
+      (embData ?? []).forEach((r: { entity_type: string; entity_id: string; created_at?: string }) => {
+        const key = `${r.entity_type}:${r.entity_id}`;
+        chunkMap.set(key, (chunkMap.get(key) ?? 0) + 1);
+        const existing = embLatest.get(key);
+        if (!existing || (r.created_at && r.created_at > existing)) {
+          embLatest.set(key, r.created_at ?? "");
+        }
+      });
+
+      // Build list of (entity_type, entity_id) from queue; if queue empty, use embeddings distinct
+      const queueKey = (et: string, eid: string) => `${et}:${eid}`;
+      const queueKeys = new Set(queue.map((q) => {
+        const embType = EMBEDDING_ENTITY_TYPE_MAP[q.entity_type] ?? q.entity_type;
+        return `${embType}:${q.entity_id}`;
+      }));
+      const fromEmb: { entity_type: string; entity_id: string }[] = [];
+      embLatest.forEach((_, key) => {
+        if (queueKeys.has(key)) return;
+        const [entity_type, entity_id] = key.split(":");
+        if (entity_type && entity_id) fromEmb.push({ entity_type, entity_id });
+      });
+
+      // 3) Resolve names: batch by entity_type (queue + fallback from embeddings)
+      const meetingIds = [
+        ...new Set([
+          ...queue.filter((q) => q.entity_type === "meeting").map((q) => q.entity_id),
+          ...fromEmb.filter((e) => e.entity_type === "meeting_transcript").map((e) => e.entity_id),
+        ]),
+      ];
+      const fileIds = [
+        ...new Set([
+          ...queue.filter((q) => q.entity_type === "file").map((q) => q.entity_id),
+          ...fromEmb.filter((e) => e.entity_type === "knowledge_file").map((e) => e.entity_id),
+        ]),
+      ];
+      const entryIds = [
+        ...new Set([
+          ...queue.filter((q) => q.entity_type === "entry").map((q) => q.entity_id),
+          ...fromEmb.filter((e) => e.entity_type === "knowledge_entry").map((e) => e.entity_id),
+        ]),
+      ];
+
+      const [zoomFilesRes, knowledgeFilesRes, entriesRes] = await Promise.all([
+        meetingIds.length > 0
+          ? supabase
+              .from("zoom_files")
+              .select("id, file_name, meeting_id")
+              .in("id", meetingIds)
+          : { data: [] },
+        fileIds.length > 0
+          ? supabase
+              .from("knowledge_files")
+              .select("id, title, file_name, category_id")
+              .in("id", fileIds)
+          : { data: [] },
+        entryIds.length > 0
+          ? supabase
+              .from("knowledge_entries")
+              .select("id, title, category_id")
+              .in("id", entryIds)
+          : { data: [] },
+      ]);
+
+      const meetingTitles = new Map<string, string>();
+      const meetingIdByFileId = new Map<string, string>();
+      if (meetingIds.length > 0 && zoomFilesRes.data?.length) {
+        const zf = zoomFilesRes.data as { id: string; file_name: string; meeting_id: string }[];
+        const mIds = [...new Set(zf.map((z) => z.meeting_id).filter(Boolean))];
+        zf.forEach((z) => meetingIdByFileId.set(z.id, z.meeting_id));
+        if (mIds.length > 0) {
+          const { data: meetingsData } = await supabase
+            .from("meetings")
+            .select("id, title")
+            .in("id", mIds);
+          const meetingsList = (meetingsData ?? []) as { id: string; title: string }[];
+          const meetingTitleById = new Map(meetingsList.map((m) => [m.id, m.title]));
+          zf.forEach((z) => {
+            meetingTitles.set(
+              z.id,
+              meetingTitleById.get(z.meeting_id) || z.file_name || "Meeting"
+            );
+          });
+        } else {
+          zf.forEach((z) => meetingTitles.set(z.id, z.file_name || "Meeting"));
+        }
+      }
+
+      const knowledgeFilesList = (knowledgeFilesRes.data ?? []) as {
+        id: string;
+        title?: string;
+        file_name?: string;
+      }[];
+      const entriesList = (entriesRes.data ?? []) as { id: string; title: string }[];
+      const fileNames = new Map(
+        knowledgeFilesList.map((f) => [f.id, f.title || f.file_name || "Document"])
+      );
+      const entryTitles = new Map(entriesList.map((e) => [e.id, e.title]));
+
+      const resolveNameAndContext = (
+        entityType: string,
+        entityId: string
+      ): { name: string; context: string; meetingId?: string } => {
+        if (entityType === "meeting" || entityType === "meeting_transcript") {
+          return {
+            name: meetingTitles.get(entityId) ?? "Meeting",
+            context: "—",
+            meetingId: meetingIdByFileId.get(entityId),
+          };
+        }
+        if (entityType === "file" || entityType === "knowledge_file") {
+          return { name: fileNames.get(entityId) ?? "Document", context: "—" };
+        }
+        if (entityType === "entry" || entityType === "knowledge_entry") {
+          return { name: entryTitles.get(entityId) ?? "Entry", context: "—" };
+        }
+        return { name: "User file", context: "—" };
+      };
+
+      // 4) Build rows from queue
+      const rows: EmbeddingSourceRow[] = queue.map((q) => {
+        const embType = EMBEDDING_ENTITY_TYPE_MAP[q.entity_type] ?? q.entity_type;
+        const chunkKey = `${embType}:${q.entity_id}`;
+        const chunks = chunkMap.get(chunkKey) ?? 0;
+        const { name, context, meetingId } = resolveNameAndContext(q.entity_type, q.entity_id);
+        const date = q.completed_at ?? q.created_at;
+        return {
+          id: q.id,
+          entity_type: q.entity_type,
+          entity_id: q.entity_id,
+          status: q.status ?? "pending",
+          name,
+          context,
+          chunks,
+          date,
+          queueId: q.id,
+          meetingId: meetingId ?? null,
+        };
+      });
+
+      // 4b) Add rows from embeddings that are not in queue (completed only)
+      const displayEntityType = (et: string) =>
+        et === "meeting_transcript" ? "meeting" : et === "knowledge_file" ? "file" : et === "knowledge_entry" ? "entry" : et;
+      fromEmb.forEach((e) => {
+        const chunkKey = `${e.entity_type}:${e.entity_id}`;
+        const chunks = chunkMap.get(chunkKey) ?? 0;
+        const { name, context, meetingId } = resolveNameAndContext(e.entity_type, e.entity_id);
+        const date = embLatest.get(chunkKey) ?? null;
+        rows.push({
+          id: `emb-${chunkKey}`,
+          entity_type: displayEntityType(e.entity_type),
+          entity_id: e.entity_id,
+          status: "completed",
+          name,
+          context,
+          chunks,
+          date,
+          queueId: null,
+          meetingId: meetingId ?? null,
+        });
+      });
+
+      // Sort by date desc
+      rows.sort((a, b) => {
+        const da = a.date ?? "";
+        const db = b.date ?? "";
+        return db.localeCompare(da);
+      });
+
+      // 5) Apply source filter
+      let filtered = rows;
+      if (sourceFilter && sourceFilter !== "all") {
+        filtered = filtered.filter((r) => r.entity_type === sourceFilter);
+      }
+      // 6) Apply status filter
+      if (statusFilter && statusFilter !== "all") {
+        filtered = filtered.filter((r) => r.status === statusFilter);
+      }
+      // 7) Search
+      if (search.trim()) {
+        const lower = search.trim().toLowerCase();
+        filtered = filtered.filter(
+          (r) =>
+            r.name.toLowerCase().includes(lower) ||
+            r.context.toLowerCase().includes(lower)
+        );
+      }
+
+      const total = filtered.length;
+      const start = (page - 1) * PAGE_SIZE;
+      const paginated = filtered.slice(start, start + PAGE_SIZE);
+
+      const mergedCounts = {
+        all: rows.length,
+        pending: rows.filter((r) => r.status === "pending").length,
+        processing: rows.filter((r) => r.status === "processing").length,
+        completed: rows.filter((r) => r.status === "completed").length,
+        failed: rows.filter((r) => r.status === "failed").length,
+      };
+
+      return { rows: paginated, total, mergedCounts };
     },
   });
 }
@@ -166,346 +370,462 @@ function useVectorSearchLogs() {
 export default function EmbeddingsExplorer() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [pipelineActive, setPipelineActive] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [projectBreakdownOpen, setProjectBreakdownOpen] = useState(true);
 
-  const { data: overview, isLoading: overviewLoading } = useEmbeddingOverview();
-  const { data: queue = [], isLoading: queueLoading } = useEmbeddingQueue();
-  const { data: searchLogs = [], isLoading: logsLoading } = useVectorSearchLogs();
+  const { data: stats, isLoading: statsLoading } = usePipelineStats();
+  const { data: listData, isLoading: listLoading } = useEmbeddingList(
+    statusFilter,
+    sourceFilter,
+    search,
+    page
+  );
 
-  // Trigger batch embedding via edge function
-  const triggerBatch = useMutation({
+  const totalPages = listData
+    ? Math.max(1, Math.ceil(listData.total / PAGE_SIZE))
+    : 1;
+  const counts = listData?.mergedCounts ?? stats
+    ? {
+        all: stats.total,
+        pending: stats.pending,
+        processing: stats.processing,
+        completed: stats.completed,
+        failed: stats.failed,
+      }
+    : null;
+
+  const processMeetings = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke(
-        "auto-embed-knowledge-entry",
-        { body: { batch: true } }
-      );
+      const { error } = await supabase.functions.invoke("auto-embed-meetings");
       if (error) throw error;
-      return data;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-embedding-overview"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-embedding-queue"] });
-      toast({
-        title: "Batch Embedding Started",
-        description: `Processing ${data?.processed || "entries"}. This may take a few moments.`,
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-embedding-pipeline-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-embedding-list"] });
+      toast({ title: "Process Meetings", description: "Meeting embedding job started." });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to Start Batch",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: (e: Error) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     },
   });
 
-  const getQueueStatusBadge = (status: string | null) => {
-    const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
-      pending: { variant: "outline", icon: Clock },
-      processing: { variant: "default", icon: Loader2 },
-      completed: { variant: "secondary", icon: CheckCircle2 },
-      failed: { variant: "destructive", icon: AlertCircle },
-      cancelled: { variant: "outline", icon: AlertCircle },
+  const processKnowledgeFiles = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke("auto-embed-knowledge-files");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-embedding-pipeline-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-embedding-list"] });
+      toast({ title: "Process Knowledge Files", description: "File embedding job started." });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const retryFailed = useMutation({
+    mutationFn: async () => {
+      const { data: failed } = await supabase
+        .from("embedding_queue")
+        .select("id")
+        .eq("status", "failed");
+      if (!failed?.length) return;
+      await supabase
+        .from("embedding_queue")
+        .update({ status: "pending", error_message: null, attempts: 0 })
+        .in("id", failed.map((r) => r.id));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-embedding-pipeline-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-embedding-list"] });
+      toast({ title: "Retry Failed", description: "Failed items reset to pending." });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const rematchProjects = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke("discover-meeting-relationships");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-embedding-list"] });
+      toast({ title: "Re-match Projects", description: "Meeting relationship discovery started." });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-embedding-pipeline-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-embedding-list"] });
+  };
+
+  const statusBadge = (status: string) => {
+    const config: Record<
+      string,
+      { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }
+    > = {
+      pending: { variant: "outline", label: "Pending", className: "bg-amber-50 text-amber-800 border-amber-200" },
+      processing: { variant: "default", label: "Processing", className: "bg-blue-100 text-blue-800 border-0" },
+      completed: { variant: "secondary", label: "Completed", className: "bg-green-50 text-green-800 border-green-200" },
+      failed: { variant: "destructive", label: "Failed", className: "bg-red-50 text-red-800 border-red-200" },
     };
-    const { variant, icon: Icon } = config[status || "pending"] || config.pending;
+    const c = config[status] ?? { variant: "outline", label: status };
     return (
-      <Badge variant={variant} className="flex items-center gap-1 w-fit">
-        <Icon className={`h-3 w-3 ${status === "processing" ? "animate-spin" : ""}`} />
-        {status || "pending"}
+      <Badge variant={c.variant} className={c.className ?? ""}>
+        {c.label}
       </Badge>
     );
   };
 
-  const coveragePercent = overview
-    ? overview.totalEntries > 0
-      ? Math.round((overview.entriesWithEmbeddings / overview.totalEntries) * 100)
-      : 0
-    : 0;
+  const sourceIcon = (entityType: string) => {
+    if (entityType === "meeting") return <Video className="h-4 w-4 text-blue-600" />;
+    return <FileText className="h-4 w-4 text-violet-600" />;
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header: title, subtitle, pipeline toggle, actions */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Brain className="h-8 w-8 text-primary" />
-            Embeddings Explorer
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Database className="h-7 w-7 text-muted-foreground" />
+            Embedding Pipeline Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            Monitor embedding coverage, queue status, and vector search analytics
+            Monitor and manage vector embeddings for semantic search
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="pipeline-active"
+              checked={pipelineActive}
+              onCheckedChange={setPipelineActive}
+            />
+            <label
+              htmlFor="pipeline-active"
+              className={`text-sm font-medium ${pipelineActive ? "text-green-600" : "text-muted-foreground"}`}
+            >
+              Pipeline Active
+            </label>
+          </div>
+          <Button size="sm" onClick={() => processMeetings.mutate()} disabled={processMeetings.isPending}>
+            {processMeetings.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            <span className="ml-2">Process Meetings</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ["admin-embedding-overview"] });
-              queryClient.invalidateQueries({ queryKey: ["admin-embedding-queue"] });
-              queryClient.invalidateQueries({ queryKey: ["admin-vector-search-logs"] });
-            }}
+            onClick={() => processKnowledgeFiles.mutate()}
+            disabled={processKnowledgeFiles.isPending}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            <FileText className="h-4 w-4" />
+            <span className="ml-2">Process Knowledge Files</span>
           </Button>
           <Button
+            variant="outline"
             size="sm"
-            onClick={() => triggerBatch.mutate()}
-            disabled={triggerBatch.isPending}
+            onClick={() => retryFailed.mutate()}
+            disabled={retryFailed.isPending}
           >
-            {triggerBatch.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Zap className="h-4 w-4 mr-2" />
-            )}
-            Run Batch Embedding
+            <RotateCw className="h-4 w-4" />
+            <span className="ml-2">Retry Failed</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => rematchProjects.mutate()}
+            disabled={rematchProjects.isPending}
+          >
+            <RotateCw className="h-4 w-4" />
+            <span className="ml-2">Re-match Projects</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={refresh}>
+            <RefreshCw className="h-4 w-4" />
+            <span className="ml-2">Refresh</span>
           </Button>
         </div>
       </div>
 
-      {/* Overview Stats */}
-      {overviewLoading ? (
-        <div className="flex items-center justify-center py-8">
+      {/* Summary cards */}
+      {statsLoading ? (
+        <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      ) : overview && (
-        <>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Database className="h-4 w-4 text-primary" />
-                  Total Embeddings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{overview.totalEmbeddings.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">embedding chunks stored</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  Entry Coverage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {overview.entriesWithEmbeddings} / {overview.totalEntries}
+      ) : stats && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-amber-100 p-2">
+                  <Clock className="h-5 w-5 text-amber-600" />
                 </div>
-                <Progress value={coveragePercent} className="mt-2 h-2" />
-                <p className="text-xs text-muted-foreground mt-1">{coveragePercent}% embedded</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" />
-                  Queue Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{overview.queue.pending + overview.queue.processing}</div>
-                <div className="flex gap-2 mt-1">
-                  <Badge variant="outline" className="text-xs">{overview.queue.pending} pending</Badge>
-                  <Badge variant="default" className="text-xs">{overview.queue.processing} active</Badge>
+                <div>
+                  <p className="text-2xl font-bold">{stats.pending}</p>
+                  <p className="text-xs text-muted-foreground">Awaiting processing</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Search className="h-4 w-4 text-primary" />
-                  Total Searches
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{overview.totalSearches.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">vector search queries logged</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Queue Summary */}
-          <div className="grid gap-4 md:grid-cols-5">
-            {[
-              { label: "Pending", count: overview.queue.pending, icon: Clock, color: "text-yellow-600" },
-              { label: "Processing", count: overview.queue.processing, icon: Loader2, color: "text-blue-600" },
-              { label: "Completed", count: overview.queue.completed, icon: CheckCircle2, color: "text-green-600" },
-              { label: "Failed", count: overview.queue.failed, icon: AlertCircle, color: "text-red-600" },
-              { label: "Files Indexed", count: overview.indexedFiles, icon: FileText, color: "text-purple-600" },
-            ].map((item) => (
-              <Card key={item.label}>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <item.icon className={`h-4 w-4 ${item.color}`} />
-                    <span className="text-sm text-muted-foreground">{item.label}</span>
-                  </div>
-                  <div className="text-xl font-bold mt-1">{item.count}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-blue-100 p-2">
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.processing}</p>
+                  <p className="text-xs text-muted-foreground">Currently running</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-green-100 p-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.completed}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {stats.totalChunks.toLocaleString()} total chunks
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-red-100 p-2">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.failed}</p>
+                  <p className="text-xs text-muted-foreground">Need attention</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      {/* Tabs: Queue / Search Logs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Brain className="h-4 w-4" />
-            Queue
-          </TabsTrigger>
-          <TabsTrigger value="search-logs" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Search Logs
-          </TabsTrigger>
-        </TabsList>
+      {/* Embeddings table section */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>Embeddings</CardTitle>
+          <CardDescription>All sources</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="All Sources" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sources</SelectItem>
+                  <SelectItem value="meeting">Meeting</SelectItem>
+                  <SelectItem value="file">Doc</SelectItem>
+                  <SelectItem value="entry">Entry</SelectItem>
+                  <SelectItem value="user_file">User file</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="Search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="max-w-[200px]"
+              />
+            </div>
+          </div>
 
-        <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle>Embedding Queue</CardTitle>
-              <CardDescription>
-                Recent embedding processing jobs (most recent 50)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              {queueLoading ? (
-                <div className="flex h-32 items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : queue.length === 0 ? (
-                <div className="flex h-32 flex-col items-center justify-center gap-2">
-                  <Brain className="h-12 w-12 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    No items in the embedding queue
-                  </p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Entity Type</TableHead>
-                      <TableHead>Entity ID</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Attempts</TableHead>
-                      <TableHead>Error</TableHead>
-                      <TableHead>Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {queue.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <Badge variant="outline">{item.entity_type}</Badge>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs max-w-[120px] truncate">
-                          {item.entity_id}
-                        </TableCell>
-                        <TableCell>{item.priority ?? 0}</TableCell>
-                        <TableCell>{getQueueStatusBadge(item.status)}</TableCell>
-                        <TableCell>
-                          {item.attempts ?? 0} / {item.max_attempts ?? 3}
-                        </TableCell>
-                        <TableCell className="max-w-[200px]">
-                          {item.error_message ? (
-                            <span className="text-xs text-destructive line-clamp-2">
-                              {item.error_message}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">--</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {item.created_at ? formatDateTime(item.created_at) : "--"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+          {/* Status tabs */}
+          {counts && (
+            <div className="flex flex-wrap gap-1 border-b pb-2">
+              {[
+                { key: "all", label: "All", count: counts.all },
+                { key: "pending", label: "Pending", count: counts.pending },
+                { key: "processing", label: "Processing", count: counts.processing },
+                { key: "completed", label: "Completed", count: counts.completed },
+                { key: "failed", label: "Failed", count: counts.failed },
+              ].map(({ key, label, count }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => { setStatusFilter(key); setPage(1); }}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    statusFilter === key
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  {label} ({count})
+                </button>
+              ))}
+            </div>
+          )}
 
-        <TabsContent value="search-logs">
-          <Card>
-            <CardHeader>
-              <CardTitle>Vector Search Logs</CardTitle>
-              <CardDescription>
-                Recent semantic search queries and their performance
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              {logsLoading ? (
-                <div className="flex h-32 items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : searchLogs.length === 0 ? (
-                <div className="flex h-32 flex-col items-center justify-center gap-2">
-                  <Search className="h-12 w-12 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    No search logs recorded yet
-                  </p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Query</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Results</TableHead>
-                      <TableHead>Top Score</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Searched At</TableHead>
+          {listLoading ? (
+            <div className="flex h-32 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : !listData?.rows.length ? (
+            <div className="flex h-32 flex-col items-center justify-center gap-2 text-muted-foreground">
+              <Database className="h-10 w-10" />
+              <p className="text-sm">No embeddings match the current filters.</p>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Context</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Chunks</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {listData.rows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {sourceIcon(row.entity_type)}
+                          <span className="text-sm text-muted-foreground">
+                            {SOURCE_LABELS[row.entity_type] ?? row.entity_type}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium max-w-[220px] truncate" title={row.name}>
+                        {row.name}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate text-muted-foreground" title={row.context}>
+                        {row.context}
+                      </TableCell>
+                      <TableCell>{statusBadge(row.status)}</TableCell>
+                      <TableCell>{row.chunks > 0 ? row.chunks : "—"}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {row.date ? formatDate(row.date, "MMM d, yyyy") : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {row.status === "failed" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => retryFailed.mutate()}
+                            className="h-8"
+                          >
+                            <RotateCw className="h-4 w-4 mr-1" />
+                            Retry
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" className="h-8" asChild>
+                            <a
+                              href={
+                                row.entity_type === "meeting" && row.meetingId
+                                  ? `/meetings/${row.meetingId}`
+                                  : row.entity_type === "file"
+                                    ? `/knowledge/files/${row.entity_id}`
+                                    : "#"
+                              }
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </a>
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {searchLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="max-w-[300px]">
-                          <span className="line-clamp-1 text-sm">{log.query}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {log.search_type || "semantic"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{log.result_count ?? 0}</TableCell>
-                        <TableCell>
-                          {log.top_score != null ? (
-                            <span className="font-mono text-sm">
-                              {(log.top_score * 100).toFixed(1)}%
-                            </span>
-                          ) : (
-                            "--"
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {log.duration_ms != null ? (
-                            <span className="text-sm">{log.duration_ms}ms</span>
-                          ) : (
-                            "--"
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {log.created_at ? formatDateTime(log.created_at) : "--"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {listData.total > PAGE_SIZE && (
+                <div className="flex items-center justify-between pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Page {page} of {totalPages} ({listData.total} total)
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page <= 1}
+                    >
+                      Previous
+                    </Button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const p = page <= 3 ? i + 1 : Math.max(1, page - 2 + i);
+                      if (p > totalPages) return null;
+                      return (
+                        <Button
+                          key={p}
+                          variant={page === p ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      );
+                    })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page >= totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Project Breakdown (collapsible) */}
+      <Card className="bg-muted/30">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50 rounded-lg transition-colors"
+          onClick={() => setProjectBreakdownOpen(!projectBreakdownOpen)}
+        >
+          <div className="flex items-center gap-2">
+            {projectBreakdownOpen ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+            <span className="font-semibold">Project Breakdown</span>
+          </div>
+          <span className="text-sm text-muted-foreground">Embedding status by project</span>
+        </button>
+        {projectBreakdownOpen && (
+          <CardContent className="pt-0">
+            <p className="text-sm text-muted-foreground">Embedding status by project</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Project-level aggregation can be added when meeting–project assignments are available.
+            </p>
+          </CardContent>
+        )}
+      </Card>
     </div>
   );
 }
