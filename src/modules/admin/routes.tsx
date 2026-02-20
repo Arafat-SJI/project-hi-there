@@ -75,6 +75,7 @@ import AIAgents from "@/pages/AIAgents";
 import AgentCategories from "@/pages/admin/ai/AgentCategories";
 import EmailDraftingPerformance from "@/pages/admin/ai/EmailDraftingPerformance";
 import DealCoaching from "@/pages/admin/ai/DealCoaching";
+import AdminSemanticSearch from "@/pages/admin/ai/AdminSemanticSearch";
 
 /**
  * Admin routes - require admin role
@@ -90,6 +91,7 @@ export const adminRoutes = (
     <Route path="/admin/ai/prompt-templates" element={<PromptTemplateManagement />} />
     <Route path="/admin/ai/email-drafting" element={<EmailDraftingPerformance />} />
     <Route path="/admin/ai/deal-coaching" element={<DealCoaching />} />
+    <Route path="/admin/ai/semantic-search" element={<AdminSemanticSearch />} />
     <Route path="/admin/implementation-status" element={<ImplementationStatus />} />
 
     {/* Users & Access */}
