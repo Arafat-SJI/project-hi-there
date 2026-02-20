@@ -130,29 +130,30 @@ function buildTeamLearningData(
     }));
 
   const highImportance = all.filter((m) => (m.importance_score ?? 0) >= 0.7);
-  const successRecommendations: SuccessRecommendation[] = [
-    { title: "Email Subject A/B Test", description: "Question-based subjects get 34% more opens", priority: "High", action: "Recommend in email drafting" },
-    { title: "Deal Stage Acceleration", description: "Tech companies move fastest to proposal in Q1", priority: "High", action: "Suggest timeline adjustments" },
+  const successRecommendations: SuccessRecommendation[] = ([
+    { title: "Email Subject A/B Test", description: "Question-based subjects get 34% more opens", priority: "High" as const, action: "Recommend in email drafting" },
+    { title: "Deal Stage Acceleration", description: "Tech companies move fastest to proposal in Q1", priority: "High" as const, action: "Suggest timeline adjustments" },
     ...(highImportance.slice(0, 2).map((m) => ({
       title: (m.summary || m.content).slice(0, 40) + (m.content.length > 40 ? "…" : ""),
       description: m.content.slice(0, 80) + (m.content.length > 80 ? "…" : ""),
       priority: "Medium" as const,
       action: "Flag in coaching",
     }))),
-  ].slice(0, 4);
+  ] satisfies SuccessRecommendation[]).slice(0, 4);
 
+  const now = new Date();
   const staleCutoff = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const staleMemories = all.filter((m) => m.last_accessed_at && m.last_accessed_at < staleCutoff);
-  const riskPatterns: RiskPattern[] = [
-    { title: "No contact for 14+ days", description: "Deal momentum at risk", priority: "high", action: "Trigger outreach reminder" },
-    { title: "Executive sponsor changed", description: "Deal risk increases 5x", priority: "high", action: "Reassess relationship" },
+  const riskPatterns: RiskPattern[] = ([
+    { title: "No contact for 14+ days", description: "Deal momentum at risk", priority: "high" as const, action: "Trigger outreach reminder" },
+    { title: "Executive sponsor changed", description: "Deal risk increases 5x", priority: "high" as const, action: "Reassess relationship" },
     ...(staleMemories.slice(0, 2).map((m) => ({
       title: (m.summary || m.content).slice(0, 35) + (m.content.length > 35 ? "…" : ""),
       description: "Stale or low-activity memory",
       priority: "medium" as const,
       action: "Schedule check-in",
     }))),
-  ].slice(0, 4);
+  ] satisfies RiskPattern[]).slice(0, 4);
 
   const tokenSavingsMatch = insights?.consolidation_impact?.match(/(\d+)%/);
   const tokenSavingsPct = tokenSavingsMatch ? parseInt(tokenSavingsMatch[1], 10) : 70;
