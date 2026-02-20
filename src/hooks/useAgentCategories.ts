@@ -1,6 +1,9 @@
 /**
- * Agent categories (AI Hub): list, create, update, deactivate, delete.
+ * Agent categories (AI Hub): list with counts, create, update, toggle active, delete.
  * Categories are linked to ai_agents via ai_agents.category = ai_agent_categories.slug.
+ * Counts: match ai_agents.category to ai_agent_categories.slug; only non-deleted agents
+ * (if ai_agents.deleted_at exists, filter deleted_at IS NULL).
+ * Delete is allowed only when the category has no agents.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,9 +47,12 @@ async function fetchCategories(): Promise<AgentCategory[]> {
 async function fetchAgentCountsByCategory(): Promise<
   Map<string, { total: number; active: number }>
 > {
-  const { data, error } = await supabase
+  let query = supabase
     .from("ai_agents")
     .select("category, is_enabled");
+  // If ai_agents has deleted_at, uncomment to exclude soft-deleted agents:
+  // query = query.is("deleted_at", null);
+  const { data, error } = await query;
   if (error) throw error;
   const map = new Map<string, { total: number; active: number }>();
   for (const row of data ?? []) {
@@ -196,11 +202,14 @@ export function useAgentCategories() {
 
   const deleteMutation = useMutation({
     mutationFn: async ({ id, slug }: { id: string; slug: string }) => {
-      const { error: unlinkError } = await supabase
+      const { count, error: countError } = await supabase
         .from("ai_agents")
-        .update({ category: null })
+        .select("id", { count: "exact", head: true })
         .eq("category", slug);
-      if (unlinkError) throw unlinkError;
+      if (countError) throw countError;
+      if ((count ?? 0) > 0) {
+        throw new Error("Cannot delete category that has agents. Move or remove agents first.");
+      }
       const { error } = await supabase
         .from("ai_agent_categories")
         .delete()
@@ -229,4 +238,9 @@ export function useAgentCategories() {
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
   };
+}
+
+/** Alias for replication / external docs: same as useAgentCategories(). */
+export function useAIAgentCategoriesWithCounts() {
+  return useAgentCategories();
 }

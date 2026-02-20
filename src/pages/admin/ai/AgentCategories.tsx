@@ -1,23 +1,19 @@
 /**
- * AI Hub Agent Categories – organize AI agents into categories.
- * Route: /admin/ai/agent-categories
+ * AI Agent Categories Management
+ *
+ * Admin interface for managing AI agent categories with CRUD operations.
  */
+
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -43,498 +39,681 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import {
-  RefreshCw,
-  Plus,
   FolderOpen,
-  CheckCircle2,
+  Plus,
+  RefreshCw,
+  Edit,
+  Trash2,
   Bot,
   LayoutGrid,
   List,
-  Edit2,
+  CheckCircle2,
   XCircle,
-  Trash2,
-  BarChart3,
-  Loader2,
-  FileText,
+  TrendingUp,
+  CreditCard,
+  AlertTriangle,
+  BarChart,
   Target,
-  MessageSquare,
-  Sparkles,
+  Package,
+  CheckSquare,
   Folder,
 } from "lucide-react";
-import { useAgentCategories, type AgentCategoryWithCounts } from "@/hooks/useAgentCategories";
+import {
+  useAIAgentCategoriesWithCounts,
+  useCreateAIAgentCategory,
+  useUpdateAIAgentCategory,
+  useDeleteAIAgentCategory,
+  useToggleAIAgentCategoryStatus,
+  type AIAgentCategoryWithCounts,
+  type CreateAIAgentCategoryInput,
+} from "@/hooks/useAIAgentCategories";
+import { toast } from "sonner";
 import { format } from "date-fns";
 
-type ViewMode = "cards" | "table";
+const ICON_OPTIONS = [
+  { value: "folder", label: "Folder", icon: Folder },
+  { value: "bot", label: "Bot", icon: Bot },
+  { value: "check-square", label: "Check Square", icon: CheckSquare },
+  { value: "package", label: "Package", icon: Package },
+  { value: "trending-up", label: "Trending Up", icon: TrendingUp },
+  { value: "credit-card", label: "Credit Card", icon: CreditCard },
+  { value: "alert-triangle", label: "Alert Triangle", icon: AlertTriangle },
+  { value: "bar-chart", label: "Bar Chart", icon: BarChart },
+  { value: "target", label: "Target", icon: Target },
+];
 
-const CATEGORY_ICONS = [
-  { value: "FolderOpen", label: "Folder", Icon: FolderOpen },
-  { value: "Folder", label: "Folder (closed)", Icon: Folder },
-  { value: "BarChart3", label: "Bar Chart", Icon: BarChart3 },
-  { value: "Bot", label: "Bot", Icon: Bot },
-  { value: "FileText", label: "Document", Icon: FileText },
-  { value: "Target", label: "Target", Icon: Target },
-  { value: "MessageSquare", label: "Message", Icon: MessageSquare },
-  { value: "Sparkles", label: "Sparkles", Icon: Sparkles },
-] as const;
-
-function slugFromName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_|_$/g, "");
+function getIconComponent(iconName: string | null) {
+  const iconOption = ICON_OPTIONS.find((opt) => opt.value === (iconName ?? "folder"));
+  return iconOption?.icon ?? Folder;
 }
 
 export default function AgentCategories() {
-  const {
-    data: categories,
-    stats,
-    isLoading,
-    refetch,
-    create,
-    update,
-    setActive,
-    remove,
-    isCreating,
-    isUpdating,
-    isDeleting,
-  } = useAgentCategories();
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<AIAgentCategoryWithCounts | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AIAgentCategoryWithCounts | null>(null);
+  const [newCategory, setNewCategory] = useState<CreateAIAgentCategoryInput>({
+    name: "",
+    slug: "",
+    description: "",
+    icon: "folder",
+    is_active: true,
+    display_order: 0,
+  });
 
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<AgentCategoryWithCounts | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<AgentCategoryWithCounts | null>(null);
-  const [formName, setFormName] = useState("");
-  const [formSlug, setFormSlug] = useState("");
-  const [formDescription, setFormDescription] = useState("");
-  const [formIcon, setFormIcon] = useState("FolderOpen");
-  const [formDisplayOrder, setFormDisplayOrder] = useState(0);
-  const [formActive, setFormActive] = useState(true);
+  const { data: categories = [], isLoading, refetch } = useAIAgentCategoriesWithCounts();
+  const createCategory = useCreateAIAgentCategory();
+  const updateCategory = useUpdateAIAgentCategory();
+  const deleteCategory = useDeleteAIAgentCategory();
+  const toggleStatus = useToggleAIAgentCategoryStatus();
 
-  const openAddDialog = () => {
-    setEditingCategory(null);
-    setFormName("");
-    setFormSlug("");
-    setFormDescription("");
-    setFormIcon("FolderOpen");
-    setFormDisplayOrder(0);
-    setFormActive(true);
-    setDialogOpen(true);
-  };
-
-  const openEditDialog = (cat: AgentCategoryWithCounts) => {
-    setEditingCategory(cat);
-    setFormName(cat.name);
-    setFormSlug(cat.slug);
-    setFormDescription(cat.description ?? "");
-    setFormIcon(cat.icon ?? "FolderOpen");
-    setFormDisplayOrder(cat.display_order ?? 0);
-    setFormActive(cat.is_active ?? true);
-    setDialogOpen(true);
-  };
-
-  const handleNameChange = (name: string) => {
-    setFormName(name);
-    if (!editingCategory) setFormSlug(slugFromName(name));
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingCategory) {
-      await update({
-        id: editingCategory.id,
-        oldSlug: editingCategory.slug,
-        updates: {
-          name: formName,
-          slug: formSlug,
-          description: formDescription || null,
-          icon: formIcon,
-          display_order: formDisplayOrder,
-          is_active: formActive,
-        },
-      });
+  const handleNameChange = (value: string, isEdit = false) => {
+    if (isEdit && editingCategory) {
+      setEditingCategory({ ...editingCategory, name: value });
     } else {
-      await create({
-        name: formName,
-        slug: formSlug,
-        description: formDescription || null,
-        icon: formIcon,
-        display_order: formDisplayOrder,
-        is_active: formActive,
-      });
-    }
-    setDialogOpen(false);
-  };
-
-  const CategoryIcon = ({ name }: { name: string | null }) => {
-    const entry = CATEGORY_ICONS.find((c) => c.value === (name ?? "FolderOpen"));
-    const Icon = entry?.Icon ?? FolderOpen;
-    return <Icon className="h-4 w-4" />;
-  };
-
-  const handleDeactivate = (cat: AgentCategoryWithCounts) => {
-    setActive({ id: cat.id, is_active: !cat.is_active });
-  };
-
-  const handleDelete = async () => {
-    if (deleteTarget) {
-      await remove({ id: deleteTarget.id, slug: deleteTarget.slug });
-      setDeleteTarget(null);
+      const generatedSlug = value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_|_$/g, "");
+      setNewCategory({ ...newCategory, name: value, slug: generatedSlug });
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+  const handleCreateCategory = () => {
+    if (!newCategory.name || !newCategory.slug) {
+      toast.error("Please provide a category name");
+      return;
+    }
+    createCategory.mutate(newCategory, {
+      onSuccess: () => {
+        toast.success("Category created successfully");
+        setIsAddDialogOpen(false);
+        setNewCategory({
+          name: "",
+          slug: "",
+          description: "",
+          icon: "folder",
+          is_active: true,
+          display_order: 0,
+        });
+      },
+      onError: (error: Error) => {
+        toast.error(`Failed to create category: ${error.message}`);
+      },
+    });
+  };
+
+  const handleUpdateCategory = () => {
+    if (!editingCategory) return;
+    updateCategory.mutate(
+      {
+        id: editingCategory.id,
+        updates: {
+          name: editingCategory.name,
+          description: editingCategory.description ?? undefined,
+          icon: editingCategory.icon ?? undefined,
+          is_active: editingCategory.is_active ?? undefined,
+          display_order: editingCategory.display_order ?? undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Category updated successfully");
+          setEditingCategory(null);
+        },
+        onError: (error: Error) => {
+          toast.error(`Failed to update category: ${error.message}`);
+        },
+      }
     );
-  }
+  };
+
+  const handleDeleteClick = (category: AIAgentCategoryWithCounts) => {
+    if (category.agent_count > 0) {
+      toast.error(
+        "Cannot delete category with agents. Move or delete agents first."
+      );
+      return;
+    }
+    setDeleteTarget(category);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+    deleteCategory.mutate(
+      { id: deleteTarget.id, slug: deleteTarget.slug },
+      {
+        onSuccess: () => {
+          toast.success("Category deleted successfully");
+          setDeleteTarget(null);
+        },
+        onError: (error: Error) => {
+          toast.error(`Failed to delete category: ${error.message}`);
+        },
+      }
+    );
+  };
+
+  const handleToggleStatus = (id: string, isActive: boolean) => {
+    toggleStatus.mutate(
+      { id, isActive },
+      {
+        onSuccess: () => {
+          toast.success(`Category ${isActive ? "deactivated" : "activated"} successfully`);
+        },
+        onError: (error: Error) => {
+          toast.error(`Failed to update status: ${error.message}`);
+        },
+      }
+    );
+  };
+
+  const totalAgents = categories.reduce((sum, c) => sum + c.agent_count, 0);
+  const activeAgents = categories.reduce((sum, c) => sum + c.active_agent_count, 0);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Agent Categories</h1>
-          <p className="text-muted-foreground">
-            Organize your AI agents into categories
-          </p>
+          <h1 className="text-3xl font-bold">Agent Categories</h1>
+          <p className="text-muted-foreground">Organize your AI agents into categories</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            {isRefreshing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-          </Button>
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className="mr-2 h-4 w-4" />
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={openAddDialog} disabled={isCreating}>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Category
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className="rounded-lg border p-2">
-              <FolderOpen className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.totalCategories}</p>
-              <p className="text-sm text-muted-foreground">Total Categories</p>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary/10 p-2">
+                <FolderOpen className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{categories.length}</p>
+                <p className="text-sm text-muted-foreground">Total Categories</p>
+              </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className="rounded-lg border p-2">
-              <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.activeCategories}</p>
-              <p className="text-sm text-muted-foreground">Active Categories</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className="rounded-lg border p-2">
-              <Bot className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.totalAgents}</p>
-              <p className="text-sm text-muted-foreground">Total Agents</p>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-green-500/10 p-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {categories.filter((c) => c.is_active).length}
+                </p>
+                <p className="text-sm text-muted-foreground">Active Categories</p>
+              </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className="rounded-lg border p-2">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-blue-500/10 p-2">
+                <Bot className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{totalAgents}</p>
+                <p className="text-sm text-muted-foreground">Total Agents</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.activeAgents}</p>
-              <p className="text-sm text-muted-foreground">Active Agents</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-purple-500/10 p-2">
+                <CheckCircle2 className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{activeAgents}</p>
+                <p className="text-sm text-muted-foreground">Active Agents</p>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* View toggle */}
       <div className="flex justify-end">
-        <ToggleGroup
-          type="single"
-          value={viewMode}
-          onValueChange={(v) => v && setViewMode(v as ViewMode)}
-          className="rounded-lg border p-1"
-        >
-          <ToggleGroupItem value="cards" aria-label="Cards" className="gap-2">
-            <LayoutGrid className="h-4 w-4" />
-            Cards
-          </ToggleGroupItem>
-          <ToggleGroupItem value="table" aria-label="Table" className="gap-2">
-            <List className="h-4 w-4" />
-            Table
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "cards" | "table")}>
+          <TabsList>
+            <TabsTrigger value="cards">
+              <LayoutGrid className="mr-2 h-4 w-4" />
+              Cards
+            </TabsTrigger>
+            <TabsTrigger value="table">
+              <List className="mr-2 h-4 w-4" />
+              Table
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-      {/* Content */}
       {viewMode === "cards" ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((cat) => (
-            <Card key={cat.id} className="flex flex-col">
-              <CardContent className="flex flex-1 flex-col gap-3 pt-6">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <CategoryIcon name={cat.icon} />
-                    <h3 className="font-semibold">{cat.name}</h3>
-                  </div>
-                  {cat.is_active ? (
-                    <Badge variant="secondary" className="bg-green-500/15 text-green-700 dark:text-green-400">
-                      Active
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">Inactive</Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {cat.description || "No description"}
-                </p>
-                <div className="flex gap-4 text-sm">
-                  <span>{cat.total_agents} Total Agents</span>
-                  <span>{cat.active_agents} Active Agents</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Slug {cat.slug}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Last Updated {format(new Date(cat.updated_at), "MMM d, yyyy, h:mm a")}
-                </p>
-                <div className="mt-auto flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditDialog(cat)}
-                    disabled={isUpdating}
-                  >
-                    <Edit2 className="mr-1 h-4 w-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeactivate(cat)}
-                    disabled={isUpdating}
-                  >
-                    <XCircle className="mr-1 h-4 w-4" />
-                    {cat.is_active ? "Deactivate" : "Activate"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDeleteTarget(cat)}
-                    disabled={isDeleting}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="mr-1 h-4 w-4" />
-                    Delete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {isLoading ? (
+            <div className="col-span-full py-12 text-center text-muted-foreground">
+              Loading categories...
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-muted-foreground">
+              No categories found. Create your first category to get started.
+            </div>
+          ) : (
+            categories.map((category) => {
+              const IconComponent = getIconComponent(category.icon);
+              return (
+                <Card key={category.id} className="transition-shadow hover:shadow-lg">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="flex items-center gap-2">
+                          <IconComponent className="h-5 w-5" />
+                          {category.name}
+                        </CardTitle>
+                        <CardDescription className="mt-2">
+                          {category.description || "No description"}
+                        </CardDescription>
+                      </div>
+                      {category.is_active ? (
+                        <Badge variant="default" className="bg-green-500">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Inactive</Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-2xl font-bold">{category.agent_count}</p>
+                          <p className="text-xs text-muted-foreground">Total Agents</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-2xl font-bold">{category.active_agent_count}</p>
+                          <p className="text-xs text-muted-foreground">Active Agents</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Slug</p>
+                        <p className="font-mono text-sm">{category.slug}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Last Updated</p>
+                        <p className="text-sm">{format(new Date(category.updated_at ?? ""), "PPp")}</p>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => setEditingCategory(category)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleToggleStatus(category.id, category.is_active ?? false)}
+                        >
+                          {category.is_active ? (
+                            <XCircle className="h-4 w-4" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteClick(category)}
+                          disabled={category.agent_count > 0}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </div>
       ) : (
         <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Total Agents</TableHead>
-                <TableHead>Active Agents</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead className="w-[180px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.map((cat) => (
-                <TableRow key={cat.id}>
-                  <TableCell className="font-medium">{cat.name}</TableCell>
-                  <TableCell>
-                    {cat.is_active ? (
-                      <Badge variant="secondary" className="bg-green-500/15 text-green-700 dark:text-green-400">
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Inactive</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {cat.description || "No description"}
-                  </TableCell>
-                  <TableCell>{cat.total_agents}</TableCell>
-                  <TableCell>{cat.active_agents}</TableCell>
-                  <TableCell className="text-muted-foreground">{cat.slug}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {format(new Date(cat.updated_at), "MMM d, yyyy, h:mm a")}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(cat)} disabled={isUpdating}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeactivate(cat)} disabled={isUpdating}>
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(cat)} disabled={isDeleting} className="text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <CardHeader>
+            <CardTitle>All Categories</CardTitle>
+            <CardDescription>{categories.length} categories total</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Icon</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Slug</TableHead>
+                  <TableHead>Agents</TableHead>
+                  <TableHead>Active Agents</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="py-8 text-center">
+                      Loading categories...
+                    </TableCell>
+                  </TableRow>
+                ) : categories.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                      No categories found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  categories.map((category) => {
+                    const IconComponent = getIconComponent(category.icon);
+                    return (
+                      <TableRow key={category.id}>
+                        <TableCell>
+                          <IconComponent className="h-4 w-4" />
+                        </TableCell>
+                        <TableCell className="font-medium">{category.name}</TableCell>
+                        <TableCell className="font-mono text-sm">{category.slug}</TableCell>
+                        <TableCell>{category.agent_count}</TableCell>
+                        <TableCell>{category.active_agent_count}</TableCell>
+                        <TableCell>{category.display_order}</TableCell>
+                        <TableCell>
+                          {category.is_active ? (
+                            <Badge variant="default" className="bg-green-500">
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Inactive</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingCategory(category)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                handleToggleStatus(category.id, category.is_active ?? false)
+                              }
+                            >
+                              {category.is_active ? (
+                                <XCircle className="h-4 w-4" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteClick(category)}
+                              disabled={category.agent_count > 0}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
         </Card>
       )}
 
-      {/* Add/Edit Dialog - Create New Category modal */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <form onSubmit={handleSubmit}>
-            <DialogHeader>
-              <DialogTitle>
-                {editingCategory ? "Edit Category" : "Create New Category"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingCategory
-                  ? "Update the category details below."
-                  : "Add a new category to organize your AI agents"}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="cat-name">Category Name *</Label>
-                <Input
-                  id="cat-name"
-                  value={formName}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="e.g., Financial Analysis"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cat-slug">Slug *</Label>
-                <Input
-                  id="cat-slug"
-                  value={formSlug}
-                  onChange={(e) => setFormSlug(e.target.value)}
-                  placeholder="e.g., financial_analysis"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Used to identify the category in code
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cat-desc">Description</Label>
-                <Textarea
-                  id="cat-desc"
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="Brief description of this category."
-                  rows={3}
-                />
-              </div>
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Category</DialogTitle>
+            <DialogDescription>
+              Add a new category to organize your AI agents
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="cat-name">Category Name *</Label>
+              <Input
+                id="cat-name"
+                placeholder="e.g., Financial Analysis"
+                value={newCategory.name}
+                onChange={(e) => handleNameChange(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cat-slug">Slug *</Label>
+              <Input
+                id="cat-slug"
+                placeholder="e.g., financial_analysis"
+                value={newCategory.slug}
+                onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })}
+                className="font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Used to identify the category in code
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cat-desc">Description</Label>
+              <Textarea
+                id="cat-desc"
+                placeholder="Brief description of this category"
+                value={newCategory.description ?? ""}
+                onChange={(e) =>
+                  setNewCategory({ ...newCategory, description: e.target.value })
+                }
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Icon</Label>
-                <Select value={formIcon} onValueChange={setFormIcon}>
+                <Select
+                  value={newCategory.icon ?? "folder"}
+                  onValueChange={(v) => setNewCategory({ ...newCategory, icon: v })}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose icon">
-                      {CATEGORY_ICONS.find((c) => c.value === formIcon)?.label ?? "Folder"}
-                    </SelectValue>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORY_ICONS.map(({ value, label, Icon }) => (
-                      <SelectItem key={value} value={value}>
-                        <span className="flex items-center gap-2">
-                          <Icon className="h-4 w-4" />
-                          {label}
-                        </span>
-                      </SelectItem>
-                    ))}
+                    {ICON_OPTIONS.map((opt) => {
+                      const Icon = opt.icon;
+                      return (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4" />
+                            {opt.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cat-display-order">Display Order</Label>
+                <Label htmlFor="cat-order">Display Order</Label>
                 <Input
-                  id="cat-display-order"
+                  id="cat-order"
                   type="number"
-                  min={0}
-                  value={formDisplayOrder}
-                  onChange={(e) => setFormDisplayOrder(Number(e.target.value) || 0)}
-                />
-              </div>
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="cat-active">Active</Label>
-                <Switch
-                  id="cat-active"
-                  checked={formActive}
-                  onCheckedChange={setFormActive}
+                  value={newCategory.display_order ?? 0}
+                  onChange={(e) =>
+                    setNewCategory({
+                      ...newCategory,
+                      display_order: parseInt(e.target.value, 10) || 0,
+                    })
+                  }
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isCreating || isUpdating}>
-                {editingCategory ? "Update" : "Create Category"}
-              </Button>
-            </DialogFooter>
-          </form>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="active">Active</Label>
+              <Switch
+                id="active"
+                checked={newCategory.is_active ?? true}
+                onCheckedChange={(checked) =>
+                  setNewCategory({ ...newCategory, is_active: checked })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateCategory} disabled={createCategory.isPending}>
+              {createCategory.isPending ? "Creating..." : "Create Category"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+      <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription>Update the category details</DialogDescription>
+          </DialogHeader>
+          {editingCategory && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Category Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={editingCategory.name}
+                  onChange={(e) => handleNameChange(e.target.value, true)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-slug">Slug</Label>
+                <Input
+                  id="edit-slug"
+                  value={editingCategory.slug}
+                  disabled
+                  className="font-mono opacity-50"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Slug cannot be changed after creation
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-desc">Description</Label>
+                <Textarea
+                  id="edit-desc"
+                  value={editingCategory.description ?? ""}
+                  onChange={(e) =>
+                    setEditingCategory({ ...editingCategory, description: e.target.value })
+                  }
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Icon</Label>
+                  <Select
+                    value={editingCategory.icon ?? "folder"}
+                    onValueChange={(v) =>
+                      setEditingCategory({ ...editingCategory, icon: v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ICON_OPTIONS.map((opt) => {
+                        const Icon = opt.icon;
+                        return (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              {opt.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-order">Display Order</Label>
+                  <Input
+                    id="edit-order"
+                    type="number"
+                    value={editingCategory.display_order ?? 0}
+                    onChange={(e) =>
+                      setEditingCategory({
+                        ...editingCategory,
+                        display_order: parseInt(e.target.value, 10) || 0,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-active">Active</Label>
+                <Switch
+                  id="edit-active"
+                  checked={editingCategory.is_active ?? true}
+                  onCheckedChange={(checked) =>
+                    setEditingCategory({ ...editingCategory, is_active: checked })
+                  }
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingCategory(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateCategory} disabled={updateCategory.isPending}>
+              {updateCategory.isPending ? "Updating..." : "Update Category"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete category?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the category &quot;{deleteTarget?.name}&quot;. Agents in this category will have their category cleared. This cannot be undone.
+              This will remove the category &quot;{deleteTarget?.name}&quot;. This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
