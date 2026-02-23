@@ -122,9 +122,7 @@ export function useMeetingsV2(filters?: MeetingsV2Filters) {
       if (filters?.client_id) {
         query = query.eq("client_id", filters.client_id);
       }
-      if (filters?.project_id) {
-        query = query.eq("project_id", filters.project_id);
-      }
+      // meetings table has no project_id column; filter not applied
       if (filters?.deal_id) {
         query = query.eq("deal_id", filters.deal_id);
       }
@@ -201,6 +199,7 @@ export function useCreateMeetingV2() {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, "") || null;
 
+      // meetings table has no project_id or notify_participants columns; omit from insert
       const row = {
         title: data.title,
         meeting_type: data.meeting_type || "internal",
@@ -211,9 +210,7 @@ export function useCreateMeetingV2() {
         timezone: data.timezone || null,
         status: (data.status as MeetingStatus) || "scheduled",
         notes: data.notes || null,
-        notify_participants: data.notify_participants ?? false,
         client_id: data.client_id || null,
-        project_id: data.project_id || null,
         deal_id: data.deal_id || null,
         recurrence_pattern: data.recurrence_pattern || null,
         recurrence_end_date: data.recurrence_end_date || null,
@@ -266,6 +263,9 @@ export function useUpdateMeetingV2() {
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, "") || null;
       }
+      // meetings table has no project_id or notify_participants columns
+      delete updatePayload.project_id;
+      delete updatePayload.notify_participants;
 
       const { data: meeting, error } = await db
         .from("meetings")
