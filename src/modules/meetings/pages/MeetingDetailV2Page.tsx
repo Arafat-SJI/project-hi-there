@@ -21,12 +21,17 @@ import {
   Users,
   Loader2,
   MapPin,
+  Video,
+  Copy,
+  Plus,
 } from "lucide-react";
 import { useMeetingV2 } from "../hooks/useMeetingsV2";
 import { formatMeetingDateTime } from "../utils";
 import { AgendaTab } from "../components/agenda/AgendaTab";
 import { TakeawaysTab } from "../components/takeaways/TakeawaysTab";
 import { useMeetingParticipantsV2 } from "../hooks/useMeetingParticipantsV2";
+import { AddParticipantDialog } from "../components/participants/AddParticipantDialog";
+import { toast } from "sonner";
 import type { MeetingDetailTab } from "../types";
 import type { MeetingV2Schedule } from "../types/meetings";
 
@@ -91,6 +96,10 @@ export default function MeetingDetailV2Page() {
     variant: "outline" as const,
   };
 
+  const joinUrl = (m as { join_url?: string | null; zoom_join_url?: string | null }).join_url
+    || (m as { join_url?: string | null; zoom_join_url?: string | null }).zoom_join_url;
+  const hasJoinLink = !!joinUrl?.trim();
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -111,6 +120,42 @@ export default function MeetingDetailV2Page() {
           </div>
         </div>
       </div>
+
+      {hasJoinLink && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Video className="h-4 w-4" />
+              Join meeting
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={() => window.open(joinUrl!, "_blank")}
+              className="gap-2"
+            >
+              <Video className="h-4 w-4" />
+              Join meeting
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!joinUrl) return;
+                try {
+                  await navigator.clipboard.writeText(joinUrl);
+                  toast.success("Join link copied to clipboard");
+                } catch {
+                  toast.error("Failed to copy link");
+                }
+              }}
+              className="gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy link
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as MeetingDetailTab)}>
         <TabsList>
@@ -221,6 +266,7 @@ function InfoRow({
 }
 
 function ParticipantsV2Tab({ meetingId }: { meetingId: string }) {
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const { data: participants = [], isLoading } = useMeetingParticipantsV2(meetingId);
 
   if (isLoading) {
@@ -231,40 +277,50 @@ function ParticipantsV2Tab({ meetingId }: { meetingId: string }) {
     );
   }
 
-  if (participants.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          No participants added yet.
-        </CardContent>
-      </Card>
-    );
-  }
+  const displayName = (p: { external_name?: string | null; external_email?: string | null; name?: string | null; email?: string | null; user_id?: string | null }) =>
+    p.external_name || p.name || p.external_email || p.email || (p.user_id ? "User" : "—");
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">Participants</CardTitle>
+        <Button size="sm" onClick={() => setAddDialogOpen(true)} className="gap-1.5">
+          <Plus className="h-4 w-4" />
+          Add participant
+        </Button>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-2">
-          {participants.map((p) => (
-            <li
-              key={p.id}
-              className="flex items-center justify-between py-2 border-b last:border-0"
-            >
-              <span className="font-medium">
-                {p.external_name || p.external_email || (p.user_id ? "User" : "—")}
-              </span>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">{p.role}</Badge>
-                <Badge variant="secondary">{p.status}</Badge>
-                {p.attended && <Badge variant="default">Attended</Badge>}
-              </div>
-            </li>
-          ))}
-        </ul>
+        {participants.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">
+            <p className="mb-4">No participants added yet.</p>
+            <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Add participant
+            </Button>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {participants.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center justify-between py-2 border-b last:border-0"
+              >
+                <span className="font-medium">{displayName(p)}</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{p.role}</Badge>
+                  <Badge variant="secondary">{p.status}</Badge>
+                  {p.attended && <Badge variant="default">Attended</Badge>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </CardContent>
+      <AddParticipantDialog
+        meetingId={meetingId}
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+      />
     </Card>
   );
 }

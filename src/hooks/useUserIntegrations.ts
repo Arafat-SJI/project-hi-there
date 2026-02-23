@@ -158,10 +158,12 @@ export function useAvailableUserProviders() {
 // Initiate OAuth connection for a provider
 export function useConnectOAuth() {
   return useMutation({
-    mutationFn: async ({ provider }: { provider: string }) => {
+    mutationFn: async ({ provider, redirect_uri }: { provider: string; redirect_uri?: string }) => {
       // Call edge function to get OAuth URL
+      const body: { provider: string; redirect_uri?: string } = { provider };
+      if (redirect_uri != null && redirect_uri !== '') body.redirect_uri = redirect_uri;
       const { data, error } = await supabase.functions.invoke('user-oauth-connect', {
-        body: { provider },
+        body,
       });
 
       if (error) throw error;
