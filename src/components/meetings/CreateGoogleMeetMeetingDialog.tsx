@@ -47,10 +47,15 @@ import { cn } from "@/lib/utils";
 interface CreateGoogleMeetMeetingDialogProps {
   trigger?: React.ReactNode;
   onSuccess?: (joinUrl: string, meetingId: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function CreateGoogleMeetMeetingDialog({ trigger, onSuccess }: CreateGoogleMeetMeetingDialogProps) {
-  const [open, setOpen] = useState(false);
+export function CreateGoogleMeetMeetingDialog({ trigger, onSuccess, open: controlledOpen, onOpenChange: controlledOnOpenChange }: CreateGoogleMeetMeetingDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined && controlledOnOpenChange !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
   const [attendeeInput, setAttendeeInput] = useState("");
   const [attendeeError, setAttendeeError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -188,14 +193,16 @@ export function CreateGoogleMeetMeetingDialog({ trigger, onSuccess }: CreateGoog
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button>
-            <Video className="mr-2 h-4 w-4" />
-            Create Google Meet Meeting
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button>
+              <Video className="mr-2 h-4 w-4" />
+              Create Google Meet Meeting
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

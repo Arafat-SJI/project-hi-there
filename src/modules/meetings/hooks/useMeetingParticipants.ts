@@ -85,6 +85,7 @@ export function useAddParticipant() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PARTICIPANTS_KEY, variables.meetingId] });
+      queryClient.invalidateQueries({ queryKey: ["meetings-v2", "participants", variables.meetingId] });
       toast.success("Participant added");
     },
     onError: (error: Error) => {

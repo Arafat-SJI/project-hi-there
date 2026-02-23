@@ -2,7 +2,7 @@
  * Create Meeting Dialog
  *
  * Dialog form for creating a new meeting in meetings_v2 table.
- * Includes title, type, datetime, duration, location, participants.
+ * Includes platform picker (Zoom, Microsoft Teams, Google Meet), then in-app meeting form.
  */
 
 import { useState } from "react";
@@ -25,27 +25,116 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2 } from "lucide-react";
+import { Loader2, Video, CheckCircle2 } from "lucide-react";
 import { useCreateMeetingV2 } from "../../hooks/useMeetingsV2";
 import DateTimePicker from "../common/DateTimePicker";
 import type { MeetingType } from "../../types/meetings";
+import { useIntegrationProvider, useOrganizationIntegration } from "@/hooks/useIntegrations";
+import { useUserOAuthToken, useHasValidToken, useConnectOAuth } from "@/hooks/useUserIntegrations";
+import { cn } from "@/lib/utils";
+
+export type MeetingPlatformSlug = "zoom" | "microsoft-teams" | "google-meet";
+
+const PLATFORMS: {
+  slug: MeetingPlatformSlug;
+  label: string;
+  connectLabel: string;
+  providerSlug: string; // for OAuth/token (microsoft-teams and microsoft both valid for Teams)
+  buttonClass: string;
+}[] = [
+  { slug: "zoom", label: "Zoom", connectLabel: "Connect with Zoom", providerSlug: "zoom", buttonClass: "bg-[#2D8CFF] hover:bg-[#2D8CFF]/90" },
+  { slug: "microsoft-teams", label: "Microsoft Teams", connectLabel: "Connect with Microsoft", providerSlug: "microsoft-teams", buttonClass: "bg-[#5B5FC7] hover:bg-[#5B5FC7]/90" },
+  { slug: "google-meet", label: "Google Meet", connectLabel: "Connect with Google", providerSlug: "google-meet", buttonClass: "bg-[#EA4335] hover:bg-[#EA4335]/90" },
+];
 
 interface CreateMeetingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSelectPlatform?: (platform: MeetingPlatformSlug) => void;
+}
+
+function PlatformCard({
+  platform,
+  isOrgEnabled,
+  isConnected,
+  isConnecting,
+  onConnect,
+  onOpenChange,
+  onSelectPlatform,
+}: {
+  platform: (typeof PLATFORMS)[number];
+  isOrgEnabled: boolean;
+  isConnected: boolean;
+  isConnecting: boolean;
+  onConnect: (providerSlug: string) => void;
+  onOpenChange: (open: boolean) => void;
+  onSelectPlatform?: (platform: MeetingPlatformSlug) => void;
+}) {
+  const handleCreateWith = () => {
+    onSelectPlatform?.(platform.slug);
+    onOpenChange(false);
+  };
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border p-4 flex flex-col gap-3 min-h-[100px]",
+        "bg-card text-card-foreground"
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-medium">{platform.label}</span>
+        {isConnected && (
+          <span className="text-xs font-medium text-green-600 dark:text-green-400 flex items-center gap-1">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Connected
+          </span>
+        )}
+      </div>
+      <div className="mt-auto">
+        {isConnected ? (
+          <Button
+            type="button"
+            size="sm"
+            className="w-full"
+            onClick={handleCreateWith}
+          >
+            <Video className="mr-2 h-4 w-4" />
+            Create with {platform.label}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            className={cn("w-full text-white", platform.buttonClass)}
+            disabled={!isOrgEnabled || isConnecting}
+            onClick={() => onConnect(platform.providerSlug)}
+          >
+            {isConnecting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Video className="mr-2 h-4 w-4" />
+            )}
+            {platform.connectLabel}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function CreateMeetingDialog({
   open,
   onOpenChange,
+  onSelectPlatform,
 }: CreateMeetingDialogProps) {
   const createMeeting = useCreateMeetingV2();
+  const connectOAuth = useConnectOAuth();
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState<MeetingType>("internal");
   const [description, setDescription] = useState("");
   const [scheduledAt, setScheduledAt] = useState(() => {
-    // Default to 1 hour from now, rounded to next 15 minutes
     const now = new Date();
     now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15);
     now.setHours(now.getHours() + 1);
@@ -56,6 +145,44 @@ export default function CreateMeetingDialog({
   const [durationMinutes, setDurationMinutes] = useState("60");
   const [location, setLocation] = useState("");
   const [notifyParticipants, setNotifyParticipants] = useState(false);
+
+  const returnUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/meetings/schedule?openCreate=1`
+    : "";
+
+  const { data: zoomProvider } = useIntegrationProvider("zoom");
+  const { data: teamsProvider } = useIntegrationProvider("microsoft-teams");
+  const { data: googleMeetProvider } = useIntegrationProvider("google-meet");
+
+  const zoomOrg = useOrganizationIntegration(zoomProvider?.id || "");
+  const teamsOrg = useOrganizationIntegration(teamsProvider?.id || "");
+  const googleMeetOrg = useOrganizationIntegration(googleMeetProvider?.id || "");
+
+  const { data: zoomToken } = useUserOAuthToken("zoom");
+  const { data: teamsTokenNew } = useUserOAuthToken("microsoft-teams");
+  const { data: teamsTokenLegacy } = useUserOAuthToken("microsoft");
+  const { data: googleMeetToken } = useUserOAuthToken("google-meet");
+
+  const zoomValid = useHasValidToken("zoom");
+  const teamsValidNew = useHasValidToken("microsoft-teams");
+  const teamsValidLegacy = useHasValidToken("microsoft");
+  const googleMeetValid = useHasValidToken("google-meet");
+
+  const isZoomConnected = !!zoomToken && zoomValid.hasValidToken;
+  const isTeamsConnected =
+    (!!teamsTokenNew && teamsValidNew.hasValidToken) ||
+    (!!teamsTokenLegacy && teamsValidLegacy.hasValidToken);
+  const isGoogleMeetConnected = !!googleMeetToken && googleMeetValid.hasValidToken;
+
+  const platformConnectionState = {
+    zoom: { isOrgEnabled: !!zoomOrg.data?.enabled && zoomOrg.data?.connection_status === "connected", isConnected: isZoomConnected },
+    "microsoft-teams": { isOrgEnabled: !!teamsOrg.data?.enabled && teamsOrg.data?.connection_status === "connected", isConnected: isTeamsConnected },
+    "google-meet": { isOrgEnabled: !!googleMeetOrg.data?.enabled && googleMeetOrg.data?.connection_status === "connected", isConnected: isGoogleMeetConnected },
+  };
+
+  const handleConnect = (providerSlug: string) => {
+    connectOAuth.mutate({ provider: providerSlug, redirect_uri: returnUrl });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +203,6 @@ export default function CreateMeetingDialog({
         notify_participants: notifyParticipants,
       });
 
-      // Reset form
       setTitle("");
       setType("internal");
       setDescription("");
@@ -105,8 +231,30 @@ export default function CreateMeetingDialog({
           <DialogTitle>Create New Meeting</DialogTitle>
         </DialogHeader>
 
+        {/* Choose meeting platform */}
+        <div className="space-y-2">
+          <Label>Choose meeting platform</Label>
+          <div className="grid grid-cols-3 gap-3">
+            {PLATFORMS.map((platform) => (
+              <PlatformCard
+                key={platform.slug}
+                platform={platform}
+                isOrgEnabled={platformConnectionState[platform.slug].isOrgEnabled}
+                isConnected={platformConnectionState[platform.slug].isConnected}
+                isConnecting={connectOAuth.isPending}
+                onConnect={handleConnect}
+                onOpenChange={onOpenChange}
+                onSelectPlatform={onSelectPlatform}
+              />
+            ))}
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          Or create an in-app meeting below (no video platform).
+        </p>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">
               Title <span className="text-destructive">*</span>
@@ -121,7 +269,6 @@ export default function CreateMeetingDialog({
             />
           </div>
 
-          {/* Type */}
           <div className="space-y-2">
             <Label htmlFor="type">Type</Label>
             <Select value={type} onValueChange={(v) => setType(v as MeetingType)}>
@@ -138,7 +285,6 @@ export default function CreateMeetingDialog({
             </Select>
           </div>
 
-          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -151,7 +297,6 @@ export default function CreateMeetingDialog({
             />
           </div>
 
-          {/* Date & Time */}
           <div className="space-y-2">
             <Label>
               Date & Time <span className="text-destructive">*</span>
@@ -164,7 +309,6 @@ export default function CreateMeetingDialog({
             />
           </div>
 
-          {/* Duration */}
           <div className="space-y-2">
             <Label htmlFor="duration">Duration (minutes)</Label>
             <Input
@@ -179,7 +323,6 @@ export default function CreateMeetingDialog({
             />
           </div>
 
-          {/* Location */}
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
             <Input
@@ -191,7 +334,6 @@ export default function CreateMeetingDialog({
             />
           </div>
 
-          {/* Notify Participants */}
           <div className="flex items-center space-x-2">
             <Checkbox
               id="notify"
@@ -225,4 +367,3 @@ export default function CreateMeetingDialog({
     </Dialog>
   );
 }
-

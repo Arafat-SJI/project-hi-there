@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,11 @@ import { useMeetingsV2 } from "../hooks/useMeetingsV2";
 import { useCalendarMeetingsV2 } from "../hooks/useCalendarMeetings";
 import { MeetingsCalendar } from "../components/calendar/MeetingsCalendar";
 import CreateMeetingDialog from "../components/dialogs/CreateMeetingDialog";
+import type { MeetingPlatformSlug } from "../components/dialogs/CreateMeetingDialog";
 import type { MeetingV2Schedule, MeetingType } from "../types/meetings";
+import { CreateZoomMeetingDialog } from "@/components/meetings/CreateZoomMeetingDialog";
+import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeetingDialog";
+import { CreateGoogleMeetMeetingDialog } from "@/components/meetings/CreateGoogleMeetMeetingDialog";
 
 const VIEW_MODE_KEY = "meetings-view-mode";
 type ViewMode = "list" | "calendar";
@@ -100,13 +104,37 @@ export default function MeetingsSchedulePage() {
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [myMeetingsOnly, setMyMeetingsOnly] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
+  const [teamsDialogOpen, setTeamsDialogOpen] = useState(false);
+  const [googleMeetDialogOpen, setGoogleMeetDialogOpen] = useState(false);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
 
   useEffect(() => {
     setStoredViewMode(view);
   }, [view]);
+
+  // Open create dialog when URL has openCreate=1 or connected (return from OAuth)
+  useEffect(() => {
+    const openCreate = searchParams.get("openCreate");
+    const connected = searchParams.get("connected");
+    if (openCreate === "1" || connected) {
+      setCreateDialogOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("openCreate");
+      next.delete("connected");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const handleSelectPlatform = (platform: MeetingPlatformSlug) => {
+    setCreateDialogOpen(false);
+    if (platform === "zoom") setZoomDialogOpen(true);
+    else if (platform === "microsoft-teams") setTeamsDialogOpen(true);
+    else if (platform === "google-meet") setGoogleMeetDialogOpen(true);
+  };
 
   const { data: meetings = [], isLoading } = useMeetingsV2({
     tab,
@@ -482,7 +510,23 @@ export default function MeetingsSchedulePage() {
 
       </Tabs>
 
-      <CreateMeetingDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      <CreateMeetingDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSelectPlatform={handleSelectPlatform}
+      />
+      <CreateZoomMeetingDialog
+        open={zoomDialogOpen}
+        onOpenChange={setZoomDialogOpen}
+      />
+      <CreateTeamsMeetingDialog
+        open={teamsDialogOpen}
+        onOpenChange={setTeamsDialogOpen}
+      />
+      <CreateGoogleMeetMeetingDialog
+        open={googleMeetDialogOpen}
+        onOpenChange={setGoogleMeetDialogOpen}
+      />
     </div>
   );
 }
