@@ -55,6 +55,7 @@ import type { MeetingV2Schedule, MeetingType } from "../types/meetings";
 import { CreateZoomMeetingDialog } from "@/components/meetings/CreateZoomMeetingDialog";
 import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeetingDialog";
 import { CreateGoogleMeetMeetingDialog } from "@/components/meetings/CreateGoogleMeetMeetingDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const VIEW_MODE_KEY = "meetings-view-mode";
 type ViewMode = "list" | "calendar";
@@ -98,6 +99,7 @@ function setStoredViewMode(mode: ViewMode): void {
 
 export default function MeetingsSchedulePage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [view, setView] = useState<ViewMode>(getStoredViewMode);
   const [tab, setTab] = useState<TabFilter>("today");
   const [typeFilter, setTypeFilter] = useState<MeetingType | "all">("all");
@@ -122,12 +124,18 @@ export default function MeetingsSchedulePage() {
     const connected = searchParams.get("connected");
     if (openCreate === "1" || connected) {
       setCreateDialogOpen(true);
+      if (connected) {
+        toast({
+          title: "Connected",
+          description: "Click **Create meeting** on your connected platform in the dialog to continue.",
+        });
+      }
       const next = new URLSearchParams(searchParams);
       next.delete("openCreate");
       next.delete("connected");
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, toast]);
 
   const handleSelectPlatform = (platform: MeetingPlatformSlug) => {
     setCreateDialogOpen(false);
