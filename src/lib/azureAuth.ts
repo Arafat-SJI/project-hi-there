@@ -15,6 +15,8 @@ import { openMicrosoftAuthWindow, clearAuthWindowState } from './msalAuthWindow'
 // Key for storing pending redirect state
 const MSAL_REDIRECT_KEY = 'msal_redirect_pending';
 const MSAL_RESPONSE_KEY = 'msal_auth_response';
+/** Graph token from "Connect with Microsoft" (Teams) flow only - never use app sign-in token for Graph */
+export const MSAL_GRAPH_RESPONSE_KEY = 'msal_graph_response';
 
 /**
  * Handle the redirect response after returning from Microsoft login
@@ -69,6 +71,29 @@ export function clearStoredMSALResponse(): void {
 }
 
 /**
+ * Get stored token from "Connect with Microsoft" (Graph) flow only.
+ * Use this for Graph API calls so we never send app sign-in token to Graph.
+ */
+export function getStoredGraphResponse(): { accessToken: string; account: any; idToken?: string } | null {
+  const stored = sessionStorage.getItem(MSAL_GRAPH_RESPONSE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Clear the stored Graph response (call when user disconnects Teams)
+ */
+export function clearStoredGraphResponse(): void {
+  sessionStorage.removeItem(MSAL_GRAPH_RESPONSE_KEY);
+}
+
+/**
  * Check if a redirect is pending (user initiated login but hasn't returned yet)
  */
 export function isRedirectPending(): boolean {
@@ -106,9 +131,10 @@ export async function acquireTokenSilently(): Promise<AuthenticationResult | nul
 
 /**
  * Initiate Azure login via new window (works in iframes)
- * Opens a new window for authentication
+ * Opens a new window for authentication.
+ * Pass preOpenedWindow when the popup was opened synchronously on user click (e.g. from meetings/schedule) to avoid popup blockers.
  */
-export async function initiateAzureLoginRedirect(): Promise<{
+export async function initiateAzureLoginRedirect(preOpenedWindow?: Window | null): Promise<{
   accessToken: string;
   account: any;
   idToken?: string;
@@ -128,12 +154,16 @@ export async function initiateAzureLoginRedirect(): Promise<{
       
       // If silent acquisition succeeds, store the result and return
       if (silentResult) {
+        if (preOpenedWindow && !preOpenedWindow.closed) {
+          preOpenedWindow.close();
+        }
         const result = {
           accessToken: silentResult.accessToken,
           account: silentResult.account,
           idToken: silentResult.idToken,
         };
         sessionStorage.setItem(MSAL_RESPONSE_KEY, JSON.stringify(result));
+        sessionStorage.setItem(MSAL_GRAPH_RESPONSE_KEY, JSON.stringify(result));
         return result;
       }
     } catch (error) {
@@ -144,10 +174,11 @@ export async function initiateAzureLoginRedirect(): Promise<{
     }
   }
 
-  // Open new window for authentication
+  // Open new window for authentication (or use pre-opened window)
   try {
-    const result = await openMicrosoftAuthWindow();
+    const result = await openMicrosoftAuthWindow(preOpenedWindow);
     sessionStorage.setItem(MSAL_RESPONSE_KEY, JSON.stringify(result));
+    sessionStorage.setItem(MSAL_GRAPH_RESPONSE_KEY, JSON.stringify(result));
     return result;
   } catch (error) {
     clearAuthWindowState();

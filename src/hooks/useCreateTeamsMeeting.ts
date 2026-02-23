@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { createOnlineMeeting, CreatedTeamsMeeting } from "@/lib/microsoftTeamsMeetingService";
 import { CreateTeamsMeetingInput, createTeamsMeetingSchema } from "@/lib/validation";
 import { z } from "zod";
-import { ForbiddenError } from "@/lib/microsoftGraphClient";
+import { ForbiddenError, UnauthorizedError } from "@/lib/microsoftGraphClient";
 
 export interface CreateTeamsMeetingResult {
   meeting: CreatedTeamsMeeting;
@@ -130,6 +130,9 @@ export function useCreateTeamsMeeting() {
       if (error instanceof z.ZodError) {
         description = error.errors.map(e => e.message).join(', ');
         title = "Validation Error";
+      } else if (error instanceof UnauthorizedError || error.message?.includes('disconnect and reconnect')) {
+        description = error.message;
+        title = "Reconnect Microsoft Account";
       } else if (error instanceof ForbiddenError || error.message?.includes('OnlineMeetings.ReadWrite')) {
         description = "Missing permission. Please disconnect and reconnect your Microsoft account to grant OnlineMeetings.ReadWrite permission.";
         title = "Permission Required";

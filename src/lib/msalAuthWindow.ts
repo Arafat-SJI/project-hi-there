@@ -3,7 +3,7 @@
  * Opens a new window for MSAL authentication using Authorization Code + PKCE flow
  */
 
-import { loginRequest } from './msalConfig';
+import { graphScopesForPKCE } from './msalConfig';
 
 // Key for storing auth window state
 const AUTH_WINDOW_KEY = 'msal_auth_window_pending';
@@ -78,7 +78,7 @@ async function exchangeCodeForTokens(
   
   const params = new URLSearchParams({
     client_id: clientId,
-    scope: loginRequest.scopes.join(' '),
+    scope: graphScopesForPKCE.join(' '),
     code: code,
     redirect_uri: redirectUri,
     grant_type: 'authorization_code',
@@ -160,66 +160,62 @@ export function storeAuthResult(data: MSALAuthMessage): void {
 
 /**
  * Open Microsoft login in a new window using PKCE flow
- * Returns a promise that resolves when authentication completes
+ * Returns a promise that resolves when authentication completes.
+ * Pass preOpenedWindow when the popup was already opened synchronously (e.g. on user click) to avoid popup blockers.
  */
-export async function openMicrosoftAuthWindow(): Promise<MSALAuthResult> {
+export async function openMicrosoftAuthWindow(preOpenedWindow?: Window | null): Promise<MSALAuthResult> {
   // Generate PKCE values
   const codeVerifier = generateCodeVerifier();
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-  
-  // Store code verifier for token exchange
   sessionStorage.setItem(CODE_VERIFIER_KEY, codeVerifier);
-  
-  // Clear any previous auth result
   sessionStorage.removeItem(AUTH_RESULT_KEY);
 
-  return new Promise((resolve, reject) => {
-    // Calculate window position (center of screen)
-    const width = 500;
-    const height = 700;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    
-    // Build the Microsoft authorization URL
-    const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID || '';
-    // Use current origin for redirect - this ensures same-origin communication
-    const redirectUri = window.location.origin + '/auth-callback';
-    const scopes = loginRequest.scopes.join(' ');
-    const state = crypto.randomUUID();
-    
-    // Store state for validation
-    sessionStorage.setItem('msal_state', state);
-    
-    const params = new URLSearchParams({
-      client_id: clientId,
-      response_type: 'code',
-      redirect_uri: redirectUri,
-      scope: scopes,
-      state: state,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-      response_mode: 'query',
-    });
-    
-    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
-    
-    console.log('Opening Microsoft auth with redirect URI:', redirectUri);
-    
-    // Open new window directly to Microsoft login
-    const authWindow = window.open(
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  // Calculate window position (center of screen)
+  const width = 500;
+  const height = 700;
+  const left = window.screenX + (window.outerWidth - width) / 2;
+  const top = window.screenY + (window.outerHeight - height) / 2;
+
+  const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID || '';
+  const redirectUri = window.location.origin + '/auth-callback';
+  const scopes = graphScopesForPKCE.join(' ');
+  const state = crypto.randomUUID();
+  sessionStorage.setItem('msal_state', state);
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: redirectUri,
+    scope: scopes,
+    state: state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+    response_mode: 'query',
+  });
+  const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
+  console.log('Opening Microsoft auth with redirect URI:', redirectUri);
+
+  let authWindow: Window | null;
+  if (preOpenedWindow && !preOpenedWindow.closed) {
+    authWindow = preOpenedWindow;
+    authWindow.location.href = authUrl;
+  } else {
+    authWindow = window.open(
       authUrl,
       'microsoft-auth',
       `width=${width},height=${height},left=${left},top=${top},popup=yes`
     );
-    
-    if (!authWindow) {
-      sessionStorage.removeItem(CODE_VERIFIER_KEY);
-      reject(new Error('Failed to open authentication window. Please allow popups for this site.'));
-      return;
-    }
-    
-    // Mark that we have an auth window open
-    sessionStorage.setItem(AUTH_WINDOW_KEY, 'true');
+  }
+
+  if (!authWindow || authWindow.closed) {
+    sessionStorage.removeItem(CODE_VERIFIER_KEY);
+    throw new Error('Failed to open authentication window. Please allow popups for this site.');
+  }
+
+  sessionStorage.setItem(AUTH_WINDOW_KEY, 'true');
+
+  return new Promise((resolve, reject) => {
     
     const startTime = Date.now();
     let resolved = false;

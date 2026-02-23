@@ -60,6 +60,27 @@ export const loginRequest = {
   ],
 };
 
+/** Graph resource URL - token with this audience is accepted by Microsoft Graph */
+const GRAPH_RESOURCE = 'https://graph.microsoft.com';
+
+/**
+ * Scopes for PKCE/authorization_code flow using full Graph URLs so the issued token has aud = graph.microsoft.com.
+ * Use this in msalAuthWindow (authorize + token exchange) to avoid "Error authenticating with resource".
+ */
+export const graphScopesForPKCE = [
+  'openid',
+  'profile',
+  'email',
+  `${GRAPH_RESOURCE}/User.Read`,
+  `${GRAPH_RESOURCE}/Team.ReadBasic.All`,
+  `${GRAPH_RESOURCE}/Channel.ReadBasic.All`,
+  `${GRAPH_RESOURCE}/ChannelMessage.Read.All`,
+  `${GRAPH_RESOURCE}/ChannelMessage.Send`,
+  `${GRAPH_RESOURCE}/OnlineMeetings.ReadWrite`,
+  `${GRAPH_RESOURCE}/Calendars.Read`,
+  `${GRAPH_RESOURCE}/Calendars.ReadWrite`,
+];
+
 // Create MSAL instance
 let msalInstance: PublicClientApplication | null = null;
 let initializationPromise: Promise<void> | null = null;

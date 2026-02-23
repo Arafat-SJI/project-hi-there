@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { 
   initiateAzureLoginRedirect, 
   getStoredMSALResponse, 
-  completeAzureLoginFromRedirect 
+  completeAzureLoginFromRedirect,
+  clearStoredGraphResponse,
 } from "@/lib/azureAuth";
 import { validateMSALConfig, getMSALInstance } from "@/lib/msalConfig";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +27,8 @@ import {
   GraphUser, 
   TokenMetadata,
   GraphError,
-  getAccessToken 
+  getAccessToken,
+  getTokenMetadata,
 } from "@/lib/microsoftGraphClient";
 import { useMicrosoftTeams } from "@/hooks/useMicrosoftTeams";
 import { useMicrosoftTeamsChannels } from "@/hooks/useMicrosoftTeamsChannels";
@@ -49,6 +51,9 @@ export default function MicrosoftTeamsIntegration() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const returnTo = searchParams.get("returnTo");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isConnected, setIsConnected] = useState(false);
@@ -175,6 +180,38 @@ export default function MicrosoftTeamsIntegration() {
                 title: "Connected successfully!",
                 description: "Your Microsoft account has been connected.",
               });
+
+              // If we were sent here from e.g. Create Meeting dialog, store token for user_oauth_tokens and redirect back
+              if (returnTo && storedResponse?.accessToken) {
+                try {
+                  const metadata = getTokenMetadata(storedResponse.accessToken);
+                  const expires_in = metadata
+                    ? Math.max(60, Math.round((metadata.expiresAt.getTime() - Date.now()) / 1000))
+                    : 3600;
+                  const { error: storeError } = await supabase.functions.invoke("user-oauth-store-token", {
+                    body: {
+                      provider: "microsoft-teams",
+                      access_token: storedResponse.accessToken,
+                      expires_in,
+                      account_email: storedResponse.account?.username ?? undefined,
+                      account_name: storedResponse.account?.name ?? undefined,
+                    },
+                  });
+                  if (storeError) {
+                    console.error("Failed to store token for return flow:", storeError);
+                    toast({
+                      title: "Connection saved",
+                      description: "Redirecting you back.",
+                    });
+                  }
+                  navigate(returnTo, { replace: true });
+                  return;
+                } catch (storeErr) {
+                  console.error("Error storing token:", storeErr);
+                  navigate(returnTo, { replace: true });
+                  return;
+                }
+              }
             }
           } catch (err: any) {
             console.error('Error completing redirect login:', err);
@@ -339,6 +376,7 @@ export default function MicrosoftTeamsIntegration() {
 
       // 2. Clear only MSAL-related sessionStorage items (not all sessionStorage)
       sessionStorage.removeItem('msal_auth_response');
+      clearStoredGraphResponse();
       sessionStorage.removeItem('msal_redirect_pending');
       sessionStorage.removeItem('msal_auth_window_pending');
       sessionStorage.removeItem('msal_code_verifier');
