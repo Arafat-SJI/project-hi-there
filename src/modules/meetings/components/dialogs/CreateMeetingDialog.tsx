@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Video, CheckCircle2, CalendarPlus, ArrowLeft } from "lucide-react";
+import { Loader2, Video, CheckCircle2, CalendarDays, ArrowLeft } from "lucide-react";
 import { useCreateMeetingV2 } from "../../hooks/useMeetingsV2";
 import DateTimePicker from "../common/DateTimePicker";
 import type { MeetingType } from "../../types/meetings";
@@ -87,8 +87,8 @@ function PlatformCard({
         "rounded-xl border bg-card text-card-foreground p-4 flex flex-col gap-4 min-h-[120px] min-w-0"
       )}
     >
-      <div className="flex items-center justify-between gap-2 min-w-0">
-        <span className="font-medium truncate">{platform.label}</span>
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <span className="font-medium break-words line-clamp-2">{platform.label}</span>
         {isConnected && (
           <span className="text-xs font-medium text-green-600 dark:text-green-400 flex items-center gap-1 shrink-0">
             <CheckCircle2 className="h-3.5 w-3.5" />
@@ -100,12 +100,13 @@ function PlatformCard({
         {isConnected ? (
           <Button
             type="button"
-            size="sm"
-            className="w-full shrink-0"
+            size="default"
+            variant="default"
+            className="w-full shrink-0 font-medium"
             onClick={handleCreateWith}
           >
             <Video className="mr-2 h-4 w-4 shrink-0" />
-            <span className="truncate">Create with {platform.label}</span>
+            <span>Create meeting</span>
           </Button>
         ) : (
           <Button
@@ -316,7 +317,14 @@ export default function CreateMeetingDialog({
           <>
             {/* Step 1: Only platform picker */}
             <div className="space-y-3">
-              <Label className="text-base">Choose meeting platform</Label>
+              <div>
+                <Label className="text-base">Choose meeting platform</Label>
+                {Object.values(platformConnectionState).some((s) => s.isConnected) && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Click <strong className="text-foreground">Create meeting</strong> on a connected platform to open the meeting form.
+                  </p>
+                )}
+              </div>
               <div className="grid grid-cols-3 gap-4 min-w-0">
                 {PLATFORMS.map((platform) => (
                   <PlatformCard
@@ -342,7 +350,7 @@ export default function CreateMeetingDialog({
                 onClick={() => setShowInAppForm(true)}
                 className="flex items-center gap-2 w-full rounded-lg py-3 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               >
-                <CalendarPlus className="h-4 w-4 shrink-0" />
+                <CalendarDays className="h-4 w-4 shrink-0" />
                 <span>Create an in-app meeting (no video platform)</span>
               </button>
             </div>
