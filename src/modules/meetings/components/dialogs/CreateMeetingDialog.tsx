@@ -43,7 +43,7 @@ const PLATFORMS: {
   buttonClass: string;
 }[] = [
   { slug: "zoom", label: "Zoom", connectLabel: "Connect with Zoom", providerSlug: "zoom", buttonClass: "bg-[#2D8CFF] hover:bg-[#2D8CFF]/90" },
-  { slug: "microsoft-teams", label: "Microsoft Teams", connectLabel: "Connect with Microsoft", providerSlug: "microsoft-teams", buttonClass: "bg-[#5B5FC7] hover:bg-[#5B5FC7]/90" },
+  { slug: "microsoft-teams", label: "Microsoft Teams", connectLabel: "Connect with Microsoft", providerSlug: "microsoft", buttonClass: "bg-[#5B5FC7] hover:bg-[#5B5FC7]/90" },
   { slug: "google-meet", label: "Google Meet", connectLabel: "Connect with Google", providerSlug: "google-meet", buttonClass: "bg-[#EA4335] hover:bg-[#EA4335]/90" },
 ];
 
