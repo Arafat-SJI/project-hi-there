@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,12 +26,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Video, CheckCircle2 } from "lucide-react";
+import { Loader2, Video, CheckCircle2, CalendarPlus, ArrowLeft } from "lucide-react";
 import { useCreateMeetingV2 } from "../../hooks/useMeetingsV2";
 import DateTimePicker from "../common/DateTimePicker";
 import type { MeetingType } from "../../types/meetings";
 import { useIntegrationProvider, useOrganizationIntegration } from "@/hooks/useIntegrations";
 import { useUserOAuthToken, useHasValidToken, useConnectOAuth } from "@/hooks/useUserIntegrations";
+import { useToast } from "@/hooks/use-toast";
+import { initiateAzureLoginRedirect } from "@/lib/azureAuth";
+import { validateMSALConfig } from "@/lib/msalConfig";
+import { getTokenMetadata } from "@/lib/microsoftGraphClient";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export type MeetingPlatformSlug = "zoom" | "microsoft-teams" | "google-meet";
@@ -42,9 +48,9 @@ const PLATFORMS: {
   providerSlug: string; // for OAuth/token (microsoft-teams and microsoft both valid for Teams)
   buttonClass: string;
 }[] = [
-  { slug: "zoom", label: "Zoom", connectLabel: "Connect with Zoom", providerSlug: "zoom", buttonClass: "bg-[#2D8CFF] hover:bg-[#2D8CFF]/90" },
-  { slug: "microsoft-teams", label: "Microsoft Teams", connectLabel: "Connect with Microsoft", providerSlug: "microsoft", buttonClass: "bg-[#5B5FC7] hover:bg-[#5B5FC7]/90" },
-  { slug: "google-meet", label: "Google Meet", connectLabel: "Connect with Google", providerSlug: "google-meet", buttonClass: "bg-[#EA4335] hover:bg-[#EA4335]/90" },
+  { slug: "zoom", label: "Zoom", connectLabel: "Connect", providerSlug: "zoom", buttonClass: "bg-[#2D8CFF] hover:bg-[#2D8CFF]/90" },
+  { slug: "microsoft-teams", label: "Microsoft Teams", connectLabel: "Connect", providerSlug: "microsoft", buttonClass: "bg-[#5B5FC7] hover:bg-[#5B5FC7]/90" },
+  { slug: "google-meet", label: "Google Meet", connectLabel: "Connect", providerSlug: "google-meet", buttonClass: "bg-[#EA4335] hover:bg-[#EA4335]/90" },
 ];
 
 interface CreateMeetingDialogProps {
@@ -78,14 +84,13 @@ function PlatformCard({
   return (
     <div
       className={cn(
-        "rounded-lg border p-4 flex flex-col gap-3 min-h-[100px]",
-        "bg-card text-card-foreground"
+        "rounded-xl border bg-card text-card-foreground p-4 flex flex-col gap-4 min-h-[120px] min-w-0"
       )}
     >
-      <div className="flex items-center justify-between">
-        <span className="font-medium">{platform.label}</span>
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <span className="font-medium truncate">{platform.label}</span>
         {isConnected && (
-          <span className="text-xs font-medium text-green-600 dark:text-green-400 flex items-center gap-1">
+          <span className="text-xs font-medium text-green-600 dark:text-green-400 flex items-center gap-1 shrink-0">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Connected
           </span>
@@ -96,26 +101,26 @@ function PlatformCard({
           <Button
             type="button"
             size="sm"
-            className="w-full"
+            className="w-full shrink-0"
             onClick={handleCreateWith}
           >
-            <Video className="mr-2 h-4 w-4" />
-            Create with {platform.label}
+            <Video className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">Create with {platform.label}</span>
           </Button>
         ) : (
           <Button
             type="button"
             size="sm"
-            className={cn("w-full text-white", platform.buttonClass)}
+            className={cn("w-full text-white shrink-0", platform.buttonClass)}
             disabled={!isOrgEnabled || isConnecting}
             onClick={() => onConnect(platform.providerSlug)}
           >
             {isConnecting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
             ) : (
-              <Video className="mr-2 h-4 w-4" />
+              <Video className="mr-2 h-4 w-4 shrink-0" />
             )}
-            {platform.connectLabel}
+            <span className="truncate">{platform.connectLabel}</span>
           </Button>
         )}
       </div>
@@ -128,8 +133,12 @@ export default function CreateMeetingDialog({
   onOpenChange,
   onSelectPlatform,
 }: CreateMeetingDialogProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const createMeeting = useCreateMeetingV2();
   const connectOAuth = useConnectOAuth();
+  const [connectingMicrosoft, setConnectingMicrosoft] = useState(false);
+  const [showInAppForm, setShowInAppForm] = useState(false);
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState<MeetingType>("internal");
@@ -180,7 +189,79 @@ export default function CreateMeetingDialog({
     "google-meet": { isOrgEnabled: !!googleMeetOrg.data?.enabled && googleMeetOrg.data?.connection_status === "connected", isConnected: isGoogleMeetConnected },
   };
 
-  const handleConnect = (providerSlug: string) => {
+  const handleConnect = async (providerSlug: string) => {
+    // Microsoft: same in-place flow as admin (MSAL popup). Open popup synchronously on click to avoid popup blockers when opened from dialog.
+    if (providerSlug === "microsoft" || providerSlug === "microsoft-teams") {
+      const width = 500;
+      const height = 700;
+      const left = typeof window !== "undefined" ? window.screenX + (window.outerWidth - width) / 2 : 0;
+      const top = typeof window !== "undefined" ? window.screenY + (window.outerHeight - height) / 2 : 0;
+      const popup = typeof window !== "undefined"
+        ? window.open("", "microsoft-auth", `width=${width},height=${height},left=${left},top=${top},popup=yes`)
+        : null;
+      if (typeof window !== "undefined" && (!popup || popup.closed)) {
+        toast({
+          title: "Popups blocked",
+          description: "Please allow popups for this site to connect with Microsoft.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setConnectingMicrosoft(true);
+      try {
+        const configValidation = validateMSALConfig();
+        if (!configValidation.valid) {
+          if (popup && !popup.closed) popup.close();
+          toast({
+            title: "Microsoft sign-in not configured",
+            description: configValidation.errors.join(". ") + " Configure in Admin or set VITE_MICROSOFT_CLIENT_ID.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const authResult = await initiateAzureLoginRedirect(popup ?? undefined);
+        if (authResult?.accessToken) {
+          const metadata = getTokenMetadata(authResult.accessToken);
+          const expires_in = metadata
+            ? Math.max(60, Math.round((metadata.expiresAt.getTime() - Date.now()) / 1000))
+            : 3600;
+          const { error: storeError } = await supabase.functions.invoke("user-oauth-store-token", {
+            body: {
+              provider: "microsoft-teams",
+              access_token: authResult.accessToken,
+              expires_in,
+              account_email: authResult.account?.username ?? undefined,
+              account_name: authResult.account?.name ?? undefined,
+            },
+          });
+          if (storeError) {
+            toast({
+              title: "Connection failed",
+              description: storeError.message || "Could not save Microsoft connection.",
+              variant: "destructive",
+            });
+            return;
+          }
+          queryClient.invalidateQueries({ queryKey: ["user-oauth-tokens"] });
+          queryClient.invalidateQueries({ queryKey: ["user-oauth-token"] });
+          queryClient.invalidateQueries({ queryKey: ["available-user-providers"] });
+          toast({
+            title: "Connected",
+            description: "Your Microsoft account is connected. You can create Teams meetings.",
+          });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Microsoft sign-in failed.";
+        toast({
+          title: "Connection failed",
+          description: message,
+          variant: "destructive",
+        });
+      } finally {
+        setConnectingMicrosoft(false);
+      }
+      return;
+    }
     connectOAuth.mutate({ provider: providerSlug, redirect_uri: returnUrl });
   };
 
@@ -225,36 +306,60 @@ export default function CreateMeetingDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) setShowInAppForm(false); onOpenChange(next); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Meeting</DialogTitle>
         </DialogHeader>
 
-        {/* Choose meeting platform */}
-        <div className="space-y-2">
-          <Label>Choose meeting platform</Label>
-          <div className="grid grid-cols-3 gap-3">
-            {PLATFORMS.map((platform) => (
-              <PlatformCard
-                key={platform.slug}
-                platform={platform}
-                isOrgEnabled={platformConnectionState[platform.slug].isOrgEnabled}
-                isConnected={platformConnectionState[platform.slug].isConnected}
-                isConnecting={connectOAuth.isPending}
-                onConnect={handleConnect}
-                onOpenChange={onOpenChange}
-                onSelectPlatform={onSelectPlatform}
-              />
-            ))}
-          </div>
-        </div>
-
-        <p className="text-sm text-muted-foreground">
-          Or create an in-app meeting below (no video platform).
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {!showInAppForm ? (
+          <>
+            {/* Step 1: Only platform picker */}
+            <div className="space-y-3">
+              <Label className="text-base">Choose meeting platform</Label>
+              <div className="grid grid-cols-3 gap-4 min-w-0">
+                {PLATFORMS.map((platform) => (
+                  <PlatformCard
+                    key={platform.slug}
+                    platform={platform}
+                    isOrgEnabled={platformConnectionState[platform.slug].isOrgEnabled}
+                    isConnected={platformConnectionState[platform.slug].isConnected}
+                    isConnecting={
+                      platform.slug === "microsoft-teams"
+                        ? connectingMicrosoft
+                        : connectOAuth.isPending
+                    }
+                    onConnect={handleConnect}
+                    onOpenChange={onOpenChange}
+                    onSelectPlatform={onSelectPlatform}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => setShowInAppForm(true)}
+                className="flex items-center gap-2 w-full rounded-lg py-3 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <CalendarPlus className="h-4 w-4 shrink-0" />
+                <span>Create an in-app meeting (no video platform)</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mb-2 -ml-2 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowInAppForm(false)}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to platform choice
+            </Button>
+            <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">
               Title <span className="text-destructive">*</span>
@@ -362,7 +467,9 @@ export default function CreateMeetingDialog({
               Create Meeting
             </Button>
           </DialogFooter>
-        </form>
+            </form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
