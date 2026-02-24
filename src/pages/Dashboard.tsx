@@ -7,9 +7,9 @@ import { useDashboardStats, useRecentActivity, getTimeAgo, useAITeamSummary } fr
 
 // Lazy-load role dashboards so they don't inflate the main bundle
 const OwnerDashboard = lazy(() => import("@/pages/dashboards/OwnerDashboard"));
+const OwnerDashboardWithEOS = lazy(() => import("@/pages/dashboards/OwnerDashboardWithEOS"));
 const PMDashboard = lazy(() => import("@/pages/dashboards/PMDashboard"));
 const ICDashboard = lazy(() => import("@/pages/dashboards/ICDashboard"));
-// OwnerDashboardWithEOS — added in Sprint 3
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -83,10 +83,9 @@ export default function Dashboard() {
   // Admins always see the full generic dashboard.
   if (!isAdmin) {
     if (agencyRole === "owner") {
-      // OwnerDashboardWithEOS (is_eos_user) wired in Sprint 3
       return (
         <Suspense fallback={<DashboardFallback />}>
-          <OwnerDashboard />
+          {isEosUser ? <OwnerDashboardWithEOS /> : <OwnerDashboard />}
         </Suspense>
       );
     }
