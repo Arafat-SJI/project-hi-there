@@ -264,10 +264,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logLogin("microsoft");
     } catch (error: any) {
       const authError = error as AuthError;
+      const isCancelled = authError?.message === "Authentication window was closed";
       toast({
-        title: "Microsoft sign in failed",
-        description: authError.message,
-        variant: "destructive",
+        title: isCancelled ? "Sign-in cancelled" : "Microsoft sign in failed",
+        description: isCancelled ? "You closed the sign-in window. Try again when you're ready." : authError.message,
+        variant: isCancelled ? "default" : "destructive",
       });
       throw error;
     }

@@ -234,6 +234,15 @@ export default function CreateMeetingDialog({
         }
         const authResult = await initiateAzureLoginRedirect(popup ?? undefined);
         if (authResult?.accessToken) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            toast({
+              title: "Session expired",
+              description: "Please log in again and try connecting Microsoft.",
+              variant: "destructive",
+            });
+            return;
+          }
           const metadata = getTokenMetadata(authResult.accessToken);
           const expires_in = metadata
             ? Math.max(60, Math.round((metadata.expiresAt.getTime() - Date.now()) / 1000))
@@ -265,10 +274,11 @@ export default function CreateMeetingDialog({
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Microsoft sign-in failed.";
+        const isCancelled = message === "Authentication window was closed";
         toast({
-          title: "Connection failed",
-          description: message,
-          variant: "destructive",
+          title: isCancelled ? "Sign-in cancelled" : "Connection failed",
+          description: isCancelled ? "You closed the sign-in window. Connect again when you're ready." : message,
+          variant: isCancelled ? "default" : "destructive",
         });
       } finally {
         setConnectingMicrosoft(false);

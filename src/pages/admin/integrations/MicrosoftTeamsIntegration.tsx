@@ -184,24 +184,38 @@ export default function MicrosoftTeamsIntegration() {
               // If we were sent here from e.g. Create Meeting dialog, store token for user_oauth_tokens and redirect back
               if (returnTo && storedResponse?.accessToken) {
                 try {
-                  const metadata = getTokenMetadata(storedResponse.accessToken);
-                  const expires_in = metadata
-                    ? Math.max(60, Math.round((metadata.expiresAt.getTime() - Date.now()) / 1000))
-                    : 3600;
-                  const { error: storeError } = await supabase.functions.invoke("user-oauth-store-token", {
-                    body: {
-                      provider: "microsoft-teams",
-                      access_token: storedResponse.accessToken,
-                      expires_in,
-                      account_email: storedResponse.account?.username ?? undefined,
-                      account_name: storedResponse.account?.name ?? undefined,
-                    },
-                  });
-                  if (storeError) {
-                    console.error("Failed to store token for return flow:", storeError);
+                  let { data: { session } } = await supabase.auth.getSession();
+                  if (!session) {
+                    await supabase.auth.refreshSession();
+                    const next = await supabase.auth.getSession();
+                    session = next.data.session;
+                  }
+                  if (session) {
+                    const metadata = getTokenMetadata(storedResponse.accessToken);
+                    const expires_in = metadata
+                      ? Math.max(60, Math.round((metadata.expiresAt.getTime() - Date.now()) / 1000))
+                      : 3600;
+                    const { error: storeError } = await supabase.functions.invoke("user-oauth-store-token", {
+                      body: {
+                        provider: "microsoft-teams",
+                        access_token: storedResponse.accessToken,
+                        expires_in,
+                        account_email: storedResponse.account?.username ?? undefined,
+                        account_name: storedResponse.account?.name ?? undefined,
+                      },
+                    });
+                    if (storeError) {
+                      console.error("Failed to store token for return flow:", storeError);
+                      toast({
+                        title: "Connection saved",
+                        description: "Redirecting you back.",
+                      });
+                    }
+                  } else {
                     toast({
-                      title: "Connection saved",
-                      description: "Redirecting you back.",
+                      title: "Session expired",
+                      description: "Please log in again. Redirecting you back.",
+                      variant: "destructive",
                     });
                   }
                   navigate(returnTo, { replace: true });
@@ -284,10 +298,11 @@ export default function MicrosoftTeamsIntegration() {
       }
     } catch (err: any) {
       console.error("Refresh connection error:", err);
+      const isCancelled = err?.message === "Authentication window was closed";
       toast({
-        title: "Refresh Failed",
-        description: "Please try disconnecting and reconnecting your account.",
-        variant: "destructive",
+        title: isCancelled ? "Refresh cancelled" : "Refresh Failed",
+        description: isCancelled ? "You closed the sign-in window. Try again when you're ready." : "Please try disconnecting and reconnecting your account.",
+        variant: isCancelled ? "default" : "destructive",
       });
     } finally {
       setRefreshingToken(false);
@@ -345,11 +360,13 @@ export default function MicrosoftTeamsIntegration() {
       }
     } catch (err: any) {
       console.error("Microsoft connection error:", err);
-      setError(err.message || "Failed to connect to Microsoft");
+      const msg = err?.message || "Failed to connect to Microsoft";
+      const isCancelled = msg === "Authentication window was closed";
+      setError(isCancelled ? "" : msg);
       toast({
-        title: "Connection failed",
-        description: err.message || "Failed to connect to Microsoft",
-        variant: "destructive",
+        title: isCancelled ? "Sign-in cancelled" : "Connection failed",
+        description: isCancelled ? "You closed the sign-in window. Connect again when you're ready." : msg,
+        variant: isCancelled ? "default" : "destructive",
       });
     } finally {
       setLoading(false);
