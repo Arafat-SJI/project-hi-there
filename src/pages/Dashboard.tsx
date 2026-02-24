@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDashboardStats, useRecentActivity, getTimeAgo } from "@/hooks/useDashboard";
+import { useDashboardStats, useRecentActivity, getTimeAgo, useAITeamSummary } from "@/hooks/useDashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AIIndicator, AICard } from "@/components/ui/ai-indicator";
 import {
   Users,
   Calendar,
@@ -14,6 +15,9 @@ import {
   Clock,
   TrendingUp,
   Loader2,
+  Sparkles,
+  MessageSquare,
+  Bot,
 } from "lucide-react";
 
 const quickActions = [
@@ -22,24 +26,28 @@ const quickActions = [
     description: "Create a new client record",
     icon: Users,
     href: "/clients/new",
+    isAI: false,
   },
   {
     title: "Schedule Meeting",
     description: "Set up a new meeting",
     icon: Calendar,
     href: "/meetings/new",
+    isAI: false,
   },
   {
     title: "Add Knowledge",
     description: "Upload to knowledge base",
     icon: BookOpen,
     href: "/knowledge/new",
+    isAI: false,
   },
   {
-    title: "AI Agents",
-    description: "Manage AI agents",
-    icon: Brain,
-    href: "/ai-agents",
+    title: "Chat with AI",
+    description: "Ask your AI team anything",
+    icon: Sparkles,
+    href: "/ai-chat",
+    isAI: true,
   },
 ];
 
@@ -47,6 +55,7 @@ export default function Dashboard() {
   const { profile } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recentActivity, isLoading: activityLoading } = useRecentActivity();
+  const { data: aiTeam, isLoading: aiTeamLoading } = useAITeamSummary();
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -70,16 +79,38 @@ export default function Dashboard() {
     }
   };
 
+  const aiAgentCount = stats?.aiAgents.total || 0;
+  const aiRunsToday = stats?.aiAgents.runsToday || 0;
+
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          {greeting()}, {profile?.full_name?.split(" ")[0] || "there"}
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Here's what's happening with your workspace today.
-        </p>
+      {/* AI Welcome Banner */}
+      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-accent/5 p-6 lg:p-8">
+        <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-accent/5 blur-3xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <AIIndicator variant="orb" size="md" status="active" />
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                {greeting()}, {profile?.full_name?.split(" ")[0] || "there"}
+              </h1>
+              <p className="mt-1 text-muted-foreground">
+                {aiRunsToday > 0
+                  ? `Your AI team processed ${aiRunsToday} task${aiRunsToday !== 1 ? "s" : ""} today.`
+                  : aiAgentCount > 0
+                    ? `${aiAgentCount} AI agent${aiAgentCount !== 1 ? "s" : ""} standing by to help.`
+                    : "Set up AI agents to supercharge your workflow."}
+              </p>
+            </div>
+          </div>
+          <Button asChild className="ai-gradient border-0 text-white shadow-md hover:opacity-90 shrink-0">
+            <Link to="/ai-chat" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Ask AI
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -132,15 +163,19 @@ export default function Dashboard() {
             </Card>
           </Link>
 
-          {/* AI Agents */}
+          {/* AI Agents - Enhanced with AI card styling */}
           <Link to="/ai-agents" className="group">
-            <Card className="transition-all duration-200 hover:border-border hover:shadow-soft">
+            <Card className="relative transition-all duration-200 hover:shadow-ai border-primary/20 bg-gradient-to-b from-primary/[0.03] to-transparent">
+              <div className="absolute inset-x-0 top-0 h-0.5 ai-gradient rounded-t-lg" />
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Brain className="h-5 w-5 text-primary" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg ai-gradient">
+                    <Brain className="h-5 w-5 text-white" />
                   </div>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                  <div className="flex items-center gap-2">
+                    <AIIndicator variant="dot" size="sm" status="active" />
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
                 </div>
                 <div className="mt-4">
                   <p className="text-2xl font-semibold text-foreground">{stats?.aiAgents.total || 0}</p>
@@ -177,6 +212,76 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Your AI Team */}
+      <Card className="border-primary/10">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-medium">Your AI Team</CardTitle>
+              <AIIndicator variant="dot" size="sm" status="active" />
+            </div>
+            <Button variant="ghost" size="sm" asChild className="text-primary hover:text-primary">
+              <Link to="/ai-agents" className="gap-1">
+                View All
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </Button>
+          </div>
+          <CardDescription>AI agents ready to assist you</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {aiTeamLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : !aiTeam || aiTeam.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border py-8 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <Bot className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">No AI agents configured yet</p>
+                <p className="text-xs text-muted-foreground">Set up your first AI teammate</p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/ai-agents" className="gap-1">
+                  <Plus className="h-3 w-3" />
+                  Add Agent
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {aiTeam.map((agent) => (
+                <Link
+                  key={agent.id}
+                  to={`/ai-chat?agent=${agent.slug}`}
+                  className="group flex items-start gap-3 rounded-lg border border-border/50 p-4 transition-all duration-200 hover:border-primary/30 hover:bg-primary/[0.02] hover:shadow-sm"
+                >
+                  <div className="relative shrink-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg ai-gradient text-white text-sm font-semibold">
+                      {agent.avatar ? (
+                        <img src={agent.avatar} alt={agent.name} className="h-full w-full rounded-lg object-cover" />
+                      ) : (
+                        agent.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 ai-status-dot h-2.5 w-2.5 rounded-full border-2 border-background" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{agent.name}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      {agent.description || "AI Assistant"}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Quick Actions */}
         <div className="lg:col-span-2">
@@ -191,13 +296,24 @@ export default function Dashboard() {
                   <Link
                     key={index}
                     to={action.href}
-                    className="group flex items-center gap-4 rounded-lg border border-border/50 p-4 transition-all duration-200 hover:border-border hover:bg-muted/50"
+                    className={`group flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 ${
+                      action.isAI
+                        ? "border-primary/20 bg-gradient-to-r from-primary/[0.03] to-accent/[0.03] hover:border-primary/40 hover:shadow-ai"
+                        : "border-border/50 hover:border-border hover:bg-muted/50"
+                    }`}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <action.icon className="h-5 w-5 text-primary" />
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                        action.isAI ? "ai-gradient text-white" : "bg-primary/10"
+                      }`}
+                    >
+                      <action.icon className={`h-5 w-5 ${action.isAI ? "" : "text-primary"}`} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{action.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{action.title}</p>
+                        {action.isAI && <AIIndicator variant="dot" size="sm" status="active" />}
+                      </div>
                       <p className="text-xs text-muted-foreground">{action.description}</p>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
@@ -230,8 +346,10 @@ export default function Dashboard() {
                   const Icon = getActivityIcon(item.type);
                   return (
                     <div key={item.id} className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                        item.type === "ai" ? "ai-gradient" : "bg-muted"
+                      }`}>
+                        <Icon className={`h-4 w-4 ${item.type === "ai" ? "text-white" : "text-muted-foreground"}`} />
                       </div>
                       <div className="flex-1 space-y-1">
                         <p className="text-sm font-medium text-foreground">{item.action}</p>
@@ -246,33 +364,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* AI Agents Summary */}
-      {stats && (stats.aiAgents.total > 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Agents Overview</CardTitle>
-            <CardDescription>Summary of your AI agent activity</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total Agents</span>
-                  <Badge variant="outline">{stats.aiAgents.total}</Badge>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Runs Today</span>
-                  <Badge variant="default">{stats.aiAgents.runsToday}</Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

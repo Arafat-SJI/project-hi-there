@@ -210,3 +210,35 @@ export function getTimeAgo(dateString: string): string {
   if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
   return date.toLocaleDateString();
 }
+
+export interface AITeamMember {
+  id: string;
+  name: string;
+  description: string | null;
+  slug: string;
+  avatar: string | null;
+}
+
+export function useAITeamSummary() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["dashboard", "ai-team"],
+    queryFn: async () => {
+      if (!user) throw new Error("User not authenticated");
+
+      const { data, error } = await supabase
+        .from("ai_agents")
+        .select("id, name, description, slug, avatar")
+        .eq("is_enabled", true)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      if (error) throw error;
+      return (data || []) as AITeamMember[];
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
+}
