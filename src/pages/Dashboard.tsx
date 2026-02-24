@@ -7,7 +7,9 @@ import { useDashboardStats, useRecentActivity, getTimeAgo, useAITeamSummary } fr
 
 // Lazy-load role dashboards so they don't inflate the main bundle
 const OwnerDashboard = lazy(() => import("@/pages/dashboards/OwnerDashboard"));
-// OwnerDashboardWithEOS, PMDashboard, ICDashboard — added in Sprint 2 & 3
+const PMDashboard = lazy(() => import("@/pages/dashboards/PMDashboard"));
+const ICDashboard = lazy(() => import("@/pages/dashboards/ICDashboard"));
+// OwnerDashboardWithEOS — added in Sprint 3
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,17 +79,33 @@ export default function Dashboard() {
   // Wait for auth to settle before routing — prevents flash to generic dashboard
   if (loading) return <DashboardFallback />;
 
-  // Route to role-specific dashboards
-  // Admin always stays on the generic dashboard (full visibility)
-  if (!isAdmin && agencyRole === "owner") {
-    // OwnerDashboardWithEOS will be wired in Sprint 3
-    return (
-      <Suspense fallback={<DashboardFallback />}>
-        <OwnerDashboard />
-      </Suspense>
-    );
+  // Route to role-specific dashboards.
+  // Admins always see the full generic dashboard.
+  if (!isAdmin) {
+    if (agencyRole === "owner") {
+      // OwnerDashboardWithEOS (is_eos_user) wired in Sprint 3
+      return (
+        <Suspense fallback={<DashboardFallback />}>
+          <OwnerDashboard />
+        </Suspense>
+      );
+    }
+    if (agencyRole === "pm") {
+      return (
+        <Suspense fallback={<DashboardFallback />}>
+          <PMDashboard />
+        </Suspense>
+      );
+    }
+    if (agencyRole === "ic") {
+      return (
+        <Suspense fallback={<DashboardFallback />}>
+          <ICDashboard />
+        </Suspense>
+      );
+    }
+    // agencyRole === null → user hasn't been assigned a role yet; fall through to generic dashboard
   }
-  // PMDashboard and ICDashboard wired in Sprint 2
 
   const greeting = () => {
     const hour = new Date().getHours();
