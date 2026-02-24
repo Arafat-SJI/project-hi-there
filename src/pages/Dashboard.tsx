@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AIIndicator, AICard } from "@/components/ui/ai-indicator";
+import { AIAgentGuidePopover } from "@/components/dashboard/AIAgentGuidePopover";
 import {
   Users,
   Calendar,
@@ -18,6 +19,7 @@ import {
   Sparkles,
   MessageSquare,
   Bot,
+  Compass,
 } from "lucide-react";
 
 const quickActions = [
@@ -43,10 +45,10 @@ const quickActions = [
     isAI: false,
   },
   {
-    title: "Chat with AI",
-    description: "Ask your AI team anything",
-    icon: Sparkles,
-    href: "/ai-chat",
+    title: "AI Agents Guide",
+    description: "See what your AI team can do",
+    icon: Compass,
+    href: "/ai-agents",
     isAI: true,
   },
 ];
@@ -254,28 +256,7 @@ export default function Dashboard() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {aiTeam.map((agent) => (
-                <Link
-                  key={agent.id}
-                  to={`/ai-chat?agent=${agent.slug}`}
-                  className="group flex items-start gap-3 rounded-lg border border-border/50 p-4 transition-all duration-200 hover:border-primary/30 hover:bg-primary/[0.02] hover:shadow-sm"
-                >
-                  <div className="relative shrink-0">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg ai-gradient text-white text-sm font-semibold">
-                      {agent.avatar ? (
-                        <img src={agent.avatar} alt={agent.name} className="h-full w-full rounded-lg object-cover" />
-                      ) : (
-                        agent.name.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 ai-status-dot h-2.5 w-2.5 rounded-full border-2 border-background" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{agent.name}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                      {agent.description || "AI Assistant"}
-                    </p>
-                  </div>
-                </Link>
+                <AIAgentGuidePopover key={agent.id} agent={agent} />
               ))}
             </div>
           )}
