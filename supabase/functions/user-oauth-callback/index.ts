@@ -232,17 +232,26 @@ serve(async (req) => {
     // Delete the used state
     await supabase.from("oauth_states").delete().eq("state", state);
 
-    // Redirect back to app with success
-    // For Zoom/Google Meet/Google Drive, redirect to the integration page; otherwise use redirect_uri or settings
-    let finalRedirect;
-    if (provider === "zoom") {
+    // Redirect back to app with success. Use redirect_uri from state when the client sent one (e.g. user
+    // connected from Create Meeting dialog → return to /meetings/schedule). When connecting from admin,
+    // redirect_uri is the default (appUrl/settings), so we ignore it and use provider-specific admin page.
+    const defaultSettingsRedirect = `${appUrl}/settings`;
+    const hasValidRedirect =
+      redirect_uri &&
+      redirect_uri.trim() !== "" &&
+      !redirect_uri.includes("undefined") &&
+      redirect_uri !== defaultSettingsRedirect;
+    let finalRedirect: string;
+    if (hasValidRedirect) {
+      finalRedirect = redirect_uri!.startsWith("http")
+        ? redirect_uri!
+        : `${appUrl}${redirect_uri!.startsWith("/") ? "" : "/"}${redirect_uri}`;
+    } else if (provider === "zoom") {
       finalRedirect = `${appUrl}/admin/integrations/zoom`;
     } else if (provider === "google-meet") {
       finalRedirect = `${appUrl}/admin/integrations/google-meet`;
     } else if (provider === "google-drive") {
       finalRedirect = `${appUrl}/admin/integrations/google-drive`;
-    } else if (redirect_uri && redirect_uri.trim() !== "" && !redirect_uri.includes("undefined")) {
-      finalRedirect = redirect_uri;
     } else {
       finalRedirect = `${appUrl}/settings`;
     }

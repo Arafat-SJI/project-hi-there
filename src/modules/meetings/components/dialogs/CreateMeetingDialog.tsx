@@ -150,6 +150,8 @@ export default function CreateMeetingDialog({
   const createMeeting = useCreateMeetingV2();
   const connectOAuth = useConnectOAuth();
   const [connectingMicrosoft, setConnectingMicrosoft] = useState(false);
+  /** Which provider is currently connecting (Zoom/Google Meet redirect flow). So only that card shows loading. */
+  const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [showInAppForm, setShowInAppForm] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -285,7 +287,11 @@ export default function CreateMeetingDialog({
       }
       return;
     }
-    connectOAuth.mutate({ provider: providerSlug, redirect_uri: returnUrl });
+    setConnectingProvider(providerSlug);
+    connectOAuth.mutate(
+      { provider: providerSlug, redirect_uri: returnUrl },
+      { onSettled: () => setConnectingProvider(null) }
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -357,7 +363,7 @@ export default function CreateMeetingDialog({
                     isConnecting={
                       platform.slug === "microsoft-teams"
                         ? connectingMicrosoft
-                        : connectOAuth.isPending
+                        : connectOAuth.isPending && connectingProvider === platform.providerSlug
                     }
                     onConnect={handleConnect}
                     onOpenChange={onOpenChange}
