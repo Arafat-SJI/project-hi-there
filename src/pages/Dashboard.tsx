@@ -1,6 +1,13 @@
+import { Suspense, lazy } from "react";
 import { Link } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAgencyRole } from "@/hooks/useAgencyRole";
 import { useDashboardStats, useRecentActivity, getTimeAgo, useAITeamSummary } from "@/hooks/useDashboard";
+
+// Lazy-load role dashboards so they don't inflate the main bundle
+const OwnerDashboard = lazy(() => import("@/pages/dashboards/OwnerDashboard"));
+// OwnerDashboardWithEOS, PMDashboard, ICDashboard — added in Sprint 2 & 3
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,11 +59,35 @@ const quickActions = [
   },
 ];
 
+function DashboardFallback() {
+  return (
+    <div className="flex h-64 items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
+  const { agencyRole, isEosUser, isAdmin } = useAgencyRole();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recentActivity, isLoading: activityLoading } = useRecentActivity();
   const { data: aiTeam, isLoading: aiTeamLoading } = useAITeamSummary();
+
+  // Wait for auth to settle before routing — prevents flash to generic dashboard
+  if (loading) return <DashboardFallback />;
+
+  // Route to role-specific dashboards
+  // Admin always stays on the generic dashboard (full visibility)
+  if (!isAdmin && agencyRole === "owner") {
+    // OwnerDashboardWithEOS will be wired in Sprint 3
+    return (
+      <Suspense fallback={<DashboardFallback />}>
+        <OwnerDashboard />
+      </Suspense>
+    );
+  }
+  // PMDashboard and ICDashboard wired in Sprint 2
 
   const greeting = () => {
     const hour = new Date().getHours();
