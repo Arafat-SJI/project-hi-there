@@ -1093,180 +1093,66 @@ sj-dashboard-framework/
 
 ## 14. Database Schema
 
-The database consists of 26 tables organized by domain.
+The database consists of **94+ tables and 6 views** organized across 20 functional modules. For the complete schema reference with all columns, types, and relationships, see **[database-schema.md](./database-schema.md)**.
+
+### Module Summary
+
+| Module | Tables | Key Tables |
+|--------|--------|------------|
+| Core / Auth | 7 | `profiles`, `user_roles`, `app_modules`, `app_config` |
+| Activity & Notifications | 3 | `activity_logs`, `notifications`, `feedback` |
+| AI Agents & Chat | 11 | `ai_agents`, `ai_models`, `ai_providers`, `agent_conversations` |
+| Agent Execution & Memory | 6 | `agent_execution_plans`, `agent_memories`, `user_preferences` |
+| MCP Tool Orchestration | 3 | `mcp_servers`, `mcp_tools`, `mcp_tool_executions` |
+| Embeddings & RAG | 7 | `embeddings`, `embedding_queue`, `gemini_corpora` |
+| Knowledge Base | 6 | `knowledge_entries`, `knowledge_files`, `knowledge_categories` |
+| Meetings | 14 | `meetings`, `meeting_participants`, `meeting_files`, `zoom_files` |
+| Clients & CRM | 4 | `clients`, `contacts`, `client_meetings` |
+| Contact Intelligence | 8 | `contact_activities`, `contact_ai_summaries`, `lead_intent_analysis` |
+| Deals / Business Dev | 3 | `deals`, `deal_activities`, `deal_comments` |
+| Projects | 13 | `projects`, `project_milestones`, `project_billing` |
+| Tasks / Actions | 7 | `tasks`, `task_streams`, `task_comments`, `task_attachments` |
+| EOS / OKRs | 12 | `eos_vto`, `eos_issues`, `okrs`, `accountability_charts` |
+| Productivity & HR | 11 | `departments`, `employee_profiles`, `pods`, `productivity_records` |
+| Integrations | 8 | `integration_providers`, `organization_integrations`, `user_oauth_tokens` |
+| Email & Communications | 4 | `email_logs`, `email_tracking_events`, `sendgrid_config` |
+| Microsoft Graph | 4 | `graph_webhook_subscriptions`, `user_microsoft_teams` |
+| Process & Documents | 4 | `process_documents`, `unified_documents` |
+| System Settings | 1 | `system_settings` |
+
+### Core Relationships (ER Diagram)
+
+> **Note:** This diagram shows core relationships only. See [database-schema.md](./database-schema.md) for the complete schema.
 
 ```mermaid
 erDiagram
-    %% Core User Tables
     profiles ||--o{ user_roles : has
     profiles ||--o{ activity_logs : generates
-    profiles ||--o{ notifications : receives
-    user_roles }o--|| roles : references
-    
-    %% Business Tables
     profiles ||--o{ clients : creates
     profiles ||--o{ meetings : organizes
     profiles ||--o{ tasks : creates
-    meetings ||--o{ meeting_transcripts : has
+    
+    meetings ||--o{ meeting_participants : has
+    meetings ||--o{ meeting_files : has
     meetings ||--o{ zoom_files : has
     meetings }o--o| clients : associated_with
-    tasks }o--o| clients : associated_with
-    tasks }o--o| meetings : associated_with
     
-    %% Knowledge Tables
-    profiles ||--o{ knowledge_entries : authors
-    knowledge_entries }o--o| knowledge_categories : belongs_to
-    knowledge_categories ||--o{ knowledge_categories : parent_of
+    clients ||--o{ deals : has
+    contacts }o--o| clients : belongs_to
+    deals }o--o| contacts : linked_to
     
-    %% AI Tables
-    profiles ||--o{ ai_chat_history : has
-    profiles ||--o{ ai_agent_runs : executes
-    profiles ||--o{ ai_usage_logs : generates
-    ai_agents ||--o{ ai_agent_runs : runs
-    ai_agents ||--o{ ai_chat_history : used_in
+    ai_agents ||--o{ agent_conversations : has
+    agent_conversations ||--o{ agent_messages : contains
+    ai_agents ||--o{ agent_memories : stores
     ai_providers ||--o{ ai_models : provides
-    ai_models ||--o{ ai_usage_logs : tracks
     
-    %% Embeddings
-    profiles ||--o{ embeddings : owns
+    projects }o--o| clients : for
+    projects ||--o{ project_milestones : has
+    tasks }o--o| task_streams : in
     
-    %% Integration Tables
     integration_categories ||--o{ integration_providers : contains
-    integration_providers ||--o{ integration_fields : has
-    integration_providers ||--o{ integration_services : offers
     integration_providers ||--o{ organization_integrations : configured_by
-    profiles ||--o{ organization_integrations : owns
-    integration_providers ||--o{ integration_usage_logs : tracks
-    integration_services ||--o{ integration_usage_logs : logs
-    
-    %% System Tables
-    profiles ||--o{ feedback : submits
-    profiles ||--o{ user_invites : invites
-    
-    %% Table Definitions
-    profiles {
-        uuid id PK
-        text email
-        text full_name
-        text avatar_url
-        boolean is_active
-        jsonb metadata
-    }
-    
-    user_roles {
-        uuid id PK
-        uuid user_id FK
-        app_role role
-    }
-    
-    clients {
-        uuid id PK
-        text name
-        text email
-        text company
-        text status
-        uuid created_by FK
-    }
-    
-    meetings {
-        uuid id PK
-        text title
-        timestamp scheduled_at
-        uuid organizer_id FK
-        uuid client_id FK
-        text zoom_meeting_id
-        jsonb metadata
-    }
-    
-    tasks {
-        uuid id PK
-        text title
-        text status
-        text priority
-        uuid created_by FK
-        uuid assigned_to FK
-        uuid client_id FK
-        uuid meeting_id FK
-    }
-    
-    knowledge_entries {
-        uuid id PK
-        text title
-        text content
-        text slug
-        uuid author_id FK
-        uuid category_id FK
-        text status
-        tsvector search_vector
-    }
-    
-    ai_agents {
-        uuid id PK
-        text name
-        text slug
-        text system_prompt
-        jsonb provider_config
-        jsonb data_sources
-        boolean memory_enabled
-    }
-    
-    ai_providers {
-        uuid id PK
-        text name
-        text slug
-        text api_key_secret_name
-        boolean enabled
-    }
-    
-    ai_models {
-        uuid id PK
-        uuid provider_id FK
-        text model_id
-        text name
-        text category
-        numeric input_cost_per_1k
-        numeric output_cost_per_1k
-    }
-    
-    integration_providers {
-        uuid id PK
-        uuid category_id FK
-        text name
-        text slug
-        text auth_type
-        jsonb oauth_config
-        boolean is_available
-    }
-    
-    organization_integrations {
-        uuid id PK
-        uuid user_id FK
-        uuid provider_id FK
-        jsonb config
-        jsonb oauth_tokens
-        text connection_status
-    }
-    
-    embeddings {
-        uuid id PK
-        uuid entity_id
-        text entity_type
-        text content
-        vector embedding
-        uuid user_id FK
-    }
 ```
-
-### Table Summary by Domain
-
-| Domain | Tables | Purpose |
-|--------|--------|---------|
-| Core | profiles, user_roles, roles, user_invites | User management |
-| Business | clients, meetings, meeting_transcripts, tasks, zoom_files | Core business features |
-| Knowledge | knowledge_entries, knowledge_categories | Knowledge base |
-| AI | ai_agents, ai_chat_history, ai_agent_runs, ai_providers, ai_models, ai_usage_logs, embeddings | AI features |
-| Integration Hub | integration_categories, integration_providers, integration_fields, integration_services, organization_integrations, integration_usage_logs | Third-party integrations |
-| System | app_config, activity_logs, feedback, notifications | System configuration |
 
 ---
 
