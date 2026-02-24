@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Bell, LogOut, User, Settings, Search, ExternalLink, FileText, Users, Calendar, Loader2, Shield, Sparkles } from "lucide-react";
+import { Bell, LogOut, User, Settings, Search, ExternalLink, FileText, Users, Calendar, Loader2, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/utils";
 import { useState } from "react";
@@ -171,18 +171,6 @@ export function TopNav({ sidebarOpen = true, onToggleSidebar }: TopNavProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-1">
-          {/* AI Chat Shortcut */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
-            asChild
-          >
-            <Link to="/ai-chat" title="Chat with AI">
-              <Sparkles className="h-[18px] w-[18px] animate-ai-pulse" />
-            </Link>
-          </Button>
-
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -27,7 +27,7 @@ import Help from "@/pages/Help";
 import Notifications from "@/pages/Notifications";
 import Feedback from "@/pages/Feedback";
 import FeedbackDetail from "@/pages/FeedbackDetail";
-import AIChat from "@/pages/AIChat";
+
 import AIAgents from "@/pages/AIAgents";
 import PersonalKnowledge from "@/modules/knowledge/pages/PersonalKnowledge";
 
@@ -68,9 +68,6 @@ export const coreProtectedRoutes = (
     {/* AI features */}
     <Route element={<ModuleRoute requiresFeatureFlag="enableAIAgents" />}>
       <Route path="/ai-agents" element={<AIAgents />} />
-    </Route>
-    <Route element={<ModuleRoute requiresFeatureFlag="enableAIChat" />}>
-      <Route path="/ai-chat" element={<AIChat />} />
     </Route>
 
     {/* Personal knowledge */}
