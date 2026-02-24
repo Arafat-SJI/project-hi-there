@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Full-stack business management platform (also called **SJ Innovation Framework V1**) built as a reusable, modular framework for enterprise applications. Provides authentication, CRM, meetings, knowledge base, AI agents, project management, EOS, and productivity tracking.
+Full-stack business management platform (also called **SJ Innovation Framework V1**) built as a reusable, modular framework for enterprise applications. Provides authentication, CRM, meetings, knowledge base, AI agents, project management, EOS, lead follow-up, and productivity tracking.
 
 - **Stack**: React 18 + TypeScript + Vite + Supabase + shadcn/ui
 - **Backend**: Supabase Edge Functions (Deno-based serverless), PostgreSQL with RLS
@@ -11,13 +11,15 @@ Full-stack business management platform (also called **SJ Innovation Framework V
 ## Quick Commands
 
 ```bash
-npm run dev              # Start dev server on port 8080
-npm run build            # Production build
-npm run build:dev        # Development build
-npm run lint             # ESLint (typescript-eslint + react-hooks + react-refresh)
-npm run preview          # Preview production build
-npm run migrations:run   # Apply pending database migrations
-npm run migrations:repair # Fix migration history
+npm run dev                    # Start dev server on port 8080
+npm run build                  # Production build
+npm run build:dev              # Development build
+npm run lint                   # ESLint (typescript-eslint + react-hooks + react-refresh)
+npm run preview                # Preview production build
+npm run migrations:run         # Apply pending database migrations
+npm run migrations:repair      # Fix migration history
+npm run migrations:mark-applied # Mark migrations as already applied
+npm run migrations:hook        # Setup migration hook
 ```
 
 **No test runner is configured.** There are no test files, no Jest/Vitest, and no test scripts.
@@ -29,43 +31,58 @@ npm run migrations:repair # Fix migration history
 ├── src/                           # Frontend source code
 │   ├── App.tsx                    # Root component — all route definitions
 │   ├── main.tsx                   # Entry point
-│   ├── components/
-│   │   ├── auth/                  # ProtectedRoute, AdminRoute
-│   │   ├── layout/                # DashboardLayout, AdminLayout, AppSidebar, TopNav
-│   │   ├── ui/                    # 51 shadcn/ui components
+│   ├── components/                # 23 component directories
 │   │   ├── admin/                 # Admin panel components
-│   │   ├── ai/                    # AI chat and assistant components
 │   │   ├── agent/                 # AI agent UI
-│   │   ├── meetings/              # Meeting management UI
-│   │   ├── integrations/          # OAuth, Teams, Google Drive UI
+│   │   ├── ai/                    # AI chat and assistant components
+│   │   ├── auth/                  # ProtectedRoute, AdminRoute
 │   │   ├── client-portal/         # Client-facing portal
-│   │   ├── mcp/                   # Model Context Protocol components
+│   │   ├── common/                # Shared components
+│   │   ├── contact-detail-tabs/   # Contact management tabs
 │   │   ├── followup/              # Lead follow-up components
-│   │   ├── user-knowledge/        # Personal knowledge management
-│   │   ├── settings/              # User settings
+│   │   ├── integrations/          # OAuth, Teams, Google Drive UI
+│   │   ├── knowledge/             # Knowledge base UI
+│   │   ├── landing/               # Public landing page components
+│   │   ├── layout/                # DashboardLayout, AdminLayout, AppSidebar, TopNav
+│   │   ├── mcp/                   # Model Context Protocol components
+│   │   ├── meetings/              # Meeting management UI
+│   │   ├── pods/                  # Pod/team management UI
+│   │   ├── projects/              # Project management UI
 │   │   ├── routing/               # ModuleRoute and routing utilities
-│   │   └── common/                # Shared components
+│   │   ├── settings/              # User settings
+│   │   ├── setup/                 # Onboarding/setup wizard
+│   │   ├── tasks/                 # Task/action management UI
+│   │   ├── ui/                    # 49 shadcn/ui components
+│   │   └── user-knowledge/        # Personal knowledge management
 │   ├── contexts/                  # AuthContext, BrandingContext
-│   ├── hooks/                     # 30+ custom React hooks (useClients, useMeetings, etc.)
-│   ├── integrations/              # Supabase client setup and utilities
-│   ├── lib/                       # Utilities: validation, cache, activity-logger, sanitize
-│   ├── modules/                   # 10 feature modules (each with index.ts + routes.tsx)
+│   ├── hooks/                     # 93 custom React hooks (useClients, useMeetings, etc.)
+│   ├── integrations/              # Supabase client setup (client.ts, types.ts)
+│   ├── lib/                       # 28 utility files (validation, cache, auth, integrations)
+│   ├── modules/                   # 9 module directories (10 in registry incl. lead-followup)
 │   │   ├── platform/              # Core: auth, dashboard, profile, settings
-│   │   ├── meetings/              # Meeting management
+│   │   ├── admin/                 # Admin panel
 │   │   ├── actions/               # Task management
-│   │   ├── knowledge/             # Knowledge base
-│   │   ├── business-dev/          # CRM, deals, contacts
+│   │   ├── business-dev/          # CRM, deals, contacts, lead follow-up
 │   │   ├── eos/                   # V/TO, OKRs, issues, scorecards
-│   │   ├── projects/              # Project lifecycle, milestones, billing
+│   │   ├── knowledge/             # Knowledge base
+│   │   ├── meetings/              # Meeting management
 │   │   ├── productivity/          # Team metrics, analytics
-│   │   └── admin/                 # Admin panel
-│   ├── pages/                     # 25+ route page components
-│   ├── shared/config/             # env.ts, modules.ts, api.ts, navigationStructure.ts
-│   └── types/                     # TypeScript type definitions
+│   │   └── projects/              # Project lifecycle, milestones, billing
+│   ├── pages/                     # 102 route page components
+│   │   ├── *.tsx                  # 30 root pages (Login, Dashboard, Clients, etc.)
+│   │   ├── admin/                 # 41 admin pages + 4 subdirectories
+│   │   │   ├── ai/                # 8 AI admin pages
+│   │   │   ├── eos/               # 5 EOS admin pages
+│   │   │   ├── integrations/      # 9 integration admin pages
+│   │   │   └── memory/            # 4 memory/analytics admin pages
+│   │   ├── client/                # 2 client portal pages
+│   │   └── projects/              # 3 project detail pages
+│   ├── shared/config/             # env.ts, modules.ts, api.ts, index.ts
+│   └── types/                     # knowledgeBase.ts, okr.ts, pods.ts
 │
 ├── supabase/
-│   ├── functions/                 # 89 Edge Functions (Deno runtime)
-│   ├── migrations/                # 105 database migrations
+│   ├── functions/                 # 120 Edge Functions (Deno runtime) + _shared/
+│   ├── migrations/                # 135 database migrations
 │   ├── seed/                      # Database seeding scripts
 │   ├── auth-middleware.ts         # Edge function auth utilities
 │   ├── cors.ts                    # CORS headers
@@ -80,7 +97,17 @@ npm run migrations:repair # Fix migration history
 │   ├── 05-integrations/           # External service integrations
 │   ├── 06-ai-features/            # AI capabilities documentation
 │   ├── 07-admin/                  # Admin panel and feature flags
-│   └── 08-edge-functions/         # Edge function catalog and deployment
+│   ├── 08-edge-functions/         # Edge function catalog and deployment
+│   ├── archive/                   # Legacy/archived docs
+│   ├── backlog/                   # Feature backlog docs
+│   └── public_website/            # Public-facing documentation
+│
+├── .claude/                       # Claude Code configuration
+│   ├── agents.md                  # Agent delegation rules & multi-agent workflows
+│   ├── agents/                    # 11 specialized agent definitions
+│   ├── skills/                    # 8 skill definitions
+│   ├── hooks/                     # Session hooks (session-start.sh)
+│   └── settings.json              # Hook configuration
 │
 ├── scripts/                       # Shell scripts for migrations and setup
 └── public/                        # Static assets
@@ -92,18 +119,20 @@ npm run migrations:repair # Fix migration history
 
 Modules are the primary organizational unit. Defined in `src/shared/config/modules.ts`:
 
-| Module | Category | Core? | Dependencies | Feature Flags |
-|--------|----------|-------|--------------|---------------|
-| platform | core | yes | — | — |
-| admin | core | yes | platform | — |
-| eos | business | no | platform | — |
-| meetings | operations | no | platform | enableMeetings |
-| knowledge | intelligence | no | platform | enableKnowledgeBase, enablePersonalKnowledge, enableSemanticSearch |
-| projects | business | no | platform | — |
-| actions | operations | no | platform | enableTasks |
-| business-dev | business | no | platform | enableClients |
-| lead-followup | business | no | platform, business-dev | — |
-| productivity | operations | no | platform | — |
+| Module | Category | Core? | Dependencies | Feature Flags | Directory |
+|--------|----------|-------|--------------|---------------|-----------|
+| platform | core | yes | — | — | `src/modules/platform/` |
+| admin | core | yes | platform | — | `src/modules/admin/` |
+| actions | operations | no | platform | enableTasks | `src/modules/actions/` |
+| eos | business | no | platform | — | `src/modules/eos/` |
+| meetings | operations | no | platform | enableMeetings | `src/modules/meetings/` |
+| knowledge | intelligence | no | platform | enableKnowledgeBase, enablePersonalKnowledge, enableSemanticSearch | `src/modules/knowledge/` |
+| projects | business | no | platform | — | `src/modules/projects/` |
+| business-dev | business | no | platform | enableClients | `src/modules/business-dev/` |
+| lead-followup | business | no | platform, business-dev | — | *(embedded in business-dev)* |
+| productivity | operations | no | platform | — | `src/modules/productivity/` |
+
+> **Note:** The `lead-followup` module is registered in MODULE_REGISTRY but does not have its own directory. Its components live in `src/components/followup/` and its routes are part of `business-dev`.
 
 **Three-layer resolution:**
 1. **Build-time**: `VITE_MODULE_*` env vars control code bundling
@@ -166,7 +195,7 @@ Validation schemas live in `src/lib/validation.ts`.
 
 ### Edge Functions
 
-89 Deno-based serverless functions in `supabase/functions/`. Standard pattern:
+120 Deno-based serverless functions in `supabase/functions/`. Standard pattern:
 
 ```typescript
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -185,7 +214,7 @@ serve(async (req) => {
 });
 ```
 
-JWT verification is configured per-function in `supabase/config.toml`. Functions that validate auth in-code have `verify_jwt = false`.
+JWT verification is configured per-function in `supabase/config.toml`. Most functions use `verify_jwt = false` with in-code auth validation via `supabase/auth-middleware.ts`. API endpoints (`api-v1-*`) and OAuth functions use `verify_jwt = true`.
 
 ## Naming Conventions
 
@@ -215,7 +244,7 @@ import { useClients } from "@/hooks/useClients";
 - **PostgreSQL** via Supabase with **Row Level Security (RLS)** on all tables
 - **No ORM** — direct Supabase client queries (`supabase.from("table").select(...)`)
 - Types auto-generated in `src/integrations/supabase/types.ts`
-- 105 migrations in `supabase/migrations/` (apply with `npm run migrations:run`)
+- 135 migrations in `supabase/migrations/` (apply with `npm run migrations:run`)
 - Vector extension enabled for embedding-based semantic search
 
 ### Core Tables
@@ -228,6 +257,46 @@ import { useClients } from "@/hooks/useClients";
 - `tasks`, `projects`, `project_milestones` — Project/task management
 - `app_config`, `app_modules`, `user_module_permissions` — Configuration
 - `notifications`, `feedback`, `activity_logs` — Operations
+
+## Utility Library (`src/lib/`)
+
+28 utility files organized by domain:
+
+**Core:**
+- `cache.ts` — React Query key factories, invalidation helpers, stale time presets
+- `validation.ts` — Zod validation schemas for all forms
+- `sanitize.ts` — DOMPurify XSS protection for user-generated content
+- `activity-logger.ts` — `logCrud()`, `logLogin()`, `logLogout()` activity tracking
+- `utils.ts` — General utilities (cn class merger, etc.)
+- `slug.ts` — URL slug generation
+- `toast-helpers.ts` — Toast notification utilities
+- `export-utils.ts` — Data export helpers
+- `csv.ts` — CSV parsing/generation
+- `componentOptimization.ts` — React performance helpers
+
+**Authentication & OAuth:**
+- `azureAuth.ts` — Azure AD authentication
+- `msalConfig.ts` — MSAL configuration
+- `msalAuthWindow.ts` — MSAL popup auth window
+- `oauth-token-manager.ts` — OAuth token lifecycle management
+
+**Integration Services:**
+- `microsoftGraphClient.ts` — Microsoft Graph API client
+- `microsoftGraphWebhooks.ts` — Graph webhook subscriptions
+- `microsoftTeamsService.ts` — Teams integration service
+- `microsoftTeamsMeetingService.ts` — Teams meeting creation
+- `microsoftTeamsNotificationService.ts` — Teams notifications
+- `googleMeetMeetingService.ts` — Google Meet integration
+- `zoomMeetingService.ts` — Zoom meeting management
+- `zoom-sync.ts` — Zoom data synchronization
+- `integration-utils.ts` — Shared integration helpers
+- `webhook-handlers.ts` — Webhook processing
+
+**Supabase & Edge Functions:**
+- `supabase-helpers.ts` — Supabase query helpers
+- `supabase-typed.ts` — Typed Supabase client utilities
+- `edge-functions.ts` — Edge Function invocation helpers
+- `env-validator.ts` — Environment variable validation
 
 ## Environment Variables
 
@@ -260,11 +329,19 @@ VITE_MODULE_PRODUCTIVITY=true
 
 ## ESLint Configuration
 
+- **Config file**: `eslint.config.js` (flat config format)
 - TypeScript ESLint recommended rules
 - React hooks plugin (recommended rules)
 - React refresh plugin (warns on non-component exports)
 - `@typescript-eslint/no-unused-vars` is **off**
-- TypeScript `strict: false` in tsconfig
+- TypeScript `strict: false` in tsconfig (`noImplicitAny`, `strictNullChecks`, `noUnusedLocals`, `noUnusedParameters` all off)
+
+## Tailwind Configuration
+
+- **Dark mode**: class-based (`class` strategy)
+- **Custom colors**: AI-specific palette (`ai.glow`, `ai.pulse`), semantic colors (`success`, `warning`, `info`)
+- **Custom animations**: `accordion`, `fade-in`, `fade-out`, `scale-in`, `slide-in-right`, `ai-pulse`, `ai-glow`
+- **Plugin**: `tailwindcss-animate`
 
 ## Security Practices
 
@@ -313,15 +390,20 @@ VITE_MODULE_PRODUCTIVITY=true
 | `src/contexts/BrandingContext.tsx` | Branding/theming state |
 | `src/shared/config/modules.ts` | Module registry (source of truth for modules) |
 | `src/shared/config/env.ts` | Centralized environment variable access |
+| `src/shared/config/api.ts` | API configuration and endpoint definitions |
 | `src/lib/cache.ts` | React Query key factories and invalidation helpers |
 | `src/lib/validation.ts` | Zod validation schemas |
 | `src/lib/activity-logger.ts` | Activity tracking utilities |
 | `src/lib/sanitize.ts` | Input sanitization |
+| `src/lib/edge-functions.ts` | Edge Function invocation helpers |
+| `src/integrations/supabase/client.ts` | Supabase client instance |
+| `src/integrations/supabase/types.ts` | Auto-generated database types |
 | `supabase/config.toml` | Edge function JWT verification config |
 | `supabase/auth-middleware.ts` | Edge function auth utilities |
 | `supabase/cors.ts` | CORS configuration for edge functions |
-| `vite.config.ts` | Build config (port 8080, `@` alias) |
-| `tailwind.config.ts` | Tailwind with dark mode, custom colors |
+| `vite.config.ts` | Build config (port 8080, `@` alias, react-swc plugin) |
+| `tailwind.config.ts` | Tailwind with dark mode, custom colors, AI palette |
+| `eslint.config.js` | ESLint flat config |
 
 ## Specialized Subagents (11 Agents)
 
@@ -427,3 +509,12 @@ Comprehensive docs in `/docs/` organized by topic:
 - `06-ai-features/` — AI capabilities
 - `07-admin/` — Admin panel and feature flags
 - `08-edge-functions/` — Edge function catalog and deployment
+- `archive/` — Legacy/archived documentation
+- `backlog/` — Feature backlog and planning docs
+- `public_website/` — Public-facing documentation
+
+Additional standalone guides in `docs/` root:
+- `AGENTIC_FEATURES_GUIDE.md` — Agentic AI capabilities guide
+- `GUARDRAILS_GUIDE.md` — AI guardrails setup
+- `HITL_SETUP_GUIDE.md` — Human-in-the-loop configuration
+- `MULTI_AGENT_TUTORIAL.md` — Multi-agent orchestration tutorial
