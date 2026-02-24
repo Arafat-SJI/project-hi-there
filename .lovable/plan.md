@@ -1,41 +1,48 @@
 
 
-# Fix: `meetings_v2` Table Not Found
+# Restructure Business Development Navigation
 
-## Problem
-The meetings module hooks (`useMeetingsV2.ts`, `useCalendarMeetings.ts`, `useMeetingParticipantsV2.ts`) reference tables `meetings_v2` and `meeting_participants_v2`, which do not exist in the database. The actual tables are `meetings` and `meeting_participants`.
+## Overview
+Clean up the Business Development sidebar navigation to be clearer and more intuitive, following standard CRM conventions.
 
-This causes the runtime error: **"Could not find the table 'public.meetings_v2' in the schema cache"** and all the TypeScript build errors.
+## Changes
 
-## Solution
-Update all three hook files to query the correct table names, using `(supabase as any)` type casting to bypass stale TypeScript types (per the project's established type-bridge strategy).
+### Before → After
 
-### Column Mapping
-The `meetings` table has equivalent columns but with some naming differences:
-- `type` column exists as `meeting_type` in the real table
-- `created_by` maps to `organizer_id`
-- `meeting_participants_v2` maps to `meeting_participants` (columns: `meeting_id`, `user_id`, `email`, `name`, `role`, `rsvp_status`, `attended`)
+```text
+Business Development              Sales & CRM
+├── Clients (header)              ├── Companies          → /clients
+│   ├── All Clients               ├── Contacts           → /contacts
+│   └── Active Clients            ├── Deals              → /deals
+├── All Deals                     │   ├── Lead
+│   ├── Lead                      │   ├── Discovery
+│   ├── Discovery                 │   ├── Qualified
+│   ├── Qualified                 │   ├── Estimation
+│   ├── Estimation                │   └── Proposal
+│   └── Proposal                  └── Lead Follow-Up     → /lead-followup
+├── Contacts
+└── Lead Follow-Up
+```
 
-## Files to Change
-
-### 1. `src/modules/meetings/hooks/useMeetingsV2.ts`
-- Replace all `supabase.from("meetings_v2")` with `(supabase as any).from("meetings_v2")` -- OR better, change to `(supabase as any).from("meetings")`
-- Replace `supabase.from("meeting_participants_v2")` with `(supabase as any).from("meeting_participants")`
-- Map `type` to `meeting_type` and `created_by` to `organizer_id` in insert/update logic
-
-### 2. `src/modules/meetings/hooks/useCalendarMeetings.ts`
-- Replace both `supabase.from("meetings_v2")` calls with `(supabase as any).from("meetings")`
-
-### 3. `src/modules/meetings/hooks/useMeetingParticipantsV2.ts`
-- Replace `supabase.from("meeting_participants_v2")` with `(supabase as any).from("meeting_participants")`
+### Key decisions
+- "Clients" renamed to "Companies" (with `Building2` icon) -- broader term, not every company is a client yet
+- Remove the "All Clients" / "Active Clients" sub-items -- use page-level filters instead
+- "All Deals" simplified to "Deals" -- the "All" prefix is redundant
+- Group title: "Business Development" → "Sales & CRM" -- shorter, industry-standard
+- Contacts moves to position 2 (right after Companies) for logical grouping (companies → people at those companies)
+- Lead Follow-Up stays last as a distinct workflow
 
 ## Technical Details
 
-All changes use the `(supabase as any)` pattern already established in this project to handle tables/columns not yet reflected in the auto-generated TypeScript types. The runtime data is cast to the existing `MeetingV2Schedule` interface which remains unchanged.
+### File to modify
+**`src/shared/data/navigationStructure.ts`** (lines 50-97)
 
-The insert mutation in `useCreateMeetingV2` will also be updated to map:
-- `type` -> `meeting_type` (the actual column name in the `meetings` table)
-- `created_by` -> `organizer_id` (the actual column name)
+Update the first `navigationGroups` entry:
 
-This will also fix the pre-existing build errors in these three files (~25 TypeScript errors).
+1. Change group `title` from `"Business Development"` to `"Sales & CRM"`
+2. Replace the "Clients" item (with `headerOnly` and children) with a flat "Companies" item using `Building2` icon
+3. Move "Contacts" to position 2
+4. Rename "All Deals" to "Deals" (keep its pipeline stage children)
+5. "Lead Follow-Up" stays at position 4
 
+No route changes needed -- all URLs (`/clients`, `/contacts`, `/deals`, `/lead-followup`) remain the same. This is a labels-and-order-only change.
