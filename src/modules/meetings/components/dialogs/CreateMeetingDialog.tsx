@@ -33,13 +33,24 @@ import type { MeetingType } from "../../types/meetings";
 import { useIntegrationProvider, useOrganizationIntegration } from "@/hooks/useIntegrations";
 import { useUserOAuthToken, useHasValidToken, useConnectOAuth } from "@/hooks/useUserIntegrations";
 import { useToast } from "@/hooks/use-toast";
-import { initiateAzureLoginRedirect } from "@/lib/azureAuth";
+import { initiateAzureLoginRedirect, getStoredGraphResponse, getStoredMSALResponse } from "@/lib/azureAuth";
 import { validateMSALConfig } from "@/lib/msalConfig";
 import { getTokenMetadata } from "@/lib/microsoftGraphClient";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export type MeetingPlatformSlug = "zoom" | "microsoft-teams" | "google-meet";
+
+/** True when the user has a valid Microsoft Graph token in sessionStorage (e.g. connected via Admin panel). */
+function hasValidGraphTokenInSession(): boolean {
+  if (typeof window === "undefined") return false;
+  const g = getStoredGraphResponse();
+  const m = getStoredMSALResponse();
+  const token = g?.accessToken || m?.accessToken;
+  if (!token?.trim()) return false;
+  const meta = getTokenMetadata(token);
+  return !!(meta && !meta.isExpired);
+}
 
 const PLATFORMS: {
   slug: MeetingPlatformSlug;
@@ -181,7 +192,8 @@ export default function CreateMeetingDialog({
   const isZoomConnected = !!zoomToken && zoomValid.hasValidToken;
   const isTeamsConnected =
     (!!teamsTokenNew && teamsValidNew.hasValidToken) ||
-    (!!teamsTokenLegacy && teamsValidLegacy.hasValidToken);
+    (!!teamsTokenLegacy && teamsValidLegacy.hasValidToken) ||
+    hasValidGraphTokenInSession();
   const isGoogleMeetConnected = !!googleMeetToken && googleMeetValid.hasValidToken;
 
   const platformConnectionState = {
