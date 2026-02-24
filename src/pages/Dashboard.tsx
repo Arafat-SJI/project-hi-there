@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Loader2,
   Sparkles,
-  MessageSquare,
   Bot,
   Compass,
 } from "lucide-react";
@@ -107,9 +106,9 @@ export default function Dashboard() {
             </div>
           </div>
           <Button asChild className="ai-gradient border-0 text-white shadow-md hover:opacity-90 shrink-0">
-            <Link to="/ai-chat" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Ask AI
+            <Link to="/ai-agents" className="gap-2">
+              <Bot className="h-4 w-4" />
+              Meet Your AI Team
             </Link>
           </Button>
         </div>

@@ -274,20 +274,6 @@ export const navigationGroups: NavGroup[] = [
       },
     ],
   },
-  {
-    id: "ai-command",
-    title: "AI Command Center",
-    icon: "Bot",
-    isAI: true,
-    items: [
-      {
-        title: "AI Chat",
-        href: "/ai-chat",
-        icon: "MessageSquare",
-        featureFlag: "enableAIChat",
-      },
-    ],
-  },
 ];
 
 /**

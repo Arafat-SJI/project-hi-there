@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { AIIndicator } from "@/components/ui/ai-indicator";
-import { MapPin, ArrowRight, MessageSquare } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 
 interface AgentContext {
   whatIDo: string;
@@ -182,12 +182,6 @@ export function AIAgentGuidePopover({ agent }: AIAgentGuidePopoverProps) {
               <Link to={ctx.link} className="gap-2">
                 Go There
                 <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild className="text-muted-foreground w-full">
-              <Link to={`/ai-chat?agent=${agent.slug}`} className="gap-2">
-                <MessageSquare className="h-3.5 w-3.5" />
-                Or chat with me
               </Link>
             </Button>
           </div>
