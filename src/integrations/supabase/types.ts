@@ -2570,6 +2570,7 @@ export type Database = {
           id: string
           message: string
           metadata: Json | null
+          module: string | null
           rating: number | null
           status: string | null
           subject: string
@@ -2583,6 +2584,7 @@ export type Database = {
           id?: string
           message: string
           metadata?: Json | null
+          module?: string | null
           rating?: number | null
           status?: string | null
           subject: string
@@ -2596,6 +2598,7 @@ export type Database = {
           id?: string
           message?: string
           metadata?: Json | null
+          module?: string | null
           rating?: number | null
           status?: string | null
           subject?: string
