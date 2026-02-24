@@ -50,24 +50,26 @@ export const dashboardItem: NavItem = {
 export const navigationGroups: NavGroup[] = [
   {
     id: "business-dev",
-    title: "Business Development",
+    title: "Sales & CRM",
     icon: "Briefcase",
     module: "business-dev",
     items: [
       {
-        title: "Clients",
+        title: "Companies",
         href: "/clients",
-        icon: "Users",
+        icon: "Building2",
         module: "business-dev",
         featureFlag: "enableClients",
-        headerOnly: true,
-        children: [
-          { title: "All Clients", href: "/clients", icon: "Users", module: "business-dev", featureFlag: "enableClients" },
-          { title: "Active Clients", href: "/clients?status=active", icon: "Users", module: "business-dev", featureFlag: "enableClients" },
-        ],
       },
       {
-        title: "All Deals",
+        title: "Contacts",
+        href: "/contacts",
+        icon: "Contact",
+        module: "business-dev",
+        featureFlag: "enableClients",
+      },
+      {
+        title: "Deals",
         href: "/deals",
         icon: "Handshake",
         module: "business-dev",
@@ -79,13 +81,6 @@ export const navigationGroups: NavGroup[] = [
           { title: "Estimation", href: "/deals?tab=all&stage=estimation", icon: "Calculator", module: "business-dev", featureFlag: "enableClients" },
           { title: "Proposal", href: "/deals?tab=all&stage=proposal", icon: "FileText", module: "business-dev", featureFlag: "enableClients" },
         ],
-      },
-      {
-        title: "Contacts",
-        href: "/contacts",
-        icon: "Contact",
-        module: "business-dev",
-        featureFlag: "enableClients",
       },
       {
         title: "Lead Follow-Up",

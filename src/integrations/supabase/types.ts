@@ -4503,6 +4503,7 @@ export type Database = {
           meeting_type: string | null
           metadata: Json | null
           notes: string | null
+          notify_participants: boolean | null
           organizer_id: string
           parent_meeting_id: string | null
           pod_id: string | null
@@ -4551,6 +4552,7 @@ export type Database = {
           meeting_type?: string | null
           metadata?: Json | null
           notes?: string | null
+          notify_participants?: boolean | null
           organizer_id: string
           parent_meeting_id?: string | null
           pod_id?: string | null
@@ -4599,6 +4601,7 @@ export type Database = {
           meeting_type?: string | null
           metadata?: Json | null
           notes?: string | null
+          notify_participants?: boolean | null
           organizer_id?: string
           parent_meeting_id?: string | null
           pod_id?: string | null
