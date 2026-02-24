@@ -10,6 +10,10 @@ interface Profile {
   full_name?: string;
   avatar_url?: string;
   role?: string;
+  // Agency role for dashboard routing (owner | pm | ic)
+  agencyRole?: "owner" | "pm" | "ic";
+  // EOS flag: owner sees EOS-enhanced dashboard when true
+  isEosUser?: boolean;
 }
 
 interface AuthContextType {
@@ -57,6 +61,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Fetch agency role preferences from user_role_preferences table
+  const fetchAgencyPreferences = async (
+    userId: string
+  ): Promise<{ agencyRole?: "owner" | "pm" | "ic"; isEosUser: boolean }> => {
+    try {
+      const { data, error } = await supabase
+        .from("user_role_preferences")
+        .select("agency_role, is_eos_user")
+        .eq("user_id", userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching agency preferences:", error);
+        return { isEosUser: false };
+      }
+
+      return {
+        agencyRole: (data?.agency_role as "owner" | "pm" | "ic" | null) ?? undefined,
+        isEosUser: data?.is_eos_user ?? false,
+      };
+    } catch (error) {
+      console.error("Error fetching agency preferences:", error);
+      return { isEosUser: false };
+    }
+  };
+
   // Fetch or create user profile
   const fetchProfile = async (userId: string) => {
     try {
@@ -66,8 +97,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq("id", userId)
         .single();
 
-      // Fetch role separately from user_roles table
-      const role = await fetchUserRole(userId);
+      // Fetch role and agency preferences in parallel
+      const [role, agencyPrefs] = await Promise.all([
+        fetchUserRole(userId),
+        fetchAgencyPreferences(userId),
+      ]);
 
       if (error) {
         // Profile doesn't exist, create it
@@ -87,12 +121,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
 
           if (createError) throw createError;
-          setProfile({ ...newProfile, role });
+          setProfile({ ...newProfile, role, ...agencyPrefs });
         } else {
           throw error;
         }
       } else {
-        setProfile({ ...data, role });
+        setProfile({ ...data, role, ...agencyPrefs });
       }
     } catch (error) {
       console.error("Error fetching profile:", error);

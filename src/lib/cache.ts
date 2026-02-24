@@ -148,6 +148,19 @@ export const queryKeys = {
     unread: ["notifications", "unread"] as const,
     count: ["notifications", "count"] as const,
   },
+
+  // Dashboard (agency-first)
+  dashboard: {
+    ownerMetrics: ["dashboard", "ownerMetrics"] as const,
+    projectRisks: (filters?: Record<string, any>) => ["dashboard", "projectRisks", filters] as const,
+    pmCapacity: (podId?: string) => ["dashboard", "pmCapacity", podId] as const,
+    widgets: ["dashboard", "widgets"] as const,
+    agencyPreferences: (userId: string) => ["dashboard", "agencyPrefs", userId] as const,
+    aiDigest: (userId: string) => ["dashboard", "aiDigest", userId] as const,
+    meetingsThisWeek: (userId: string) => ["dashboard", "meetingsThisWeek", userId] as const,
+    myTasks: (userId: string, filters?: Record<string, any>) => ["dashboard", "myTasks", userId, filters] as const,
+    myProjects: (userId: string) => ["dashboard", "myProjects", userId] as const,
+  },
 };
 
 /**

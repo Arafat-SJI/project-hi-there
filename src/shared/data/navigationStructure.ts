@@ -12,6 +12,12 @@
 
 import type { ModuleId } from "@/shared/config/modules";
 
+/**
+ * Agency roles that can see a nav item or group.
+ * When omitted the item is visible to all roles.
+ */
+export type AgencyRole = "owner" | "pm" | "ic";
+
 export interface NavItem {
   title: string;
   href: string;
@@ -23,6 +29,10 @@ export interface NavItem {
   children?: NavItem[]; // Nested sub-items (e.g., Streams under Tasks)
   /** When true, parent is rendered as a section header only (collapsible), not a link; children are the links */
   headerOnly?: boolean;
+  /** When set, only these agency roles see the item. Admins always see everything. */
+  agencyRoles?: AgencyRole[];
+  /** When true, only visible if user.isEosUser === true */
+  eosOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -33,6 +43,10 @@ export interface NavGroup {
   module?: ModuleId;
   featureFlag?: string;
   items: NavItem[];
+  /** When set, only these agency roles see the group. Admins always see everything. */
+  agencyRoles?: AgencyRole[];
+  /** When true, only visible if user.isEosUser === true */
+  eosOnly?: boolean;
 }
 
 /**
@@ -187,6 +201,8 @@ export const navigationGroups: NavGroup[] = [
     title: "Strategy (EOS)",
     icon: "Target",
     module: "eos",
+    eosOnly: true, // Only shown to EOS-enabled users
+    agencyRoles: ["owner"],
     items: [
       {
         title: "EOS Hub",
@@ -230,6 +246,7 @@ export const navigationGroups: NavGroup[] = [
     id: "operations",
     title: "Operations",
     icon: "Settings2",
+    agencyRoles: ["owner", "pm"], // ICs don't need operations
     items: [
       {
         title: "Productivity",
