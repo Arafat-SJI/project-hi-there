@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Edit, Trash2, Mail, Phone, Building2, Loader2, Calendar } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import { useState } from "react";
 
 export default function ClientDetail() {
@@ -169,6 +170,14 @@ export default function ClientDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Data Source */}
+      <DataSourceBadge
+        source={(client as any).data_source}
+        externalUrl={(client as any).external_url}
+        lastSyncedAt={(client as any).last_synced_at}
+        variant="card"
+      />
 
       {/* Notes */}
       {client.metadata && typeof client.metadata === 'object' && 'notes' in client.metadata && client.metadata.notes && (
