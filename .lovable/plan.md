@@ -1,99 +1,65 @@
 
 
-## Plan: "Meet Your AI Team" — Landing Page Agent Showcase
+## Plan: Seed HubSpot Demo Data for Sales Hub
 
-### The Idea
+### What This Does
 
-Add a new dedicated section to the landing page between FeatureGrid and SocialProof called **"Meet Your AI Team"**. Instead of abstract feature descriptions, visitors see actual AI agent personas — each with a face/avatar, name, a one-liner about what they do, and which part of the platform they live in. This makes the AI feel human, approachable, and embedded rather than bolted on.
+Inserts realistic HubSpot-sourced test data so the full Sales Hub flow works end-to-end:
+- **List pages** show the "Source" column with orange HubSpot badges
+- **Detail pages** show the DataSourceBadge card with "View in HubSpot" button (links to mock HubSpot URLs)
+- **CrmConnectionBanner** appears at the top of Contacts/Deals pages
 
----
+### Data to Seed
 
-### Design Concept
+**2 HubSpot Clients:**
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                     Meet Your AI Team                               │
-│        They live inside your workflow — ready when you are          │
-│                                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
-│  │  Avatar   │  │  Avatar   │  │  Avatar   │  │  Avatar   │         │
-│  │   📝      │  │   ✅      │  │   💼      │  │   📊      │         │
-│  │ Meeting   │  │ Action    │  │ Deal      │  │ Project   │         │
-│  │Summarizer │  │ Item      │  │ Coach     │  │ Analyst   │         │
-│  │           │  │Extractor  │  │           │  │           │         │
-│  │"I turn    │  │"I pull    │  │"I help    │  │"I flag    │         │
-│  │ meetings  │  │ tasks     │  │ close     │  │ risks     │         │
-│  │ into      │  │ from your │  │ deals     │  │ before    │         │
-│  │ action."  │  │ notes."   │  │ faster."  │  │ they hit."│         │
-│  │           │  │           │  │           │  │           │         │
-│  │ 📍Meetings│  │ 📍Meetings│  │ 📍Sales   │  │ 📍Projects│         │
-│  │   Hub     │  │   Hub     │  │   Hub     │  │           │         │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │
-│                                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
-│  │   🔍      │  │   🏗️      │  │   📧      │  │   🧠      │         │
-│  │Knowledge  │  │ EOS       │  │ Email     │  │Operations │         │
-│  │ Search    │  │ Coach     │  │ Drafter   │  │ Advisor   │         │
-│  │           │  │           │  │           │  │           │         │
-│  │"I find    │  │"I guide   │  │"I draft   │  │"I spot    │         │
-│  │ answers   │  │ your EOS  │  │ follow-up │  │ team      │         │
-│  │ in your   │  │ rhythm."  │  │ emails."  │  │ patterns."│         │
-│  │ docs."    │  │           │  │           │  │           │         │
-│  │ 📍Knowledge│ │ 📍Strategy│  │ 📍Sales   │  │ 📍Ops     │         │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │
-│                                                                     │
-│         ● ● ● (dot pagination for mobile carousel)                  │
-│                                                                     │
-│         [ See All Agents → ]  (links to /login)                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+| Client | Company | Synced |
+|--------|---------|--------|
+| Acme Corp | Acme Corporation | 2 hours ago |
+| NovaTech Solutions | NovaTech Solutions Inc. | 45 min ago |
 
-Each card:
-- Large round avatar area with the agent's emoji avatar (from DB seed) or a generated initial
-- A pulsing green "active" dot (reusing `AIIndicator`)
-- Agent name in bold
-- A first-person quote: "Hi, I'm [name]. I [whatIDo]." — written conversationally
-- A subtle "📍 Lives in: [section]" tag showing where in the app they work
-- Hover: card lifts with `shadow-ai`, border glows `border-primary/30`
+**4 HubSpot Contacts** (linked to clients):
 
-### Agent Data (Hardcoded in Component)
+| Contact | Title | Client |
+|---------|-------|--------|
+| Marcus Chen | VP of Engineering | Acme Corp |
+| Sarah Winters | Head of Product | Acme Corp |
+| Derek Patel | CTO | NovaTech |
+| Emily Nakamura | Director of Operations | NovaTech |
 
-Using the agents already seeded in the database, the component will use a static array of 8 representative agents:
+**3 HubSpot Deals** (linked to clients + contacts):
 
-| Agent | Quote | Section |
-|-------|-------|---------|
-| Meeting Summarizer | "I turn your meetings into structured summaries." | Meetings Hub |
-| Action Item Extractor | "I pull tasks and deadlines from your transcripts." | Meetings Hub |
-| Deal Coach | "I help you close deals with strategy and email drafts." | Sales Hub |
-| Project Analyst | "I flag project risks before they become problems." | Work Management |
-| Knowledge Search | "I find answers across your entire knowledge base." | Knowledge |
-| EOS Coach | "I guide your team through L10s, rocks, and IDS." | Strategy |
-| Email Draft Assistant | "I draft follow-up emails that get replies." | Sales Hub |
-| Operations Advisor | "I spot productivity patterns in your team." | Operations |
+| Deal | Stage | Value | Client |
+|------|-------|-------|--------|
+| Acme — Enterprise Platform License | proposal | $120,000 | Acme Corp |
+| NovaTech — Pilot Program | qualified | $36,000 | NovaTech |
+| Acme — AI Analytics Module | discovery | $45,000 | Acme Corp |
 
-### Mobile Behavior
+### Technical Details
 
-- On mobile (`< lg`): horizontal scroll carousel with snap points, 2 cards visible at a time
-- On desktop (`lg+`): 4-column grid, 2 rows
-
----
+- All records have `data_source = 'hubspot'`, realistic `external_id` values, and `external_url` pointing to mock HubSpot URLs (`https://app.hubspot.com/contacts/12345678/...`)
+- `last_synced_at` set to recent timestamps so the "Synced X ago" text looks natural
+- Contacts have `linkedin_url`, `title`, `company` filled out for rich detail pages
+- Deals have `probability`, `expected_close_date`, and `description` for realistic pipeline view
+- All records use `ON CONFLICT DO NOTHING` for idempotency
+- `created_by` / `owner_id` set to the admin user
 
 ### Implementation
 
-**New file: `src/components/landing/AITeamShowcase.tsx`**
-- Static array of 8 agent objects with `name`, `avatar` (emoji), `quote`, `section`, `sectionIcon`
-- Grid layout: `grid-cols-2 lg:grid-cols-4`
-- Each card uses existing `ai-card` class, `AIIndicator` dot, and hover effects
-- Section heading with Sparkles icon matching other landing sections
-- CTA button at bottom linking to `/login`
+Single migration file with INSERT statements for all 9 records (2 clients + 4 contacts + 3 deals).
 
-**Modified file: `src/pages/Index.tsx`**
-- Import and insert `<AITeamShowcase />` between `<FeatureGrid />` and `<SocialProof />`
+### Demo Flow After Seeding
+
+1. Navigate to **Companies** → see "Acme Corp" and "NovaTech" with orange HubSpot badges in Source column
+2. Click **Acme Corp** → detail page shows card: "From HubSpot · Last synced: [time]" + "View in HubSpot" button
+3. Navigate to **Contacts** → see 4 HubSpot contacts with badges
+4. Click **Marcus Chen** → detail shows HubSpot source card + "View in HubSpot"
+5. Navigate to **Deals** → see 3 HubSpot deals with badges in pipeline
+6. Click **Acme — Enterprise Platform License** → deal detail with HubSpot badge + deep link
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/landing/AITeamShowcase.tsx` | **New** — 8-agent showcase grid |
-| `src/pages/Index.tsx` | Add import + render `<AITeamShowcase />` |
+| Migration SQL | Insert 2 clients, 4 contacts, 3 deals with HubSpot data |
 
