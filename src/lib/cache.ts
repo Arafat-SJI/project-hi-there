@@ -98,6 +98,25 @@ export const queryKeys = {
     all: ["tasks"] as const,
     list: (filters?: Record<string, any>) => ["tasks", "list", filters] as const,
     detail: (id: string) => ["tasks", "detail", id] as const,
+    // V2 / My Tasks views
+    listV2: (filters?: Record<string, any>) => ["tasks", "listV2", filters] as const,
+    detailBySlug: (slug: string) => ["tasks", "detailBySlug", slug] as const,
+    today: (userId: string, search?: string) => ["tasks", "today", userId, search] as const,
+    thisWeek: (userId: string, search?: string) => ["tasks", "thisWeek", userId, search] as const,
+    weekOffset: (userId: string, weekOffset: number, search?: string) =>
+      ["tasks", "week", userId, weekOffset, search] as const,
+    overdue: (userId: string, search?: string) => ["tasks", "overdue", userId, search] as const,
+    delegated: (userId: string, search?: string) => ["tasks", "delegated", userId, search] as const,
+    allMine: (userId: string, search?: string) => ["tasks", "allMine", userId, search] as const,
+    streams: ["tasks", "streams"] as const,
+    streamBySlug: (slugOrId: string) => ["tasks", "stream", slugOrId] as const,
+    streamCounts: ["tasks", "streamCounts"] as const,
+    streamTasks: (streamId: string, filters?: Record<string, any>) =>
+      ["tasks", "streamTasks", streamId, filters] as const,
+    subTasks: (parentId: string) => ["tasks", "subTasks", parentId] as const,
+    comments: (taskId: string) => ["tasks", "comments", taskId] as const,
+    contributors: (taskId: string) => ["tasks", "contributors", taskId] as const,
+    stats: ["tasks", "stats"] as const,
   },
 
   // AI
@@ -232,6 +251,16 @@ export const invalidateKeys = {
   },
   tasks: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+    queryClient.invalidateQueries({ queryKey: ["tasks"] });
+  },
+  taskDetail: (queryClient: any, idOrSlug: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(idOrSlug) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detailBySlug(idOrSlug) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.listV2(undefined) });
+  },
+  taskStreams: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.streams });
+    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.streamCounts });
   },
   roles: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.admin.roles });

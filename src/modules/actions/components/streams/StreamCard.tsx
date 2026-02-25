@@ -13,9 +13,11 @@ interface StreamCardProps {
 export function StreamCard({ stream, basePath }: StreamCardProps) {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
-  const to = basePath ?? (isAdmin ? "/admin/tasks/streams" : "/tasks/streams");
+  const to = basePath
+    ? `${basePath}/${stream.id}`
+    : `/tasks/stream/${stream.slug || stream.id}`;
   return (
-    <Link to={`${to}/${stream.id}`}>
+    <Link to={to}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-3">

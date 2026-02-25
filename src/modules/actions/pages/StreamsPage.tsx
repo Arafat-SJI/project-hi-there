@@ -2,21 +2,32 @@
  * Streams Page
  *
  * Lists all task streams with task/member counts.
- * Allows creating new streams.
+ * Back button to My Tasks; allows creating new streams.
  */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, ArrowLeft } from "lucide-react";
 import { useTaskStreams } from "../hooks/useTaskStreams";
 import { StreamCard } from "../components/streams/StreamCard";
 import { CreateStreamDialog } from "../components/streams/CreateStreamDialog";
 
 export default function StreamsPage() {
+  const navigate = useNavigate();
   const { data: streams, isLoading } = useTaskStreams();
   const [showCreate, setShowCreate] = useState(false);
 
   return (
     <div className="space-y-6">
+      <Button
+        variant="outline"
+        onClick={() => navigate("/tasks")}
+        className="rounded-lg"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        My Tasks
+      </Button>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Streams</h1>

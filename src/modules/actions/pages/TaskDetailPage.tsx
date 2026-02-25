@@ -4,7 +4,7 @@
  * Shows full task details with subtasks, comments, metadata sidebar,
  * and inline status/priority editing.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -38,13 +38,21 @@ import {
   GitBranch,
   User,
   Clock,
+  Reply,
 } from "lucide-react";
-import { useTask, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTaskBySlug, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
 import { useTaskComments } from "../hooks/useTaskComments";
 import { useTaskCategories } from "../hooks/useTaskCategories";
 import { SubTasksList } from "../components/SubTasksList";
 import { CommentThread } from "../components/comments/CommentThread";
+import { CreateTaskDialog } from "../components/CreateTaskDialog";
 import type { TaskStatus, TaskPriority } from "../types/tasks";
+import { sanitizeRichText } from "@/lib/sanitize";
+
+function isUuid(s: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
 
 const statusColors: Record<string, string> = {
   todo: "bg-slate-100 text-slate-700",
@@ -61,15 +69,30 @@ const priorityColors: Record<string, string> = {
 };
 
 export default function TaskDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { idOrSlug } = useParams<{ idOrSlug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showDelete, setShowDelete] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  const { data: task, isLoading } = useTask(id);
-  const { data: comments } = useTaskComments(id);
+  const { data: task, isLoading } = useTaskBySlug(idOrSlug);
+  const taskId = task?.id;
+  const { data: comments } = useTaskComments(taskId);
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const { data: categories } = useTaskCategories();
+
+  // Prefer slug in URL: if we loaded by UUID and task has slug, redirect to /tasks/:slug
+  useEffect(() => {
+    if (!task || !idOrSlug || !isUuid(idOrSlug) || !task.slug) return;
+    if (idOrSlug !== task.slug) {
+      navigate(`/tasks/${task.slug}`, { replace: true });
+    }
+  }, [task, idOrSlug, navigate]);
+
+  const backHref = task?.stream?.slug
+    ? `/tasks/stream/${task.stream.slug}`
+    : "/tasks";
 
   if (isLoading) {
     return (
@@ -90,6 +113,20 @@ export default function TaskDetailPage() {
     );
   }
 
+  const canAssignBack =
+    user?.id &&
+    task.assigned_to === user.id &&
+    task.created_by !== user.id &&
+    task.created_by != null;
+
+  const handleAssignBack = () => {
+    if (!task.created_by) return;
+    updateTask.mutate({
+      id: task.id,
+      data: { assigned_to: task.created_by },
+    });
+  };
+
   const handleStatusChange = (status: TaskStatus) => {
     updateTask.mutate({ id: task.id, data: { status } });
   };
@@ -109,7 +146,7 @@ export default function TaskDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/tasks")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(backHref)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -126,7 +163,13 @@ export default function TaskDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => navigate(`/tasks/${task.id}/edit`)}>
+          {canAssignBack && (
+            <Button variant="outline" size="sm" onClick={handleAssignBack}>
+              <Reply className="mr-2 h-4 w-4" />
+              Assign back to sender
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Edit
           </Button>
@@ -156,6 +199,7 @@ export default function TaskDetailPage() {
                     <SelectContent>
                       <SelectItem value="todo">To Do</SelectItem>
                       <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
@@ -183,7 +227,16 @@ export default function TaskDetailPage() {
                   <Separator />
                   <div>
                     <p className="text-xs text-muted-foreground font-medium mb-1">Description</p>
-                    <p className="text-sm whitespace-pre-wrap">{task.description}</p>
+                    {/<\/?[a-z][^>]*>/i.test(task.description) ? (
+                      <div
+                        className="text-sm prose prose-sm max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeRichText(task.description),
+                        }}
+                      />
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{task.description}</p>
+                    )}
                   </div>
                 </>
               )}
@@ -323,6 +376,13 @@ export default function TaskDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Edit Task Dialog */}
+      <CreateTaskDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        task={task}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={showDelete} onOpenChange={setShowDelete}>

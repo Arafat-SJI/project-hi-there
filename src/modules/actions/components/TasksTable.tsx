@@ -46,9 +46,12 @@ interface TasksTableProps {
   tasks: Task[];
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onDelete: (taskId: string) => void;
+  /** If provided, task title links use this href (e.g. slug-based /tasks/:slug) */
+  taskHref?: (task: Task) => string;
 }
 
-export function TasksTable({ tasks, onStatusChange, onDelete }: TasksTableProps) {
+export function TasksTable({ tasks, onStatusChange, onDelete, taskHref }: TasksTableProps) {
+  const hrefFor = (task: Task) => taskHref?.(task) ?? `/tasks/${task.id}`;
   if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -87,7 +90,7 @@ export function TasksTable({ tasks, onStatusChange, onDelete }: TasksTableProps)
               <TableCell>
                 <div className="flex flex-col gap-1">
                   <Link
-                    to={`/tasks/${task.id}`}
+                    to={hrefFor(task)}
                     className="font-medium text-foreground hover:text-primary hover:underline"
                   >
                     {task.title}
