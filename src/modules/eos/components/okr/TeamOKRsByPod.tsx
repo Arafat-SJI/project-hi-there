@@ -1,31 +1,20 @@
 /**
  * Team OKRs By Pod
  *
- * Groups OKRs by pod with collapsible sections, displaying each OKR's
- * status, progress, and owner under its pod header.
+ * Groups OKRs by pod with collapsible sections. Each section shows team name
+ * with count; expanding shows full OKR cards (same layout as My/Company OKRs).
  */
 
 import { useState, useMemo } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Layers } from "lucide-react";
-import type { OKR, EOSPod, OKRStatus } from "../../types";
-
-const statusColors: Record<OKRStatus, string> = {
-  draft: "bg-gray-100 text-gray-700",
-  active: "bg-blue-100 text-blue-800",
-  on_track: "bg-green-100 text-green-800",
-  at_risk: "bg-amber-100 text-amber-800",
-  behind: "bg-red-100 text-red-800",
-  completed: "bg-green-100 text-green-800",
-  closed: "bg-gray-100 text-gray-600",
-};
+import { ChevronDown, ChevronRight, Users } from "lucide-react";
+import { OKRCard } from "./OKRCard";
+import type { OKR, EOSPod } from "../../types";
 
 interface PodSection {
   pod: EOSPod | null;
@@ -37,9 +26,22 @@ interface PodSection {
 interface TeamOKRsByPodProps {
   okrs: OKR[];
   pods: EOSPod[];
+  onSelectOKR?: (okr: OKR) => void;
+  onEdit?: (okr: OKR) => void;
+  onDuplicate?: (okr: OKR) => void;
+  onClose?: (okr: OKR) => void;
+  onDelete?: (okr: OKR) => void;
 }
 
-export function TeamOKRsByPod({ okrs, pods }: TeamOKRsByPodProps) {
+export function TeamOKRsByPod({
+  okrs,
+  pods,
+  onSelectOKR,
+  onEdit,
+  onDuplicate,
+  onClose,
+  onDelete,
+}: TeamOKRsByPodProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     () => new Set(pods.map((p) => p.id).concat(["unassigned"]))
   );
@@ -102,8 +104,8 @@ export function TeamOKRsByPod({ okrs, pods }: TeamOKRsByPodProps) {
   if (sections.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-        <Layers className="h-8 w-8 mb-2" />
-        <p>No OKRs to display</p>
+        <Users className="h-8 w-8 mb-2" />
+        <p>No team OKRs to display</p>
       </div>
     );
   }
@@ -131,14 +133,10 @@ export function TeamOKRsByPod({ okrs, pods }: TeamOKRsByPodProps) {
                   ) : (
                     <ChevronRight className="h-4 w-4 shrink-0" />
                   )}
-                  <span
-                    className="inline-block h-3 w-3 rounded-full shrink-0"
-                    style={{ backgroundColor: section.color }}
-                  />
+                  <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="font-medium text-sm">{section.label}</span>
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {section.okrs.length}{" "}
-                    {section.okrs.length === 1 ? "OKR" : "OKRs"}
+                  <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5 ml-auto">
+                    {section.okrs.length}
                   </span>
                 </Button>
               </CollapsibleTrigger>
@@ -146,41 +144,20 @@ export function TeamOKRsByPod({ okrs, pods }: TeamOKRsByPodProps) {
               <CollapsibleContent>
                 {section.okrs.length === 0 ? (
                   <div className="px-4 pb-3 text-sm text-muted-foreground">
-                    No OKRs assigned to this pod
+                    No OKRs assigned to this team
                   </div>
                 ) : (
-                  <div className="px-4 pb-3 space-y-3">
+                  <div className="p-4 space-y-4">
                     {section.okrs.map((okr) => (
-                      <div
+                      <OKRCard
                         key={okr.id}
-                        className="flex items-center gap-3 rounded-md border p-3"
-                      >
-                        <div className="flex-1 min-w-0 space-y-1.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium truncate">
-                              {okr.title}
-                            </p>
-                            <Badge
-                              variant="secondary"
-                              className={`shrink-0 ${statusColors[okr.status] || ""}`}
-                            >
-                              {okr.status.replace("_", " ")}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Progress
-                              value={okr.progress}
-                              className="h-1.5 flex-1"
-                            />
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {Math.round(okr.progress)}%
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {okr.owner?.full_name || "No owner"}
-                          </p>
-                        </div>
-                      </div>
+                        okr={okr}
+                        onSelect={() => onSelectOKR?.(okr)}
+                        onEdit={onEdit}
+                        onDuplicate={onDuplicate}
+                        onClose={() => onClose?.(okr)}
+                        onDelete={onDelete}
+                      />
                     ))}
                   </div>
                 )}

@@ -6,7 +6,7 @@
  * expandable Key Results section, and actions dropdown.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { KeyResultProgress } from "./KeyResultProgress";
 import { KeyResultCard } from "./KeyResultCard";
 import { formatDateLong } from "@/utils/okrHelpers";
 import {
@@ -35,6 +34,7 @@ import {
   Copy,
   Archive,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 import type { OKR } from "../../types";
 
@@ -84,6 +84,22 @@ export function OKRCard({
       : Number(okr.progress ?? 0);
 
   const handleViewDetails = () => (onSelect || onClick)?.();
+
+  const overdueUpdates = useMemo(() => {
+    if (!okr.key_results?.length) return [];
+    const now = new Date();
+    const names: string[] = [];
+    const seen = new Set<string>();
+    for (const kr of okr.key_results) {
+      if (kr.status === "completed") continue;
+      const due = kr.next_update_due ? new Date(kr.next_update_due) : null;
+      if (due && due < now && kr.owner?.full_name && !seen.has(kr.owner.full_name)) {
+        seen.add(kr.owner.full_name);
+        names.push(kr.owner.full_name);
+      }
+    }
+    return names;
+  }, [okr.key_results]);
 
   return (
     <Card className="overflow-hidden">
@@ -180,6 +196,13 @@ export function OKRCard({
           </div>
           <Progress value={progress} className="h-2" />
         </div>
+
+        {overdueUpdates.length > 0 && (
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>Overdue updates: {overdueUpdates.join(", ")}</span>
+          </div>
+        )}
 
         <div className="flex justify-center">
           <Button onClick={handleViewDetails} variant="default" size="sm">

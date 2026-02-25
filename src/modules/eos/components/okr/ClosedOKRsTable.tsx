@@ -1,7 +1,7 @@
 /**
  * Closed OKRs Table
  *
- * Table of archived OKRs with optional search.
+ * Table of archived OKRs with optional search and Reopen/Edit actions.
  */
 
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Archive, Search } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Archive, Search, MoreHorizontal, RotateCcw, Pencil } from "lucide-react";
 import type { OKR } from "../../types";
 import { formatDate } from "@/utils/okrHelpers";
 
@@ -28,12 +35,16 @@ interface ClosedOKRsTableProps {
   okrs: OKR[];
   search?: string;
   onSearchChange?: (value: string) => void;
+  onReopen?: (okr: OKR) => void;
+  onEdit?: (okr: OKR) => void;
 }
 
 export function ClosedOKRsTable({
   okrs,
   search = "",
   onSearchChange,
+  onReopen,
+  onEdit,
 }: ClosedOKRsTableProps) {
   const closedOkrs = [...okrs]
     .filter((okr) => okr.status === "completed" || okr.status === "closed" || okr.is_archived)
@@ -71,6 +82,9 @@ export function ClosedOKRsTable({
               <TableHead className="w-[160px]">Progress</TableHead>
               <TableHead className="w-[120px]">Closed Date</TableHead>
               <TableHead className="w-[140px]">Owner</TableHead>
+              {(onReopen || onEdit) && (
+                <TableHead className="w-[60px] text-right">Actions</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -125,6 +139,32 @@ export function ClosedOKRsTable({
                       {okr.owner?.full_name || "Unassigned"}
                     </span>
                   </TableCell>
+                  {(onReopen || onEdit) && (
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {onReopen && (
+                            <DropdownMenuItem onClick={() => onReopen(okr)}>
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                              Reopen
+                            </DropdownMenuItem>
+                          )}
+                          {onEdit && (
+                            <DropdownMenuItem onClick={() => onEdit(okr)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}

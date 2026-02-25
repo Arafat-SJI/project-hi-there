@@ -31,6 +31,7 @@ interface CheckIn {
 interface KeyResultProgressChartProps {
   keyResult: OKRKeyResult;
   checkIns?: CheckIn[];
+  embedded?: boolean;
 }
 
 const chartConfig = {
@@ -43,6 +44,7 @@ const chartConfig = {
 export function KeyResultProgressChart({
   keyResult,
   checkIns = [],
+  embedded = false,
 }: KeyResultProgressChartProps) {
   const progressPercent =
     keyResult.target_value !== keyResult.start_value
@@ -67,6 +69,62 @@ export function KeyResultProgressChart({
       value: checkIn.new_value,
     }));
   }, [checkIns]);
+
+  if (embedded) {
+    return (
+      <div className="w-full">
+        {chartData.length === 0 ? (
+          <div className="flex items-center justify-center h-[200px] text-sm text-muted-foreground border rounded-md">
+            No check-in data yet
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="h-[200px] w-full">
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <ReferenceLine
+                y={keyResult.target_value}
+                stroke="hsl(var(--chart-2))"
+                strokeDasharray="8 4"
+                label={{
+                  value: `Target: ${keyResult.target_value}${keyResult.unit}`,
+                  position: "insideTopRight",
+                  fontSize: 11,
+                  fill: "hsl(var(--muted-foreground))",
+                }}
+              />
+              <ReferenceLine
+                y={keyResult.start_value}
+                stroke="hsl(var(--muted-foreground))"
+                strokeDasharray="2 4"
+                label={{
+                  value: `Start: ${keyResult.start_value}${keyResult.unit}`,
+                  position: "insideBottomRight",
+                  fontSize: 11,
+                  fill: "hsl(var(--muted-foreground))",
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="var(--color-value)"
+                strokeWidth={2}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ChartContainer>
+        )}
+      </div>
+    );
+  }
 
   return (
     <Card>
