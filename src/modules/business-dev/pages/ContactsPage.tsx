@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Users, Loader2, Mail, Phone, Building2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useContacts, useCreateContact } from "../hooks/useContacts";
 import { DataSourceBadge } from "@/components/common/DataSourceBadge";
+import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
 import type { Contact } from "../types";
 
 const PAGE_SIZES = [10, 25, 50, 100];
@@ -66,15 +67,17 @@ export default function ContactsPage() {
 
   return (
     <div className="space-y-6">
+      <CrmConnectionBanner />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Contacts</h1>
-          <p className="text-muted-foreground">Manage your sales contacts and leads</p>
+          <p className="text-muted-foreground">Synced from your CRM and tools</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />New Contact</Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline"><Plus className="h-4 w-4 mr-2" />Add Manually</Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Add Contact</DialogTitle></DialogHeader>
             <div className="space-y-3">
@@ -111,7 +114,11 @@ export default function ContactsPage() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+          <Button asChild>
+            <a href="/admin/integrations">Sync from CRM</a>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -181,7 +188,7 @@ export default function ContactsPage() {
                   </TableCell>
                   <TableCell>
                     <DataSourceBadge
-                      source={(contact as any).data_source}
+                      dataSource={(contact as any).data_source}
                       externalUrl={(contact as any).external_url}
                       lastSyncedAt={(contact as any).last_synced_at}
                     />

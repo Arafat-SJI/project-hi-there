@@ -38,6 +38,7 @@ import {
 import { Plus, Search, Trash2, Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown, Users, Briefcase, DollarSign, TrendingUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { DataSourceBadge } from "@/components/common/DataSourceBadge";
+import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
@@ -108,6 +109,7 @@ export default function Clients() {
 
   return (
     <div className="space-y-6">
+      <CrmConnectionBanner />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -115,17 +117,22 @@ export default function Clients() {
             {statusFilter === "active" ? "Active Clients" : "Clients"}
           </h1>
           <p className="text-muted-foreground">
-            {statusFilter === "active"
-              ? "View and manage your active client relationships"
-              : "Manage your client relationships"}
+            Synced from your CRM and tools
           </p>
         </div>
-        <Button asChild>
-          <Link to="/clients/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Client
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/clients/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Manually
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link to="/admin/integrations">
+              Sync from CRM
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Metric cards: Total/Active Clients, Active Projects, Lifetime Value, Avg Project Value */}
@@ -264,9 +271,9 @@ export default function Clients() {
                     <TableCell>{client.company || "-"}</TableCell>
                     <TableCell>
                       <DataSourceBadge
-                        source={(client as any).data_source}
-                        externalUrl={(client as any).external_url}
-                        lastSyncedAt={(client as any).last_synced_at}
+                        dataSource={client.data_source}
+                        externalUrl={client.external_url}
+                        lastSyncedAt={client.last_synced_at}
                       />
                     </TableCell>
                     <TableCell className="capitalize">{client.status || "-"}</TableCell>

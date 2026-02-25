@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Grid, List, Handshake, Loader2, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useDeals } from "../hooks/useDeals";
 import { getClientName } from "@/lib/utils";
+import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import type { Deal, DealStage } from "../types";
 
 type SortColumn = "title" | "value" | "updated_at" | "expected_close_date";
@@ -258,6 +259,7 @@ export default function DealsStageTabContent({
                 </TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Stage</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead
                   className="cursor-pointer hover:bg-muted/50 select-none"
                   onClick={() => handleSort("value")}
@@ -318,6 +320,13 @@ export default function DealsStageTabContent({
                     >
                       {STAGE_CONFIG[deal.stage]?.label}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DataSourceBadge
+                      dataSource={deal.data_source}
+                      externalUrl={deal.external_url}
+                      lastSyncedAt={deal.last_synced_at}
+                    />
                   </TableCell>
                   <TableCell>{deal.value != null ? formatShortCurrency(deal.value) : "—"}</TableCell>
                   <TableCell>
