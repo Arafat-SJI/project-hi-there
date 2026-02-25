@@ -157,6 +157,15 @@ export default function Admin() {
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
+                <p className="font-medium">Dashboard Widgets</p>
+                <p className="text-sm text-muted-foreground">Enable, disable, and reorder role dashboard cards</p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin/settings/dashboard-widgets">Manage</Link>
+              </Button>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
                 <p className="font-medium">Integrations</p>
                 <p className="text-sm text-muted-foreground">Third-party API connections</p>
               </div>

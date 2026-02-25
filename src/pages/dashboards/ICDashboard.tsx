@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { MeetingsThisWeekCard } from "@/components/dashboards/MeetingsThisWeekCard";
+import { AIDigestCard } from "@/components/dashboards/AIDigestCard";
 import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
 import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyTasks, useMyProjects } from "@/hooks/usePMDashboard";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
+import { useIsWidgetEnabled } from "@/hooks/useDashboardWidgets";
 import { useUpdateTask } from "@/hooks/useTasks";
 import { cn } from "@/lib/utils";
 
@@ -215,6 +217,8 @@ export default function ICDashboard() {
   const { preferences } = useDashboardPreferences();
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
+  const showAiDigest = useIsWidgetEnabled("ai_digest", "ic");
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -251,7 +255,10 @@ export default function ICDashboard() {
         </CardContent>
       </Card>
 
-      {/* Row 2: My Projects + Meetings */}
+      {/* Row 2: AI Digest (if admin-enabled and user-enabled) */}
+      {showAiDigest && preferences.ai_digest_enabled && <AIDigestCard />}
+
+      {/* Row 3: My Projects + Meetings */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-3">

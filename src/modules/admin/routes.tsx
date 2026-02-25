@@ -54,6 +54,7 @@ import KnowledgeFiles from "@/pages/admin/KnowledgeFiles";
 import KnowledgeSyncStatus from "@/pages/admin/KnowledgeSyncStatus";
 import CommonKnowledgeManagement from "@/pages/admin/CommonKnowledgeManagement";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
+import DashboardWidgets from "@/pages/admin/DashboardWidgets";
 import SeedRunner from "@/pages/admin/SeedRunner";
 import GeminiRAGConfig from "@/pages/admin/GeminiRAGConfig";
 import MemoryAnalytics from "@/pages/admin/MemoryAnalytics";
@@ -116,6 +117,7 @@ export const adminRoutes = (
     <Route path="/admin/settings" element={<SystemSettings />} />
     <Route path="/admin/settings/project-statuses" element={<ProjectStatusSettings />} />
     <Route path="/admin/settings/project-modules" element={<ProjectModules />} />
+    <Route path="/admin/settings/dashboard-widgets" element={<DashboardWidgets />} />
     
     <Route path="/admin/integrations" element={<Integrations />} />
     <Route path="/admin/integrations/oauth/callback" element={<OAuthCallback />} />

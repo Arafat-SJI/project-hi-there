@@ -9,23 +9,24 @@ import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
 import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
+import { useIsWidgetEnabled } from "@/hooks/useDashboardWidgets";
 
 /**
  * Owner Dashboard — EOS variant.
  * Shown when the owner's profile has isEosUser = true.
  *
- * Layout:
- *   Header: greeting + settings gear
- *   Row 1: Quick Actions
- *   Row 2: Health Metrics (full width)
- *   Row 3: AI Digest (conditional on ai_digest_enabled)
- *   Row 4: Watch List | Meetings This Week
- *   Row 5: EOS Scorecard | EOS Issues | EOS Rocks/OKRs
+ * Widget visibility is doubly-gated:
+ *   1. Admin-level: dashboard_widgets.is_enabled (via useIsWidgetEnabled)
+ *   2. User-level: user_role_preferences.ai_digest_enabled (for ai_digest)
  */
 export default function OwnerDashboardWithEOS() {
   const { profile } = useAuth();
   const { preferences } = useDashboardPreferences();
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
+
+  const showHealth = useIsWidgetEnabled("health_metrics", "owner");
+  const showWatchList = useIsWidgetEnabled("watch_list", "owner");
+  const showAiDigest = useIsWidgetEnabled("ai_digest", "owner");
 
   return (
     <div className="space-y-6">
@@ -44,14 +45,14 @@ export default function OwnerDashboardWithEOS() {
       <QuickActionsCard />
 
       {/* Row 2: Agency health */}
-      <HealthMetricsCard />
+      {showHealth && <HealthMetricsCard />}
 
-      {/* Row 3: AI Digest (suppressed when user has disabled it) */}
-      {preferences.ai_digest_enabled && <AIDigestCard />}
+      {/* Row 3: AI Digest — admin-enabled AND user-enabled */}
+      {showAiDigest && preferences.ai_digest_enabled && <AIDigestCard />}
 
       {/* Row 4: Watch List + Meetings */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <WatchListCard />
+        {showWatchList && <WatchListCard />}
         <MeetingsThisWeekCard />
       </div>
 

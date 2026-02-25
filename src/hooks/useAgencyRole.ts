@@ -1,5 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 
+export type AgencyRole = "owner" | "pm" | "ic";
+
 /**
  * Returns the current user's agency role and EOS flag.
  *

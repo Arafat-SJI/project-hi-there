@@ -10,6 +10,7 @@ import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
 import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/hooks/useProjects";
+import { useIsWidgetEnabled } from "@/hooks/useDashboardWidgets";
 import type { Project } from "@/modules/projects/types";
 
 function formatDate(iso: string | null): string {
@@ -107,6 +108,8 @@ export default function PMDashboard() {
   const { profile, user } = useAuth();
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
+  const showCapacity = useIsWidgetEnabled("team_capacity", "pm");
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: myProjects, isLoading: projectsLoading } = (useProjects as any)({
     owner_id: user?.id,
@@ -151,7 +154,7 @@ export default function PMDashboard() {
 
       {/* Row 2: Team capacity + Meetings */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <TeamCapacityCard />
+        {showCapacity && <TeamCapacityCard />}
         <MeetingsThisWeekCard />
       </div>
     </div>

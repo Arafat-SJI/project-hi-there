@@ -4,13 +4,18 @@ import { WatchListCard } from "@/components/dashboards/WatchListCard";
 import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
 import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsWidgetEnabled } from "@/hooks/useDashboardWidgets";
 
 /**
  * Owner Dashboard — for agency owners without EOS.
+ * Widget visibility respects the admin dashboard_widgets registry.
  */
 export default function OwnerDashboard() {
   const { profile } = useAuth();
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
+
+  const showHealth = useIsWidgetEnabled("health_metrics", "owner");
+  const showWatchList = useIsWidgetEnabled("watch_list", "owner");
 
   return (
     <div className="space-y-6">
@@ -29,12 +34,12 @@ export default function OwnerDashboard() {
       <QuickActionsCard />
 
       {/* Row 2: Health metrics */}
-      <HealthMetricsCard />
+      {showHealth && <HealthMetricsCard />}
 
       {/* Row 3: Meetings + Watch List */}
       <div className="grid gap-6 lg:grid-cols-2">
         <MeetingsThisWeekCard />
-        <WatchListCard />
+        {showWatchList && <WatchListCard />}
       </div>
     </div>
   );
