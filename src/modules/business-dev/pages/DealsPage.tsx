@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, LayoutDashboard, Layers, BarChart3, Download, RefreshCw, Grid, Users, Search, FileText, Calculator, CheckCircle, Trophy, ThumbsUp, XCircle } from "lucide-react";
+import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { useDeals, useDealPipelineStats } from "../hooks/useDeals";
@@ -184,24 +185,27 @@ export default function DealsPage() {
 
   return (
     <div className="space-y-6 pt-6">
+      <CrmConnectionBanner />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-primary">Business Opportunities</h1>
-          <p className="text-muted-foreground">Manage your sales pipeline and track deal progress.</p>
+          <p className="text-muted-foreground">Synced from your CRM and tools</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button variant="outline" size="sm" onClick={handleSyncLatest}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Sync Latest Deals
+          <Button variant="outline" size="sm" asChild>
+            <a href="/admin/integrations">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Sync from CRM
+            </a>
           </Button>
           <Button onClick={() => navigate("/deals/new")}>
             <Plus className="h-4 w-4 mr-2" />
-            New Deal
+            Add Manually
           </Button>
         </div>
       </div>
