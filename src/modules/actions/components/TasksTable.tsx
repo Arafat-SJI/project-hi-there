@@ -24,6 +24,7 @@ import type { Task, TaskStatus } from "../types/tasks";
 const statusColors: Record<string, string> = {
   todo: "bg-slate-100 text-slate-700",
   in_progress: "bg-blue-100 text-blue-700",
+  paused: "bg-yellow-100 text-yellow-700",
   completed: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-700",
 };
@@ -38,6 +39,7 @@ const priorityColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   todo: "To Do",
   in_progress: "In Progress",
+  paused: "Paused",
   completed: "Completed",
   cancelled: "Cancelled",
 };

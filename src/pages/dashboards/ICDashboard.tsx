@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckSquare, FolderKanban, ArrowUpRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,24 +14,28 @@ import { useMyTasks, useMyProjects } from "@/hooks/usePMDashboard";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import { useIsWidgetEnabled } from "@/hooks/useDashboardWidgets";
 import { useUpdateTask } from "@/hooks/useTasks";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/cache";
 import { cn } from "@/lib/utils";
 
-const ACTIVE_STATUSES = ["todo", "in_progress", "in_review"] as const;
-const ALL_STATUSES = ["todo", "in_progress", "in_review", "done"] as const;
-type TaskStatus = typeof ALL_STATUSES[number];
+const ACTIVE_STATUSES = ["todo", "in_progress", "paused"] as const;
+const ALL_STATUSES = ["todo", "in_progress", "paused", "completed", "cancelled"] as const;
+type TaskStatus = (typeof ALL_STATUSES)[number];
 
 const STATUS_LABELS: Record<string, string> = {
   todo: "To Do",
   in_progress: "In Progress",
-  in_review: "In Review",
-  done: "Done",
+  paused: "Paused",
+  completed: "Completed",
+  cancelled: "Cancelled",
 };
 
 const STATUS_COLORS: Record<string, string> = {
   todo: "bg-muted text-muted-foreground",
   in_progress: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  in_review: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
-  done: "bg-green-500/15 text-green-700 dark:text-green-400",
+  paused: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
+  completed: "bg-green-500/15 text-green-700 dark:text-green-400",
+  cancelled: "bg-red-500/15 text-red-700 dark:text-red-400",
 };
 
 function formatDue(iso: string | null): string | null {
@@ -47,10 +52,13 @@ function formatDue(iso: string | null): string | null {
 }
 
 function MyTasksKanban({ hideCompleted }: { hideCompleted: boolean }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: tasks, isLoading } = useMyTasks({ hideCompleted });
   const updateTask = useUpdateTask();
 
   const visibleStatuses: readonly TaskStatus[] = hideCompleted ? ACTIVE_STATUSES : ALL_STATUSES;
+  const filters = { hideCompleted };
 
   const byStatus = visibleStatuses.reduce<Record<string, typeof tasks>>(
     (acc, s) => ({ ...acc, [s]: [] }),
@@ -59,14 +67,69 @@ function MyTasksKanban({ hideCompleted }: { hideCompleted: boolean }) {
 
   if (tasks) {
     for (const task of tasks) {
-      const s = task.status in byStatus ? (task.status as TaskStatus) : "todo";
-      byStatus[s] = [...(byStatus[s] ?? []), task];
+      if (task.status in byStatus) {
+        const s = task.status as TaskStatus;
+        byStatus[s] = [...(byStatus[s] ?? []), task];
+      }
     }
   }
 
   const handleStatusChange = (taskId: string, newStatus: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    updateTask.mutate({ id: taskId, status: newStatus } as any);
+    const myTasksKey = queryKeys.dashboard.myTasks(user?.id ?? "", filters);
+    updateTask.mutate(
+      { id: taskId, data: { status: newStatus } },
+      {
+        onMutate: async (variables) => {
+          await queryClient.cancelQueries({ queryKey: myTasksKey });
+          const prev = queryClient.getQueryData<typeof tasks>(myTasksKey);
+          if (prev) {
+            queryClient.setQueryData(myTasksKey, (old: typeof tasks) =>
+              (old ?? []).map((t) =>
+                t.id === variables.id ? { ...t, status: variables.data.status! } : t
+              )
+            );
+          }
+          return { prev };
+        },
+        onError: (_err, _variables, context) => {
+          if (context?.prev != null) {
+            queryClient.setQueryData(myTasksKey, context.prev);
+          }
+        },
+        onSettled: () => {
+          queryClient.invalidateQueries({ queryKey: myTasksKey });
+        },
+      }
+    );
+  };
+
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, taskId: string, fromStatus: string) => {
+    e.dataTransfer.setData("taskId", taskId);
+    e.dataTransfer.setData("fromStatus", fromStatus);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleColumnDragOver = (e: React.DragEvent, statusKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverColumn(statusKey);
+  };
+
+  const handleColumnDragLeave = (e: React.DragEvent) => {
+    const related = e.relatedTarget as Node | null;
+    if (related && e.currentTarget.contains(related)) return;
+    setDragOverColumn(null);
+  };
+
+  const handleColumnDrop = (e: React.DragEvent, toStatus: string) => {
+    e.preventDefault();
+    setDragOverColumn(null);
+    const taskId = e.dataTransfer.getData("taskId");
+    const fromStatus = e.dataTransfer.getData("fromStatus");
+    if (!taskId || toStatus === fromStatus) return;
+    handleStatusChange(taskId, toStatus);
   };
 
   const colCount = visibleStatuses.length;
@@ -108,7 +171,15 @@ function MyTasksKanban({ hideCompleted }: { hideCompleted: boolean }) {
               </span>
               <span className="text-xs text-muted-foreground tabular-nums">{statusTasks.length}</span>
             </div>
-            <div className="space-y-1.5 min-h-[2rem]">
+            <div
+              className={cn(
+                "space-y-1.5 min-h-[2rem] rounded-md transition-colors",
+                dragOverColumn === statusKey && "bg-muted/60 ring-1 ring-primary/30"
+              )}
+              onDragOver={(e) => handleColumnDragOver(e, statusKey)}
+              onDragLeave={handleColumnDragLeave}
+              onDrop={(e) => handleColumnDrop(e, statusKey)}
+            >
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {statusTasks.map((task: any) => {
                 const dueLabel = formatDue(task.due_date);
@@ -116,7 +187,9 @@ function MyTasksKanban({ hideCompleted }: { hideCompleted: boolean }) {
                 return (
                   <div
                     key={task.id}
-                    className="group rounded-lg border border-border/50 bg-card p-2.5 text-left text-sm hover:border-border hover:shadow-sm transition-all"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, task.id, statusKey)}
+                    className="group cursor-grab active:cursor-grabbing rounded-lg border border-border/50 bg-card p-2.5 text-left text-sm hover:border-border hover:shadow-sm transition-all"
                   >
                     <Link to={`/tasks/${task.id}`} className="block font-medium hover:underline">
                       {task.title}
@@ -136,18 +209,51 @@ function MyTasksKanban({ hideCompleted }: { hideCompleted: boolean }) {
                         </span>
                       )}
                     </div>
-                    {/* Quick status advance button — not shown on terminal states */}
-                    {statusKey !== "in_review" && statusKey !== "done" && (
+                    {/* Quick status: advance to next, or move to Cancelled/Completed */}
+                    {statusKey !== "completed" && statusKey !== "cancelled" && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <button
+                          onClick={() => {
+                            const nextStatus =
+                              statusKey === "todo"
+                                ? "in_progress"
+                                : statusKey === "in_progress"
+                                  ? "paused"
+                                  : "completed";
+                            handleStatusChange(task.id, nextStatus);
+                          }}
+                          className="text-xs text-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Move to{" "}
+                          {statusKey === "todo"
+                            ? "In Progress"
+                            : statusKey === "in_progress"
+                              ? "Paused"
+                              : "Completed"}{" "}
+                          →
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(task.id, "cancelled")}
+                          className="text-xs text-muted-foreground hover:text-destructive hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                    {statusKey === "completed" && (
                       <button
-                        onClick={() =>
-                          handleStatusChange(
-                            task.id,
-                            statusKey === "todo" ? "in_progress" : "in_review"
-                          )
-                        }
+                        onClick={() => handleStatusChange(task.id, "cancelled")}
+                        className="mt-1.5 text-xs text-muted-foreground hover:text-destructive hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        Move to Cancelled →
+                      </button>
+                    )}
+                    {statusKey === "cancelled" && (
+                      <button
+                        onClick={() => handleStatusChange(task.id, "completed")}
                         className="mt-1.5 text-xs text-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        Move to {statusKey === "todo" ? "In Progress" : "In Review"} →
+                        Move to Completed →
                       </button>
                     )}
                   </div>
