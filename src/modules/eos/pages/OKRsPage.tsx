@@ -394,7 +394,19 @@ export default function OKRsPage() {
 
             <TabsContent value="team" className="mt-6">
               {displayOkrs.length > 0 ? (
-                <TeamOKRsByPod okrs={displayOkrs} pods={pods} />
+                <TeamOKRsByPod
+                  okrs={displayOkrs}
+                  pods={pods}
+                  onSelectOKR={(okr) => setSelectedOKR(okr)}
+                  onEdit={(okr) => {
+                    setDialogMode("edit");
+                    setDialogInitialOkr(okr);
+                    setShowCreate(true);
+                  }}
+                  onDuplicate={(okr) => createOKR.mutate(okrToCreatePayload(okr))}
+                  onClose={(okr) => setClosingOKR(okr)}
+                  onDelete={(okr) => setDeletingOKR(okr)}
+                />
               ) : (
                 <EmptyState
                   onCreateClick={() => setShowCreate(true)}
@@ -462,6 +474,17 @@ export default function OKRsPage() {
                 okrs={closedOkrs}
                 search={searchClosed}
                 onSearchChange={setSearchClosed}
+                onReopen={(okr) => {
+                  updateOKR.mutate({
+                    id: okr.id,
+                    data: { is_archived: false, status: "active" },
+                  });
+                }}
+                onEdit={(okr) => {
+                  setDialogInitialOkr(okr);
+                  setDialogMode("edit");
+                  setShowCreate(true);
+                }}
               />
             </TabsContent>
           </>

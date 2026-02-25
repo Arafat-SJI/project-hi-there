@@ -1,32 +1,35 @@
 /**
- * Key Results By Owner
+ * Key Results By Owner (Performance view)
  *
- * Groups key results by owner and displays them in cards
- * with progress bars and status badges.
+ * Matches reference: Search owners, Individual Health summary line,
+ * grid of color-coded owner cards (name, %, X KRs), and legend.
+ * Health by avg progress: On track ≥70%, Medium 40–69%, High risk <40%.
  */
 
-import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { User } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { calculateKeyResultProgressFromKR } from "@/utils/okrHelpers";
 import type { OKRKeyResult } from "../../types";
 
-const statusConfig: Record<
-  string,
-  { label: string; className: string }
-> = {
-  not_started: { label: "Not Started", className: "bg-gray-100 text-gray-700" },
-  on_track: { label: "On Track", className: "bg-green-100 text-green-800" },
-  at_risk: { label: "At Risk", className: "bg-amber-100 text-amber-800" },
-  behind: { label: "Behind", className: "bg-red-100 text-red-800" },
-  completed: { label: "Completed", className: "bg-green-100 text-green-800" },
-};
+const HEALTH = {
+  ON_TRACK: { bg: "bg-green-600", text: "text-white", label: "On Track (≥70%)" },
+  MEDIUM: { bg: "bg-amber-500", text: "text-white", label: "Medium Risk (40-69%)" },
+  HIGH: { bg: "bg-red-600", text: "text-white", label: "High Risk (<40%)" },
+} as const;
+
+function getHealthBand(progressPercent: number): keyof typeof HEALTH {
+  if (progressPercent >= 70) return "ON_TRACK";
+  if (progressPercent >= 40) return "MEDIUM";
+  return "HIGH";
+}
 
 interface OwnerGroup {
+  id: string;
   name: string;
-  email: string | null;
   keyResults: OKRKeyResult[];
+  avgProgress: number;
+  band: keyof typeof HEALTH;
 }
 
 interface KeyResultsByOwnerProps {
@@ -34,26 +37,64 @@ interface KeyResultsByOwnerProps {
 }
 
 export function KeyResultsByOwner({ keyResults }: KeyResultsByOwnerProps) {
-  const groups = useMemo(() => {
-    const map = new Map<string, OwnerGroup>();
+  const [search, setSearch] = useState("");
+
+  const { groups, summary } = useMemo(() => {
+    const map = new Map<string, { name: string; keyResults: OKRKeyResult[] }>();
 
     for (const kr of keyResults) {
-      const key = kr.owner?.full_name || "Unassigned";
-      const existing = map.get(key);
-
+      const id = kr.owner_id ?? "unassigned";
+      const name = kr.owner?.full_name ?? "Unassigned";
+      const existing = map.get(id);
       if (existing) {
         existing.keyResults.push(kr);
       } else {
-        map.set(key, {
-          name: key,
-          email: kr.owner?.email || null,
-          keyResults: [kr],
-        });
+        map.set(id, { name, keyResults: [kr] });
       }
     }
 
-    return Array.from(map.values());
+    const groupsList: OwnerGroup[] = [];
+    let totalProgress = 0;
+    let totalKrs = 0;
+    let onTrack = 0;
+    let mediumRisk = 0;
+    let highRisk = 0;
+
+    for (const [id, { name, keyResults: krs }] of map) {
+      const progressSum = krs.reduce((s, kr) => s + calculateKeyResultProgressFromKR(kr), 0);
+      const avgProgress = krs.length ? progressSum / krs.length : 0;
+      const band = getHealthBand(avgProgress);
+      groupsList.push({
+        id,
+        name,
+        keyResults: krs,
+        avgProgress,
+        band,
+      });
+      totalProgress += progressSum;
+      totalKrs += krs.length;
+      if (band === "ON_TRACK") onTrack += 1;
+      else if (band === "MEDIUM") mediumRisk += 1;
+      else highRisk += 1;
+    }
+
+    const avgProgress = totalKrs ? totalProgress / totalKrs : 0;
+    return {
+      groups: groupsList.sort((a, b) => a.name.localeCompare(b.name)),
+      summary: {
+        avgProgress: Math.round(avgProgress),
+        onTrack,
+        mediumRisk,
+        highRisk,
+      },
+    };
   }, [keyResults]);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return groups;
+    const q = search.trim().toLowerCase();
+    return groups.filter((g) => g.name.toLowerCase().includes(q));
+  }, [groups, search]);
 
   if (keyResults.length === 0) {
     return (
@@ -64,66 +105,74 @@ export function KeyResultsByOwner({ keyResults }: KeyResultsByOwnerProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {groups.map((group) => (
-        <Card key={group.name}>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <CardTitle className="text-sm">{group.name}</CardTitle>
-                {group.email && (
-                  <p className="text-xs text-muted-foreground">
-                    {group.email}
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {group.keyResults.map((kr) => {
-                const progress =
-                  kr.target_value !== kr.start_value
-                    ? Math.max(
-                        0,
-                        Math.min(
-                          100,
-                          ((kr.current_value - kr.start_value) /
-                            (kr.target_value - kr.start_value)) *
-                            100
-                        )
-                      )
-                    : 0;
+    <div className="space-y-5">
+      <Input
+        type="search"
+        placeholder="Search owners..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="max-w-sm"
+        aria-label="Search owners"
+      />
 
-                const config = statusConfig[kr.status];
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <span className="font-medium">
+          Individual Health: {summary.avgProgress}% avg progress
+        </span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden />
+          {summary.onTrack} on track
+        </span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden />
+          {summary.mediumRisk} medium risk
+        </span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden />
+          {summary.highRisk} high risk
+        </span>
+      </div>
 
-                return (
-                  <div key={kr.id} className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium">{kr.title}</p>
-                      <Badge
-                        variant="secondary"
-                        className={config?.className || ""}
-                      >
-                        {config?.label || kr.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Progress value={progress} className="h-1.5 flex-1" />
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {kr.current_value}
-                        {kr.unit} / {kr.target_value}
-                        {kr.unit}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {filtered.map((group) => {
+          const style = HEALTH[group.band];
+          const progressLabel = `${Math.round(group.avgProgress)}%`;
+          const krLabel = group.keyResults.length === 1 ? "1 KR" : `${group.keyResults.length} KRs`;
+          return (
+            <Card
+              key={group.id}
+              className={`${style.bg} ${style.text} border-0`}
+            >
+              <CardContent className="p-4">
+                <p
+                  className="font-medium text-sm truncate"
+                  title={group.name}
+                >
+                  {group.name}
+                </p>
+                <p className="text-2xl font-bold mt-2">{progressLabel}</p>
+                <p className="text-xs opacity-90 mt-0.5">{krLabel}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 pt-2 border-t text-sm text-muted-foreground">
+        <span className="font-medium">Legend:</span>
+        <span className="flex items-center gap-2">
+          <span className="h-4 w-4 rounded bg-red-600 shrink-0" aria-hidden />
+          {HEALTH.HIGH.label}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="h-4 w-4 rounded bg-amber-500 shrink-0" aria-hidden />
+          {HEALTH.MEDIUM.label}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="h-4 w-4 rounded bg-green-600 shrink-0" aria-hidden />
+          {HEALTH.ON_TRACK.label}
+        </span>
+      </div>
     </div>
   );
 }

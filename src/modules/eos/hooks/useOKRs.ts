@@ -306,7 +306,7 @@ export function useClosedOKRs(filters?: Pick<OKRFilters, "search" | "quarter">) 
 }
 
 /**
- * Fetch a single OKR with key results and recent check-ins.
+ * Fetch a single OKR with key results, owner, pod, and KR owners.
  */
 export function useOKRDetail(id: string | undefined) {
   return useQuery({
@@ -323,16 +323,52 @@ export function useOKRDetail(id: string | undefined) {
       if (error) throw error;
       if (!okr) return null;
 
-      // Fetch key results
       const { data: keyResults } = await supabase
         .from("okr_key_results")
         .select("*")
         .eq("okr_id", id)
         .order("sort_order", { ascending: true });
 
+      const krList = (keyResults || []) as OKRKeyResult[];
+      const ownerIds = [
+        ...new Set([
+          okr.owner_id,
+          ...krList.map((k) => k.owner_id).filter(Boolean),
+        ].filter(Boolean)),
+      ] as string[];
+      const podId = okr.pod_id;
+
+      let ownerMap = new Map<string, { full_name: string; email: string }>();
+      let pod: { id: string; name: string } | null = null;
+
+      if (ownerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", ownerIds);
+        (profiles || []).forEach((p: { id: string; full_name: string; email: string }) => {
+          ownerMap.set(p.id, { full_name: p.full_name || "", email: p.email || "" });
+        });
+      }
+      if (podId) {
+        const { data: podRow } = await supabase
+          .from("eos_pods")
+          .select("id, name")
+          .eq("id", podId)
+          .single();
+        if (podRow) pod = { id: podRow.id, name: podRow.name };
+      }
+
+      const key_results = krList.map((kr) => ({
+        ...kr,
+        owner: kr.owner_id ? ownerMap.get(kr.owner_id) ?? null : null,
+      }));
+
       return {
         ...okr,
-        key_results: (keyResults || []) as unknown as OKRKeyResult[],
+        owner: okr.owner_id ? ownerMap.get(okr.owner_id) ?? null : null,
+        pod,
+        key_results,
       } as OKR;
     },
     enabled: !!id,
@@ -340,7 +376,7 @@ export function useOKRDetail(id: string | undefined) {
 }
 
 /**
- * Fetch check-ins for an OKR.
+ * Fetch check-ins for an OKR (with user profile for display).
  */
 export function useOKRCheckIns(okrId: string | undefined) {
   return useQuery({
@@ -355,7 +391,24 @@ export function useOKRCheckIns(okrId: string | undefined) {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as unknown as OKRCheckIn[];
+      const list = (data || []) as unknown as OKRCheckIn[];
+
+      const userIds = [...new Set(list.map((c) => c.user_id).filter(Boolean))] as string[];
+      if (userIds.length === 0) return list;
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", userIds);
+      const profileMap = new Map<string, { full_name: string; email: string }>();
+      (profiles || []).forEach((p: { id: string; full_name: string; email: string }) => {
+        profileMap.set(p.id, { full_name: p.full_name || "", email: p.email || "" });
+      });
+
+      return list.map((c) => ({
+        ...c,
+        user: c.user_id ? profileMap.get(c.user_id) ?? null : null,
+      }));
     },
     enabled: !!okrId,
   });
@@ -451,15 +504,17 @@ export function useUpdateOKR() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<OKRFormData> & { progress?: number; is_archived?: boolean } }) => {
-      const approval = await requestOKRApproval({
-        userId: user!.id,
-        actionDescription: `Update OKR ${id}`,
-        requestType: "update",
-        payload: { id, ...data } as Record<string, unknown>,
-      });
-
-      if (approval?.requires_approval) {
-        return { approval_pending: true, approval_request_id: approval.approval_request_id } as ApprovalPendingResult;
+      const isClosing = data.is_archived === true;
+      if (!isClosing) {
+        const approval = await requestOKRApproval({
+          userId: user!.id,
+          actionDescription: `Update OKR ${id}`,
+          requestType: "update",
+          payload: { id, ...data } as Record<string, unknown>,
+        });
+        if (approval?.requires_approval) {
+          return { approval_pending: true, approval_request_id: approval.approval_request_id } as ApprovalPendingResult;
+        }
       }
 
       const { data: okr, error } = await supabase
@@ -484,6 +539,7 @@ export function useUpdateOKR() {
         return;
       }
       queryClient.invalidateQueries({ queryKey: [OKRS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [OKRS_KEY, "closed"] });
       toast.success("OKR updated");
     },
     onError: (error: Error) => {

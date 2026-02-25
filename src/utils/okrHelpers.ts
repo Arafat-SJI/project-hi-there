@@ -130,6 +130,18 @@ export function formatDateLong(date: string | null | undefined): string {
   });
 }
 
+/** Format date and time as "Feb 23, 2026 3:49 PM" for entries/updates. */
+export function formatDateTime(date: string | null | undefined): string {
+  if (!date) return "—";
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function formatRelativeDate(date: string | null | undefined): string {
   if (!date) return "—";
   const d = new Date(date);
