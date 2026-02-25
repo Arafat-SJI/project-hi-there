@@ -50,6 +50,7 @@ export function TaskFiltersBar({ filters, onFiltersChange, streams, categories }
           <SelectItem value="all">All Status</SelectItem>
           <SelectItem value="todo">To Do</SelectItem>
           <SelectItem value="in_progress">In Progress</SelectItem>
+          <SelectItem value="paused">Paused</SelectItem>
           <SelectItem value="completed">Completed</SelectItem>
           <SelectItem value="cancelled">Cancelled</SelectItem>
         </SelectContent>

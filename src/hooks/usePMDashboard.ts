@@ -60,7 +60,7 @@ export function useMyTasks(filters?: { hideCompleted?: boolean }) {
         .order("created_at", { ascending: false });
 
       if (filters?.hideCompleted) {
-        query = query.not("status", "in", "(done,cancelled)");
+        query = query.not("status", "in", "(\"completed\",\"cancelled\")");
       }
 
       const { data, error } = await query;
