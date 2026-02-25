@@ -64,7 +64,7 @@ export const dashboardItem: NavItem = {
 export const navigationGroups: NavGroup[] = [
   {
     id: "business-dev",
-    title: "Sales & CRM",
+    title: "Sales Hub",
     icon: "Briefcase",
     module: "business-dev",
     items: [

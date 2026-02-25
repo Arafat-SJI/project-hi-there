@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Users, Loader2, Mail, Phone, Building2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useContacts, useCreateContact } from "../hooks/useContacts";
+import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import type { Contact } from "../types";
 
 const PAGE_SIZES = [10, 25, 50, 100];
@@ -156,6 +157,7 @@ export default function ContactsPage() {
                   <TableHead>Company</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Lead Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -176,6 +178,13 @@ export default function ContactsPage() {
                   </TableCell>
                   <TableCell>
                     {contact.phone ? <span className="text-sm">{contact.phone}</span> : <span className="text-sm text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    <DataSourceBadge
+                      source={(contact as any).data_source}
+                      externalUrl={(contact as any).external_url}
+                      lastSyncedAt={(contact as any).last_synced_at}
+                    />
                   </TableCell>
                   <TableCell>
                     {contact.followup ? (

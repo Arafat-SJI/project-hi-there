@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search, Trash2, Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown, Users, Briefcase, DollarSign, TrendingUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
@@ -239,6 +240,7 @@ export default function Clients() {
                   </TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Company</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>
@@ -260,6 +262,13 @@ export default function Clients() {
                     <TableCell className="font-medium">{client.name}</TableCell>
                     <TableCell>{client.email}</TableCell>
                     <TableCell>{client.company || "-"}</TableCell>
+                    <TableCell>
+                      <DataSourceBadge
+                        source={(client as any).data_source}
+                        externalUrl={(client as any).external_url}
+                        lastSyncedAt={(client as any).last_synced_at}
+                      />
+                    </TableCell>
                     <TableCell className="capitalize">{client.status || "-"}</TableCell>
                     <TableCell>{client.phone || "-"}</TableCell>
                     <TableCell>{formatDate(client.created_at)}</TableCell>
