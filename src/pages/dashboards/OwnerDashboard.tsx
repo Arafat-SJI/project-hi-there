@@ -1,11 +1,12 @@
 import { HealthMetricsCard } from "@/components/dashboards/HealthMetricsCard";
 import { MeetingsThisWeekCard } from "@/components/dashboards/MeetingsThisWeekCard";
 import { WatchListCard } from "@/components/dashboards/WatchListCard";
+import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
+import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Owner Dashboard — for agency owners without EOS.
- * Sprint 3: AI Digest card will be added here.
  */
 export default function OwnerDashboard() {
   const { profile } = useAuth();
@@ -14,17 +15,23 @@ export default function OwnerDashboard() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Good {getTimeOfDay()}, {firstName}
-        </h1>
-        <p className="text-sm text-muted-foreground">Here's your agency overview.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Good {getTimeOfDay()}, {firstName}
+          </h1>
+          <p className="text-sm text-muted-foreground">Here's your agency overview.</p>
+        </div>
+        <DashboardPreferencesSheet />
       </div>
 
-      {/* Row 1: Health metrics (spans full width) */}
+      {/* Row 1: Quick actions */}
+      <QuickActionsCard />
+
+      {/* Row 2: Health metrics */}
       <HealthMetricsCard />
 
-      {/* Row 2: Meetings + Watch List */}
+      {/* Row 3: Meetings + Watch List */}
       <div className="grid gap-6 lg:grid-cols-2">
         <MeetingsThisWeekCard />
         <WatchListCard />

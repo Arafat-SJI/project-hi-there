@@ -5,22 +5,30 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { MeetingsThisWeekCard } from "@/components/dashboards/MeetingsThisWeekCard";
+import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
+import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyTasks, useMyProjects } from "@/hooks/usePMDashboard";
+import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import { useUpdateTask } from "@/hooks/useTasks";
 import { cn } from "@/lib/utils";
 
-const TASK_STATUSES = ["todo", "in_progress", "in_review"] as const;
+const ACTIVE_STATUSES = ["todo", "in_progress", "in_review"] as const;
+const ALL_STATUSES = ["todo", "in_progress", "in_review", "done"] as const;
+type TaskStatus = typeof ALL_STATUSES[number];
+
 const STATUS_LABELS: Record<string, string> = {
   todo: "To Do",
   in_progress: "In Progress",
   in_review: "In Review",
+  done: "Done",
 };
 
 const STATUS_COLORS: Record<string, string> = {
   todo: "bg-muted text-muted-foreground",
   in_progress: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
   in_review: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
+  done: "bg-green-500/15 text-green-700 dark:text-green-400",
 };
 
 function formatDue(iso: string | null): string | null {
@@ -36,30 +44,35 @@ function formatDue(iso: string | null): string | null {
   return null;
 }
 
-function MyTasksKanban() {
-  const { data: tasks, isLoading } = useMyTasks();
+function MyTasksKanban({ hideCompleted }: { hideCompleted: boolean }) {
+  const { data: tasks, isLoading } = useMyTasks({ hideCompleted });
   const updateTask = useUpdateTask();
 
-  const byStatus = TASK_STATUSES.reduce<Record<string, typeof tasks>>(
+  const visibleStatuses: readonly TaskStatus[] = hideCompleted ? ACTIVE_STATUSES : ALL_STATUSES;
+
+  const byStatus = visibleStatuses.reduce<Record<string, typeof tasks>>(
     (acc, s) => ({ ...acc, [s]: [] }),
     {}
   );
 
   if (tasks) {
     for (const task of tasks) {
-      const s = task.status in byStatus ? task.status : "todo";
+      const s = task.status in byStatus ? (task.status as TaskStatus) : "todo";
       byStatus[s] = [...(byStatus[s] ?? []), task];
     }
   }
 
   const handleStatusChange = (taskId: string, newStatus: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateTask.mutate({ id: taskId, status: newStatus } as any);
   };
 
+  const colCount = visibleStatuses.length;
+
   if (isLoading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-3">
-        {TASK_STATUSES.map((s) => (
+      <div className={`grid gap-4 sm:grid-cols-${colCount}`}>
+        {visibleStatuses.map((s) => (
           <div key={s} className="space-y-2">
             <Skeleton className="h-5 w-24" />
             {Array.from({ length: 2 }).map((_, i) => (
@@ -76,14 +89,14 @@ function MyTasksKanban() {
   if (totalTasks === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground">
-        No open tasks assigned to you. 🎉
+        No tasks assigned to you. 🎉
       </p>
     );
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
-      {TASK_STATUSES.map((statusKey) => {
+    <div className={`grid gap-4 sm:grid-cols-${colCount}`}>
+      {visibleStatuses.map((statusKey) => {
         const statusTasks = byStatus[statusKey] ?? [];
         return (
           <div key={statusKey} className="space-y-2">
@@ -94,6 +107,7 @@ function MyTasksKanban() {
               <span className="text-xs text-muted-foreground tabular-nums">{statusTasks.length}</span>
             </div>
             <div className="space-y-1.5 min-h-[2rem]">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {statusTasks.map((task: any) => {
                 const dueLabel = formatDue(task.due_date);
                 const isOverdue = dueLabel?.includes("overdue");
@@ -120,8 +134,8 @@ function MyTasksKanban() {
                         </span>
                       )}
                     </div>
-                    {/* Quick status advance button */}
-                    {statusKey !== "in_review" && (
+                    {/* Quick status advance button — not shown on terminal states */}
+                    {statusKey !== "in_review" && statusKey !== "done" && (
                       <button
                         onClick={() =>
                           handleStatusChange(
@@ -166,6 +180,7 @@ function MyProjectsList() {
 
   return (
     <ul className="space-y-1.5">
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       {projects.slice(0, 6).map((project: any) => {
         const statusSlug = project.project_statuses?.slug ?? project.status?.slug;
         const statusName = project.project_statuses?.name ?? project.status?.name;
@@ -197,19 +212,26 @@ function MyProjectsList() {
 
 export default function ICDashboard() {
   const { profile } = useAuth();
+  const { preferences } = useDashboardPreferences();
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Good {getTimeOfDay()}, {firstName}
-        </h1>
-        <p className="text-sm text-muted-foreground">Here's your work for today.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Good {getTimeOfDay()}, {firstName}
+          </h1>
+          <p className="text-sm text-muted-foreground">Here's your work for today.</p>
+        </div>
+        <DashboardPreferencesSheet />
       </div>
 
-      {/* Row 1: My Work kanban (full width) */}
+      {/* Row 1: Quick Actions */}
+      <QuickActionsCard />
+
+      {/* Row 2: My Work kanban (full width) */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -225,7 +247,7 @@ export default function ICDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <MyTasksKanban />
+          <MyTasksKanban hideCompleted={preferences.hide_completed_tasks} />
         </CardContent>
       </Card>
 

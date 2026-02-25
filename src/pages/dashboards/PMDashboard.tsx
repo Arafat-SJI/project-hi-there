@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { TeamCapacityCard } from "@/components/dashboards/TeamCapacityCard";
 import { MeetingsThisWeekCard } from "@/components/dashboards/MeetingsThisWeekCard";
+import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
+import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/hooks/useProjects";
 import type { Project } from "@/modules/projects/types";
@@ -62,9 +64,10 @@ function ProjectsTable({ projects, isLoading }: { projects: Project[] | undefine
           </tr>
         </thead>
         <tbody>
-          {projects.map((project) => {
-            const statusSlug = (project as any).project_statuses?.slug ?? (project.status as any)?.slug;
-            const statusName = (project as any).project_statuses?.name ?? (project.status as any)?.name ?? "—";
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {projects.map((project: any) => {
+            const statusSlug = project.project_statuses?.slug ?? project.status?.slug;
+            const statusName = project.project_statuses?.name ?? project.status?.name ?? "—";
             return (
               <tr key={project.id} className="group border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="px-6 py-3">
@@ -74,8 +77,8 @@ function ProjectsTable({ projects, isLoading }: { projects: Project[] | undefine
                   >
                     {project.name}
                   </Link>
-                  {(project as any).clients?.name && (
-                    <p className="text-xs text-muted-foreground">{(project as any).clients.name}</p>
+                  {project.clients?.name && (
+                    <p className="text-xs text-muted-foreground">{project.clients.name}</p>
                   )}
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
@@ -104,22 +107,29 @@ export default function PMDashboard() {
   const { profile, user } = useAuth();
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
-  const { data: myProjects, isLoading: projectsLoading } = useProjects({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: myProjects, isLoading: projectsLoading } = (useProjects as any)({
     owner_id: user?.id,
     is_archived: false,
-  } as any);
+  });
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Good {getTimeOfDay()}, {firstName}
-        </h1>
-        <p className="text-sm text-muted-foreground">Your projects and team overview.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Good {getTimeOfDay()}, {firstName}
+          </h1>
+          <p className="text-sm text-muted-foreground">Your projects and team overview.</p>
+        </div>
+        <DashboardPreferencesSheet />
       </div>
 
-      {/* Row 1: Projects table */}
+      {/* Row 1: Quick actions */}
+      <QuickActionsCard />
+
+      {/* Row 2: Projects table */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">

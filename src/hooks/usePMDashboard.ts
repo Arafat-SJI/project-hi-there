@@ -20,12 +20,14 @@ export function usePMTeamCapacity(podId?: string) {
   return useQuery({
     queryKey: queryKeys.dashboard.pmCapacity(podId),
     queryFn: async (): Promise<PodCapacity[]> => {
-      let query = supabase
-        .from("pm_team_capacity" as any)
+      // pm_team_capacity is a view not yet in generated types
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any)
+        .from("pm_team_capacity")
         .select("*");
 
       if (podId) {
-        query = (query as any).eq("pod_id", podId);
+        query = query.eq("pod_id", podId);
       }
 
       const { data, error } = await query;
@@ -39,21 +41,29 @@ export function usePMTeamCapacity(podId?: string) {
 /**
  * Returns tasks assigned to the current user.
  * Used on the IC dashboard "My Work" kanban.
+ *
+ * @param hideCompleted - when true, excludes done/cancelled tasks (matches
+ *   the user's hide_completed_tasks dashboard preference). When false (default),
+ *   all statuses including done are returned so the kanban can show a Done column.
  */
-export function useMyTasks(filters?: { status?: string }) {
+export function useMyTasks(filters?: { hideCompleted?: boolean }) {
   const { user } = useAuth();
   return useQuery({
     queryKey: queryKeys.dashboard.myTasks(user?.id ?? "", filters),
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from("tasks")
         .select("id, title, status, priority, due_date, client_id, clients(name)")
         .eq("assigned_to", user.id)
-        .not("status", "in", "(done,cancelled)")
         .order("due_date", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
 
+      if (filters?.hideCompleted) {
+        query = query.not("status", "in", "(done,cancelled)");
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
@@ -94,6 +104,7 @@ export function useMyProjects() {
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data ?? []).map((p: any) => ({ ...p, myRole: roleMap[p.id] ?? "member" }));
     },
     enabled: !!user?.id,
