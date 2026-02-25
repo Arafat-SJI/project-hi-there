@@ -261,9 +261,50 @@ export async function chatCompletion(
   request: ChatCompletionRequest,
   modelId?: string
 ): Promise<ChatCompletionResponse> {
-  // Get the model
-  const model = await getModel(supabase, modelId, 'chat')
+  // Get the model — try default first, then any enabled chat model
+  let model = await getModel(supabase, modelId, 'chat')
+
+  // Fallback: if no default model, pick the first enabled chat model
+  if (!model) {
+    const { data } = await supabase
+      .from('ai_models')
+      .select('*, ai_providers(*)')
+      .eq('category', 'chat')
+      .eq('enabled', true)
+      .limit(1)
+      .single()
+    if (data) model = data as AIModel
+  }
+
+  // Final fallback: use Lovable AI gateway if available
   if (!model || !model.ai_providers) {
+    const lovableKey = Deno.env.get('LOVABLE_API_KEY')
+    if (lovableKey) {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: request.messages,
+          temperature: request.temperature ?? 0.7,
+          max_tokens: request.max_tokens ?? 1000,
+        }),
+      })
+      if (!response.ok) {
+        const err = await response.text()
+        throw new Error(`Lovable AI error: ${err}`)
+      }
+      const data = await response.json()
+      return {
+        content: data.choices[0].message.content,
+        input_tokens: data.usage?.prompt_tokens || 0,
+        output_tokens: data.usage?.completion_tokens || 0,
+        model: 'google/gemini-3-flash-preview',
+      }
+    }
     throw new Error('No valid chat model found')
   }
 
