@@ -852,6 +852,42 @@ export type Database = {
           },
         ]
       }
+      ai_digest_logs: {
+        Row: {
+          created_at: string
+          digest_type: string
+          id: string
+          read_at: string | null
+          sent_at: string
+          subject: string
+          summary: Json
+          user_id: string
+          was_read: boolean
+        }
+        Insert: {
+          created_at?: string
+          digest_type?: string
+          id?: string
+          read_at?: string | null
+          sent_at?: string
+          subject: string
+          summary?: Json
+          user_id: string
+          was_read?: boolean
+        }
+        Update: {
+          created_at?: string
+          digest_type?: string
+          id?: string
+          read_at?: string | null
+          sent_at?: string
+          subject?: string
+          summary?: Json
+          user_id?: string
+          was_read?: boolean
+        }
+        Relationships: []
+      }
       ai_models: {
         Row: {
           category: string
@@ -1172,6 +1208,13 @@ export type Database = {
             columns: ["client_access_id"]
             isOneToOne: false
             referencedRelation: "project_client_access"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_feedback_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_risk_summary"
             referencedColumns: ["id"]
           },
           {
@@ -1663,6 +1706,48 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           website?: string | null
+        }
+        Relationships: []
+      }
+      dashboard_widgets: {
+        Row: {
+          agency_roles: string[]
+          component_name: string
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          is_enabled: boolean
+          metadata: Json | null
+          sort_order: number
+          updated_at: string
+          widget_slug: string
+        }
+        Insert: {
+          agency_roles?: string[]
+          component_name: string
+          created_at?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          is_enabled?: boolean
+          metadata?: Json | null
+          sort_order?: number
+          updated_at?: string
+          widget_slug: string
+        }
+        Update: {
+          agency_roles?: string[]
+          component_name?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_enabled?: boolean
+          metadata?: Json | null
+          sort_order?: number
+          updated_at?: string
+          widget_slug?: string
         }
         Relationships: []
       }
@@ -4483,8 +4568,11 @@ export type Database = {
       meetings: {
         Row: {
           action_items: Json | null
+          action_items_extracted_at: string | null
           agenda_finalized: boolean | null
           ai_summary: string | null
+          ai_summary_generated_at: string | null
+          ai_summary_status: string
           categorization_data: Json | null
           client_id: string | null
           closed_at: string | null
@@ -4532,8 +4620,11 @@ export type Database = {
         }
         Insert: {
           action_items?: Json | null
+          action_items_extracted_at?: string | null
           agenda_finalized?: boolean | null
           ai_summary?: string | null
+          ai_summary_generated_at?: string | null
+          ai_summary_status?: string
           categorization_data?: Json | null
           client_id?: string | null
           closed_at?: string | null
@@ -4581,8 +4672,11 @@ export type Database = {
         }
         Update: {
           action_items?: Json | null
+          action_items_extracted_at?: string | null
           agenda_finalized?: boolean | null
           ai_summary?: string | null
+          ai_summary_generated_at?: string | null
+          ai_summary_status?: string
           categorization_data?: Json | null
           client_id?: string | null
           closed_at?: string | null
@@ -5447,6 +5541,51 @@ export type Database = {
           },
         ]
       }
+      project_at_risk_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          flag_type: string
+          id: string
+          project_id: string
+          resolved_at: string | null
+          triggered_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          flag_type: string
+          id?: string
+          project_id: string
+          resolved_at?: string | null
+          triggered_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          flag_type?: string
+          id?: string
+          project_id?: string
+          resolved_at?: string | null
+          triggered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_at_risk_flags_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_at_risk_flags_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_backups: {
         Row: {
           backup_type: string | null
@@ -5479,6 +5618,13 @@ export type Database = {
           status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_backups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_backups_project_id_fkey"
             columns: ["project_id"]
@@ -5526,6 +5672,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_billing_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_billing_project_id_fkey"
             columns: ["project_id"]
@@ -5592,6 +5745,13 @@ export type Database = {
             foreignKeyName: "project_client_access_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_client_access_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -5643,6 +5803,13 @@ export type Database = {
             foreignKeyName: "project_client_comments_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_client_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -5688,6 +5855,13 @@ export type Database = {
             foreignKeyName: "project_comments_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -5713,6 +5887,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_favorites_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_favorites_project_id_fkey"
             columns: ["project_id"]
@@ -5757,6 +5938,13 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_files_project_id_fkey"
             columns: ["project_id"]
@@ -5811,6 +5999,13 @@ export type Database = {
             foreignKeyName: "project_invoices_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -5839,6 +6034,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_members_project_id_fkey"
             columns: ["project_id"]
@@ -5896,6 +6098,13 @@ export type Database = {
             foreignKeyName: "project_milestones_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -5942,6 +6151,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_risks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_risks_project_id_fkey"
             columns: ["project_id"]
@@ -5993,13 +6209,17 @@ export type Database = {
           currency: string | null
           description: string | null
           end_date: string | null
+          expected_completion_date: string | null
           external_id: string | null
           external_provider: string | null
           id: string
           is_archived: boolean | null
+          is_at_risk: boolean
           metadata: Json | null
           name: string
           owner_id: string | null
+          owner_notified_at: string | null
+          risk_flags: string[]
           slug: string
           source_deal_id: string | null
           start_date: string | null
@@ -6014,13 +6234,17 @@ export type Database = {
           currency?: string | null
           description?: string | null
           end_date?: string | null
+          expected_completion_date?: string | null
           external_id?: string | null
           external_provider?: string | null
           id?: string
           is_archived?: boolean | null
+          is_at_risk?: boolean
           metadata?: Json | null
           name: string
           owner_id?: string | null
+          owner_notified_at?: string | null
+          risk_flags?: string[]
           slug: string
           source_deal_id?: string | null
           start_date?: string | null
@@ -6035,13 +6259,17 @@ export type Database = {
           currency?: string | null
           description?: string | null
           end_date?: string | null
+          expected_completion_date?: string | null
           external_id?: string | null
           external_provider?: string | null
           id?: string
           is_archived?: boolean | null
+          is_at_risk?: boolean
           metadata?: Json | null
           name?: string
           owner_id?: string | null
+          owner_notified_at?: string | null
+          risk_flags?: string[]
           slug?: string
           source_deal_id?: string | null
           start_date?: string | null
@@ -7001,6 +7229,66 @@ export type Database = {
           },
         ]
       }
+      user_role_preferences: {
+        Row: {
+          agency_role: string | null
+          ai_digest_enabled: boolean
+          ai_digest_frequency: string
+          created_at: string
+          dashboard_layout: Json | null
+          hide_completed_tasks: boolean
+          id: string
+          is_eos_user: boolean
+          primary_pod_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_role?: string | null
+          ai_digest_enabled?: boolean
+          ai_digest_frequency?: string
+          created_at?: string
+          dashboard_layout?: Json | null
+          hide_completed_tasks?: boolean
+          id?: string
+          is_eos_user?: boolean
+          primary_pod_id?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_role?: string | null
+          ai_digest_enabled?: boolean
+          ai_digest_frequency?: string
+          created_at?: string
+          dashboard_layout?: Json | null
+          hide_completed_tasks?: boolean
+          id?: string
+          is_eos_user?: boolean
+          primary_pod_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_role_preferences_primary_pod_id_fkey"
+            columns: ["primary_pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_role_preferences_primary_pod_id_fkey"
+            columns: ["primary_pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -7223,6 +7511,44 @@ export type Database = {
           },
         ]
       }
+      owner_dashboard_metrics: {
+        Row: {
+          active_clients: number | null
+          active_team_members: number | null
+          generated_at: string | null
+          projects_at_risk: number | null
+          projects_in_progress: number | null
+          revenue_this_week: number | null
+          team_utilization: number | null
+        }
+        Relationships: []
+      }
+      pm_team_capacity: {
+        Row: {
+          at_capacity: number | null
+          available: number | null
+          avg_utilization: number | null
+          pod_id: string | null
+          total_team_members: number | null
+          week_start: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pod_members_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pod_members_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pods_with_stats: {
         Row: {
           color: string | null
@@ -7238,6 +7564,22 @@ export type Database = {
           rp_members_count: number | null
           show_in_resource_projection: boolean | null
           updated_at: string | null
+        }
+        Relationships: []
+      }
+      project_risk_summary: {
+        Row: {
+          client_name: string | null
+          end_date: string | null
+          expected_completion_date: string | null
+          id: string | null
+          is_at_risk: boolean | null
+          last_activity: string | null
+          last_client_meeting: string | null
+          name: string | null
+          open_tasks: number | null
+          risk_flags: string | null
+          slug: string | null
         }
         Relationships: []
       }
