@@ -14,6 +14,7 @@ const COMMENTS_KEY = "actions-task-comments";
 
 /**
  * Fetch comments for a task, organized into threads.
+ * Fetches profiles separately because task_comments.user_id references auth.users (no direct FK to profiles in schema).
  */
 export function useTaskComments(taskId: string | undefined) {
   return useQuery({
@@ -21,26 +22,42 @@ export function useTaskComments(taskId: string | undefined) {
     queryFn: async (): Promise<TaskComment[]> => {
       if (!taskId) return [];
 
-      const { data, error } = await supabase
+      const { data: rows, error } = await supabase
         .from("task_comments")
-        .select(`
-          *,
-          profiles:user_id(full_name, email, avatar_url)
-        `)
+        .select("*")
         .eq("task_id", taskId)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
 
-      const comments = (data || []).map((c: any) => ({
+      const comments = (rows || []) as (TaskComment & { profiles?: unknown })[];
+
+      // Fetch profiles for all comment authors (user_id matches profiles.id in this app)
+      const userIds = [...new Set(comments.map((c) => c.user_id).filter(Boolean))];
+      const profileMap: Record<string, { full_name: string | null; email: string | null; avatar_url: string | null }> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, avatar_url")
+          .in("id", userIds);
+        for (const p of profiles || []) {
+          profileMap[p.id] = {
+            full_name: p.full_name ?? null,
+            email: p.email ?? null,
+            avatar_url: p.avatar_url ?? null,
+          };
+        }
+      }
+
+      const withUser = comments.map((c) => ({
         ...c,
-        user: c.profiles || null,
+        user: profileMap[c.user_id] ?? null,
         profiles: undefined,
       })) as TaskComment[];
 
       // Build thread tree: top-level comments with nested replies
-      const topLevel = comments.filter((c) => !c.parent_comment_id);
-      const replies = comments.filter((c) => c.parent_comment_id);
+      const topLevel = withUser.filter((c) => !c.parent_comment_id);
+      const replies = withUser.filter((c) => c.parent_comment_id);
 
       return topLevel.map((comment) => ({
         ...comment,
@@ -86,6 +103,10 @@ export function useAddComment() {
       queryClient.invalidateQueries({
         queryKey: [COMMENTS_KEY, variables.taskId],
       });
+      queryClient.refetchQueries({
+        queryKey: [COMMENTS_KEY, variables.taskId],
+      });
+      toast.success("Comment added");
     },
     onError: (error: Error) => {
       toast.error("Failed to add comment", { description: error.message });
