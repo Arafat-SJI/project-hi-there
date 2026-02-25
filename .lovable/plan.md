@@ -1,47 +1,99 @@
 
 
-# Update Database Schema Documentation
+## Plan: "Meet Your AI Team" — Landing Page Agent Showcase
 
-## Overview
-Create a comprehensive `docs/01-architecture/database-schema.md` file documenting all 140+ tables currently in the database, organized by functional module. This fills the gap where `database-schema.md` is referenced in `docs/01-architecture/README.md` but does not exist. Additionally, update the outdated Section 14 in `system-architecture.md` to point to the new file instead of listing only 26 tables.
+### The Idea
 
-## What Will Be Created
+Add a new dedicated section to the landing page between FeatureGrid and SocialProof called **"Meet Your AI Team"**. Instead of abstract feature descriptions, visitors see actual AI agent personas — each with a face/avatar, name, a one-liner about what they do, and which part of the platform they live in. This makes the AI feel human, approachable, and embedded rather than bolted on.
 
-### New File: `docs/01-architecture/database-schema.md`
+---
 
-A complete schema reference organized into these module sections:
+### Design Concept
 
-1. **Core / Auth** (7 tables) -- `profiles`, `user_roles`, `roles`, `user_invites`, `user_module_permissions`, `app_config`, `app_modules`
-2. **Activity & Notifications** (3 tables) -- `activity_logs`, `notifications`, `feedback`
-3. **AI Agents & Chat** (10 tables) -- `ai_agents`, `ai_agent_categories`, `ai_agent_runs`, `ai_chat_history`, `ai_models`, `ai_providers`, `ai_usage_logs`, `ai_productivity_insights`, `prompt_templates`, `agent_conversations`, `agent_messages`
-4. **Agent Execution & Memory** (11 tables/views) -- `agent_execution_plans`, `agent_execution_steps`, `agent_reasoning_traces`, `agent_memories`, `agent_learning_events`, `user_preferences`, plus views (`agent_memory_stats`, `agent_plan_performance`, etc.)
-5. **MCP Tool Orchestration** (3 tables) -- `mcp_servers`, `mcp_tools`, `mcp_tool_executions`
-6. **Embeddings & RAG** (6 tables) -- `embeddings`, `embedding_queue`, `knowledge_embeddings`, `vector_search_logs`, `gemini_corpora`, `gemini_query_logs`, `gemini_sync_logs`
-7. **Knowledge Base** (6 tables) -- `knowledge_entries`, `knowledge_categories`, `knowledge_sources`, `knowledge_files`, `user_knowledge_files`, `common_knowledge`
-8. **Meetings** (12 tables) -- `meetings`, `meeting_series`, `meeting_participants`, `meeting_external_participants`, `meeting_agenda_items`, `meeting_action_items`, `meeting_takeaways`, `meeting_assignments`, `meeting_assignment_suggestions`, `meeting_categorizations`, `meeting_files`, `meeting_transcripts`, `zoom_files`
-9. **Clients & CRM** (4 tables) -- `clients`, `client_feedback`, `client_meetings`, `contacts`
-10. **Contact Intelligence** (7 tables) -- `contact_activities`, `contact_ai_summaries`, `contact_communications`, `contact_email_engagement`, `contact_email_templates`, `contact_meeting_links`, `lead_*` tables
-11. **Deals / Business Dev** (3 tables) -- `deals`, `deal_activities`, `deal_comments`
-12. **Projects** (10 tables) -- `projects`, `project_statuses`, `project_members`, `project_milestones`, `project_comments`, `project_files`, `project_risks`, `project_invoices`, `project_billing`, `project_backups`, `project_favorites`, `project_client_access`, `project_client_comments`
-13. **Tasks / Actions** (6 tables) -- `tasks`, `task_streams`, `task_stream_members`, `task_categories`, `task_comments`, `task_attachments`, `task_contributors`
-14. **EOS / OKRs** (8 tables) -- `eos_vto`, `eos_issues`, `eos_issue_suggestions`, `eos_scorecards`, `eos_scorecard_metrics`, `eos_pods`, `okrs`, `okr_key_results`, `okr_check_ins`, `gwc_assessments`, `accountability_charts`, `accountability_responsibilities`
-15. **Productivity & HR** (7 tables) -- `departments`, `employee_profiles`, `employee_skills`, `skills`, `pods`, `pod_members`, `pod_employees`, `employee_pods`, `pod_permissions`, `productivity_records`, `productivity_alerts`, `leave_events`
-16. **Integrations** (6 tables) -- `integration_categories`, `integration_providers`, `integration_fields`, `integration_services`, `organization_integrations`, `integration_usage_logs`, `oauth_states`, `user_oauth_tokens`
-17. **Email & Communications** (4 tables) -- `email_logs`, `email_tracking_events`, `scheduled_emails`, `sendgrid_config`
-18. **Microsoft Graph** (3 tables) -- `graph_webhook_logs`, `graph_webhook_subscriptions`, `user_microsoft_teams`, `user_microsoft_teams_channels`
-19. **Process & Documents** (3 tables) -- `process_categories`, `process_documents`, `unified_documents`, `processing_queue_history`
-20. **System Settings** (1 table) -- `system_settings`
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Meet Your AI Team                               │
+│        They live inside your workflow — ready when you are          │
+│                                                                     │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
+│  │  Avatar   │  │  Avatar   │  │  Avatar   │  │  Avatar   │         │
+│  │   📝      │  │   ✅      │  │   💼      │  │   📊      │         │
+│  │ Meeting   │  │ Action    │  │ Deal      │  │ Project   │         │
+│  │Summarizer │  │ Item      │  │ Coach     │  │ Analyst   │         │
+│  │           │  │Extractor  │  │           │  │           │         │
+│  │"I turn    │  │"I pull    │  │"I help    │  │"I flag    │         │
+│  │ meetings  │  │ tasks     │  │ close     │  │ risks     │         │
+│  │ into      │  │ from your │  │ deals     │  │ before    │         │
+│  │ action."  │  │ notes."   │  │ faster."  │  │ they hit."│         │
+│  │           │  │           │  │           │  │           │         │
+│  │ 📍Meetings│  │ 📍Meetings│  │ 📍Sales   │  │ 📍Projects│         │
+│  │   Hub     │  │   Hub     │  │   Hub     │  │           │         │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │
+│                                                                     │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
+│  │   🔍      │  │   🏗️      │  │   📧      │  │   🧠      │         │
+│  │Knowledge  │  │ EOS       │  │ Email     │  │Operations │         │
+│  │ Search    │  │ Coach     │  │ Drafter   │  │ Advisor   │         │
+│  │           │  │           │  │           │  │           │         │
+│  │"I find    │  │"I guide   │  │"I draft   │  │"I spot    │         │
+│  │ answers   │  │ your EOS  │  │ follow-up │  │ team      │         │
+│  │ in your   │  │ rhythm."  │  │ emails."  │  │ patterns."│         │
+│  │ docs."    │  │           │  │           │  │           │         │
+│  │ 📍Knowledge│ │ 📍Strategy│  │ 📍Sales   │  │ 📍Ops     │         │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │
+│                                                                     │
+│         ● ● ● (dot pagination for mobile carousel)                  │
+│                                                                     │
+│         [ See All Agents → ]  (links to /login)                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-For each table, the doc will include:
-- Column name, data type, nullable, default value
-- Primary keys and foreign key relationships noted inline
+Each card:
+- Large round avatar area with the agent's emoji avatar (from DB seed) or a generated initial
+- A pulsing green "active" dot (reusing `AIIndicator`)
+- Agent name in bold
+- A first-person quote: "Hi, I'm [name]. I [whatIDo]." — written conversationally
+- A subtle "📍 Lives in: [section]" tag showing where in the app they work
+- Hover: card lifts with `shadow-ai`, border glows `border-primary/30`
 
-### Updated File: `docs/01-architecture/system-architecture.md`
-- Replace the outdated Section 14 (lines 1094-1200+) with a brief summary stating "140+ tables across 20 modules" and a link to the new `database-schema.md` file
-- Keep the Mermaid ER diagram but add a note that it shows core relationships only
+### Agent Data (Hardcoded in Component)
 
-## Technical Notes
-- All column data is sourced directly from the live database via `information_schema.columns`
-- The documentation will use Markdown tables for each database table's columns
-- Views (like `pods_with_stats`, `agent_memory_stats`) will be documented separately in a "Views" section
+Using the agents already seeded in the database, the component will use a static array of 8 representative agents:
+
+| Agent | Quote | Section |
+|-------|-------|---------|
+| Meeting Summarizer | "I turn your meetings into structured summaries." | Meetings Hub |
+| Action Item Extractor | "I pull tasks and deadlines from your transcripts." | Meetings Hub |
+| Deal Coach | "I help you close deals with strategy and email drafts." | Sales Hub |
+| Project Analyst | "I flag project risks before they become problems." | Work Management |
+| Knowledge Search | "I find answers across your entire knowledge base." | Knowledge |
+| EOS Coach | "I guide your team through L10s, rocks, and IDS." | Strategy |
+| Email Draft Assistant | "I draft follow-up emails that get replies." | Sales Hub |
+| Operations Advisor | "I spot productivity patterns in your team." | Operations |
+
+### Mobile Behavior
+
+- On mobile (`< lg`): horizontal scroll carousel with snap points, 2 cards visible at a time
+- On desktop (`lg+`): 4-column grid, 2 rows
+
+---
+
+### Implementation
+
+**New file: `src/components/landing/AITeamShowcase.tsx`**
+- Static array of 8 agent objects with `name`, `avatar` (emoji), `quote`, `section`, `sectionIcon`
+- Grid layout: `grid-cols-2 lg:grid-cols-4`
+- Each card uses existing `ai-card` class, `AIIndicator` dot, and hover effects
+- Section heading with Sparkles icon matching other landing sections
+- CTA button at bottom linking to `/login`
+
+**Modified file: `src/pages/Index.tsx`**
+- Import and insert `<AITeamShowcase />` between `<FeatureGrid />` and `<SocialProof />`
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/components/landing/AITeamShowcase.tsx` | **New** — 8-agent showcase grid |
+| `src/pages/Index.tsx` | Add import + render `<AITeamShowcase />` |
 
