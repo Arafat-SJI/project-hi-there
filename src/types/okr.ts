@@ -11,9 +11,13 @@ export type {
   OKR as OKRWithKeyResults,
   OKRKeyResult as KeyResultRow,
   OKRCheckIn as OKRUpdateRow,
-  OKRFormData as CreateOKRInput,
+  OKRFormData as OKRFormDataExport,
+  CreateOKRInput,
   OKRFilters,
   OKRStatus,
+  OKRType,
+  OKRStats,
+  CreateKeyResultInput,
 } from "@/modules/eos/types";
 
 export type OKRType = "company" | "team" | "personal";

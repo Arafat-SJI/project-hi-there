@@ -8,9 +8,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { OKR, OKRKeyResult, OKRCheckIn, OKRFormData, OKRFilters } from "../types";
+import type { OKR, OKRKeyResult, OKRCheckIn, OKRFormData, OKRFilters, CreateOKRInput, CreateKeyResultInput } from "../types";
+import { getCurrentQuarter, getYearlyString } from "@/utils/okrHelpers";
 
 const OKRS_KEY = "eos-okrs";
+
+export { OKRS_KEY };
 
 type ApprovalPendingResult = {
   approval_pending: true;
@@ -49,9 +52,41 @@ async function requestOKRApproval(params: {
   return data as { requires_approval?: boolean; approval_request_id?: string };
 }
 
+/**
+ * Build CreateOKRInput from an existing OKR for one-click duplicate.
+ * New OKR gets same objective and key results (start/target copied; current reset to start).
+ */
+export function okrToCreatePayload(okr: OKR): CreateOKRInput {
+  const formStatus = ["draft", "active", "at_risk", "completed"].includes(okr.status)
+    ? okr.status
+    : "draft";
+  return {
+    title: okr.title,
+    description: okr.description || undefined,
+    okr_type: (okr.okr_type as "company" | "team" | "personal") || "personal",
+    owner_id: okr.owner_id || undefined,
+    quarter: okr.quarter,
+    year: okr.year ?? new Date().getFullYear(),
+    status: formStatus as "draft" | "active" | "at_risk" | "completed",
+    end_date: okr.end_date || undefined,
+    pod_id: okr.pod_id || undefined,
+    key_results: (okr.key_results || []).map((kr): CreateKeyResultInput => ({
+      title: kr.title,
+      description: kr.description || undefined,
+      metric_type: (kr.metric_type as "number" | "percentage" | "currency" | "boolean") || "number",
+      unit: kr.unit || undefined,
+      start_value: Number(kr.start_value ?? 0),
+      target_value: Number(kr.target_value ?? 0),
+      owner_id: kr.owner_id || undefined,
+      update_frequency: (kr.update_frequency as "daily" | "weekly" | "biweekly" | "monthly") || "weekly",
+    })),
+  };
+}
+
 
 /**
- * Fetch OKRs with optional filters.
+ * Fetch OKRs with optional filters (non-archived by default).
+ * Loads owner profile, pod, and key results with responsible profile.
  */
 export function useOKRs(filters?: OKRFilters) {
   const { user } = useAuth();
@@ -62,13 +97,18 @@ export function useOKRs(filters?: OKRFilters) {
       let query = supabase
         .from("okrs")
         .select("*")
+        .or("is_archived.is.null,is_archived.eq.false")
         .order("created_at", { ascending: false });
 
       if (filters?.status && filters.status !== "all") {
         query = query.eq("status", filters.status);
       }
-      if (filters?.quarter) {
-        query = query.eq("quarter", filters.quarter);
+      if (filters?.quarter !== undefined && filters?.quarter !== "all") {
+        if (Array.isArray(filters.quarter)) {
+          query = query.in("quarter", filters.quarter);
+        } else {
+          query = query.eq("quarter", filters.quarter);
+        }
       }
       if (filters?.owner_id) {
         query = query.eq("owner_id", filters.owner_id);
@@ -80,9 +120,186 @@ export function useOKRs(filters?: OKRFilters) {
         query = query.ilike("title", `%${filters.search}%`);
       }
 
-      const { data, error } = await query;
+      const { data: rows, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as OKR[];
+      const okrs = (rows || []) as OKR[];
+
+      if (okrs.length === 0) return okrs;
+
+      const ownerIds = [...new Set(okrs.map((o) => o.owner_id).filter(Boolean))] as string[];
+      const podIds = [...new Set(okrs.map((o) => o.pod_id).filter(Boolean))] as string[];
+
+      let profilesMap = new Map<string, { full_name: string; email: string }>();
+      let podsMap = new Map<string, { id: string; name: string; color: string; is_active: boolean }>();
+
+      if (ownerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", ownerIds);
+        (profiles || []).forEach((p: { id: string; full_name: string; email: string }) => {
+          profilesMap.set(p.id, { full_name: p.full_name || "", email: p.email || "" });
+        });
+      }
+      if (podIds.length > 0) {
+        const { data: pods } = await supabase
+          .from("eos_pods")
+          .select("id, name, color, is_active")
+          .in("id", podIds);
+        (pods || []).forEach((p: { id: string; name: string; color: string; is_active: boolean }) => {
+          podsMap.set(p.id, p);
+        });
+      }
+
+      const { data: krRows } = await supabase
+        .from("okr_key_results")
+        .select("*")
+        .in("okr_id", okrs.map((o) => o.id))
+        .order("sort_order", { ascending: true });
+
+      const krList = (krRows || []) as OKRKeyResult[];
+      const krOwnerIds = [...new Set(krList.map((k) => k.owner_id).filter(Boolean))] as string[];
+      krOwnerIds.forEach((id) => {
+        if (!profilesMap.has(id)) {
+          profilesMap.set(id, { full_name: "", email: "" });
+        }
+      });
+      if (krOwnerIds.length > 0 && profilesMap.size < ownerIds.length + krOwnerIds.length) {
+        const { data: krProfiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", krOwnerIds);
+        (krProfiles || []).forEach((p: { id: string; full_name: string; email: string }) => {
+          profilesMap.set(p.id, { full_name: p.full_name || "", email: p.email || "" });
+        });
+      }
+
+      const krByOkr = new Map<string, OKRKeyResult[]>();
+      for (const kr of krList) {
+        const list = krByOkr.get(kr.okr_id) || [];
+        list.push({
+          ...kr,
+          owner: kr.owner_id ? profilesMap.get(kr.owner_id) ?? null : null,
+        });
+        krByOkr.set(kr.okr_id, list);
+      }
+
+      return okrs.map((o) => ({
+        ...o,
+        owner: o.owner_id ? profilesMap.get(o.owner_id) ?? null : null,
+        pod: o.pod_id ? podsMap.get(o.pod_id) ?? null : null,
+        key_results: krByOkr.get(o.id) || [],
+      }));
+    },
+    enabled: !!user,
+  });
+}
+
+/**
+ * Resolve quarter filter for API: "current" -> current quarter string; "all" -> undefined.
+ * For company tab, "current" can return [quarter, yearly] for the same year.
+ */
+export function resolveQuarterFilter(
+  quarterValue: string | undefined,
+  includeYearlyForCompany?: boolean
+): string | string[] | undefined {
+  if (!quarterValue || quarterValue === "all") return undefined;
+  if (quarterValue === "current") {
+    const { quarter, year } = getCurrentQuarter();
+    const qStr = `${quarter} ${year}`;
+    if (includeYearlyForCompany) return [qStr, getYearlyString(year)];
+    return qStr;
+  }
+  return quarterValue;
+}
+
+/**
+ * Fetch closed (archived) OKRs for the Closed tab.
+ */
+export function useClosedOKRs(filters?: Pick<OKRFilters, "search" | "quarter">) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [OKRS_KEY, "closed", filters],
+    queryFn: async (): Promise<OKR[]> => {
+      let query = supabase
+        .from("okrs")
+        .select("*")
+        .eq("is_archived", true)
+        .order("updated_at", { ascending: false });
+
+      if (filters?.search) {
+        query = query.ilike("title", `%${filters.search}%`);
+      }
+      if (filters?.quarter && filters.quarter !== "all") {
+        query = query.eq("quarter", filters.quarter);
+      }
+
+      const { data: rows, error } = await query;
+      if (error) throw error;
+      const okrs = (rows || []) as OKR[];
+
+      if (okrs.length === 0) return okrs;
+
+      const ownerIds = [...new Set(okrs.map((o) => o.owner_id).filter(Boolean))] as string[];
+      const podIds = [...new Set(okrs.map((o) => o.pod_id).filter(Boolean))] as string[];
+
+      const profilesMap = new Map<string, { full_name: string; email: string }>();
+      const podsMap = new Map<string, { id: string; name: string; color: string; is_active: boolean }>();
+
+      if (ownerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", ownerIds);
+        (profiles || []).forEach((p: { id: string; full_name: string; email: string }) => {
+          profilesMap.set(p.id, { full_name: p.full_name || "", email: p.email || "" });
+        });
+      }
+      if (podIds.length > 0) {
+        const { data: pods } = await supabase
+          .from("eos_pods")
+          .select("id, name, color, is_active")
+          .in("id", podIds);
+        (pods || []).forEach((p: { id: string; name: string; color: string; is_active: boolean }) => {
+          podsMap.set(p.id, p);
+        });
+      }
+
+      const { data: krRows } = await supabase
+        .from("okr_key_results")
+        .select("*")
+        .in("okr_id", okrs.map((o) => o.id))
+        .order("sort_order", { ascending: true });
+
+      const krList = (krRows || []) as OKRKeyResult[];
+      const krOwnerIds = [...new Set(krList.map((k) => k.owner_id).filter(Boolean))] as string[];
+      if (krOwnerIds.length > 0) {
+        const { data: krProfiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", krOwnerIds);
+        (krProfiles || []).forEach((p: { id: string; full_name: string; email: string }) => {
+          profilesMap.set(p.id, { full_name: p.full_name || "", email: p.email || "" });
+        });
+      }
+
+      const krByOkr = new Map<string, OKRKeyResult[]>();
+      for (const kr of krList) {
+        const list = krByOkr.get(kr.okr_id) || [];
+        list.push({
+          ...kr,
+          owner: kr.owner_id ? profilesMap.get(kr.owner_id) ?? null : null,
+        });
+        krByOkr.set(kr.okr_id, list);
+      }
+
+      return okrs.map((o) => ({
+        ...o,
+        owner: o.owner_id ? profilesMap.get(o.owner_id) ?? null : null,
+        pod: o.pod_id ? podsMap.get(o.pod_id) ?? null : null,
+        key_results: krByOkr.get(o.id) || [],
+      }));
     },
     enabled: !!user,
   });
@@ -145,14 +362,14 @@ export function useOKRCheckIns(okrId: string | undefined) {
 }
 
 /**
- * Create a new OKR.
+ * Create a new OKR with optional key results.
  */
 export function useCreateOKR() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (data: OKRFormData) => {
+    mutationFn: async (data: CreateOKRInput) => {
       const approval = await requestOKRApproval({
         userId: user!.id,
         actionDescription: `Create OKR: ${data.title}`,
@@ -164,7 +381,7 @@ export function useCreateOKR() {
         return { approval_pending: true, approval_request_id: approval.approval_request_id } as ApprovalPendingResult;
       }
 
-      const { data: okr, error } = await supabase
+      const { data: okr, error: okrError } = await supabase
         .from("okrs")
         .insert({
           title: data.title,
@@ -172,16 +389,41 @@ export function useCreateOKR() {
           owner_id: data.owner_id || user!.id,
           status: data.status || "draft",
           quarter: data.quarter,
+          year: data.year ?? new Date().getFullYear(),
           start_date: data.start_date || null,
           end_date: data.end_date || null,
           pod_id: data.pod_id || null,
           parent_okr_id: data.parent_okr_id || null,
+          okr_type: data.okr_type || "personal",
           created_by: user!.id,
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (okrError) throw okrError;
+      const okrId = (okr as { id: string }).id;
+
+      const keyResults = data.key_results || [];
+      if (keyResults.length > 0) {
+        const inserts = keyResults.map((kr, i) => ({
+          okr_id: okrId,
+          title: kr.title,
+          description: kr.description || null,
+          metric_type: kr.metric_type || "number",
+          target_value: kr.target_value,
+          start_value: kr.start_value ?? 0,
+          current_value: kr.start_value ?? 0,
+          unit: kr.unit || "",
+          owner_id: kr.owner_id || null,
+          sort_order: i,
+          update_frequency: kr.update_frequency || "weekly",
+        }));
+        const { error: krError } = await supabase
+          .from("okr_key_results")
+          .insert(inserts);
+        if (krError) throw krError;
+      }
+
       return okr;
     },
     onSuccess: (result) => {
@@ -208,7 +450,7 @@ export function useUpdateOKR() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<OKRFormData> & { progress?: number } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<OKRFormData> & { progress?: number; is_archived?: boolean } }) => {
       const approval = await requestOKRApproval({
         userId: user!.id,
         actionDescription: `Update OKR ${id}`,
@@ -222,7 +464,11 @@ export function useUpdateOKR() {
 
       const { data: okr, error } = await supabase
         .from("okrs")
-        .update({ ...data, updated_at: new Date().toISOString() })
+        .update({
+          ...data,
+          updated_at: new Date().toISOString(),
+          updated_by: data.is_archived !== undefined ? user!.id : undefined,
+        })
         .eq("id", id)
         .select()
         .single();
@@ -372,7 +618,7 @@ export function useCheckIn() {
 
       if (updateError) throw updateError;
 
-      // Write value change to audit history table (additive parity support)
+      // Write value change to audit history table (best-effort; table may not exist yet)
       const { error: historyError } = await supabase
         .from("key_result_history" as never)
         .insert({
@@ -383,7 +629,13 @@ export function useCheckIn() {
           updated_by: user!.id,
         } as never);
 
-      if (historyError) throw historyError;
+      if (historyError) {
+        // PGRST205 = table not found; allow check-in to succeed without history
+        const isTableMissing =
+          historyError.code === "PGRST205" ||
+          (historyError.message && historyError.message.includes("key_result_history"));
+        if (!isTableMissing) throw historyError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OKRS_KEY] });

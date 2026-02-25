@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import type { OKRRow } from "@/types/okr";
+import type { OKR } from "@/modules/eos/types";
 
 /**
  * Permission helper for OKR actions.
- * Current rules are compatible with existing EOS roles and can be tightened later.
+ * Company/team OKRs: only admin can edit/delete/duplicate/close.
+ * Personal OKRs: owner or admin.
  */
-export function useOKRPermissions(okr: OKRRow | null) {
+export function useOKRPermissions(okr: OKR | null) {
   const { user, profile } = useAuth();
   const isAdmin = profile?.role === "admin";
 
@@ -21,9 +22,20 @@ export function useOKRPermissions(okr: OKRRow | null) {
       };
     }
 
+    const type = okr.okr_type || "personal";
     const isOwner = okr.owner_id === user.id || okr.created_by === user.id;
-    const canManage = isAdmin || isOwner;
 
+    if (type === "company" || type === "team") {
+      return {
+        canEdit: isAdmin,
+        canDelete: isAdmin,
+        canDuplicate: isAdmin,
+        canClose: isAdmin,
+        canUpdate: isAdmin,
+      };
+    }
+
+    const canManage = isAdmin || isOwner;
     return {
       canEdit: canManage,
       canDelete: canManage,
@@ -31,5 +43,5 @@ export function useOKRPermissions(okr: OKRRow | null) {
       canClose: canManage,
       canUpdate: canManage,
     };
-  }, [isAdmin, okr, user]);
+  }, [okr, user, isAdmin]);
 }
