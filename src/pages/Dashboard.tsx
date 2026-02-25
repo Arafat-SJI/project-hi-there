@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAgencyRole } from "@/hooks/useAgencyRole";
+import { RoleSetupModal } from "@/components/dashboards/RoleSetupModal";
 import { useDashboardStats, useRecentActivity, getTimeAgo, useAITeamSummary } from "@/hooks/useDashboard";
 
 // Lazy-load role dashboards so they don't inflate the main bundle
@@ -102,7 +103,10 @@ export default function Dashboard() {
         </Suspense>
       );
     }
-    // agencyRole === null → user hasn't been assigned a role yet; fall through to generic dashboard
+    // agencyRole === null → show role-selection modal; render generic dashboard behind it
+    if (agencyRole === null) {
+      return <RoleSetupModal open />;
+    }
   }
 
   const greeting = () => {

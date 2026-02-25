@@ -28,6 +28,8 @@ interface AuthContextType {
   signInWithSSO: (provider: 'google' | 'azure', scopes?: string[]) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  /** Re-fetches agency_role + is_eos_user and patches local profile state. */
+  refreshAgencyPreferences: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -296,6 +298,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Log login activity
       logLogin("microsoft");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const authError = error as AuthError;
       const isCancelled = authError?.message === "Authentication window was closed";
@@ -429,6 +432,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Re-fetch agency preferences and patch profile state in place.
+  // Called after role assignment so the dashboard re-routes without a full reload.
+  const refreshAgencyPreferences = async () => {
+    if (!user) return;
+    const prefs = await fetchAgencyPreferences(user.id);
+    setProfile((prev) => (prev ? { ...prev, ...prefs } : null));
+  };
+
   const value = {
     user,
     profile,
@@ -441,6 +452,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithSSO,
     signOut,
     updateProfile,
+    refreshAgencyPreferences,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
