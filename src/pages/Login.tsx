@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Brain, Shield, Crown, Briefcase, Code, LogOut, User } from "lucide-react";
 
 const TEST_ACCOUNTS = [
-  { label: "Owner (Admin)", email: "admin@collabai.software", role: "owner", icon: Shield, color: "border-red-500/30 hover:bg-red-500/10" },
   { label: "CEO / Owner", email: "ceo@collabai.software", role: "owner", icon: Crown, color: "border-amber-500/30 hover:bg-amber-500/10" },
   { label: "Project Manager", email: "demo@collabai.software", role: "pm", icon: Briefcase, color: "border-blue-500/30 hover:bg-blue-500/10" },
   { label: "IC", email: "ic@collabai.software", role: "ic", icon: Code, color: "border-emerald-500/30 hover:bg-emerald-500/10" },
