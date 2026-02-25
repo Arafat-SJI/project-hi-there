@@ -1267,8 +1267,12 @@ export type Database = {
           company: string | null
           created_at: string
           created_by: string | null
+          data_source: Database["public"]["Enums"]["data_source_type"] | null
           email: string | null
+          external_id: string | null
+          external_url: string | null
           id: string
+          last_synced_at: string | null
           metadata: Json | null
           name: string
           phone: string | null
@@ -1279,8 +1283,12 @@ export type Database = {
           company?: string | null
           created_at?: string
           created_by?: string | null
+          data_source?: Database["public"]["Enums"]["data_source_type"] | null
           email?: string | null
+          external_id?: string | null
+          external_url?: string | null
           id?: string
+          last_synced_at?: string | null
           metadata?: Json | null
           name: string
           phone?: string | null
@@ -1291,8 +1299,12 @@ export type Database = {
           company?: string | null
           created_at?: string
           created_by?: string | null
+          data_source?: Database["public"]["Enums"]["data_source_type"] | null
           email?: string | null
+          external_id?: string | null
+          external_url?: string | null
           id?: string
+          last_synced_at?: string | null
           metadata?: Json | null
           name?: string
           phone?: string | null
@@ -1586,10 +1598,13 @@ export type Database = {
           current_intent_status: string | null
           current_mood_label: string | null
           current_mood_score: number | null
+          data_source: Database["public"]["Enums"]["data_source_type"] | null
           deal_potential_score: number | null
           department: string | null
           email: string | null
           engagement_score: number | null
+          external_id: string | null
+          external_url: string | null
           first_name: string
           followup_assigned_to: string | null
           followup_attempt_count: number | null
@@ -1606,6 +1621,7 @@ export type Database = {
           last_mood_analysis_at: string | null
           last_name: string | null
           last_score_calculated_at: string | null
+          last_synced_at: string | null
           lead_score: number | null
           lead_temperature: string | null
           linkedin_url: string | null
@@ -1629,10 +1645,13 @@ export type Database = {
           current_intent_status?: string | null
           current_mood_label?: string | null
           current_mood_score?: number | null
+          data_source?: Database["public"]["Enums"]["data_source_type"] | null
           deal_potential_score?: number | null
           department?: string | null
           email?: string | null
           engagement_score?: number | null
+          external_id?: string | null
+          external_url?: string | null
           first_name: string
           followup_assigned_to?: string | null
           followup_attempt_count?: number | null
@@ -1649,6 +1668,7 @@ export type Database = {
           last_mood_analysis_at?: string | null
           last_name?: string | null
           last_score_calculated_at?: string | null
+          last_synced_at?: string | null
           lead_score?: number | null
           lead_temperature?: string | null
           linkedin_url?: string | null
@@ -1672,10 +1692,13 @@ export type Database = {
           current_intent_status?: string | null
           current_mood_label?: string | null
           current_mood_score?: number | null
+          data_source?: Database["public"]["Enums"]["data_source_type"] | null
           deal_potential_score?: number | null
           department?: string | null
           email?: string | null
           engagement_score?: number | null
+          external_id?: string | null
+          external_url?: string | null
           first_name?: string
           followup_assigned_to?: string | null
           followup_attempt_count?: number | null
@@ -1692,6 +1715,7 @@ export type Database = {
           last_mood_analysis_at?: string | null
           last_name?: string | null
           last_score_calculated_at?: string | null
+          last_synced_at?: string | null
           lead_score?: number | null
           lead_temperature?: string | null
           linkedin_url?: string | null
@@ -1846,9 +1870,13 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           currency: string | null
+          data_source: Database["public"]["Enums"]["data_source_type"] | null
           description: string | null
           expected_close_date: string | null
+          external_id: string | null
+          external_url: string | null
           id: string
+          last_synced_at: string | null
           lost_reason: string | null
           metadata: Json | null
           owner_id: string | null
@@ -1868,9 +1896,13 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          data_source?: Database["public"]["Enums"]["data_source_type"] | null
           description?: string | null
           expected_close_date?: string | null
+          external_id?: string | null
+          external_url?: string | null
           id?: string
+          last_synced_at?: string | null
           lost_reason?: string | null
           metadata?: Json | null
           owner_id?: string | null
@@ -1890,9 +1922,13 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          data_source?: Database["public"]["Enums"]["data_source_type"] | null
           description?: string | null
           expected_close_date?: string | null
+          external_id?: string | null
+          external_url?: string | null
           id?: string
+          last_synced_at?: string | null
           lost_reason?: string | null
           metadata?: Json | null
           owner_id?: string | null
@@ -7813,6 +7849,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      data_source_type: "hubspot" | "manual" | "pipedrive" | "salesforce" | "zoho"
     }
     CompositeTypes: {
       [_ in never]: never
