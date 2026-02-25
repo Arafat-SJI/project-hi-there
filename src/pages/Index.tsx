@@ -9,6 +9,7 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { ProblemSolution } from "@/components/landing/ProblemSolution";
 import { ValueProps } from "@/components/landing/ValueProps";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
+import { AITeamShowcase } from "@/components/landing/AITeamShowcase";
 import { SocialProof } from "@/components/landing/SocialProof";
 import { PricingPreview } from "@/components/landing/PricingPreview";
 import { FinalCTA } from "@/components/landing/FinalCTA";
@@ -141,6 +142,7 @@ export default function Index() {
         <ProblemSolution />
         <ValueProps />
         <FeatureGrid />
+        <AITeamShowcase />
         <SocialProof />
         <PricingPreview />
         <FinalCTA />
