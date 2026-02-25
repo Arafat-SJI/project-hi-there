@@ -44,7 +44,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTaskBySlug, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
-import { useTaskComments } from "../hooks/useTaskComments";
 import { useTaskCategories } from "../hooks/useTaskCategories";
 import { useTaskAttachments } from "../hooks/useTaskAttachments";
 import { SubTasksList } from "../components/SubTasksList";
@@ -81,9 +80,7 @@ export default function TaskDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: task, isLoading } = useTaskBySlug(idOrSlug);
-  const taskId = task?.id;
-  const { data: comments } = useTaskComments(taskId);
-  const { data: attachments } = useTaskAttachments(taskId);
+  const { data: attachments } = useTaskAttachments(task?.id);
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const { data: categories } = useTaskCategories();
@@ -318,7 +315,7 @@ export default function TaskDetailPage() {
           {/* Comments */}
           <Card>
             <CardContent className="pt-6">
-              <CommentThread taskId={task.id} comments={comments || []} />
+              <CommentThread taskId={task.id} />
             </CardContent>
           </Card>
         </div>

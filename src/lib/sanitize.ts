@@ -74,6 +74,7 @@ export function sanitizeRichText(dirty: string): string {
       "style",
       "width",
       "height",
+      "data-task-attachment-id",
     ],
   });
 }
