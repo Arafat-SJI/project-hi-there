@@ -101,6 +101,14 @@ export default function ClientDetail() {
         </div>
       </div>
 
+      {/* Data Source */}
+      <DataSourceBadge
+        dataSource={(client as any).data_source}
+        externalUrl={(client as any).external_url}
+        lastSyncedAt={(client as any).last_synced_at}
+        variant="card"
+      />
+
       {/* Client Information */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -170,14 +178,6 @@ export default function ClientDetail() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Data Source */}
-      <DataSourceBadge
-        dataSource={(client as any).data_source}
-        externalUrl={(client as any).external_url}
-        lastSyncedAt={(client as any).last_synced_at}
-        variant="card"
-      />
 
       {/* Notes */}
       {client.metadata && typeof client.metadata === 'object' && 'notes' in client.metadata && client.metadata.notes && (

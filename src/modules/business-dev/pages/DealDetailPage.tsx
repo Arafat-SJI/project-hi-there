@@ -20,6 +20,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDeal, useDealActivities, useDealComments, useAddDealComment, useUpdateDealComment, useDeleteDealComment, useAddDealActivity, useUpdateDealStage, useUpdateDeal, useDeleteDeal } from "../hooks/useDeals";
+import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import { useDealMeetings } from "@/modules/meetings/hooks/useCrossModuleMeetings";
 import { useAssignMeeting } from "@/modules/meetings/hooks/useMeetingAssignment";
 import type { DealStage, DealActivityType } from "../types";
@@ -241,6 +242,14 @@ export default function DealDetailPage() {
           );
         })}
       </div>
+
+      {/* Data Source */}
+      <DataSourceBadge
+        dataSource={deal.data_source}
+        lastSyncedAt={deal.last_synced_at}
+        externalUrl={deal.external_url}
+        variant="card"
+      />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>

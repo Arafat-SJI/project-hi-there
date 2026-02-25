@@ -42,6 +42,7 @@ import {
   useCreateLeadFollowUp,
   useUpdateLeadFollowUp,
 } from "../hooks/useContacts";
+import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import { useContactMeetings } from "@/modules/meetings/hooks/useContactMeetings";
 import type { ContactFormData } from "../types";
 
@@ -229,6 +230,14 @@ export default function ContactDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Data Source */}
+      <DataSourceBadge
+        dataSource={(contact as any).data_source}
+        lastSyncedAt={(contact as any).last_synced_at}
+        externalUrl={(contact as any).external_url}
+        variant="card"
+      />
 
       {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
