@@ -83,6 +83,28 @@ export function useTaskStream(id: string | undefined) {
 }
 
 /**
+ * Fetch a single stream by slug (for URL /tasks/stream/:slug).
+ * If slug looks like a UUID, fetches by id instead.
+ */
+export function useTaskStreamBySlug(slugOrId: string | undefined) {
+  const isUuid = slugOrId?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  return useQuery({
+    queryKey: [STREAMS_KEY, "slug", slugOrId],
+    queryFn: async () => {
+      if (!slugOrId) return null;
+      const { data, error } = await supabase
+        .from("task_streams")
+        .select("*")
+        .eq(isUuid ? "id" : "slug", slugOrId)
+        .single();
+      if (error) throw error;
+      return data as TaskStream;
+    },
+    enabled: !!slugOrId,
+  });
+}
+
+/**
  * Create a new stream.
  */
 export function useCreateStream() {

@@ -1,29 +1,29 @@
 /**
  * Stream Tasks Page
  *
- * Shows tasks filtered to a specific stream.
+ * Shows tasks filtered to a specific stream (by slug or id in URL).
  */
 import { useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, ArrowLeft, Users } from "lucide-react";
 import { useTasksV2, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
-import { useTaskStream } from "../hooks/useTaskStreams";
+import { useTaskStreamBySlug } from "../hooks/useTaskStreams";
 import { TasksTable } from "../components/TasksTable";
 import { TaskFiltersBar } from "../components/TaskFiltersBar";
 import { CreateTaskDialog } from "../components/CreateTaskDialog";
+import { StreamPeopleModal } from "../components/StreamPeopleModal";
 import type { TaskFilters, TaskStatus } from "../types/tasks";
 
 export default function StreamTasksPage() {
-  const { streamId } = useParams<{ streamId: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isAdmin = location.pathname.startsWith("/admin");
-  const streamsPath = isAdmin ? "/admin/tasks/streams" : "/tasks/streams";
   const [filters, setFilters] = useState<TaskFilters>({});
   const [showCreate, setShowCreate] = useState(false);
+  const [showPeople, setShowPeople] = useState(false);
 
-  const { data: stream, isLoading: streamLoading } = useTaskStream(streamId);
+  const { data: stream, isLoading: streamLoading } = useTaskStreamBySlug(slug);
+  const streamId = stream?.id;
   const { data: tasks, isLoading: tasksLoading } = useTasksV2({
     ...filters,
     stream_id: streamId,
@@ -37,7 +37,7 @@ export default function StreamTasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(streamsPath)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/streams")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -54,6 +54,12 @@ export default function StreamTasksPage() {
               <p className="text-muted-foreground">{stream.description}</p>
             )}
           </div>
+          {stream && (
+            <Button variant="outline" size="sm" onClick={() => setShowPeople(true)}>
+              <Users className="mr-2 h-4 w-4" />
+              People
+            </Button>
+          )}
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -73,6 +79,7 @@ export default function StreamTasksPage() {
             tasks={tasks || []}
             onStatusChange={(id, status) => updateTask.mutate({ id, data: { status } })}
             onDelete={(id) => deleteTask.mutate(id)}
+            taskHref={(task) => `/tasks/${task.slug || task.id}`}
           />
         </div>
       )}
@@ -82,6 +89,13 @@ export default function StreamTasksPage() {
         onOpenChange={setShowCreate}
         defaultStreamId={streamId}
       />
+      {stream && (
+        <StreamPeopleModal
+          open={showPeople}
+          onOpenChange={setShowPeople}
+          streamId={stream.id}
+        />
+      )}
     </div>
   );
 }

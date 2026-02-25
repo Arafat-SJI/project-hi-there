@@ -8,7 +8,7 @@
 // Task
 // ========================
 
-export type TaskStatus = "todo" | "in_progress" | "completed" | "cancelled";
+export type TaskStatus = "todo" | "in_progress" | "paused" | "completed" | "cancelled";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 export interface Task {
@@ -63,9 +63,11 @@ export interface TaskFilters {
   category_id?: string;
   view?: TaskView;
   search?: string;
+  dueDateFrom?: string;
+  dueDateTo?: string;
 }
 
-export type TaskView = "all" | "today" | "this_week" | "overdue" | "delegated" | "my_tasks";
+export type TaskView = "all" | "today" | "this_week" | "overdue" | "delegated" | "my_tasks" | "allMine";
 
 // ========================
 // Task Stream
@@ -149,4 +151,8 @@ export interface TaskStats {
   in_progress: number;
   completed: number;
   overdue: number;
+  todayCount?: number;
+  thisWeekCount?: number;
+  delegatedCount?: number;
+  allMineCount?: number;
 }

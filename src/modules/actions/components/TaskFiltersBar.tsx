@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Settings } from "lucide-react";
 import type { TaskFilters, TaskStream, TaskCategory } from "../types/tasks";
 
 interface TaskFiltersBarProps {
@@ -23,6 +23,10 @@ export function TaskFiltersBar({ filters, onFiltersChange, streams, categories }
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
+      {/* Filters icon (cog) */}
+      <div className="flex items-center gap-2 shrink-0 text-muted-foreground" aria-hidden>
+        <Settings className="h-4 w-4" />
+      </div>
       {/* Search */}
       <div className="relative flex-1 min-w-[200px]">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
