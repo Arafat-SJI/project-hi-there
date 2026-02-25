@@ -26,4 +26,5 @@ export const urlAuditData: UrlAuditEntry[] = [
       { path: "/projects/:slug/finance", label: "Finance" },
     ],
   },
+  { path: "/okrs", label: "OKRs", module: "eos" },
 ];

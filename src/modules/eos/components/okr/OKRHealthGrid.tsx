@@ -1,18 +1,17 @@
 /**
  * OKR Health Grid
  *
- * Displays a responsive grid of OKR health cards sorted by urgency,
- * with status badges, progress bars, and owner/pod context.
+ * Grid of cells by pod + company. Each cell shows OKR count by health.
+ * Clicking a pod switches to Team tab with that pod; clicking company to Company tab.
  */
 
 import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Activity } from "lucide-react";
-import type { OKR, OKRStatus } from "../../types";
+import { Building2, Layers } from "lucide-react";
+import type { OKR, OKRStatus, EOSPod } from "../../types";
 
-const statusColors: Record<OKRStatus, string> = {
+const statusColors: Record<string, string> = {
   active: "bg-blue-100 text-blue-800",
   on_track: "bg-green-100 text-green-800",
   at_risk: "bg-amber-100 text-amber-800",
@@ -22,84 +21,128 @@ const statusColors: Record<OKRStatus, string> = {
   closed: "bg-gray-100 text-gray-600",
 };
 
-const sortPriority: Record<OKRStatus, number> = {
-  at_risk: 0,
-  behind: 1,
-  active: 2,
-  on_track: 3,
-  draft: 4,
-  completed: 5,
-  closed: 6,
-};
-
 interface OKRHealthGridProps {
   okrs: OKR[];
+  pods?: EOSPod[];
+  onSelectPod?: (podId: string | null) => void;
+  onSelectCompany?: () => void;
 }
 
-export function OKRHealthGrid({ okrs }: OKRHealthGridProps) {
-  const sorted = useMemo(
-    () =>
-      [...okrs].sort(
-        (a, b) =>
-          (sortPriority[a.status] ?? 99) - (sortPriority[b.status] ?? 99)
-      ),
-    [okrs]
-  );
+export function OKRHealthGrid({
+  okrs,
+  pods = [],
+  onSelectPod,
+  onSelectCompany,
+}: OKRHealthGridProps) {
+  const { byPod, company } = useMemo(() => {
+    const byPod = new Map<
+      string,
+      { pod: EOSPod; okrs: OKR[]; onTrack: number; atRisk: number; total: number }
+    >();
+    const companyList: OKR[] = [];
 
-  if (sorted.length === 0) {
+    for (const okr of okrs) {
+      const type = okr.okr_type || "personal";
+      if (type === "company") {
+        companyList.push(okr);
+        continue;
+      }
+      if (type === "team" && okr.pod_id) {
+        const pod = pods.find((p) => p.id === okr.pod_id);
+        const entry = byPod.get(okr.pod_id);
+        const onTrack =
+          okr.status === "active" || okr.status === "on_track" ? 1 : 0;
+        const atRisk =
+          okr.status === "at_risk" || okr.status === "behind" ? 1 : 0;
+        if (entry) {
+          entry.okrs.push(okr);
+          entry.onTrack += onTrack;
+          entry.atRisk += atRisk;
+          entry.total += 1;
+        } else {
+          byPod.set(okr.pod_id, {
+            pod: pod || ({ id: okr.pod_id, name: "Unknown", color: "#94a3b8", is_active: true } as EOSPod),
+            okrs: [okr],
+            onTrack,
+            atRisk,
+            total: 1,
+          });
+        }
+      }
+    }
+
+    return {
+      byPod: Array.from(byPod.values()),
+      company: companyList,
+    };
+  }, [okrs, pods]);
+
+  const companyOnTrack = company.filter(
+    (o) => o.status === "active" || o.status === "on_track"
+  ).length;
+  const companyAtRisk = company.filter(
+    (o) => o.status === "at_risk" || o.status === "behind"
+  ).length;
+
+  if (byPod.length === 0 && company.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-        <Activity className="h-8 w-8 mb-2" />
+        <Layers className="h-8 w-8 mb-2" />
         <p>No OKRs to display</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {sorted.map((okr) => (
-        <Card key={okr.id}>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {company.length > 0 && (
+        <Card
+          className={
+            onSelectCompany
+              ? "cursor-pointer hover:shadow-md transition-shadow hover:ring-2 hover:ring-primary/20"
+              : ""
+          }
+          onClick={onSelectCompany}
+        >
           <CardHeader className="pb-2">
-            <div className="flex items-start justify-between gap-2">
-              <CardTitle className="text-sm leading-tight">
-                {okr.title}
-              </CardTitle>
-              <Badge
-                variant="secondary"
-                className={`shrink-0 ${statusColors[okr.status] || ""}`}
-              >
-                {okr.status.replace("_", " ")}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 pt-0.5">
-              <Badge variant="outline" className="text-xs">
-                {okr.quarter}
-              </Badge>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Company</span>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Progress</span>
-                  <span className="font-medium">
-                    {Math.round(okr.progress)}%
-                  </span>
-                </div>
-                <Progress value={okr.progress} className="h-2" />
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{okr.owner?.full_name || "No owner"}</span>
-                {okr.pod && (
-                  <span className="flex items-center gap-1">
-                    <span
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ backgroundColor: okr.pod.color }}
-                    />
-                    {okr.pod.name}
-                  </span>
-                )}
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{company.length} OKRs</Badge>
+              <Badge className="bg-green-100 text-green-800">{companyOnTrack} on track</Badge>
+              <Badge className="bg-amber-100 text-amber-800">{companyAtRisk} at risk</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {byPod.map(({ pod, total, onTrack, atRisk }) => (
+        <Card
+          key={pod.id}
+          className={
+            onSelectPod
+              ? "cursor-pointer hover:shadow-md transition-shadow hover:ring-2 hover:ring-primary/20"
+              : ""
+          }
+          onClick={() => onSelectPod?.(pod.id)}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-3 rounded-full shrink-0"
+                style={{ backgroundColor: pod.color }}
+              />
+              <span className="font-medium text-sm">{pod.name}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{total} OKRs</Badge>
+              <Badge className="bg-green-100 text-green-800">{onTrack} on track</Badge>
+              <Badge className="bg-amber-100 text-amber-800">{atRisk} at risk</Badge>
             </div>
           </CardContent>
         </Card>

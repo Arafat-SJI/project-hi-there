@@ -58,6 +58,8 @@ export type OKRStatus =
   | "completed"
   | "closed";
 
+export type OKRType = "company" | "team" | "personal";
+
 export interface OKR {
   id: string;
   title: string;
@@ -73,6 +75,10 @@ export interface OKR {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  okr_type?: OKRType;
+  year?: number | null;
+  is_archived?: boolean | null;
+  updated_by?: string | null;
   // Joined relations
   owner?: { full_name: string; email: string } | null;
   pod?: EOSPod | null;
@@ -94,6 +100,11 @@ export interface OKRKeyResult {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  update_frequency?: "daily" | "weekly" | "biweekly" | "monthly" | null;
+  last_updated_at?: string | null;
+  next_update_due?: string | null;
+  is_completed?: boolean | null;
+  completed_at?: string | null;
   owner?: { full_name: string; email: string } | null;
 }
 
@@ -116,18 +127,44 @@ export interface OKRFormData {
   owner_id?: string;
   status?: OKRStatus;
   quarter: string;
+  year?: number;
   start_date?: string;
   end_date?: string;
   pod_id?: string;
   parent_okr_id?: string;
+  okr_type?: OKRType;
+}
+
+export interface CreateKeyResultInput {
+  title: string;
+  description?: string;
+  metric_type?: "number" | "percentage" | "currency" | "boolean";
+  unit?: string;
+  start_value: number;
+  target_value: number;
+  owner_id?: string;
+  update_frequency?: "daily" | "weekly" | "biweekly" | "monthly";
+}
+
+export interface CreateOKRInput extends OKRFormData {
+  key_results?: CreateKeyResultInput[];
 }
 
 export interface OKRFilters {
   status?: OKRStatus | "all";
-  quarter?: string;
+  quarter?: string | string[];
   owner_id?: string;
   pod_id?: string;
   search?: string;
+  tab?: "my" | "team" | "company" | "okr-health" | "key-results" | "closed";
+}
+
+export interface OKRStats {
+  total: number;
+  active: number;
+  at_risk: number;
+  completed: number;
+  avg_progress: number;
 }
 
 // ========================
