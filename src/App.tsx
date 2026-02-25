@@ -25,7 +25,7 @@ import { adminRoutes } from "@/modules/admin";
 // Client portal (public, no layout)
 import ClientPortalDashboard from "@/pages/client/ClientPortalDashboard";
 import ProjectDashboard from "@/pages/client/ProjectDashboard";
-import TestLogin from "@/pages/TestLogin";
+
 
 const queryClient = new QueryClient();
 
@@ -41,7 +41,7 @@ const App = () => (
             <Routes>
               {/* Public routes (login, signup, auth callbacks) */}
               {publicRoutes}
-              <Route path="/test-login" element={<TestLogin />} />
+              
 
               {/* Client portal: token + password, no layout */}
               <Route
