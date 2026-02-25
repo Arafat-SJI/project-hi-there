@@ -26,7 +26,7 @@ export function useDashboardPreferences() {
   const query = useQuery<DashboardPreferences>({
     queryKey: qKey,
     queryFn: async (): Promise<DashboardPreferences> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("user_role_preferences")
         .select("ai_digest_enabled, ai_digest_frequency, hide_completed_tasks, primary_pod_id")
         .eq("user_id", user!.id)
@@ -49,7 +49,7 @@ export function useDashboardPreferences() {
 
   const mutation = useMutation({
     mutationFn: async (patch: Partial<DashboardPreferences>) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("user_role_preferences")
         .upsert(
           { user_id: user!.id, role: "user", ...patch },
