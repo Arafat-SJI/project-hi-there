@@ -173,7 +173,7 @@ export default function ClientDetail() {
 
       {/* Data Source */}
       <DataSourceBadge
-        source={(client as any).data_source}
+        dataSource={(client as any).data_source}
         externalUrl={(client as any).external_url}
         lastSyncedAt={(client as any).last_synced_at}
         variant="card"
