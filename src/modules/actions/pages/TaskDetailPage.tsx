@@ -39,16 +39,21 @@ import {
   User,
   Clock,
   Reply,
+  Paperclip,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTaskBySlug, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
 import { useTaskComments } from "../hooks/useTaskComments";
 import { useTaskCategories } from "../hooks/useTaskCategories";
+import { useTaskAttachments } from "../hooks/useTaskAttachments";
 import { SubTasksList } from "../components/SubTasksList";
 import { CommentThread } from "../components/comments/CommentThread";
 import { CreateTaskDialog } from "../components/CreateTaskDialog";
 import type { TaskStatus, TaskPriority } from "../types/tasks";
 import { sanitizeRichText } from "@/lib/sanitize";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 function isUuid(s: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
@@ -78,6 +83,7 @@ export default function TaskDetailPage() {
   const { data: task, isLoading } = useTaskBySlug(idOrSlug);
   const taskId = task?.id;
   const { data: comments } = useTaskComments(taskId);
+  const { data: attachments } = useTaskAttachments(taskId);
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const { data: categories } = useTaskCategories();
@@ -139,6 +145,30 @@ export default function TaskDetailPage() {
     deleteTask.mutate(task.id, {
       onSuccess: () => navigate("/tasks"),
     });
+  };
+
+  const handleOpenAttachment = async (attachmentId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please sign in to open attachments.");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("task-attachment-url", {
+        body: { attachment_id: attachmentId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      const url = data?.url;
+      if (!url || typeof url !== "string") {
+        toast.error("Could not open file");
+        return;
+      }
+      window.open(url, "_blank");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to open file";
+      toast.error(msg);
+    }
   };
 
   return (
@@ -239,6 +269,41 @@ export default function TaskDetailPage() {
                     )}
                   </div>
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Attachments */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Attachments
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!attachments || attachments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No attachments yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {attachments.map((att) => (
+                    <li key={att.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="truncate font-medium" title={att.file_name}>
+                        {att.file_name}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 h-8"
+                        onClick={() => handleOpenAttachment(att.id)}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Open
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </CardContent>
           </Card>

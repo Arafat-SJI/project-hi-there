@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Loader2, Bold, Italic, Strikethrough, List, ListOrdered, Link2, Table, Upload, User, CalendarIcon } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateTask } from "../hooks/useTasksV2";
 import { useUpdateTask } from "../hooks/useTasksV2";
@@ -44,6 +44,9 @@ import { useTaskStreams } from "../hooks/useTaskStreams";
 import { useTaskCategories } from "../hooks/useTaskCategories";
 import type { Task, TaskStatus, TaskPriority } from "../types/tasks";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { invalidateKeys } from "@/lib/cache";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -69,6 +72,8 @@ interface CreateTaskDialogProps {
 }
 
 export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId, task: editTask }: CreateTaskDialogProps) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const isEdit = !!editTask;
@@ -76,7 +81,10 @@ export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId
   const { data: categories } = useTaskCategories();
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [dueDateOpen, setDueDateOpen] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const descriptionEditorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: profiles } = useQuery({
     queryKey: ["profiles", "list"],
@@ -107,6 +115,10 @@ export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId
       assigned_to: "",
     },
   });
+
+  useEffect(() => {
+    if (!open) setPendingFiles([]);
+  }, [open]);
 
   useEffect(() => {
     if (open && defaultStreamId) setValue("stream_id", defaultStreamId);
@@ -148,6 +160,66 @@ export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId
     if (url) handleFormat("createLink", url);
   };
 
+  const BUCKET = "user-knowledge";
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/gif", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain", "text/markdown"];
+
+  const uploadFileToTask = async (taskId: string, file: File): Promise<void> => {
+    if (!user?.id) throw new Error("Not authenticated");
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const storagePath = `${user.id}/task-attachments/${taskId}/${crypto.randomUUID()}_${safeName}`;
+    const { error: uploadError } = await supabase.storage.from(BUCKET).upload(storagePath, file, { upsert: false });
+    if (uploadError) throw uploadError;
+    const { error: insertError } = await supabase.from("task_attachments").insert({
+      task_id: taskId,
+      file_name: file.name,
+      file_size: file.size,
+      file_type: file.type || null,
+      storage_path: storagePath,
+      uploaded_by: user.id,
+    });
+    if (insertError) throw insertError;
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    const valid = files.filter((f) => {
+      if (f.size > MAX_FILE_SIZE) {
+        toast.error(`${f.name} exceeds 10MB`);
+        return false;
+      }
+      if (ALLOWED_TYPES.length && !ALLOWED_TYPES.includes(f.type) && !f.name.match(/\.(pdf|doc|docx|txt|md|jpg|jpeg|png|gif)$/i)) {
+        toast.error(`${f.name}: unsupported file type`);
+        return false;
+      }
+      return true;
+    });
+    if (valid.length === 0) return;
+    if (isEdit && editTask) {
+      setUploading(true);
+      try {
+        for (const file of valid) {
+          await uploadFileToTask(editTask.id, file);
+        }
+        invalidateKeys.taskDetail(queryClient, editTask.id);
+        toast.success(valid.length === 1 ? "File uploaded" : `${valid.length} files uploaded`);
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+      } finally {
+        setUploading(false);
+      }
+      return;
+    }
+    setPendingFiles((prev) => [...prev, ...valid]);
+    toast.success(valid.length === 1 ? "File added; it will be uploaded when you create the task." : `${valid.length} files added.`);
+  };
+
   const assignedTo = watch("assigned_to");
 
   const onSubmit = async (data: FormValues) => {
@@ -168,7 +240,7 @@ export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId
       onOpenChange(false);
       return;
     }
-    await createTask.mutateAsync({
+    const task = await createTask.mutateAsync({
       title: data.title,
       description: data.description,
       status: (data.status || "todo") as TaskStatus,
@@ -179,6 +251,18 @@ export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId
       assigned_to: data.assigned_to || undefined,
       parent_id: parentId,
     });
+    if (pendingFiles.length > 0 && task?.id) {
+      setUploading(true);
+      try {
+        for (const file of pendingFiles) await uploadFileToTask(task.id, file);
+        toast.success("Task and attachments created");
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Task created but some attachments failed to upload");
+      } finally {
+        setUploading(false);
+        setPendingFiles([]);
+      }
+    }
     reset();
     setDueDate(undefined);
     onOpenChange(false);
@@ -341,10 +425,30 @@ export function CreateTaskDialog({ open, onOpenChange, defaultStreamId, parentId
               <Button type="button" variant="outline" size="icon" title="Paste URL">
                 <Link2 className="h-4 w-4" />
               </Button>
-              <Button type="button" variant="outline" size="icon" title="Upload file">
-                <Upload className="h-4 w-4" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.txt,.md,.jpg,.jpeg,.png,.gif,application/pdf,image/*,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                title="Upload file"
+                onClick={handleUploadClick}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               </Button>
             </div>
+            {pendingFiles.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {pendingFiles.length} file(s) will be attached when you create the task.
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               Upload files or paste a URL to add attachments.
             </p>

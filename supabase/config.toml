@@ -16,6 +16,9 @@ verify_jwt = false
 [functions.sync-zoom-files]
 verify_jwt = false
 
+[functions.task-attachment-url]
+verify_jwt = false
+
 # API endpoints - require authentication
 [functions.api-v1-clients]
 verify_jwt = true
