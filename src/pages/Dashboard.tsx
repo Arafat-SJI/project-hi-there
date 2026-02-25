@@ -1,6 +1,5 @@
 import { Suspense, lazy } from "react";
 import { Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAgencyRole } from "@/hooks/useAgencyRole";
 import { useDashboardStats, useRecentActivity, getTimeAgo, useAITeamSummary } from "@/hooks/useDashboard";

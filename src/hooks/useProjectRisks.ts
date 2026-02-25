@@ -32,7 +32,7 @@ export function useProjectRisks(limit = 5) {
         .limit(limit);
 
       if (error) throw error;
-      return (data ?? []) as ProjectRisk[];
+      return (data ?? []) as unknown as ProjectRisk[];
     },
     staleTime: cacheConfig.staleTime.short,
   });
@@ -53,7 +53,7 @@ export function useAllProjectRisks() {
         .order("end_date", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
-      return (data ?? []) as ProjectRisk[];
+      return (data ?? []) as unknown as ProjectRisk[];
     },
     staleTime: cacheConfig.staleTime.short,
   });

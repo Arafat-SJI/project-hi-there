@@ -26,7 +26,7 @@ export function useOwnerMetrics() {
         .single();
 
       if (error) throw error;
-      return data as OwnerMetrics;
+      return data as unknown as OwnerMetrics;
     },
     staleTime: cacheConfig.staleTime.short,
   });

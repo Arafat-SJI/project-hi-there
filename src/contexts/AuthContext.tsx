@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userId: string
   ): Promise<{ agencyRole?: "owner" | "pm" | "ic"; isEosUser: boolean }> => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("user_role_preferences")
         .select("agency_role, is_eos_user")
         .eq("user_id", userId)

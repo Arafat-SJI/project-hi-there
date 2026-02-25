@@ -34,7 +34,7 @@ export function useDashboardWidgets(role?: AgencyRole | null) {
   return useQuery<DashboardWidget[]>({
     queryKey: qKey,
     queryFn: async (): Promise<DashboardWidget[]> => {
-      let query = supabase
+      let query = (supabase as any)
         .from("dashboard_widgets")
         .select("*")
         .order("sort_order", { ascending: true });
@@ -77,7 +77,7 @@ export function useUpdateWidget() {
       id: string;
       patch: Partial<Pick<DashboardWidget, "is_enabled" | "sort_order" | "display_name" | "description">>;
     }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("dashboard_widgets")
         .update({ ...patch, updated_at: new Date().toISOString() })
         .eq("id", id);
