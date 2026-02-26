@@ -24,6 +24,7 @@ import {
   Video,
   Copy,
   Plus,
+  Mic,
 } from "lucide-react";
 import { useMeetingV2 } from "../hooks/useMeetingsV2";
 import { formatMeetingDateTime } from "../utils";
@@ -31,6 +32,8 @@ import { AgendaTab } from "../components/agenda/AgendaTab";
 import { TakeawaysTab } from "../components/takeaways/TakeawaysTab";
 import { useMeetingParticipantsV2 } from "../hooks/useMeetingParticipantsV2";
 import { AddParticipantDialog } from "../components/participants/AddParticipantDialog";
+import { MeetingTranscriptViewer } from "@/components/meetings/MeetingTranscriptViewer";
+import { MeetingActionItemsList } from "@/components/meetings/MeetingActionItemsList";
 import { toast } from "sonner";
 import type { MeetingDetailTab } from "../types";
 import type { MeetingV2Schedule } from "../types/meetings";
@@ -171,6 +174,10 @@ export default function MeetingDetailV2Page() {
             <ClipboardList className="h-4 w-4" />
             Takeaways
           </TabsTrigger>
+          <TabsTrigger value="transcript" className="flex items-center gap-1.5">
+            <Mic className="h-4 w-4" />
+            Transcript
+          </TabsTrigger>
           <TabsTrigger value="participants" className="flex items-center gap-1.5">
             <Users className="h-4 w-4" />
             Participants
@@ -235,6 +242,11 @@ export default function MeetingDetailV2Page() {
 
         <TabsContent value="takeaways" className="mt-4">
           <TakeawaysTab meetingId={m.id} />
+        </TabsContent>
+
+        <TabsContent value="transcript" className="mt-4 space-y-4">
+          <MeetingTranscriptViewer meetingId={m.id} />
+          <MeetingActionItemsList meetingId={m.id} />
         </TabsContent>
 
         <TabsContent value="participants" className="mt-4">

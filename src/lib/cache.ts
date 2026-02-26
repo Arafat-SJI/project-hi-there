@@ -37,6 +37,7 @@ export const queryKeys = {
     seriesList: ["meetings", "seriesList"] as const,
     // Transcripts & Files
     transcripts: (filters?: Record<string, any>) => ["meetings", "transcripts", filters] as const,
+    transcript: (meetingId: string) => ["meetings", "transcript", meetingId] as const,
     files: (meetingId: string) => ["meetings", "files", meetingId] as const,
     fileSummary: (fileId: string) => ["meetings", "fileSummary", fileId] as const,
     transcriptSummary: (meetingId: string) => ["meetings", "transcriptSummary", meetingId] as const,
