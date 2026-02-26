@@ -14,7 +14,7 @@ const TEST_ACCOUNTS = [
   { label: "IC", email: "ic@collabai.software", role: "ic", icon: Code, color: "border-emerald-500/30 hover:bg-emerald-500/10" },
 ] as const;
 
-const TEST_PASSWORD = "Test@123456";
+const TEST_PASSWORD = "Demo@123"; // Must match docs/public_website/features.md; ensure demo users exist in Supabase Auth.
 const isProduction = typeof window !== "undefined" && window.location.hostname === "spark-start-kit-86.lovable.app";
 
 export default function Login() {
