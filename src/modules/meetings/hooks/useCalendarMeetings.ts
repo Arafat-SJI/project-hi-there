@@ -8,6 +8,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cacheConfig } from "@/lib/cache";
+import { parseMeetingDate, isMeetingDateValid } from "@/lib/date-utils";
 import type { MeetingV2Schedule } from "../types/meetings";
 
 const MEETINGS_V2_KEY = "meetings-v2";
@@ -39,7 +40,8 @@ export function useCalendarMeetingsV2(year: number, month: number) {
       const byDate: Record<string, MeetingV2Schedule[]> = {};
       list.forEach((m) => {
         if (!m.scheduled_at) return;
-        const d = new Date(m.scheduled_at);
+        const d = parseMeetingDate(m.scheduled_at);
+        if (!isMeetingDateValid(d)) return;
         const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         if (!byDate[dateKey]) byDate[dateKey] = [];
         byDate[dateKey].push(m);
