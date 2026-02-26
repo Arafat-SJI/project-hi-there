@@ -785,7 +785,7 @@ Email: `admin@collabai.software`
 Password: `Admin@123`
 Access: Full admin panel, all modules, can modify settings
 
-### **Quick Start Guide**
+> **For deployers:** If Quick Login or these credentials fail with "Invalid login credentials", create the users in your Supabase project under **Authentication → Users → Add user** (or invite by email) using the emails and passwords above.
 
 1. **Log in** at [your-control-tower.com/login](#)
 2. **Explore the dashboard** — see live metrics and activity feed
