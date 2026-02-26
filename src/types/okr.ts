@@ -20,7 +20,6 @@ export type {
   CreateKeyResultInput,
 } from "@/modules/eos/types";
 
-export type OKRType = "company" | "team" | "personal";
 export type MeasurementUnit = "number" | "percentage" | "currency" | "custom";
 export type UpdateFrequency = "daily" | "weekly" | "biweekly" | "monthly";
 export type KeyResultStatus = "not_started" | "in_progress" | "completed" | "at_risk" | "off_track";

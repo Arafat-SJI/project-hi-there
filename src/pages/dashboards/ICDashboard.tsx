@@ -79,27 +79,13 @@ function MyTasksKanban({ hideCompleted }: { hideCompleted: boolean }) {
     updateTask.mutate(
       { id: taskId, data: { status: newStatus } },
       {
-        onMutate: async (variables) => {
-          await queryClient.cancelQueries({ queryKey: myTasksKey });
-          const prev = queryClient.getQueryData<typeof tasks>(myTasksKey);
-          if (prev) {
-            queryClient.setQueryData(myTasksKey, (old: typeof tasks) =>
-              (old ?? []).map((t) =>
-                t.id === variables.id ? { ...t, status: variables.data.status! } : t
-              )
-            );
-          }
-          return { prev };
-        },
-        onError: (_err, _variables, context) => {
-          if (context?.prev != null) {
-            queryClient.setQueryData(myTasksKey, context.prev);
-          }
-        },
-        onSettled: () => {
+        onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: myTasksKey });
         },
-      }
+        onError: () => {
+          queryClient.invalidateQueries({ queryKey: myTasksKey });
+        },
+      } as any
     );
   };
 

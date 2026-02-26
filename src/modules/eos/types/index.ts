@@ -81,7 +81,7 @@ export interface OKR {
   updated_by?: string | null;
   // Joined relations
   owner?: { full_name: string; email: string } | null;
-  pod?: EOSPod | null;
+  pod?: Pick<EOSPod, 'id' | 'name' | 'color' | 'is_active'> | EOSPod | null;
   key_results?: OKRKeyResult[];
 }
 

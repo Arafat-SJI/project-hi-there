@@ -58,6 +58,14 @@ const EMPTY_MESSAGES: Record<TaskView | "streams", { title: string; description:
     title: "No delegated tasks",
     description: "You haven't delegated any tasks to others.",
   },
+  all: {
+    title: "No tasks",
+    description: "No tasks found.",
+  },
+  my_tasks: {
+    title: "No tasks assigned",
+    description: "You don't have any tasks assigned to you.",
+  },
   allMine: {
     title: "No tasks yet",
     description: "Create a task to get started.",
