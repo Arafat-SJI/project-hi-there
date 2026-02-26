@@ -232,7 +232,12 @@ export function useClosedOKRs(filters?: Pick<OKRFilters, "search" | "quarter">) 
         query = query.ilike("title", `%${filters.search}%`);
       }
       if (filters?.quarter && filters.quarter !== "all") {
-        query = query.eq("quarter", filters.quarter);
+        const q = filters.quarter;
+        if (Array.isArray(q)) {
+          query = query.in("quarter", q);
+        } else {
+          query = query.eq("quarter", q);
+        }
       }
 
       const { data: rows, error } = await query;

@@ -50,7 +50,7 @@ const ARCHIVE_STAGE_TABS: { value: ArchiveStage; label: string; icon: "Trophy" |
 ];
 
 const STAGE_ONLY_STAGES: DealStage[] = ["lead", "discovery", "estimation", "proposal"];
-const STAGE_PAGE_TITLES: Record<(typeof STAGE_ONLY_STAGES)[number], { title: string; subtitle: string }> = {
+const STAGE_PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   lead: { title: "Lead Deals", subtitle: "Track and manage lead-stage opportunities" },
   discovery: { title: "Discovery Deals", subtitle: "Deals in the discovery phase" },
   estimation: { title: "Estimation Deals", subtitle: "Deals being estimated for pricing" },

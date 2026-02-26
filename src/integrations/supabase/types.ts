@@ -3276,6 +3276,44 @@ export type Database = {
           },
         ]
       }
+      key_result_history: {
+        Row: {
+          id: string
+          key_result_id: string
+          new_value: number
+          notes: string | null
+          previous_value: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          key_result_id: string
+          new_value: number
+          notes?: string | null
+          previous_value?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          key_result_id?: string
+          new_value?: number
+          notes?: string | null
+          previous_value?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_result_history_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "okr_key_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_categories: {
         Row: {
           color: string | null
@@ -4925,11 +4963,15 @@ export type Database = {
       }
       okr_key_results: {
         Row: {
+          completed_at: string | null
           created_at: string | null
           current_value: number | null
           description: string | null
           id: string
+          is_completed: boolean | null
+          last_updated_at: string | null
           metric_type: string
+          next_update_due: string | null
           okr_id: string
           owner_id: string | null
           sort_order: number | null
@@ -4938,14 +4980,19 @@ export type Database = {
           target_value: number
           title: string
           unit: string | null
+          update_frequency: string | null
           updated_at: string | null
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string | null
           current_value?: number | null
           description?: string | null
           id?: string
+          is_completed?: boolean | null
+          last_updated_at?: string | null
           metric_type?: string
+          next_update_due?: string | null
           okr_id: string
           owner_id?: string | null
           sort_order?: number | null
@@ -4954,14 +5001,19 @@ export type Database = {
           target_value?: number
           title: string
           unit?: string | null
+          update_frequency?: string | null
           updated_at?: string | null
         }
         Update: {
+          completed_at?: string | null
           created_at?: string | null
           current_value?: number | null
           description?: string | null
           id?: string
+          is_completed?: boolean | null
+          last_updated_at?: string | null
           metric_type?: string
+          next_update_due?: string | null
           okr_id?: string
           owner_id?: string | null
           sort_order?: number | null
@@ -4970,6 +5022,7 @@ export type Database = {
           target_value?: number
           title?: string
           unit?: string | null
+          update_frequency?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -4989,6 +5042,8 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          is_archived: boolean | null
+          okr_type: string | null
           owner_id: string | null
           parent_okr_id: string | null
           pod_id: string | null
@@ -4998,6 +5053,8 @@ export type Database = {
           status: string
           title: string
           updated_at: string | null
+          updated_by: string | null
+          year: number | null
         }
         Insert: {
           created_at?: string | null
@@ -5005,6 +5062,8 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_archived?: boolean | null
+          okr_type?: string | null
           owner_id?: string | null
           parent_okr_id?: string | null
           pod_id?: string | null
@@ -5014,6 +5073,8 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string | null
+          updated_by?: string | null
+          year?: number | null
         }
         Update: {
           created_at?: string | null
@@ -5021,6 +5082,8 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_archived?: boolean | null
+          okr_type?: string | null
           owner_id?: string | null
           parent_okr_id?: string | null
           pod_id?: string | null
@@ -5030,6 +5093,8 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string | null
+          updated_by?: string | null
+          year?: number | null
         }
         Relationships: [
           {
@@ -7133,51 +7198,6 @@ export type Database = {
           },
         ]
       }
-      user_dashboard_preferences: {
-        Row: {
-          id: string
-          user_id: string
-          dashboard_type: Database["public"]["Enums"]["dashboard_type"]
-          widget_slug: string
-          is_visible: boolean | null
-          sort_order: number | null
-          filter_pod_id: string | null
-          filter_client_status: string | null
-          filter_project_status: string | null
-          filter_risk_level: string | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          dashboard_type: Database["public"]["Enums"]["dashboard_type"]
-          widget_slug: string
-          is_visible?: boolean | null
-          sort_order?: number | null
-          filter_pod_id?: string | null
-          filter_client_status?: string | null
-          filter_project_status?: string | null
-          filter_risk_level?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          dashboard_type?: Database["public"]["Enums"]["dashboard_type"]
-          widget_slug?: string
-          is_visible?: boolean | null
-          sort_order?: number | null
-          filter_pod_id?: string | null
-          filter_client_status?: string | null
-          filter_project_status?: string | null
-          filter_risk_level?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       user_oauth_tokens: {
         Row: {
           access_token: string
@@ -7894,7 +7914,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
-      dashboard_type: "owner" | "pm" | "ic"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -8023,7 +8042,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
-      dashboard_type: ["owner", "pm", "ic"],
     },
   },
 } as const

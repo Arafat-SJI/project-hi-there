@@ -35,7 +35,7 @@ export interface Task {
   clients?: { name: string } | null;
   meetings?: { title: string } | null;
   assigned_user?: { full_name: string; email: string } | null;
-  stream?: { name: string; color: string } | null;
+  stream?: { name: string; color: string; slug: string } | null;
   category?: { name: string; color: string } | null;
   subtasks?: Task[];
   comment_count?: number;
