@@ -1,65 +1,46 @@
 
 
-## Plan: Seed HubSpot Demo Data for Sales Hub
+## Diagnosis
 
-### What This Does
+The CEO (`ceo@collabai.software`) and IC (`ic@collabai.software`) quick login buttons fail because **these users don't exist in Supabase Auth**. Only `demo@collabai.software` exists (confirmed by network logs showing 400 for CEO/IC and 200 for demo).
 
-Inserts realistic HubSpot-sourced test data so the full Sales Hub flow works end-to-end:
-- **List pages** show the "Source" column with orange HubSpot badges
-- **Detail pages** show the DataSourceBadge card with "View in HubSpot" button (links to mock HubSpot URLs)
-- **CrmConnectionBanner** appears at the top of Contacts/Deals pages
+The seed scripts never created these auth users — they were referenced in the Login page code but never provisioned in Supabase.
 
-### Data to Seed
+## Fix
 
-**2 HubSpot Clients:**
+You need to create these two users in Supabase Auth, then seed their profiles, roles, and agency role preferences.
 
-| Client | Company | Synced |
-|--------|---------|--------|
-| Acme Corp | Acme Corporation | 2 hours ago |
-| NovaTech Solutions | NovaTech Solutions Inc. | 45 min ago |
+### Step 1: Create auth users via Supabase Dashboard
 
-**4 HubSpot Contacts** (linked to clients):
+Go to **Supabase Dashboard → Authentication → Users** and manually create:
 
-| Contact | Title | Client |
-|---------|-------|--------|
-| Marcus Chen | VP of Engineering | Acme Corp |
-| Sarah Winters | Head of Product | Acme Corp |
-| Derek Patel | CTO | NovaTech |
-| Emily Nakamura | Director of Operations | NovaTech |
+| Email | Password |
+|-------|----------|
+| `ceo@collabai.software` | `Demo@123` |
+| `ic@collabai.software` | `Demo@123` |
 
-**3 HubSpot Deals** (linked to clients + contacts):
+Set "Auto Confirm" to true for both.
 
-| Deal | Stage | Value | Client |
-|------|-------|-------|--------|
-| Acme — Enterprise Platform License | proposal | $120,000 | Acme Corp |
-| NovaTech — Pilot Program | qualified | $36,000 | NovaTech |
-| Acme — AI Analytics Module | discovery | $45,000 | Acme Corp |
+### Step 2: Migration to seed profiles + roles + agency preferences
 
-### Technical Details
+After creating the auth users, note their UUIDs from the dashboard. Then run a migration that:
 
-- All records have `data_source = 'hubspot'`, realistic `external_id` values, and `external_url` pointing to mock HubSpot URLs (`https://app.hubspot.com/contacts/12345678/...`)
-- `last_synced_at` set to recent timestamps so the "Synced X ago" text looks natural
-- Contacts have `linkedin_url`, `title`, `company` filled out for rich detail pages
-- Deals have `probability`, `expected_close_date`, and `description` for realistic pipeline view
-- All records use `ON CONFLICT DO NOTHING` for idempotency
-- `created_by` / `owner_id` set to the admin user
+1. Inserts into `profiles` (full_name, email, avatar_url) for both users
+2. Inserts into `user_roles` (user_id, role) — both as `user` role
+3. Inserts into `user_role_preferences`:
+   - CEO user: `agency_role = 'owner'`, `is_eos_user = true`
+   - IC user: `agency_role = 'ic'`, `is_eos_user = false`
 
-### Implementation
+The migration will use the UUIDs from step 1.
 
-Single migration file with INSERT statements for all 9 records (2 clients + 4 contacts + 3 deals).
+### Alternative: Single Edge Function approach
 
-### Demo Flow After Seeding
-
-1. Navigate to **Companies** → see "Acme Corp" and "NovaTech" with orange HubSpot badges in Source column
-2. Click **Acme Corp** → detail page shows card: "From HubSpot · Last synced: [time]" + "View in HubSpot" button
-3. Navigate to **Contacts** → see 4 HubSpot contacts with badges
-4. Click **Marcus Chen** → detail shows HubSpot source card + "View in HubSpot"
-5. Navigate to **Deals** → see 3 HubSpot deals with badges in pipeline
-6. Click **Acme — Enterprise Platform License** → deal detail with HubSpot badge + deep link
+Instead of manual dashboard work, create a one-time edge function that uses the service role to call `supabase.auth.admin.createUser()` for both accounts, then seeds profiles/roles/preferences. This is fully automatable.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| Migration SQL | Insert 2 clients, 4 contacts, 3 deals with HubSpot data |
+| Migration SQL | Insert profiles, user_roles, user_role_preferences for CEO and IC users |
+| *(Optional)* Edge function | Auto-create auth users + seed data in one step |
 
