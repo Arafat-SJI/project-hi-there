@@ -404,8 +404,9 @@ VITE_MODULE_PRODUCTIVITY=true
 | `vite.config.ts` | Build config (port 8080, `@` alias, react-swc plugin) |
 | `tailwind.config.ts` | Tailwind with dark mode, custom colors, AI palette |
 | `eslint.config.js` | ESLint flat config |
-| `.claude/PRE_COMMIT_CHECKLIST.md` | Pre-commit type safety checklist |
-| `.claude/skills/type-safety-patterns/SKILL.md` | TypeScript type safety patterns |
+| `.claude/SESSION_TEMPLATE.md` | Template for all Claude Code session prompts (structure, pre-commit section) |
+| `.claude/PRE_COMMIT_CHECKLIST.md` | 6-point checklist to verify before every commit |
+| `.claude/skills/type-safety-patterns/SKILL.md` | 5 patterns for safe TypeScript code |
 
 ## Specialized Subagents (11 Agents)
 
@@ -500,6 +501,72 @@ Nine skills are available in `.claude/skills/` providing domain knowledge and wo
 - Follow **edge-function-patterns** for ALL Edge Function code
 - Create/update docs for any feature work
 - Never skip specs
+
+## Pre-Commit Type Safety Protocol
+
+**CRITICAL:** Every Claude Code session MUST follow these pre-commit checks before committing.
+
+### Automated Checks (Required)
+
+```bash
+npm run lint      # ESLint + TypeScript
+npm run build:dev # Verify build
+```
+
+If either fails, DO NOT COMMIT. Fix in the session and re-run.
+
+### Manual Checks (Required)
+
+Read `.claude/PRE_COMMIT_CHECKLIST.md` and verify ALL 6 sections pass:
+
+1. **Supabase Queries → TypeScript Types**
+   - Every `.select()` field in type
+   - Joined columns included
+   - `Pick<>` for partial selects
+
+2. **TypeScript Completeness**
+   - `Record<K, V>` has ALL keys
+   - No duplicate type exports
+   - Enums synced with Record maps
+
+3. **Filter Types → Query Methods**
+   - Union types branch with `Array.isArray()`
+   - No unvalidated filters passed to queries
+
+4. **Mutation Callbacks**
+   - Defined in `useMutation()`, not `mutate()`
+   - Context type inferred
+
+5. **Join Type Audits**
+   - All join type uses checked
+   - Tests/mocks updated
+
+6. **Enum Usage Audit**
+   - New enum values added to ALL Record maps
+
+### Skill Reference (Required)
+
+Before writing TypeScript code, read `.claude/skills/type-safety-patterns/SKILL.md`:
+- Pattern #1: Query → Type Sync
+- Pattern #2: Record Exhaustiveness
+- Pattern #3: Union Filter Types
+- Pattern #4: Mutation Context Types
+- Pattern #5: Partial Join Selects
+
+### Session Template
+
+Every Claude Code session MUST use `.claude/SESSION_TEMPLATE.md` structure:
+- Goal, Context, Files to Create/Modify, Implementation phases, Testing Checklist
+- END with PRE-COMMIT REQUIREMENTS section (copy from template)
+
+### Never Skip Type Safety
+
+If a session would create TypeScript errors:
+- Fix it in the session
+- Don't commit broken code
+- Use **typescript-pro** agent if stuck
+
+Type safety is non-negotiable.
 
 ## Pre-Commit Checklist
 
