@@ -28,6 +28,8 @@ export interface Meeting {
   location: string | null;
   meeting_type: string | null;
   metadata: any;
+  transcript_status: string | null;
+  transcript_fetched_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -38,7 +40,7 @@ export function useMeetings(filters?: Record<string, any>) {
     queryFn: async () => {
       let query = supabase
         .from("meetings")
-        .select("id, title, description, scheduled_at, duration_minutes, status, client_id, organizer_id, provider, location, meeting_type, slug, join_url, host_url, is_recurring, created_at, updated_at, clients(name)")
+        .select("id, title, description, scheduled_at, duration_minutes, status, client_id, organizer_id, provider, location, meeting_type, slug, join_url, host_url, is_recurring, transcript_status, transcript_fetched_at, created_at, updated_at, clients(name)")
         .order("scheduled_at", { ascending: false });
 
       if (filters?.status) {

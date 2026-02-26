@@ -341,3 +341,10 @@ verify_jwt = false
 [functions.get-meeting-participants]
 verify_jwt = false
 
+# Meeting Intelligence MVP - Sprint 9.1-9.2
+[functions.fetch-zoom-transcript]
+verify_jwt = false
+
+[functions.extract-meeting-action-items]
+verify_jwt = false
+

@@ -4684,6 +4684,11 @@ export type Database = {
           timezone: string | null
           title: string
           transcript_content: string | null
+          transcript_error: string | null
+          transcript_fetched_at: string | null
+          transcript_processing_started_at: string | null
+          transcript_raw: Json | null
+          transcript_status: string | null
           transcript_text: string | null
           updated_at: string
           zoom_id: string | null
@@ -4736,6 +4741,11 @@ export type Database = {
           timezone?: string | null
           title: string
           transcript_content?: string | null
+          transcript_error?: string | null
+          transcript_fetched_at?: string | null
+          transcript_processing_started_at?: string | null
+          transcript_raw?: Json | null
+          transcript_status?: string | null
           transcript_text?: string | null
           updated_at?: string
           zoom_id?: string | null
@@ -4788,6 +4798,11 @@ export type Database = {
           timezone?: string | null
           title?: string
           transcript_content?: string | null
+          transcript_error?: string | null
+          transcript_fetched_at?: string | null
+          transcript_processing_started_at?: string | null
+          transcript_raw?: Json | null
+          transcript_status?: string | null
           transcript_text?: string | null
           updated_at?: string
           zoom_id?: string | null
