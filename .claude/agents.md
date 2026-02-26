@@ -22,6 +22,13 @@ This project has 11 specialized agents for delegating complex tasks. Claude Code
 
 ## Auto-Delegation Rules
 
+### Pre-Commit Type Safety
+
+Before ANY TypeScript code is committed:
+- Run the **type-safety-patterns** skill for pattern guidance
+- Check `.claude/PRE_COMMIT_CHECKLIST.md` for all verification steps
+- Assign to **typescript-pro** agent for review if complex types involved
+
 ### Single-Agent Triggers
 
 | User Says                                                                  | Invoke                     |
