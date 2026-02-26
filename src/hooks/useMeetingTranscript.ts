@@ -1,8 +1,7 @@
 /**
  * useMeetingTranscript
  *
- * Fetches transcript data for a single meeting. Polls every 2 s while the
- * transcript is being processed, and stops automatically once complete or failed.
+ * Fetches transcript turns from meeting_transcripts table for a single meeting.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -26,32 +25,30 @@ export function useMeetingTranscript(meetingId: string) {
   const { data, isLoading, error } = useQuery<MeetingTranscript>({
     queryKey: queryKeys.meetings.transcript(meetingId),
     queryFn: async (): Promise<MeetingTranscript> => {
-      const { data: meeting, error: dbError } = await supabase
-        .from("meetings")
-        .select(
-          "transcript_status, transcript_raw, transcript_content, transcript_error"
-        )
-        .eq("id", meetingId)
-        .single();
+      const { data: turns, error: dbError } = await supabase
+        .from("meeting_transcripts")
+        .select("speaker, content, created_at")
+        .eq("meeting_id", meetingId)
+        .order("created_at", { ascending: true });
 
       if (dbError) throw dbError;
 
-      const raw = meeting?.transcript_raw;
-      const turns: TranscriptTurn[] = Array.isArray(raw) ? (raw as TranscriptTurn[]) : [];
+      const parsed: TranscriptTurn[] = (turns ?? []).map((t) => ({
+        timestamp: t.created_at,
+        speaker: t.speaker ?? undefined,
+        text: t.content ?? "",
+      }));
+
+      const fullContent = parsed.map((t) => `${t.speaker || "Unknown"}: ${t.text}`).join("\n\n");
 
       return {
-        status: (meeting?.transcript_status as MeetingTranscript["status"]) ?? "pending",
-        turns,
-        content: meeting?.transcript_content ?? null,
-        error: (meeting as { transcript_error?: string | null })?.transcript_error ?? null,
+        status: parsed.length > 0 ? "complete" : "pending",
+        turns: parsed,
+        content: fullContent || null,
+        error: null,
       };
     },
     enabled: !!meetingId,
-    refetchInterval: (query) => {
-      const s = query.state.data?.status;
-      if (s === "complete" || s === "failed") return false;
-      return 2_000;
-    },
   });
 
   return {
