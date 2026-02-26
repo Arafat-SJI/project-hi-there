@@ -210,6 +210,14 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
       const status = new URLSearchParams(location.search).get("status");
       return status == null || status === "";
     }
+    // "/deals" (All Deals) is active only when no tab or tab=all and no stage or stage=all; otherwise Deals Dashboard / stage links get the highlight
+    if (href === "/deals" && location.pathname === "/deals") {
+      const tab = new URLSearchParams(location.search).get("tab");
+      const stage = new URLSearchParams(location.search).get("stage");
+      const tabOk = tab == null || tab === "" || tab === "all";
+      const stageOk = stage == null || stage === "" || stage === "all";
+      return tabOk && stageOk;
+    }
     return true;
   };
 
@@ -417,6 +425,14 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
                               {item.children!.filter(isItemVisible).map((child) => {
                                 const ChildIcon = resolveIcon(child.icon);
                                 const isChildActive = isRouteActive(child.href);
+                                // Deals section: "All Deals" shows total count, stage links show stage count
+                                const isDealsSection = item.href === "/deals";
+                                const allDealsChild = isDealsSection && child.href === "/deals";
+                                const stageMatch = isDealsSection && child.href.match(/stage=(\w+)/);
+                                const stageCount = stageMatch ? (dealStageCounts as Record<string, { count: number; value: number }>)[stageMatch[1]]?.count : undefined;
+                                const badge = allDealsChild
+                                  ? (dealStats?.total_deals != null ? String(dealStats.total_deals) : child.badge)
+                                  : (child.badge ?? (stageCount != null ? String(stageCount) : undefined));
                                 return (
                                   <Link
                                     key={child.href}
@@ -435,8 +451,8 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
                                       )}
                                     />
                                     <span className="flex-1">{child.title}</span>
-                                    {child.badge != null && (
-                                      <span className="ml-auto text-xs text-muted-foreground">({child.badge})</span>
+                                    {badge != null && (
+                                      <span className="ml-auto text-xs text-muted-foreground">({badge})</span>
                                     )}
                                   </Link>
                                 );

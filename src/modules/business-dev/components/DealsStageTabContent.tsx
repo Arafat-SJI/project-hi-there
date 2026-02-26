@@ -1,6 +1,7 @@
 /**
  * Stage Tab Content - Table or card view for deals by stage
- * Matches Business Opportunities reference: Deal Name, Client, Stage, Amount, Probability, Owner, Updated, Close Date, Actions
+ * Lead page: Deal Name, Client, Value, Owner, Pod, Close Date, Actions
+ * Other stages: full columns including Stage, Amount, Probability, Updated
  */
 
 import { useMemo, useState, useCallback } from "react";
@@ -21,7 +22,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Grid, List, Handshake, Loader2, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useDeals } from "../hooks/useDeals";
 import { getClientName } from "@/lib/utils";
-import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import type { Deal, DealStage } from "../types";
 
 type SortColumn = "title" | "value" | "updated_at" | "expected_close_date";
@@ -150,6 +150,12 @@ export default function DealsStageTabContent({
     });
   }, [rawDeals, sortBy, sortDir]);
 
+  const isSimpleColumnsView = stage === "lead" || stage === "discovery" || stage === "estimation" || stage === "proposal";
+  const podForDeal = (deal: Deal): string => {
+    const meta = deal.metadata as { assigned_pod?: string } | undefined;
+    return meta?.assigned_pod ?? "—";
+  };
+
   const handleRowClick = (slug: string) => {
     onViewDetails(slug);
   };
@@ -173,6 +179,7 @@ export default function DealsStageTabContent({
   }
 
   const showFilters = onSearchChange || onOwnerChange || onBdRepChange || onClientIdChange || onViewModeChange || onShowLostDealsChange;
+  const searchPlaceholderResolved = isSimpleColumnsView ? "Search deals..." : searchPlaceholder;
 
   return (
     <div className="space-y-4">
@@ -183,7 +190,7 @@ export default function DealsStageTabContent({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pl-9 w-full"
-                placeholder={searchPlaceholder}
+                placeholder={searchPlaceholderResolved}
                 value={search || ""}
                 onChange={(e) => onSearchChange(e.target.value || "")}
               />
@@ -258,28 +265,30 @@ export default function DealsStageTabContent({
                   </span>
                 </TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead>Source</TableHead>
+                {!isSimpleColumnsView && <TableHead>Stage</TableHead>}
                 <TableHead
                   className="cursor-pointer hover:bg-muted/50 select-none"
                   onClick={() => handleSort("value")}
                 >
                   <span className="inline-flex items-center gap-1">
-                    Amount
+                    {isSimpleColumnsView ? "Value" : "Amount"}
                     {sortBy === "value" ? (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />) : <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />}
                   </span>
                 </TableHead>
-                <TableHead>Probability</TableHead>
+                {!isSimpleColumnsView && <TableHead>Probability</TableHead>}
                 <TableHead>Owner</TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-muted/50 select-none"
-                  onClick={() => handleSort("updated_at")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Updated
-                    {sortBy === "updated_at" ? (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />) : <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />}
-                  </span>
-                </TableHead>
+                {isSimpleColumnsView && <TableHead>Pod</TableHead>}
+                {!isSimpleColumnsView && (
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort("updated_at")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Updated
+                      {sortBy === "updated_at" ? (sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />) : <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />}
+                    </span>
+                  </TableHead>
+                )}
                 <TableHead
                   className="cursor-pointer hover:bg-muted/50 select-none"
                   onClick={() => handleSort("expected_close_date")}
@@ -310,45 +319,47 @@ export default function DealsStageTabContent({
                     </div>
                   </TableCell>
                   <TableCell>{getClientName(deal.client)}</TableCell>
+                  {!isSimpleColumnsView && (
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="rounded-md font-normal"
+                        style={{
+                          borderColor: STAGE_CONFIG[deal.stage]?.color,
+                          color: STAGE_CONFIG[deal.stage]?.color,
+                        }}
+                      >
+                        {STAGE_CONFIG[deal.stage]?.label?.toLowerCase() ?? deal.stage}
+                      </Badge>
+                    </TableCell>
+                  )}
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      style={{
-                        borderColor: STAGE_CONFIG[deal.stage]?.color,
-                        color: STAGE_CONFIG[deal.stage]?.color,
-                      }}
-                    >
-                      {STAGE_CONFIG[deal.stage]?.label}
-                    </Badge>
+                    {deal.value != null ? formatShortCurrency(deal.value) : (isSimpleColumnsView ? "Click to edit" : "$0")}
                   </TableCell>
-                  <TableCell>
-                    <DataSourceBadge
-                      dataSource={deal.data_source}
-                      externalUrl={deal.external_url}
-                      lastSyncedAt={deal.last_synced_at}
-                    />
-                  </TableCell>
-                  <TableCell>{deal.value != null ? formatShortCurrency(deal.value) : "—"}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 min-w-[100px]">
-                      <Progress value={deal.probability ?? 0} className="h-2 w-16" />
-                      <span className="text-xs tabular-nums">{deal.probability ?? 0}%</span>
-                    </div>
-                  </TableCell>
+                  {!isSimpleColumnsView && (
+                    <TableCell>
+                      <div className="flex items-center gap-2 min-w-[100px]">
+                        <Progress value={deal.probability ?? 0} className="h-2 w-16" />
+                        <span className="text-xs tabular-nums">{deal.probability ?? 0}%</span>
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell>{deal.owner?.full_name || "—"}</TableCell>
-                  <TableCell>{safeFormatDate(deal.updated_at)}</TableCell>
+                  {isSimpleColumnsView && <TableCell>{podForDeal(deal)}</TableCell>}
+                  {!isSimpleColumnsView && <TableCell>{safeFormatDate(deal.updated_at)}</TableCell>}
                   <TableCell>{safeFormatDate(deal.expected_close_date)}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
+                      size={isSimpleColumnsView ? "sm" : "icon"}
+                      className={isSimpleColumnsView ? "h-8 gap-1.5" : "h-8 w-8"}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRowClick(deal.slug);
                       }}
                     >
                       <Eye className="h-4 w-4" />
+                      {isSimpleColumnsView && <span>View</span>}
                     </Button>
                   </TableCell>
                 </TableRow>
