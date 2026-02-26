@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { HealthMetricsCard } from "@/components/dashboards/HealthMetricsCard";
 import { MeetingsThisWeekCard } from "@/components/dashboards/MeetingsThisWeekCard";
 import { WatchListCard } from "@/components/dashboards/WatchListCard";
@@ -6,27 +9,75 @@ import { EOSRocksCard } from "@/components/dashboards/EOSRocksCard";
 import { EOSScorecardCard } from "@/components/dashboards/EOSScorecardCard";
 import { AIDigestCard } from "@/components/dashboards/AIDigestCard";
 import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
-import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
+import { DashboardCustomizeModal } from "@/components/dashboards/DashboardCustomizeModal";
+import { DashboardFilterBar } from "@/components/dashboards/DashboardFilterBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import { useIsWidgetEnabled } from "@/hooks/useDashboardWidgets";
+import { useUserDashboardPreferences } from "@/hooks/useUserDashboardPreferences";
+
+const AVAILABLE_WIDGETS = [
+  {
+    slug: "health-metrics",
+    label: "Health Metrics",
+    description: "Revenue, utilization, team size, active clients",
+  },
+  {
+    slug: "watch-list",
+    label: "Watch List",
+    description: "Projects at risk, requiring attention",
+  },
+  {
+    slug: "ai-digest",
+    label: "AI Weekly Digest",
+    description: "AI-generated summary of your week",
+  },
+  {
+    slug: "meetings",
+    label: "Meetings This Week",
+    description: "Upcoming meetings and calendar",
+  },
+  {
+    slug: "eos-scorecard",
+    label: "EOS Scorecard",
+    description: "Weekly team metrics",
+  },
+  {
+    slug: "eos-issues",
+    label: "EOS Issues",
+    description: "Open issues and accountability",
+  },
+  {
+    slug: "eos-rocks",
+    label: "Quarterly Rocks",
+    description: "Quarterly objectives and progress",
+  },
+];
 
 /**
  * Owner Dashboard — EOS variant.
  * Shown when the owner's profile has isEosUser = true.
  *
- * Widget visibility is doubly-gated:
+ * Widget visibility is triple-gated:
  *   1. Admin-level: dashboard_widgets.is_enabled (via useIsWidgetEnabled)
- *   2. User-level: user_role_preferences.ai_digest_enabled (for ai_digest)
+ *   2. User-level preferences: user_role_preferences (for ai_digest)
+ *   3. User-level personalization: user_dashboard_preferences (widget visibility)
  */
 export default function OwnerDashboardWithEOS() {
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const { profile } = useAuth();
-  const { preferences } = useDashboardPreferences();
+  const { preferences: rolePreferences } = useDashboardPreferences();
+  const { preferences } = useUserDashboardPreferences("owner");
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
   const showHealth = useIsWidgetEnabled("health_metrics", "owner");
   const showWatchList = useIsWidgetEnabled("watch_list", "owner");
   const showAiDigest = useIsWidgetEnabled("ai_digest", "owner");
+
+  const isWidgetVisible = (slug: string) => {
+    const pref = preferences[slug];
+    return pref?.is_visible ?? true;
+  };
 
   return (
     <div className="space-y-6">
@@ -38,30 +89,48 @@ export default function OwnerDashboardWithEOS() {
           </h1>
           <p className="text-sm text-muted-foreground">Your agency overview with EOS.</p>
         </div>
-        <DashboardPreferencesSheet />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCustomizeOpen(true)}
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Customize
+        </Button>
       </div>
+
+      <DashboardFilterBar dashboardType="owner" />
 
       {/* Row 1: Quick Actions */}
       <QuickActionsCard />
 
       {/* Row 2: Agency health */}
-      {showHealth && <HealthMetricsCard />}
+      {showHealth && isWidgetVisible("health-metrics") && <HealthMetricsCard />}
 
-      {/* Row 3: AI Digest — admin-enabled AND user-enabled */}
-      {showAiDigest && preferences.ai_digest_enabled && <AIDigestCard />}
+      {/* Row 3: AI Digest — admin-enabled AND user-enabled AND personalization-visible */}
+      {showAiDigest && rolePreferences.ai_digest_enabled && isWidgetVisible("ai-digest") && (
+        <AIDigestCard />
+      )}
 
       {/* Row 4: Watch List + Meetings */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {showWatchList && <WatchListCard />}
-        <MeetingsThisWeekCard />
+        {showWatchList && isWidgetVisible("watch-list") && <WatchListCard />}
+        {isWidgetVisible("meetings") && <MeetingsThisWeekCard />}
       </div>
 
       {/* Row 5: EOS Scorecard + Issues + Rocks */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <EOSScorecardCard />
-        <EOSIssuesCard />
-        <EOSRocksCard />
+        {isWidgetVisible("eos-scorecard") && <EOSScorecardCard />}
+        {isWidgetVisible("eos-issues") && <EOSIssuesCard />}
+        {isWidgetVisible("eos-rocks") && <EOSRocksCard />}
       </div>
+
+      <DashboardCustomizeModal
+        isOpen={customizeOpen}
+        onClose={() => setCustomizeOpen(false)}
+        dashboardType="owner"
+        availableWidgets={AVAILABLE_WIDGETS}
+      />
     </div>
   );
 }

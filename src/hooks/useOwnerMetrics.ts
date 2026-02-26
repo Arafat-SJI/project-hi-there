@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys, cacheConfig } from "@/lib/cache";
+import { useDashboardFilters } from "./useDashboardFilters";
 
 export interface OwnerMetrics {
   revenue_this_week: number;
@@ -15,10 +16,16 @@ export interface OwnerMetrics {
 /**
  * Queries the owner_dashboard_metrics view.
  * Returns a single-row aggregate with key business health metrics.
+ *
+ * Dashboard filters are included in the cache key so changes to filters
+ * trigger a refetch. The view is currently a global aggregate; when
+ * per-pod / per-status views are added, query filters can be applied here.
  */
 export function useOwnerMetrics() {
+  const filters = useDashboardFilters("owner");
+
   return useQuery({
-    queryKey: queryKeys.dashboard.ownerMetrics,
+    queryKey: [...queryKeys.dashboard.ownerMetrics, filters],
     queryFn: async (): Promise<OwnerMetrics> => {
       const { data, error } = await supabase
         .from("owner_dashboard_metrics" as any)

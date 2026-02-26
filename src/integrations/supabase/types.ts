@@ -7133,6 +7133,51 @@ export type Database = {
           },
         ]
       }
+      user_dashboard_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          dashboard_type: Database["public"]["Enums"]["dashboard_type"]
+          widget_slug: string
+          is_visible: boolean | null
+          sort_order: number | null
+          filter_pod_id: string | null
+          filter_client_status: string | null
+          filter_project_status: string | null
+          filter_risk_level: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          dashboard_type: Database["public"]["Enums"]["dashboard_type"]
+          widget_slug: string
+          is_visible?: boolean | null
+          sort_order?: number | null
+          filter_pod_id?: string | null
+          filter_client_status?: string | null
+          filter_project_status?: string | null
+          filter_risk_level?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          dashboard_type?: Database["public"]["Enums"]["dashboard_type"]
+          widget_slug?: string
+          is_visible?: boolean | null
+          sort_order?: number | null
+          filter_pod_id?: string | null
+          filter_client_status?: string | null
+          filter_project_status?: string | null
+          filter_risk_level?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_oauth_tokens: {
         Row: {
           access_token: string
@@ -7849,6 +7894,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      dashboard_type: "owner" | "pm" | "ic"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -7977,6 +8023,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      dashboard_type: ["owner", "pm", "ic"],
     },
   },
 } as const

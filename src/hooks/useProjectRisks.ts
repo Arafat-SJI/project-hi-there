@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys, cacheConfig } from "@/lib/cache";
+import { useDashboardFilters, type DashboardFilters } from "./useDashboardFilters";
 
 export interface ProjectRisk {
   id: string;
@@ -19,10 +20,16 @@ export interface ProjectRisk {
 /**
  * Queries the project_risk_summary view for at-risk projects.
  * Used by WatchListCard on the Owner dashboard.
+ *
+ * Dashboard filters are included in the cache key so filter changes
+ * trigger a refetch. Risk-level filtering is applied client-side since
+ * the view uses comma-separated risk_flags rather than a discrete column.
  */
 export function useProjectRisks(limit = 5) {
+  const filters = useDashboardFilters("owner");
+
   return useQuery({
-    queryKey: queryKeys.dashboard.projectRisks({ limit }),
+    queryKey: queryKeys.dashboard.projectRisks({ limit, ...filters }),
     queryFn: async (): Promise<ProjectRisk[]> => {
       const { data, error } = await supabase
         .from("project_risk_summary" as any)
@@ -32,7 +39,17 @@ export function useProjectRisks(limit = 5) {
         .limit(limit);
 
       if (error) throw error;
-      return (data ?? []) as unknown as ProjectRisk[];
+
+      let results = (data ?? []) as unknown as ProjectRisk[];
+
+      // Client-side risk level filtering (risk_flags is comma-separated)
+      if (filters.risk_level) {
+        results = results.filter(
+          (r) => r.risk_flags && r.risk_flags.includes(filters.risk_level!)
+        );
+      }
+
+      return results;
     },
     staleTime: cacheConfig.staleTime.short,
   });
