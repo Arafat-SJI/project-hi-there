@@ -179,6 +179,8 @@ export const queryKeys = {
     meetingsThisWeek: (userId: string) => ["dashboard", "meetingsThisWeek", userId] as const,
     myTasks: (userId: string, filters?: Record<string, any>) => ["dashboard", "myTasks", userId, filters] as const,
     myProjects: (userId: string) => ["dashboard", "myProjects", userId] as const,
+    userPreferences: (userId: string, dashboardType: string) =>
+      ["user-dashboard-preferences", userId, dashboardType] as const,
   },
 };
 
