@@ -233,6 +233,45 @@ function isClient(value: unknown): value is Client {
 | `tsconfig.json` | TypeScript configuration |
 | `tsconfig.app.json` | App-specific TS config |
 
+## Type Safety Audit Checklist
+
+Before any PR or merge:
+
+1. **Query → Type Sync**
+   - Every `.select()` field must exist in the TypeScript type
+   - Use `Pick<>` for partial joins
+   - No mismatched field names between query and type
+
+2. **Record Exhaustiveness**
+   - Every `Record<K, V>` has entries for ALL keys in K
+   - Or use `Partial<Record<>>` if optional
+   - Check enum → Record sync (when enum changes, update Records)
+
+3. **Filter Branching**
+   - Union filter types (`string | string[]`) branch before query
+   - Use `Array.isArray()` to separate branches
+   - Each branch passes correct type to query method
+
+4. **Mutation Context**
+   - Callbacks with context defined in `useMutation()` definition
+   - Not inline in `mutate()` call
+   - Context type properly inferred
+
+5. **Join Type Coverage**
+   - After modifying a join type, search codebase for all uses
+   - Update tests, mocks, and all consuming code
+   - No type mismatches between query select and type
+
+## Common Mistakes to Catch
+
+- **Missing `.select()` fields in type**: Query returns `slug` but type lacks it → runtime `undefined`
+- **Incomplete `Record<K, V>`**: Missing keys cause TypeScript errors or runtime `undefined` lookups
+- **Union filter passed to `.eq()`**: `.eq()` expects `string`, not `string | string[]` → type error
+- **Mutation callbacks in `mutate()` call**: Context type becomes `any` instead of inferred type
+- **Full interface for partial join**: Using `EOSPod` when only 4 of 8 fields are selected → missing required fields
+- **Enum → Record desync**: Adding new enum value without updating all `Record<EnumType, ...>` maps
+- **`// @ts-ignore` hiding real errors**: Fix the type instead of suppressing the error
+
 ## Communication Protocol
 - When improving types, report what was `any` and what it is now
 - If a type change requires updating consumers, list all affected files

@@ -404,6 +404,8 @@ VITE_MODULE_PRODUCTIVITY=true
 | `vite.config.ts` | Build config (port 8080, `@` alias, react-swc plugin) |
 | `tailwind.config.ts` | Tailwind with dark mode, custom colors, AI palette |
 | `eslint.config.js` | ESLint flat config |
+| `.claude/PRE_COMMIT_CHECKLIST.md` | Pre-commit type safety checklist |
+| `.claude/skills/type-safety-patterns/SKILL.md` | TypeScript type safety patterns |
 
 ## Specialized Subagents (11 Agents)
 
@@ -468,7 +470,7 @@ Use the edge-function-doctor agent to create a new Edge Function for team-invita
 
 ## Skill Registry
 
-Eight skills are available in `.claude/skills/` providing domain knowledge and workflow standards.
+Nine skills are available in `.claude/skills/` providing domain knowledge and workflow standards.
 
 | # | Skill | File | Purpose |
 |---|-------|------|---------|
@@ -480,6 +482,7 @@ Eight skills are available in `.claude/skills/` providing domain knowledge and w
 | 6 | **specs-first-workflow** | `.claude/skills/specs-first-workflow/SKILL.md` | Specs before code workflow |
 | 7 | **ai-agents-domain** | `.claude/skills/ai-agents-domain/SKILL.md` | AI agents domain knowledge |
 | 8 | **edge-function-patterns** | `.claude/skills/edge-function-patterns/SKILL.md` | Edge Function best practices, CORS-first pattern, error prevention |
+| 9 | **type-safety-patterns** | `.claude/skills/type-safety-patterns/SKILL.md` | TypeScript type safety patterns for queries, Records, filters, mutations |
 
 ## Session Rules
 
@@ -489,6 +492,7 @@ Eight skills are available in `.claude/skills/` providing domain knowledge and w
 - Follow **sj-bug-fix-workflow** for ALL bug fixes
 - Follow **specs-first-workflow** before ANY new feature
 - Follow **supabase-patterns** for ALL database work
+- Follow **type-safety-patterns** for ALL TypeScript type definitions
 - Load **project-architecture** for architectural decisions
 - Run **code-reviewer** before suggesting any PR or merge
 - Run **security-auditor** before deploying sensitive features
@@ -496,6 +500,14 @@ Eight skills are available in `.claude/skills/` providing domain knowledge and w
 - Follow **edge-function-patterns** for ALL Edge Function code
 - Create/update docs for any feature work
 - Never skip specs
+
+## Pre-Commit Checklist
+
+Before committing any code changes:
+- Run: `npm run lint`
+- Run: `npm run build:dev`
+- Read: `.claude/PRE_COMMIT_CHECKLIST.md`
+- Verify all type safety checks pass
 
 ## Documentation
 
