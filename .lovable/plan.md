@@ -1,46 +1,60 @@
 
 
-## Diagnosis
+## Plan: Seed Rich Meeting Transcripts + Fix Transcript Page
 
-The CEO (`ceo@collabai.software`) and IC (`ic@collabai.software`) quick login buttons fail because **these users don't exist in Supabase Auth**. Only `demo@collabai.software` exists (confirmed by network logs showing 400 for CEO/IC and 200 for demo).
+### Problem
 
-The seed scripts never created these auth users — they were referenced in the Login page code but never provisioned in Supabase.
+Two issues to address:
 
-## Fix
+1. **Broken Transcript Page**: `MeetingTranscriptsPage` queries columns that don't exist in `meeting_transcripts` (`summary`, `speakers`, `source`, `processing_status`). The actual schema is `id, meeting_id, speaker, content, created_at`. The page shows "No Transcripts" even though 25 transcript turns exist across 10 meetings.
 
-You need to create these two users in Supabase Auth, then seed their profiles, roles, and agency role preferences.
+2. **Insufficient Seed Data**: The existing 10 meetings have only 2-3 speaker turns each (very short). User wants at least 10 meetings with long, realistic agency-client transcripts.
 
-### Step 1: Create auth users via Supabase Dashboard
+### Current State
 
-Go to **Supabase Dashboard → Authentication → Users** and manually create:
+- `meeting_transcripts` schema: `id, meeting_id, speaker, content, created_at` (speaker-turn model, one row per turn)
+- `meeting_action_items` schema: `id, meeting_id, text, assignee_id, assignee_email, due_date, priority, task_id, status, extracted_from_transcript, extraction_confidence, created_at, updated_at` — currently empty
+- 10 meetings already have transcripts (2-3 turns each, very brief)
+- 22 clients exist (law firms, CPA firms, tech companies)
 
-| Email | Password |
-|-------|----------|
-| `ceo@collabai.software` | `Demo@123` |
-| `ic@collabai.software` | `Demo@123` |
+### Implementation
 
-Set "Auto Confirm" to true for both.
+#### 1. Fix MeetingTranscriptsPage to match actual schema
 
-### Step 2: Migration to seed profiles + roles + agency preferences
+Rewrite the query and `TranscriptRow` interface to aggregate `meeting_transcripts` by `meeting_id`:
+- Group turns by `meeting_id`, collect unique speakers, concatenate content
+- Remove references to non-existent columns (`summary`, `source`, `processing_status`)
+- Derive speaker list from `DISTINCT speaker` per meeting
+- Show turn count instead of processing status
+- Keep search, preview dialog, and navigation working
 
-After creating the auth users, note their UUIDs from the dashboard. Then run a migration that:
+#### 2. Seed 10 new meetings with long transcripts (via edge function)
 
-1. Inserts into `profiles` (full_name, email, avatar_url) for both users
-2. Inserts into `user_roles` (user_id, role) — both as `user` role
-3. Inserts into `user_role_preferences`:
-   - CEO user: `agency_role = 'owner'`, `is_eos_user = true`
-   - IC user: `agency_role = 'ic'`, `is_eos_user = false`
+Create a temporary `seed-meeting-transcripts` edge function that inserts:
 
-The migration will use the UUIDs from step 1.
+- **10 new completed meetings** tied to existing clients, covering realistic agency scenarios:
+  1. Acme Corp — Q1 Strategy Review (8+ turns)
+  2. NovaTech Solutions — Product Roadmap Sync (8+ turns)
+  3. Kevin Patel — Contract Automation Workshop (8+ turns)
+  4. Sarah Chen — Document Management Discovery (8+ turns)
+  5. James Thompson — Litigation Dashboard Review (8+ turns)
+  6. Jennifer Adams — Tax Season Readiness (8+ turns)
+  7. Michael Richardson — Year-End Compliance Review (8+ turns)
+  8. Robert Martinez — Family Law Portal Demo (8+ turns)
+  9. Thomas Anderson — CFO Advisory Dashboard (8+ turns)
+  10. Patricia Williams — IP Portfolio Tracking (8+ turns)
 
-### Alternative: Single Edge Function approach
+- Each meeting gets **8-12 speaker turns** with realistic dialogue between agency presenter (Shahed) and client stakeholders
+- Each meeting gets **2-4 action items** in `meeting_action_items` with priorities, due dates, and confidence scores
 
-Instead of manual dashboard work, create a one-time edge function that uses the service role to call `supabase.auth.admin.createUser()` for both accounts, then seeds profiles/roles/preferences. This is fully automatable.
+#### 3. Cleanup
+
+Delete the temporary edge function after execution.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| Migration SQL | Insert profiles, user_roles, user_role_preferences for CEO and IC users |
-| *(Optional)* Edge function | Auto-create auth users + seed data in one step |
+| `src/modules/meetings/pages/MeetingTranscriptsPage.tsx` | Rewrite query to aggregate speaker turns per meeting; fix TranscriptRow interface |
+| `supabase/functions/seed-meeting-transcripts/index.ts` | Temporary edge function to insert 10 meetings + ~100 transcript turns + ~30 action items |
 
