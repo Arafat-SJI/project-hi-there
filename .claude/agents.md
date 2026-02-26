@@ -20,6 +20,22 @@ This project has 11 specialized agents for delegating complex tasks. Claude Code
 | 10  | test-automator         | Unit tests, integration tests, RLS tests, Vitest setup | Read, Write, Edit, Bash, Glob, Grep | Builder      |
 | 11  | edge-function-doctor   | Edge Function audit, fix, creation, non-2xx diagnosis  | Read, Write, Edit, Bash, Glob, Grep | Specialist   |
 
+## Session Rules
+
+### Pre-Commit Type Safety (MANDATORY)
+
+**Before EVERY Claude Code session is committed:**
+
+1. **Read `.claude/SESSION_TEMPLATE.md`** — use this structure for all prompts
+2. **Read `.claude/PRE_COMMIT_CHECKLIST.md`** — verify all 6 sections pass
+3. **Read `.claude/skills/type-safety-patterns/SKILL.md`** — follow the 5 patterns
+4. **Run `npm run lint && npm run build:dev`** — fix any errors
+5. **Commit only when all checks pass** — never merge with TypeScript errors
+
+If a session creates type errors, use the **typescript-pro** agent to audit before commit.
+
+Type safety is non-negotiable.
+
 ## Auto-Delegation Rules
 
 ### Pre-Commit Type Safety
