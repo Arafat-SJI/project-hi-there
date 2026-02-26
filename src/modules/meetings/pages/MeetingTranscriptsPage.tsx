@@ -1,8 +1,8 @@
 /**
  * Meeting Transcripts Page
  *
- * Lists meetings that have transcripts, with search, status filter,
- * and transcript preview. Links to meeting detail for full transcript view.
+ * Lists meetings that have transcripts (aggregated from speaker turns),
+ * with search and transcript preview. Links to meeting detail for full view.
  */
 
 import { useState } from "react";
@@ -10,17 +10,10 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -39,58 +32,81 @@ import {
   Loader2,
   Search,
   FileText,
-  FileAudio,
   MessageSquare,
+  Users,
   ExternalLink,
   Eye,
 } from "lucide-react";
 
 interface TranscriptRow {
-  id: string;
   meeting_id: string;
-  content: string | null;
-  summary: string | null;
-  speakers: string[] | null;
-  source: string | null;
-  processing_status: string | null;
-  created_at: string;
   meeting_title: string;
   meeting_date: string | null;
+  speakers: string[];
+  turn_count: number;
+  content_preview: string;
+  full_content: string;
+  created_at: string;
 }
 
-function useMeetingTranscripts(search: string, statusFilter: string) {
+function useMeetingTranscripts(search: string) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["meeting-transcripts", search, statusFilter],
+    queryKey: ["meeting-transcripts-aggregated", search],
     queryFn: async (): Promise<TranscriptRow[]> => {
-      // Fetch transcripts joined with meeting title
-      const { data, error } = await supabase
+      // Fetch all transcript turns
+      const { data: turns, error } = await supabase
         .from("meeting_transcripts")
-        .select("id, meeting_id, content, summary, speakers, source, processing_status, created_at")
-        .order("created_at", { ascending: false });
+        .select("meeting_id, speaker, content, created_at")
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
-      if (!data || data.length === 0) return [];
+      if (!turns || turns.length === 0) return [];
 
-      // Get meeting IDs and fetch titles
-      const meetingIds = [...new Set((data as any[]).map((t: any) => t.meeting_id))];
+      // Group by meeting_id
+      const grouped = new Map<string, { speakers: Set<string>; turns: { speaker: string; content: string }[]; created_at: string }>();
+      for (const t of turns) {
+        if (!grouped.has(t.meeting_id)) {
+          grouped.set(t.meeting_id, { speakers: new Set(), turns: [], created_at: t.created_at });
+        }
+        const g = grouped.get(t.meeting_id)!;
+        if (t.speaker) g.speakers.add(t.speaker);
+        g.turns.push({ speaker: t.speaker || "Unknown", content: t.content || "" });
+      }
+
+      // Fetch meeting details
+      const meetingIds = [...grouped.keys()];
       const { data: meetings } = await supabase
         .from("meetings")
         .select("id, title, scheduled_at")
         .in("id", meetingIds);
 
-      const meetingMap = new Map<string, { title: string; date: string | null }>(
-        (meetings || []).map((m: any) => [m.id, { title: m.title, date: m.scheduled_at }])
+      const meetingMap = new Map(
+        (meetings || []).map((m) => [m.id, { title: m.title, date: m.scheduled_at }])
       );
 
-      let rows: TranscriptRow[] = (data as any[]).map((t: any) => {
-        const meeting = meetingMap.get(t.meeting_id) || { title: "Unknown Meeting", date: null };
+      let rows: TranscriptRow[] = meetingIds.map((mid) => {
+        const g = grouped.get(mid)!;
+        const meeting = meetingMap.get(mid) || { title: "Unknown Meeting", date: null };
+        const fullContent = g.turns.map((t) => `${t.speaker}: ${t.content}`).join("\n\n");
         return {
-          ...t,
+          meeting_id: mid,
           meeting_title: meeting.title,
           meeting_date: meeting.date,
+          speakers: [...g.speakers],
+          turn_count: g.turns.length,
+          content_preview: fullContent.substring(0, 150) + (fullContent.length > 150 ? "…" : ""),
+          full_content: fullContent,
+          created_at: g.created_at,
         };
+      });
+
+      // Sort by date descending
+      rows.sort((a, b) => {
+        const da = a.meeting_date || a.created_at;
+        const db = b.meeting_date || b.created_at;
+        return new Date(db).getTime() - new Date(da).getTime();
       });
 
       // Apply search filter
@@ -99,14 +115,9 @@ function useMeetingTranscripts(search: string, statusFilter: string) {
         rows = rows.filter(
           (r) =>
             r.meeting_title.toLowerCase().includes(q) ||
-            (r.content && r.content.toLowerCase().includes(q)) ||
-            (r.summary && r.summary.toLowerCase().includes(q))
+            r.full_content.toLowerCase().includes(q) ||
+            r.speakers.some((s) => s.toLowerCase().includes(q))
         );
-      }
-
-      // Apply status filter
-      if (statusFilter && statusFilter !== "all") {
-        rows = rows.filter((r) => r.processing_status === statusFilter);
       }
 
       return rows;
@@ -115,20 +126,12 @@ function useMeetingTranscripts(search: string, statusFilter: string) {
   });
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  completed: "#22c55e",
-  processing: "#f59e0b",
-  pending: "#6b7280",
-  failed: "#ef4444",
-};
-
 export default function MeetingTranscriptsPage() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [previewTranscript, setPreviewTranscript] = useState<TranscriptRow | null>(null);
   const navigate = useNavigate();
 
-  const { data: transcripts, isLoading } = useMeetingTranscripts(search, statusFilter);
+  const { data: transcripts, isLoading } = useMeetingTranscripts(search);
 
   if (isLoading) {
     return (
@@ -139,8 +142,8 @@ export default function MeetingTranscriptsPage() {
   }
 
   const total = (transcripts || []).length;
-  const withSummary = (transcripts || []).filter((t) => t.summary).length;
-  const completed = (transcripts || []).filter((t) => t.processing_status === "completed").length;
+  const totalTurns = (transcripts || []).reduce((sum, t) => sum + t.turn_count, 0);
+  const uniqueSpeakers = new Set((transcripts || []).flatMap((t) => t.speakers)).size;
 
   return (
     <div className="space-y-6">
@@ -157,7 +160,7 @@ export default function MeetingTranscriptsPage() {
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <FileText className="h-4 w-4" />
-              <span className="text-sm">Total Transcripts</span>
+              <span className="text-sm">Meetings with Transcripts</span>
             </div>
             <p className="text-2xl font-bold mt-1">{total}</p>
           </CardContent>
@@ -166,45 +169,33 @@ export default function MeetingTranscriptsPage() {
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <MessageSquare className="h-4 w-4" />
-              <span className="text-sm">With AI Summary</span>
+              <span className="text-sm">Total Speaker Turns</span>
             </div>
-            <p className="text-2xl font-bold mt-1 text-green-600">{withSummary}</p>
+            <p className="text-2xl font-bold mt-1">{totalTurns}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <FileAudio className="h-4 w-4" />
-              <span className="text-sm">Processed</span>
+              <Users className="h-4 w-4" />
+              <span className="text-sm">Unique Speakers</span>
             </div>
-            <p className="text-2xl font-bold mt-1">{completed}</p>
+            <p className="text-2xl font-bold mt-1">{uniqueSpeakers}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Search */}
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search transcripts by meeting title or content…"
+            placeholder="Search transcripts by meeting title, content, or speaker…"
             className="pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="processing">Processing</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Transcript Table */}
@@ -214,29 +205,28 @@ export default function MeetingTranscriptsPage() {
             <TableRow>
               <TableHead>Meeting</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead>Source</TableHead>
               <TableHead>Speakers</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Summary</TableHead>
+              <TableHead>Turns</TableHead>
+              <TableHead>Preview</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {(transcripts || []).length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12">
+                <TableCell colSpan={6} className="text-center py-12">
                   <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold">No Transcripts</h3>
                   <p className="text-muted-foreground">
-                    {search || statusFilter !== "all"
-                      ? "No transcripts match your filters."
-                      : "Meeting transcripts will appear here after Zoom recordings are synced and processed."}
+                    {search
+                      ? "No transcripts match your search."
+                      : "Meeting transcripts will appear here after recordings are processed."}
                   </p>
                 </TableCell>
               </TableRow>
             ) : (
               (transcripts || []).map((t) => (
-                <TableRow key={t.id}>
+                <TableRow key={t.meeting_id}>
                   <TableCell>
                     <button
                       className="font-medium text-primary hover:underline text-left"
@@ -251,29 +241,22 @@ export default function MeetingTranscriptsPage() {
                       : new Date(t.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {t.source || "manual"}
-                    </Badge>
+                    <div className="flex gap-1 flex-wrap max-w-[200px]">
+                      {t.speakers.slice(0, 3).map((s, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {s}
+                        </Badge>
+                      ))}
+                      {t.speakers.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{t.speakers.length - 3}
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-sm">
-                    {t.speakers && t.speakers.length > 0
-                      ? `${t.speakers.length} speaker${t.speakers.length > 1 ? "s" : ""}`
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="text-xs"
-                      style={{
-                        borderColor: STATUS_COLORS[t.processing_status || "pending"] || "#6b7280",
-                        color: STATUS_COLORS[t.processing_status || "pending"] || "#6b7280",
-                      }}
-                    >
-                      {t.processing_status || "pending"}
-                    </Badge>
-                  </TableCell>
+                  <TableCell className="text-sm font-medium">{t.turn_count}</TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                    {t.summary ? t.summary.substring(0, 60) + "…" : "No summary"}
+                    {t.content_preview}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
@@ -306,17 +289,9 @@ export default function MeetingTranscriptsPage() {
           <DialogHeader>
             <DialogTitle>{previewTranscript?.meeting_title}</DialogTitle>
           </DialogHeader>
-          {previewTranscript?.summary && (
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold mb-1">AI Summary</h4>
-              <p className="text-sm text-muted-foreground bg-muted rounded-md p-3">
-                {previewTranscript.summary}
-              </p>
-            </div>
-          )}
           {previewTranscript?.speakers && previewTranscript.speakers.length > 0 && (
             <div className="mb-4">
-              <h4 className="text-sm font-semibold mb-1">Speakers</h4>
+              <h4 className="text-sm font-semibold mb-1">Speakers ({previewTranscript.speakers.length})</h4>
               <div className="flex gap-1 flex-wrap">
                 {previewTranscript.speakers.map((s, i) => (
                   <Badge key={i} variant="secondary" className="text-xs">{s}</Badge>
@@ -325,9 +300,11 @@ export default function MeetingTranscriptsPage() {
             </div>
           )}
           <div>
-            <h4 className="text-sm font-semibold mb-1">Transcript Content</h4>
+            <h4 className="text-sm font-semibold mb-1">
+              Transcript ({previewTranscript?.turn_count} turns)
+            </h4>
             <pre className="text-xs bg-muted rounded-md p-4 whitespace-pre-wrap max-h-96 overflow-auto">
-              {previewTranscript?.content || "No transcript content available."}
+              {previewTranscript?.full_content || "No transcript content available."}
             </pre>
           </div>
         </DialogContent>

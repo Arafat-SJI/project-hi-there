@@ -1,8 +1,7 @@
 /**
  * useSearchTranscripts
  *
- * Searches across meetings that have complete transcripts using Postgres
- * full-text search on the transcript_content column.
+ * Searches across meeting_transcripts content and returns matching meetings.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -13,8 +12,7 @@ export interface TranscriptSearchResult {
   title: string;
   slug: string | null;
   scheduled_at: string | null;
-  transcript_content: string | null;
-  transcript_status: string | null;
+  transcript_preview: string | null;
 }
 
 export function useSearchTranscripts(query: string) {
@@ -25,15 +23,32 @@ export function useSearchTranscripts(query: string) {
     queryFn: async (): Promise<TranscriptSearchResult[]> => {
       if (!trimmed) return [];
 
-      const { data, error: dbError } = await supabase
-        .from("meetings")
-        .select("id, title, slug, scheduled_at, transcript_content, transcript_status")
-        .textSearch("transcript_content", trimmed, { type: "plain" })
-        .eq("transcript_status", "complete")
-        .limit(20);
+      // Search in meeting_transcripts content
+      const { data: turns, error: dbError } = await supabase
+        .from("meeting_transcripts")
+        .select("meeting_id, content")
+        .ilike("content", `%${trimmed}%`)
+        .limit(50);
 
       if (dbError) throw dbError;
-      return (data ?? []) as TranscriptSearchResult[];
+      if (!turns || turns.length === 0) return [];
+
+      // Get unique meeting IDs
+      const meetingIds = [...new Set(turns.map((t) => t.meeting_id))];
+
+      const { data: meetings } = await supabase
+        .from("meetings")
+        .select("id, title, slug, scheduled_at")
+        .in("id", meetingIds)
+        .limit(20);
+
+      return (meetings ?? []).map((m) => ({
+        id: m.id,
+        title: m.title,
+        slug: m.slug ?? null,
+        scheduled_at: m.scheduled_at,
+        transcript_preview: turns.find((t) => t.meeting_id === m.id)?.content?.substring(0, 200) ?? null,
+      }));
     },
     enabled: trimmed.length >= 2,
     staleTime: 30_000,
