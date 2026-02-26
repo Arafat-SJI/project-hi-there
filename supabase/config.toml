@@ -1,5 +1,6 @@
 project_id = "tjkqvbxtziheggurtvcz"
 
+
 # Admin functions - require authentication
 [functions.check-environment]
 verify_jwt = false
