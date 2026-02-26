@@ -4,15 +4,21 @@
  * Shared formatting helpers for dates, timezones, and recurrence patterns.
  */
 
+import { parseMeetingDate, isMeetingDateValid } from "@/lib/date-utils";
+
 /**
  * Format a scheduled_at timestamp with optional timezone label.
  * Falls back to the browser locale if no timezone is stored.
+ * Uses Safari-safe date parsing; returns "Invalid date" for unparseable values.
  */
 export function formatMeetingDateTime(
   scheduledAt: string,
   timezone?: string | null
 ): string {
-  const date = new Date(scheduledAt);
+  const date = parseMeetingDate(scheduledAt);
+  if (!isMeetingDateValid(date)) {
+    return "Invalid date";
+  }
 
   const options: Intl.DateTimeFormatOptions = {
     dateStyle: "medium",

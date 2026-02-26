@@ -8,6 +8,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, parseISO } from "date-fns";
+import { parseMeetingDate, isMeetingDateValid } from "@/lib/date-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,9 +167,12 @@ export default function MeetingsSchedulePage() {
     const total = meetings.length;
     const completed = meetings.filter((m) => m.status === "completed").length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const upcoming = meetings.filter(
-      (m) => m.status === "scheduled" && m.scheduled_at && new Date(m.scheduled_at) >= new Date()
-    ).length;
+    const now = new Date();
+    const upcoming = meetings.filter((m) => {
+      if (m.status !== "scheduled" || !m.scheduled_at) return false;
+      const d = parseMeetingDate(m.scheduled_at);
+      return isMeetingDateValid(d) && d >= now;
+    }).length;
     return { total, completionRate, upcoming };
   }, [meetings]);
 
@@ -178,8 +182,8 @@ export default function MeetingsSchedulePage() {
     const now = new Date();
     meetings.forEach((m) => {
       if (!m.scheduled_at) return;
-      const meetingDate = parseISO(m.scheduled_at);
-      if (meetingDate <= now) return;
+      const meetingDate = parseMeetingDate(m.scheduled_at);
+      if (!isMeetingDateValid(meetingDate) || meetingDate <= now) return;
       const weekStart = startOfWeek(meetingDate, { weekStartsOn: 1 });
       const weekKey = format(weekStart, "yyyy-MM-dd");
       if (!groups[weekKey]) groups[weekKey] = [];
@@ -358,7 +362,9 @@ export default function MeetingsSchedulePage() {
           {groupedByWeek.map(({ weekKey, weekStart, meetings: weekMeetings }) => {
             const isExpanded = expandedWeeks.has(weekKey);
             const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-            const weekLabel = `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
+            const weekLabel = isMeetingDateValid(weekStart)
+              ? `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`
+              : weekKey;
             return (
               <Collapsible
                 key={weekKey}
@@ -401,14 +407,18 @@ export default function MeetingsSchedulePage() {
                               <p className="font-medium">{meeting.title}</p>
                             </TableCell>
                             <TableCell>
-                              {meeting.scheduled_at ? (
-                                <div className="text-sm">
-                                  <p>{format(parseISO(meeting.scheduled_at), "MMM d, yyyy")}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {format(parseISO(meeting.scheduled_at), "h:mm a")}
-                                  </p>
-                                </div>
-                              ) : (
+                              {meeting.scheduled_at ? (() => {
+                                const d = parseMeetingDate(meeting.scheduled_at);
+                                if (!isMeetingDateValid(d)) return <span className="text-sm text-muted-foreground">—</span>;
+                                return (
+                                  <div className="text-sm">
+                                    <p>{format(d, "MMM d, yyyy")}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {format(d, "h:mm a")}
+                                    </p>
+                                  </div>
+                                );
+                              })() : (
                                 <span className="text-sm text-muted-foreground">—</span>
                               )}
                             </TableCell>
@@ -480,14 +490,18 @@ export default function MeetingsSchedulePage() {
                     <p className="font-medium">{meeting.title}</p>
                   </TableCell>
                   <TableCell>
-                    {meeting.scheduled_at ? (
-                      <div className="text-sm">
-                        <p>{format(parseISO(meeting.scheduled_at), "MMM d, yyyy")}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(parseISO(meeting.scheduled_at), "h:mm a")}
-                        </p>
-                      </div>
-                    ) : (
+                    {meeting.scheduled_at ? (() => {
+                      const d = parseMeetingDate(meeting.scheduled_at);
+                      if (!isMeetingDateValid(d)) return <span className="text-sm text-muted-foreground">—</span>;
+                      return (
+                        <div className="text-sm">
+                          <p>{format(d, "MMM d, yyyy")}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(d, "h:mm a")}
+                          </p>
+                        </div>
+                      );
+                    })() : (
                       <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>

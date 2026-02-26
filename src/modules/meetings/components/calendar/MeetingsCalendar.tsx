@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { parseMeetingDate, isMeetingDateValid } from "@/lib/date-utils";
 interface CalendarMeetingItem {
   id: string;
   title: string;
@@ -86,7 +87,8 @@ export function MeetingsCalendar({
     const map: Record<string, CalendarMeetingItem[]> = {};
     meetings.forEach((m) => {
       if (!m.scheduled_at) return;
-      const d = new Date(m.scheduled_at);
+      const d = parseMeetingDate(m.scheduled_at);
+      if (!isMeetingDateValid(d)) return;
       const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       if (!map[dateKey]) map[dateKey] = [];
       map[dateKey].push(m);
@@ -164,21 +166,21 @@ export function MeetingsCalendar({
                   )}
                 </div>
                 <div className="space-y-0.5">
-                  {dayMeetings.slice(0, 3).map((m) => (
-                    <button
-                      key={m.id}
-                      className="w-full text-left text-[11px] px-1 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 truncate block"
-                      onClick={() => navigate(getMeetingLink(m))}
-                    >
-                      {m.scheduled_at
-                        ? new Date(m.scheduled_at).toLocaleTimeString([], {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })
-                        : ""}{" "}
-                      {m.title}
-                    </button>
-                  ))}
+                  {dayMeetings.slice(0, 3).map((m) => {
+                    const d = m.scheduled_at ? parseMeetingDate(m.scheduled_at) : null;
+                    const timeStr = d && isMeetingDateValid(d)
+                      ? d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+                      : "";
+                    return (
+                      <button
+                        key={m.id}
+                        className="w-full text-left text-[11px] px-1 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 truncate block"
+                        onClick={() => navigate(getMeetingLink(m))}
+                      >
+                        {timeStr}{timeStr ? " " : ""}{m.title}
+                      </button>
+                    );
+                  })}
                   {dayMeetings.length > 3 && (
                     <p className="text-[10px] text-muted-foreground px-1">
                       +{dayMeetings.length - 3} more
