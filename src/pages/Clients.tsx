@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, Fragment } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useClients, useDeleteClient, useClientStats, type ClientSortBy, type ClientSortOrder } from "@/hooks/useClients";
+import { useClients, useDeleteClient, useClientStats, type Client } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,19 +28,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, Search, Trash2, Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown, Users, Briefcase, DollarSign, TrendingUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Plus, Search, Trash2, Edit, Eye, Users, Briefcase, DollarSign, TrendingUp, Building2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
 
-const PAGE_SIZES = [10, 25, 50, 100];
+const NO_COMPANY_LABEL = "— No company —";
+
+/** Group clients by company key; empty/null company becomes NO_COMPANY_LABEL. */
+function groupClientsByCompany(clients: Client[]): Map<string, Client[]> {
+  const map = new Map<string, Client[]>();
+  for (const c of clients) {
+    const key = (c.company?.trim() || "") || NO_COMPANY_LABEL;
+    const list = map.get(key) ?? [];
+    list.push(c);
+    map.set(key, list);
+  }
+  return map;
+}
+
+/** Sort company keys alphabetically, with NO_COMPANY_LABEL last. */
+function sortCompanyKeys(keys: string[]): string[] {
+  return [...keys].sort((a, b) => {
+    if (a === NO_COMPANY_LABEL) return 1;
+    if (b === NO_COMPANY_LABEL) return -1;
+    return a.localeCompare(b, undefined, { sensitivity: "base" });
+  });
+}
 
 function formatCurrency(value: number): string {
   if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
@@ -53,39 +67,22 @@ export default function Clients() {
   const statusFilter = searchParams.get("status") ?? undefined;
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<ClientSortBy>("created_at");
-  const [sortOrder, setSortOrder] = useState<ClientSortOrder>("desc");
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(25);
 
   const { data: clients, totalCount, isLoading } = useClients({
     search,
-    sortBy,
-    sortOrder,
+    sortBy: "company",
+    sortOrder: "asc",
     status: statusFilter,
-    page,
-    pageSize,
   });
   const { data: stats, isLoading: statsLoading } = useClientStats(statusFilter ?? undefined);
   const deleteClient = useDeleteClient();
 
-  const handleSort = (column: ClientSortBy) => {
-    if (sortBy === column) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortBy(column);
-      setSortOrder(column === "name" ? "asc" : "desc");
-    }
-  };
-
-  const SortIcon = ({ column }: { column: ClientSortBy }) => {
-    if (sortBy !== column) return <ArrowUpDown className="ml-1 h-4 w-4 opacity-50" />;
-    return sortOrder === "asc" ? (
-      <ArrowUp className="ml-1 h-4 w-4" />
-    ) : (
-      <ArrowDown className="ml-1 h-4 w-4" />
-    );
-  };
+  const companiesGrouped = useMemo(() => {
+    if (!clients?.length) return { keys: [] as string[], map: new Map<string, Client[]>() };
+    const map = groupClientsByCompany(clients);
+    const keys = sortCompanyKeys([...map.keys()]);
+    return { keys, map };
+  }, [clients]);
 
   const handleDelete = () => {
     if (deleteId) {
@@ -94,19 +91,6 @@ export default function Clients() {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const from = totalCount === 0 ? 0 : page * pageSize + 1;
-  const to = Math.min((page + 1) * pageSize, totalCount);
-
-  const handlePageSizeChange = (size: number) => {
-    setPageSize(size);
-    setPage(0);
-  };
-
-  useEffect(() => {
-    setPage(0);
-  }, [search, statusFilter]);
-
   return (
     <div className="space-y-6">
       <CrmConnectionBanner />
@@ -114,10 +98,10 @@ export default function Clients() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {statusFilter === "active" ? "Active Clients" : "Clients"}
+            {statusFilter === "active" ? "Active Companies" : "Companies"}
           </h1>
           <p className="text-muted-foreground">
-            Synced from your CRM and tools
+            Companies and their contacts, sorted alphabetically
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -135,20 +119,20 @@ export default function Clients() {
         </div>
       </div>
 
-      {/* Metric cards: Total/Active Clients, Active Projects, Lifetime Value, Avg Project Value */}
+      {/* Metric cards: Total/Active Companies (unique), Active Projects, Lifetime Value, Avg Project Value */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">
-                {statusFilter === "active" ? "Active Clients" : "Total Clients"}
+                {statusFilter === "active" ? "Active Companies" : "Total Companies"}
               </p>
               <div className="rounded-lg bg-primary/10 p-2">
                 <Users className="h-5 w-5 text-primary" />
               </div>
             </div>
             <p className="mt-2 text-2xl font-bold">
-              {statsLoading ? "—" : (stats?.totalClients ?? 0).toLocaleString()}
+              {isLoading ? "—" : companiesGrouped.keys.length.toLocaleString()}
             </p>
           </CardContent>
         </Card>
@@ -178,27 +162,14 @@ export default function Clients() {
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Avg Project Value</p>
-              <div className="rounded-lg bg-primary/10 p-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold">
-              {statsLoading ? "—" : formatCurrency(stats?.avgProjectValue ?? 0)}
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search and Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Search Clients</CardTitle>
+          <CardTitle>Search Companies</CardTitle>
           <CardDescription>
-            Find clients by name, email, or company
+            Find companies or contacts by name, email, or company name
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -214,20 +185,20 @@ export default function Clients() {
         </CardContent>
       </Card>
 
-      {/* Clients Table */}
+      {/* Companies list: grouped by company, sorted A–Z */}
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex h-32 items-center justify-center">
-              <p className="text-muted-foreground">Loading clients...</p>
+              <p className="text-muted-foreground">Loading companies...</p>
             </div>
-          ) : !clients || clients.length === 0 ? (
+          ) : companiesGrouped.keys.length === 0 ? (
             <div className="flex h-32 flex-col items-center justify-center gap-2">
-              <p className="text-muted-foreground">No clients found</p>
+              <p className="text-muted-foreground">No companies found</p>
               <Button variant="outline" size="sm" asChild>
                 <Link to="/clients/new">
                   <Plus className="mr-2 h-4 w-4" />
-                  Add your first client
+                  Add your first contact
                 </Link>
               </Button>
             </div>
@@ -235,143 +206,80 @@ export default function Clients() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>
-                    <Button
-                      variant="ghost"
-                      className="-ml-3 h-8 font-semibold hover:bg-muted"
-                      onClick={() => handleSort("name")}
-                    >
-                      Name
-                      <SortIcon column="name" />
-                    </Button>
-                  </TableHead>
+                  <TableHead>Contact</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Company</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>
-                    <Button
-                      variant="ghost"
-                      className="-ml-3 h-8 font-semibold hover:bg-muted"
-                      onClick={() => handleSort("created_at")}
-                    >
-                      Created
-                      <SortIcon column="created_at" />
-                    </Button>
-                  </TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>{client.email}</TableCell>
-                    <TableCell>{client.company || "-"}</TableCell>
-                    <TableCell>
-                      <DataSourceBadge
-                        dataSource={client.data_source}
-                        externalUrl={client.external_url}
-                        lastSyncedAt={client.last_synced_at}
-                      />
-                    </TableCell>
-                    <TableCell className="capitalize">{client.status || "-"}</TableCell>
-                    <TableCell>{client.phone || "-"}</TableCell>
-                    <TableCell>{formatDate(client.created_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/clients/${client.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/clients/${client.id}/edit`}>
-                            <Edit className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteId(client.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {companiesGrouped.keys.map((companyKey) => {
+                  const contacts = companiesGrouped.map.get(companyKey) ?? [];
+                  return (
+                    <Fragment key={companyKey}>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableCell colSpan={7} className="font-semibold py-2">
+                          <span className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            {companyKey}
+                            <span className="text-muted-foreground font-normal text-sm">
+                              ({contacts.length} {contacts.length === 1 ? "contact" : "contacts"})
+                            </span>
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                      {contacts.map((client) => (
+                        <TableRow key={client.id}>
+                          <TableCell className="font-medium pl-8">{client.name}</TableCell>
+                          <TableCell>{client.email ?? "—"}</TableCell>
+                          <TableCell>
+                            <DataSourceBadge
+                              dataSource={client.data_source}
+                              externalUrl={client.external_url}
+                              lastSyncedAt={client.last_synced_at}
+                            />
+                          </TableCell>
+                          <TableCell className="capitalize">{client.status ?? "—"}</TableCell>
+                          <TableCell>{client.phone ?? "—"}</TableCell>
+                          <TableCell>{formatDate(client.created_at)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link to={`/clients/${client.id}`}>
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link to={`/clients/${client.id}/edit`}>
+                                  <Edit className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteId(client.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
 
-          {/* Pagination */}
-          {!isLoading && (clients?.length ?? 0) > 0 && (
+          {!isLoading && totalCount > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-4 border-t px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                Showing {from} to {to} of {totalCount.toLocaleString()} clients
+                {companiesGrouped.keys.length} companies · {totalCount.toLocaleString()} contacts
               </p>
-              <div className="flex items-center gap-2">
-                <span className="whitespace-nowrap text-sm text-muted-foreground">Rows per page:</span>
-                <Select value={String(pageSize)} onValueChange={(v) => handlePageSizeChange(Number(v))}>
-                  <SelectTrigger className="h-8 w-[70px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAGE_SIZES.map((s) => (
-                      <SelectItem key={s} value={String(s)}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="whitespace-nowrap text-sm text-muted-foreground">
-                  Page {page + 1} of {totalPages}
-                </span>
-                <div className="flex items-center gap-0.5">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-md"
-                    disabled={page <= 0}
-                    onClick={() => setPage(0)}
-                    aria-label="First page"
-                  >
-                    <ChevronsLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-md"
-                    disabled={page <= 0}
-                    onClick={() => setPage((p) => p - 1)}
-                    aria-label="Previous page"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-md"
-                    disabled={page >= totalPages - 1}
-                    onClick={() => setPage((p) => p + 1)}
-                    aria-label="Next page"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-md"
-                    disabled={page >= totalPages - 1}
-                    onClick={() => setPage(totalPages - 1)}
-                    aria-label="Last page"
-                  >
-                    <ChevronsRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
             </div>
           )}
         </CardContent>

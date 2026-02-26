@@ -22,7 +22,7 @@ export interface Client {
   last_synced_at: string | null;
 }
 
-export type ClientSortBy = "name" | "created_at";
+export type ClientSortBy = "name" | "created_at" | "company";
 export type ClientSortOrder = "asc" | "desc";
 
 export interface UseClientsResult {
@@ -54,7 +54,7 @@ export function useClients(
       let q = supabase
         .from("clients")
         .select("*", usePagination ? { count: "exact" } : undefined)
-        .order(sortBy, { ascending: sortOrder === "asc" });
+        .order(sortBy, { ascending: sortOrder === "asc", nullsFirst: sortBy === "company" ? false : undefined });
 
       if (filters?.search) {
         q = q.or(

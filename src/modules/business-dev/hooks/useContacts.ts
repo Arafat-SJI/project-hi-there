@@ -15,19 +15,24 @@ export function useContacts(search?: string) {
   return useQuery({
     queryKey: [CONTACTS_KEY, search],
     queryFn: async (): Promise<Contact[]> => {
+      const contactColumns =
+        "id,first_name,last_name,email,phone,company,title,linkedin_url,client_id,source,tags,notes,last_contacted_at,created_by,created_at,updated_at,data_source,external_url,last_synced_at";
       let query = supabase
         .from("contacts")
-        .select("*, followup:lead_followup_contacts(*)")
-        .order("updated_at", { ascending: false });
+        .select(`${contactColumns},followup:lead_followup_contacts(id,contact_id,status,priority,next_follow_up,follow_up_notes,assigned_to,converted_deal_id,created_at,updated_at)`)
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: true });
 
       if (search) query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%`);
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map((c: any) => ({
-        ...c,
-        followup: Array.isArray(c.followup) ? c.followup[0] || null : c.followup,
-      })) as Contact[];
+      return (data || []).map((c: any) => {
+        const followupList = Array.isArray(c.followup) ? c.followup : [];
+        const ownFollowup = followupList.find((f: { contact_id?: string }) => f.contact_id === c.id) ?? followupList[0] ?? null;
+        const { followup: _f, ...contactRow } = c;
+        return { ...contactRow, followup: ownFollowup } as Contact;
+      });
     },
     enabled: !!user,
   });
@@ -37,17 +42,18 @@ export function useContact(id: string) {
   return useQuery({
     queryKey: [CONTACTS_KEY, id],
     queryFn: async (): Promise<Contact> => {
+      const contactColumns =
+        "id,first_name,last_name,email,phone,company,title,linkedin_url,client_id,source,tags,notes,last_contacted_at,created_by,created_at,updated_at,data_source,external_url,last_synced_at";
       const { data, error } = await supabase
         .from("contacts")
-        .select("*, followup:lead_followup_contacts(*)")
+        .select(`${contactColumns},followup:lead_followup_contacts(id,contact_id,status,priority,next_follow_up,follow_up_notes,assigned_to,converted_deal_id,created_at,updated_at)`)
         .eq("id", id)
         .single();
       if (error) throw error;
-      const contact = {
-        ...data,
-        followup: Array.isArray(data.followup) ? data.followup[0] || null : data.followup,
-      };
-      return contact as Contact;
+      const followupList = Array.isArray(data.followup) ? data.followup : [];
+      const ownFollowup = followupList.find((f: { contact_id?: string }) => f.contact_id === data.id) ?? followupList[0] ?? null;
+      const { followup: _f, ...contactRow } = data;
+      return { ...contactRow, followup: ownFollowup } as Contact;
     },
     enabled: !!id,
   });
