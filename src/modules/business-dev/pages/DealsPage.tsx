@@ -4,19 +4,28 @@
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, LayoutDashboard, Layers, BarChart3, Download, RefreshCw, Grid, Users, Search, FileText, Calculator, CheckCircle, Trophy, ThumbsUp, XCircle } from "lucide-react";
+import { Plus, LayoutDashboard, BarChart3, Download, RefreshCw, Grid, Users, Search, FileText, Calculator, CheckCircle, Trophy, ThumbsUp, XCircle } from "lucide-react";
 import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { useDeals, useDealPipelineStats } from "../hooks/useDeals";
 import { generateDealsCSV } from "@/lib/csv";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import DealsOverview from "../components/DealsOverview";
 import DealsStageTabContent from "../components/DealsStageTabContent";
 import DealsAnalytics from "../components/DealsAnalytics";
@@ -39,6 +48,14 @@ const ARCHIVE_STAGE_TABS: { value: ArchiveStage; label: string; icon: "Trophy" |
   { value: "accepted", label: "Accepted", icon: "ThumbsUp" },
   { value: "lost", label: "Lost", icon: "XCircle" },
 ];
+
+const STAGE_ONLY_STAGES: DealStage[] = ["lead", "discovery", "estimation", "proposal"];
+const STAGE_PAGE_TITLES: Record<(typeof STAGE_ONLY_STAGES)[number], { title: string; subtitle: string }> = {
+  lead: { title: "Lead Deals", subtitle: "Track and manage lead-stage opportunities" },
+  discovery: { title: "Discovery Deals", subtitle: "Deals in the discovery phase" },
+  estimation: { title: "Estimation Deals", subtitle: "Deals being estimated for pricing" },
+  proposal: { title: "Proposal Deals", subtitle: "Deals with active proposals" },
+};
 
 const STAGE_COLORS: Record<DealStage | "all", string> = {
   all: "border-primary text-primary",
@@ -89,6 +106,15 @@ export default function DealsPage() {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set("stage", s);
+      return next;
+    }, { replace: true });
+  };
+
+  const setStageParamFromPipeline = (s: DealStage | "all" | ArchiveStage) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("stage", s);
+      next.set("from", "pipeline");
       return next;
     }, { replace: true });
   };
@@ -183,14 +209,94 @@ export default function DealsPage() {
     navigate(`/deals/${slug}`);
   };
 
+  const isStageOnlyView =
+    mainTab === "all" &&
+    STAGE_ONLY_STAGES.includes(stageParam as (typeof STAGE_ONLY_STAGES)[number]) &&
+    searchParams.get("from") !== "pipeline";
+  const stageMeta = isStageOnlyView ? STAGE_PAGE_TITLES[stageParam as (typeof STAGE_ONLY_STAGES)[number]] : null;
+  const stageLabelForBreadcrumb = isStageOnlyView ? ACTIVE_STAGE_TABS.find((t) => t.value === stageParam)?.label ?? stageParam : null;
+
   return (
     <div className="space-y-6 pt-6">
       <CrmConnectionBanner />
+      {isStageOnlyView && stageMeta && stageLabelForBreadcrumb ? (
+        <>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/dashboard">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/deals">Business Opportunities</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{stageLabelForBreadcrumb}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div>
+            <h1 className="text-2xl font-bold text-primary">{stageMeta.title}</h1>
+            <p className="text-muted-foreground">{stageMeta.subtitle}</p>
+          </div>
+          <DealsStageTabContent
+            stage={stageParam as DealStage}
+            stageLabel={stageLabelForBreadcrumb}
+            viewMode={viewMode}
+            search={search}
+            onSearchChange={(v) => {
+              setSearch(v);
+              handleFiltersToUrl({ search: v || undefined });
+            }}
+            ownerId={ownerId}
+            onOwnerChange={(v) => {
+              setOwnerId(v);
+              handleFiltersToUrl({ owner: v });
+            }}
+            bdRepId={bdRepId}
+            onBdRepChange={(v) => {
+              setBdRepId(v);
+              handleFiltersToUrl({ bdRep: v });
+            }}
+            clientId={clientId}
+            onClientIdChange={(v) => {
+              setClientId(v);
+              handleFiltersToUrl({ client: v });
+            }}
+            showLostDeals={showLostDeals}
+            onShowLostDealsChange={(v) => handleFiltersToUrl({ showLost: v })}
+            onViewModeChange={setViewMode}
+            onViewDetails={handleViewDetails}
+            owners={ownerProfiles}
+            clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+          />
+        </>
+      ) : (
+        <>
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/dashboard">Home</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Business Opportunities</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-primary">Business Opportunities</h1>
-          <p className="text-muted-foreground">Synced from your CRM and tools</p>
+          <p className="text-muted-foreground">Manage your sales pipeline and track deal progress</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExport}>
@@ -200,39 +306,109 @@ export default function DealsPage() {
           <Button variant="outline" size="sm" asChild>
             <a href="/admin/integrations">
               <RefreshCw className="h-4 w-4 mr-2" />
-              Sync from CRM
+              Sync Latest Deals
             </a>
           </Button>
           <Button onClick={() => navigate("/deals/new")}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Manually
+            New Deal
           </Button>
         </div>
       </div>
 
       <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTab)}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="gap-2">
-            <LayoutDashboard className="h-4 w-4" />
-            Overview
+        <TabsList className="flex h-auto w-full flex-wrap items-end gap-1 rounded-none border-b border-border bg-muted/30 p-1">
+          <TabsTrigger
+            value="overview"
+            className={cn(
+              "min-w-0 flex-[1] gap-2.5 rounded-t-lg border border-b-0 border-transparent px-3 py-2.5 data-[state=active]:border-border data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-card"
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded",
+                mainTab === "overview" ? "bg-primary/10" : "bg-muted"
+              )}
+            >
+              <LayoutDashboard
+                className={cn("h-3.5 w-3.5", mainTab === "overview" ? "text-primary" : "text-muted-foreground")}
+              />
+            </span>
+            <span className="text-sm font-medium">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="all" className="gap-2">
-            <Layers className="h-4 w-4" />
-            Active Pipeline
+          <TabsTrigger
+            value="all"
+            className={cn(
+              "min-w-0 flex-[2] gap-2.5 rounded-t-lg border border-b-0 border-transparent px-3 py-2.5 data-[state=active]:border-border data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-card",
+              "inline-flex items-center justify-start"
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded",
+                mainTab === "all" ? "bg-primary/10" : "bg-muted"
+              )}
+            >
+              <Grid className={cn("h-3.5 w-3.5", mainTab === "all" ? "text-primary" : "text-muted-foreground")} />
+            </span>
+            <div className="min-w-0 flex-1 text-left">
+              <span className="block text-sm font-semibold leading-tight">Active Pipeline</span>
+              <span className="block text-xs text-muted-foreground leading-tight">Open opportunities</span>
+            </div>
             {activeCount > 0 && (
-              <span className="ml-1 text-xs font-normal opacity-80">({activeCount})</span>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {activeCount.toLocaleString()}
+              </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="archive" className="gap-2">
-            <Trophy className="h-4 w-4" />
-            Archive Won & Lost
+          <TabsTrigger
+            value="archive"
+            className={cn(
+              "min-w-0 flex-[1] gap-2.5 rounded-t-lg border border-b-0 border-transparent px-3 py-2.5 data-[state=active]:border-border data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-card",
+              "inline-flex items-center justify-start"
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded",
+                mainTab === "archive" ? "bg-primary/10" : "bg-muted"
+              )}
+            >
+              <Trophy
+                className={cn("h-3.5 w-3.5", mainTab === "archive" ? "text-primary" : "text-muted-foreground")}
+              />
+            </span>
+            <div className="min-w-0 flex-1 text-left">
+              <span className="block text-sm font-semibold leading-tight">Archive</span>
+              <span className="block text-xs text-muted-foreground leading-tight">Won & Lost</span>
+            </div>
             {archiveCount > 0 && (
-              <span className="ml-1 text-xs font-normal opacity-80">({archiveCount})</span>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {archiveCount.toLocaleString()}
+              </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Analytics
+          <TabsTrigger
+            value="analytics"
+            className={cn(
+              "ml-auto shrink-0 gap-2.5 rounded-t-lg border border-b-0 border-transparent px-3 py-2.5 data-[state=active]:border-border data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-card",
+              "inline-flex items-center justify-start"
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded",
+                mainTab === "analytics" ? "bg-primary/10" : "bg-green-100 dark:bg-green-950/40"
+              )}
+            >
+              <BarChart3
+                className={cn(
+                  "h-3.5 w-3.5",
+                  mainTab === "analytics" ? "text-primary" : "text-green-600 dark:text-green-400"
+                )}
+              />
+            </span>
+            <span className="text-sm font-medium">Analytics</span>
           </TabsTrigger>
         </TabsList>
 
@@ -243,7 +419,6 @@ export default function DealsPage() {
         <TabsContent value="all" className="mt-6">
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Open opportunities</p>
-            {/* Stage pills with counts and icons */}
             <div className="flex flex-wrap gap-2">
               {ACTIVE_STAGE_TABS.map((t) => {
                 const count = t.value === "all" ? activeCount : (stats?.by_stage?.[t.value as DealStage]?.count ?? 0);
@@ -252,7 +427,7 @@ export default function DealsPage() {
                   <button
                     key={t.value}
                     type="button"
-                    onClick={() => setStageParam(t.value)}
+                    onClick={() => setStageParamFromPipeline(t.value)}
                     className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                       stageParam === t.value ? STAGE_COLORS[t.value as keyof typeof STAGE_COLORS] : "border-border hover:bg-muted/50"
                     }`}
@@ -286,7 +461,7 @@ export default function DealsPage() {
                 </Card>
               );
             })()}
-            <Tabs value={stageParam} onValueChange={(v) => setStageParam(v as DealStage | "all")}>
+            <Tabs value={stageParam} onValueChange={(v) => setStageParamFromPipeline(v as DealStage | "all")}>
               {ACTIVE_STAGE_TABS.map((t) => (
                 <TabsContent key={t.value} value={t.value} className="mt-0">
                   <DealsStageTabContent
@@ -433,6 +608,8 @@ export default function DealsPage() {
           <DealsAnalytics />
         </TabsContent>
       </Tabs>
+        </>
+      )}
     </div>
   );
 }

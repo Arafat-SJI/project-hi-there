@@ -28,9 +28,8 @@ export default function Settings() {
   useEffect(() => {
     if (preferences) {
       setSettings(preferences);
-      // Apply the saved theme immediately
-      // When "system" is selected, default to light mode
-      const themeToApply = preferences.appearance.theme === "system" ? "light" : preferences.appearance.theme;
+      // Apply the saved theme immediately (next-themes handles "system" when enableSystem is true)
+      const themeToApply = preferences.appearance.theme;
       setTheme(themeToApply);
     }
   }, [preferences, setTheme]);
@@ -221,9 +220,8 @@ export default function Settings() {
                   ...settings,
                   appearance: { ...settings.appearance, theme: themeValue },
                 });
-                // Apply theme immediately
-                // When "system" is selected, default to light mode
-                const themeToApply = themeValue === "system" ? "light" : themeValue;
+                // Apply theme immediately (next-themes handles "system" when enableSystem is true)
+                const themeToApply = themeValue;
                 setTheme(themeToApply);
                 // Save to database
                 updatePreferences.mutate({
