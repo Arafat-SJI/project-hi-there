@@ -1,60 +1,112 @@
 
 
-## Plan: Seed Rich Meeting Transcripts + Fix Transcript Page
+## Complete Integration Hub Implementation Guide
 
-### Problem
+This is a documentation/reference deliverable — a comprehensive implementation guide file that captures every layer of your integration system so you can replicate it in another project.
 
-Two issues to address:
+### What will be delivered
 
-1. **Broken Transcript Page**: `MeetingTranscriptsPage` queries columns that don't exist in `meeting_transcripts` (`summary`, `speakers`, `source`, `processing_status`). The actual schema is `id, meeting_id, speaker, content, created_at`. The page shows "No Transcripts" even though 25 transcript turns exist across 10 meetings.
+A single comprehensive markdown file (`docs/INTEGRATION_HUB_IMPLEMENTATION_GUIDE.md`) containing the full reusable blueprint, organized into these sections:
 
-2. **Insufficient Seed Data**: The existing 10 meetings have only 2-3 speaker turns each (very short). User wants at least 10 meetings with long, realistic agency-client transcripts.
+---
 
-### Current State
+### 1. Database Schema (7 tables)
 
-- `meeting_transcripts` schema: `id, meeting_id, speaker, content, created_at` (speaker-turn model, one row per turn)
-- `meeting_action_items` schema: `id, meeting_id, text, assignee_id, assignee_email, due_date, priority, task_id, status, extracted_from_transcript, extraction_confidence, created_at, updated_at` — currently empty
-- 10 meetings already have transcripts (2-3 turns each, very brief)
-- 22 clients exist (law firms, CPA firms, tech companies)
+The guide will include the complete SQL for all integration-related tables:
 
-### Implementation
+| Table | Purpose |
+|-------|---------|
+| `integration_categories` | Groups integrations (AI, Meeting, Email, CRM, etc.) |
+| `integration_providers` | Individual providers with auth_type + oauth_config JSONB |
+| `integration_fields` | Dynamic form fields per provider (api_key, client_id, etc.) |
+| `organization_integrations` | Org-level config storage (credentials in `config` JSONB) |
+| `integration_services` | Sub-services per provider (e.g., Zoom meetings vs recordings) |
+| `integration_usage_logs` | Analytics/cost tracking |
+| `oauth_states` | CSRF protection during OAuth flow |
+| `user_oauth_tokens` | Per-user OAuth token storage |
 
-#### 1. Fix MeetingTranscriptsPage to match actual schema
+Including all RLS policies, indexes, triggers, helper functions (`user_has_valid_oauth_token`, `cleanup_expired_oauth_states`), and the `user_id` column migration for `organization_integrations`.
 
-Rewrite the query and `TranscriptRow` interface to aggregate `meeting_transcripts` by `meeting_id`:
-- Group turns by `meeting_id`, collect unique speakers, concatenate content
-- Remove references to non-existent columns (`summary`, `source`, `processing_status`)
-- Derive speaker list from `DISTINCT speaker` per meeting
-- Show turn count instead of processing status
-- Keep search, preview dialog, and navigation working
+### 2. Seed Data
 
-#### 2. Seed 10 new meetings with long transcripts (via edge function)
+Complete INSERT statements for 20+ providers across 7 categories, plus their field definitions and service configurations.
 
-Create a temporary `seed-meeting-transcripts` edge function that inserts:
+### 3. Edge Functions (4 core functions)
 
-- **10 new completed meetings** tied to existing clients, covering realistic agency scenarios:
-  1. Acme Corp — Q1 Strategy Review (8+ turns)
-  2. NovaTech Solutions — Product Roadmap Sync (8+ turns)
-  3. Kevin Patel — Contract Automation Workshop (8+ turns)
-  4. Sarah Chen — Document Management Discovery (8+ turns)
-  5. James Thompson — Litigation Dashboard Review (8+ turns)
-  6. Jennifer Adams — Tax Season Readiness (8+ turns)
-  7. Michael Richardson — Year-End Compliance Review (8+ turns)
-  8. Robert Martinez — Family Law Portal Demo (8+ turns)
-  9. Thomas Anderson — CFO Advisory Dashboard (8+ turns)
-  10. Patricia Williams — IP Portfolio Tracking (8+ turns)
+Full source code for:
+- **`user-oauth-connect`** — Initiates OAuth flow: validates user, checks org config, builds authorization URL with provider-specific scopes, stores state for CSRF
+- **`user-oauth-callback`** — Handles redirect: exchanges code for tokens, fetches user info, upserts into `user_oauth_tokens`, redirects back to app
+- **`user-oauth-disconnect`** — Revokes token at provider (if supported), deletes from `user_oauth_tokens`
+- **`user-oauth-refresh`** — Refreshes expired tokens using refresh_token
+- **`validate-api-key`** — Tests API key credentials for non-OAuth providers
 
-- Each meeting gets **8-12 speaker turns** with realistic dialogue between agency presenter (Shahed) and client stakeholders
-- Each meeting gets **2-4 action items** in `meeting_action_items` with priorities, due dates, and confidence scores
+### 4. Frontend Architecture
 
-#### 3. Cleanup
+Complete source for all React components and hooks:
 
-Delete the temporary edge function after execution.
+**Hooks:**
+- `useIntegrations.ts` — 15 React Query hooks (categories, providers, fields, org integrations, services, usage logs, grouped data)
+- `useUserIntegrations.ts` — User-level OAuth token management (connect, disconnect, refresh, validity check)
+- `useIntegrationStatus.ts` — Connection statistics
+
+**Utilities:**
+- `integration-utils.ts` — Type definitions, icon mapping, status helpers, OAuth URL builder, field validation, masking
+
+**Components:**
+- `ProviderCard.tsx` — Card per provider with status badge + action button
+- `DynamicFormField.tsx` — Renders text/password/select/textarea with validation
+- `ProviderDetailHeader.tsx` — Detail page header with connect/test/disconnect actions
+- `ConnectedServices.tsx` — User settings page for managing personal connections
+
+**Pages:**
+- `Integrations.tsx` — Main hub with category-based collapsible grid, search, filtering
+- `ZoomIntegration.tsx` — Full provider detail page (reference implementation showing org config form, user OAuth connection, sync controls, statistics)
+
+### 5. OAuth Flow Diagram
+
+```text
+┌──────────┐     ┌──────────────┐     ┌────────────────┐     ┌──────────┐
+│  Admin   │     │   Frontend   │     │ Edge Functions  │     │ Provider │
+│  Panel   │     │   (React)    │     │  (Supabase)     │     │  (Zoom)  │
+└────┬─────┘     └──────┬───────┘     └───────┬────────┘     └────┬─────┘
+     │                  │                     │                    │
+     │ 1. Save Client   │                     │                    │
+     │ ID + Secret ─────┼──► upsert into      │                    │
+     │                  │    organization_     │                    │
+     │                  │    integrations      │                    │
+     │                  │                     │                    │
+     │                  │ 2. Click "Connect"  │                    │
+     │                  │────────────────────►│                    │
+     │                  │  user-oauth-connect │                    │
+     │                  │                     │── 3. Store state   │
+     │                  │                     │   in oauth_states  │
+     │                  │                     │                    │
+     │                  │◄── auth URL ────────│                    │
+     │                  │                     │                    │
+     │                  │──── 4. Redirect ────┼───────────────────►│
+     │                  │                     │                    │
+     │                  │                     │◄── 5. Callback ────│
+     │                  │                     │   with code+state  │
+     │                  │                     │                    │
+     │                  │                     │── 6. Exchange code │
+     │                  │                     │   for tokens ─────►│
+     │                  │                     │◄── tokens ─────────│
+     │                  │                     │                    │
+     │                  │                     │── 7. Store tokens  │
+     │                  │                     │   in user_oauth_   │
+     │                  │                     │   tokens           │
+     │                  │                     │                    │
+     │                  │◄── 8. Redirect ─────│                    │
+     │                  │   back to app       │                    │
+```
+
+### 6. Adding a New Provider Checklist
+
+Step-by-step guide for adding any new OAuth or API-key provider.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/modules/meetings/pages/MeetingTranscriptsPage.tsx` | Rewrite query to aggregate speaker turns per meeting; fix TranscriptRow interface |
-| `supabase/functions/seed-meeting-transcripts/index.ts` | Temporary edge function to insert 10 meetings + ~100 transcript turns + ~30 action items |
+| `docs/INTEGRATION_HUB_IMPLEMENTATION_GUIDE.md` | New — complete implementation guide with all SQL, edge function code, React components, and architecture documentation |
 
