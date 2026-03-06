@@ -41,22 +41,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch user role from user_roles table
+  // Fetch user role from user_roles table (picks highest-privilege role)
   const fetchUserRole = async (userId: string): Promise<string | undefined> => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .single();
+        .eq("user_id", userId);
 
       if (error) {
-        if (error.code !== "PGRST116") {
-          console.error("Error fetching user role:", error);
-        }
+        console.error("Error fetching user role:", error);
         return undefined;
       }
-      return data?.role;
+      if (!data || data.length === 0) return undefined;
+      // Prioritize admin > moderator > user
+      const roles = data.map((r) => r.role);
+      if (roles.includes("admin")) return "admin";
+      if (roles.includes("moderator")) return "moderator";
+      return roles[0];
     } catch (error) {
       console.error("Error fetching user role:", error);
       return undefined;
