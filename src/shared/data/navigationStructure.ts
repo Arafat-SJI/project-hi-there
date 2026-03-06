@@ -395,13 +395,14 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
-    id: "knowledge-ai",
-    title: "KNOWLEDGE & AI",
+    id: "intelligence-ai",
+    title: "INTELLIGENCE & AI",
     icon: "Brain",
+    isAI: true,
     items: [
       {
         title: "AI Hub",
-        href: "/admin/ai-usage",
+        href: "/admin/ai",
         icon: "Brain",
         headerOnly: true,
         children: [
@@ -412,6 +413,17 @@ export const adminNavigation: NavGroup[] = [
           { title: "Prompt Templates", href: "/admin/ai/prompt-templates", icon: "FileText" },
           { title: "Email Drafting", href: "/admin/ai/email-drafting", icon: "MessageSquare" },
           { title: "Deal Coaching", href: "/admin/ai/deal-coaching", icon: "Target" },
+        ],
+      },
+      {
+        title: "AI Models & Usage",
+        href: "/admin/ai-models",
+        icon: "Cpu",
+        headerOnly: true,
+        children: [
+          { title: "AI Models", href: "/admin/ai-models", icon: "Brain" },
+          { title: "AI Usage Analytics", href: "/admin/ai-usage", icon: "BarChart3" },
+          { title: "MCP Servers", href: "/admin/mcp-servers", icon: "Plug" },
         ],
       },
       {
@@ -499,90 +511,6 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
-    id: "admin-eos",
-    title: "EOS",
-    icon: "Target",
-    items: [
-      {
-        title: "EOS Admin",
-        href: "/admin/eos",
-        icon: "Target",
-      },
-      {
-        title: "VTO Config",
-        href: "/admin/eos/vto",
-        icon: "FileText",
-      },
-      {
-        title: "Scorecards",
-        href: "/admin/eos/scorecards",
-        icon: "BarChart3",
-      },
-      {
-        title: "OKRs Workspace",
-        href: "/admin/eos/okrs",
-        icon: "Crosshair",
-      },
-      {
-        title: "Accountability",
-        href: "/admin/eos/accountability",
-        icon: "Network",
-      },
-    ],
-  },
-  {
-    id: "admin-knowledge",
-    title: "KNOWLEDGE",
-    icon: "BookOpen",
-    items: [
-      {
-        title: "Knowledge Analytics",
-        href: "/admin/knowledge/analytics",
-        icon: "BarChart3",
-      },
-      {
-        title: "Categories",
-        href: "/admin/knowledge/categories",
-        icon: "FolderOpen",
-      },
-      {
-        title: "Sources",
-        href: "/admin/knowledge/sources",
-        icon: "Database",
-      },
-      {
-        title: "Files",
-        href: "/admin/knowledge/files",
-        icon: "FileText",
-      },
-      {
-        title: "Sync Status",
-        href: "/admin/knowledge/sync-status",
-        icon: "RefreshCw",
-      },
-      {
-        title: "Common Knowledge",
-        href: "/admin/knowledge/common",
-        icon: "Globe",
-      },
-      {
-        title: "Embeddings",
-        href: "/admin/knowledge/embeddings",
-        icon: "Brain",
-      },
-      {
-        title: "Gemini RAG",
-        href: "/admin/knowledge/gemini",
-        icon: "Sparkles",
-      },
-      {
-        title: "Memory Analytics",
-        href: "/admin/knowledge/memory-analytics",
-        icon: "Brain",
-      },
-    ],
-  },
-  {
     id: "content-feedback",
     title: "CONTENT & FEEDBACK",
     icon: "MessageSquare",
@@ -591,28 +519,6 @@ export const adminNavigation: NavGroup[] = [
         title: "Feedback Management",
         href: "/admin/feedback",
         icon: "MessageSquare",
-      },
-    ],
-  },
-  {
-    id: "ai-automation",
-    title: "AI & AUTOMATION",
-    icon: "Brain",
-    items: [
-      {
-        title: "AI Models",
-        href: "/admin/ai-models",
-        icon: "Brain",
-      },
-      {
-        title: "AI Usage Analytics",
-        href: "/admin/ai-usage",
-        icon: "BarChart",
-      },
-      {
-        title: "MCP Servers",
-        href: "/admin/mcp-servers",
-        icon: "Plug",
       },
     ],
   },
