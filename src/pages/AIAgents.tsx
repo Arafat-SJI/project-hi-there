@@ -46,6 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useNavigate } from "react-router-dom";
 import { Brain, Loader2, Plus, Edit, Play, Pause, Trash2, History, MessageSquare } from "lucide-react";
 import {
   QuickStartWizard,
@@ -57,6 +58,7 @@ import {
 } from "@/components/admin/AgentConfigurationGuide";
 
 export default function AIAgents() {
+  const navigate = useNavigate();
   const { data: agents, isLoading } = useAIAgents();
   const { data: recentRuns } = useAgentRuns();
   const createAgent = useCreateAgent();
@@ -476,15 +478,24 @@ export default function AIAgents() {
 
                 <div className="flex gap-2">
                   {agent.is_enabled && (
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="flex-1"
-                      onClick={() => openRunDialog(agent)}
-                    >
-                      <Play className="mr-2 h-3 w-3" />
-                      Run
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => navigate(`/admin/ai/chat?agent=${agent.id}`)}
+                      >
+                        <MessageSquare className="mr-2 h-3 w-3" />
+                        Chat
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openRunDialog(agent)}
+                      >
+                        <Play className="mr-2 h-3 w-3" />
+                        Run
+                      </Button>
+                    </>
                   )}
                   <Button
                     size="sm"

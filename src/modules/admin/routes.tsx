@@ -74,6 +74,7 @@ import AIDashboard from "@/pages/admin/ai/AIDashboard";
 import AgentAnalytics from "@/pages/admin/ai/AgentAnalytics";
 import PromptTemplateManagement from "@/pages/admin/ai/PromptTemplateManagement";
 import AIAgents from "@/pages/AIAgents";
+import AIChat from "@/pages/AIChat";
 import AgentCategories from "@/pages/admin/ai/AgentCategories";
 import EmailDraftingPerformance from "@/pages/admin/ai/EmailDraftingPerformance";
 import DealCoaching from "@/pages/admin/ai/DealCoaching";
@@ -95,6 +96,7 @@ export const adminRoutes = (
     <Route path="/admin/ai/agent-analytics" element={<AgentAnalytics />} />
     <Route path="/admin/ai/agent-categories" element={<AgentCategories />} />
     <Route path="/admin/ai/agents" element={<AIAgents />} />
+    <Route path="/admin/ai/chat" element={<AIChat />} />
     <Route path="/admin/ai/prompt-templates" element={<PromptTemplateManagement />} />
     <Route path="/admin/ai/email-drafting" element={<EmailDraftingPerformance />} />
     <Route path="/admin/ai/deal-coaching" element={<DealCoaching />} />
