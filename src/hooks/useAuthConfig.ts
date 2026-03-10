@@ -7,6 +7,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Helper to query tables not yet in generated Supabase types
+const untypedFrom = (table: string) =>
+  (supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }).from(table);
+
 export interface SSOProvider {
   id: string;
   provider_type: 'google_workspace' | 'azure_ad' | 'saml' | 'oidc';
@@ -82,8 +86,7 @@ export function useSSOConfigurations() {
     queryKey: ['sso-configurations'],
     queryFn: async (): Promise<SSOProvider[]> => {
       // Use raw query since table not in generated types yet
-      const { data, error } = await (supabase as any)
-        .from('sso_configurations')
+      const { data, error } = await untypedFrom('sso_configurations')
         .select('*')
         .order('created_at', { ascending: true });
 
@@ -98,8 +101,7 @@ export function useSSOConfiguration(providerType: string) {
   return useQuery<SSOProvider | null>({
     queryKey: ['sso-configuration', providerType],
     queryFn: async (): Promise<SSOProvider | null> => {
-      const { data, error } = await (supabase as any)
-        .from('sso_configurations')
+      const { data, error } = await untypedFrom('sso_configurations')
         .select('*')
         .eq('provider_type', providerType)
         .single();
@@ -117,8 +119,7 @@ export function useUpsertSSOConfiguration() {
 
   return useMutation({
     mutationFn: async (config: Partial<SSOProvider> & { provider_type: string }) => {
-      const { data, error } = await (supabase as any)
-        .from('sso_configurations')
+      const { data, error } = await untypedFrom('sso_configurations')
         .upsert(config, { onConflict: 'provider_type' })
         .select()
         .single();
@@ -144,8 +145,7 @@ export function useDeleteSSOConfiguration() {
 
   return useMutation({
     mutationFn: async (providerType: string) => {
-      const { error } = await (supabase as any)
-        .from('sso_configurations')
+      const { error } = await untypedFrom('sso_configurations')
         .delete()
         .eq('provider_type', providerType);
 
@@ -167,8 +167,7 @@ export function useSSODomains(configId: string) {
   return useQuery<SSODomain[]>({
     queryKey: ['sso-domains', configId],
     queryFn: async (): Promise<SSODomain[]> => {
-      const { data, error } = await (supabase as any)
-        .from('sso_domain_allowlist')
+      const { data, error } = await untypedFrom('sso_domain_allowlist')
         .select('*')
         .eq('sso_config_id', configId)
         .order('domain', { ascending: true });
@@ -186,8 +185,7 @@ export function useAddSSODomain() {
 
   return useMutation({
     mutationFn: async ({ configId, domain }: { configId: string; domain: string }) => {
-      const { data, error } = await (supabase as any)
-        .from('sso_domain_allowlist')
+      const { data, error } = await untypedFrom('sso_domain_allowlist')
         .insert({ sso_config_id: configId, domain: domain.toLowerCase() })
         .select()
         .single();
@@ -211,8 +209,7 @@ export function useRemoveSSODomain() {
 
   return useMutation({
     mutationFn: async ({ domainId, configId }: { domainId: string; configId: string }) => {
-      const { error } = await (supabase as any)
-        .from('sso_domain_allowlist')
+      const { error } = await untypedFrom('sso_domain_allowlist')
         .delete()
         .eq('id', domainId);
 
