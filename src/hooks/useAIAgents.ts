@@ -161,7 +161,7 @@ export function useCreateAgent() {
           avatar: data.avatar || null,
           welcome_message: data.welcome_message || null,
           conversation_starters: data.conversation_starters || [],
-          // Tool configuration
+          // Tool configuration (columns added via migration, not yet in generated types)
           tool_code_interpreter: data.tool_code_interpreter ?? false,
           tool_file_search: data.tool_file_search ?? true,
           tool_web_search: data.tool_web_search ?? false,
@@ -169,7 +169,7 @@ export function useCreateAgent() {
           tool_mcp: data.tool_mcp ?? false,
           mcp_server_ids: data.mcp_server_ids || [],
           tools_config: data.tools_config || [],
-        })
+        } as never)
         .select()
         .single();
 

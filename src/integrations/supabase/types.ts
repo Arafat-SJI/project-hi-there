@@ -759,6 +759,7 @@ export type Database = {
           description: string | null
           id: string
           is_enabled: boolean | null
+          mcp_server_ids: string[] | null
           memory_enabled: boolean | null
           metadata: Json | null
           name: string
@@ -766,6 +767,12 @@ export type Database = {
           required_role: Database["public"]["Enums"]["app_role"] | null
           slug: string
           system_prompt: string
+          tool_code_interpreter: boolean | null
+          tool_file_search: boolean | null
+          tool_image_generation: boolean | null
+          tool_mcp: boolean | null
+          tool_web_search: boolean | null
+          tools_config: Json | null
           updated_at: string
           welcome_message: string | null
         }
@@ -779,6 +786,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_enabled?: boolean | null
+          mcp_server_ids?: string[] | null
           memory_enabled?: boolean | null
           metadata?: Json | null
           name: string
@@ -786,6 +794,12 @@ export type Database = {
           required_role?: Database["public"]["Enums"]["app_role"] | null
           slug: string
           system_prompt: string
+          tool_code_interpreter?: boolean | null
+          tool_file_search?: boolean | null
+          tool_image_generation?: boolean | null
+          tool_mcp?: boolean | null
+          tool_web_search?: boolean | null
+          tools_config?: Json | null
           updated_at?: string
           welcome_message?: string | null
         }
@@ -799,6 +813,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_enabled?: boolean | null
+          mcp_server_ids?: string[] | null
           memory_enabled?: boolean | null
           metadata?: Json | null
           name?: string
@@ -806,6 +821,12 @@ export type Database = {
           required_role?: Database["public"]["Enums"]["app_role"] | null
           slug?: string
           system_prompt?: string
+          tool_code_interpreter?: boolean | null
+          tool_file_search?: boolean | null
+          tool_image_generation?: boolean | null
+          tool_mcp?: boolean | null
+          tool_web_search?: boolean | null
+          tools_config?: Json | null
           updated_at?: string
           welcome_message?: string | null
         }
