@@ -8,6 +8,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { PodHealthRecord, PodHealthStats, PodMemberPerformance } from '@/types/pods';
 
+// Local row types for tables not yet in the generated Supabase types
+type PodEmployeeRow = {
+  pod_id: string;
+  employee_id: string | null;
+  user_id: string | null;
+  role?: string;
+};
+
+type EmployeeProfileRow = {
+  id: string;
+  email: string;
+  full_name?: string | null;
+  department?: string | null;
+  location?: string | null;
+};
+
+// Helper to query a table whose name is not yet in generated types
+const untypedFrom = (table: string) =>
+  (supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }).from(table);
+
 // ============================================
 // QUERY KEYS
 // ============================================
@@ -38,12 +58,12 @@ export function usePodHealth() {
 
       if (podsError) throw podsError;
 
-      const { data: podEmployees } = await (supabase as any)
-        .from('pod_employees')
+      const { data: rawPodEmployees } = await untypedFrom('pod_employees')
         .select('pod_id, employee_id, user_id')
         .eq('is_active', true);
+      const podEmployees = (rawPodEmployees || []) as PodEmployeeRow[];
 
-      if (!podEmployees || podEmployees.length === 0) {
+      if (podEmployees.length === 0) {
         return {
           pods_tracked: 0,
           avg_throughput_pct: 0,
@@ -53,16 +73,16 @@ export function usePodHealth() {
       }
 
       // Get employee emails for productivity lookup
-      const employeeIds = [...new Set(podEmployees.map((pe: any) => pe.employee_id).filter(Boolean))] as string[];
-      
+      const employeeIds = [...new Set(podEmployees.map((pe) => pe.employee_id).filter(Boolean))] as string[];
+
       // Try to get employee emails from employee_profiles
-      const { data: employees } = await (supabase as any)
-        .from('employee_profiles')
+      const { data: rawEmployees } = await untypedFrom('employee_profiles')
         .select('id, email')
         .in('id', employeeIds);
+      const employees = (rawEmployees || []) as EmployeeProfileRow[];
 
       const emailMap = new Map<string, string>();
-      (employees || []).forEach((emp: any) => {
+      employees.forEach((emp) => {
         if (emp.id && emp.email) {
           emailMap.set(emp.id, emp.email);
         }
@@ -77,7 +97,7 @@ export function usePodHealth() {
 
       // Group by employee email
       const productivityMap = new Map<string, { utilization: number; efficiency: number }>();
-      (productivity || []).forEach((prod: any) => {
+      (productivity || []).forEach((prod) => {
         if (!productivityMap.has(prod.employee_email)) {
           productivityMap.set(prod.employee_email, {
             utilization: prod.utilization_pct || 0,
@@ -147,36 +167,37 @@ export function usePodHealthRecords() {
   return useQuery({
     queryKey: podHealthKeys.records(),
     queryFn: async (): Promise<PodHealthRecord[]> => {
-      const { data: pods, error: podsError } = await (supabase as any)
+      const { data: podsRaw, error: podsError } = await supabase
         .from('pods')
         .select('id, name, color')
         .eq('is_active', true)
         .eq('show_in_resource_projection', true);
 
       if (podsError) throw podsError;
+      const pods = podsRaw;
 
-      const { data: podEmployees } = await (supabase as any)
-        .from('pod_employees')
+      const { data: rawPodEmployees2 } = await untypedFrom('pod_employees')
         .select('pod_id, employee_id, user_id, role')
         .eq('is_active', true);
+      const podEmployees = (rawPodEmployees2 || []) as (PodEmployeeRow & { role?: string })[];
 
       // Get managers
-      const managers = podEmployees?.filter((pe) => pe.role === 'manager') || [];
+      const managers = podEmployees.filter((pe) => pe.role === 'manager');
       const managerMap = new Map<string, typeof managers[0]>();
       managers.forEach((m) => {
         managerMap.set(m.pod_id, m);
       });
 
       // Get employee emails
-      const employeeIds = [...new Set(podEmployees?.map((pe: any) => pe.employee_id).filter(Boolean) || [])] as string[];
-      const { data: employees } = await (supabase as any)
-        .from('employee_profiles')
+      const employeeIds = [...new Set(podEmployees.map((pe) => pe.employee_id).filter(Boolean))] as string[];
+      const { data: rawEmployees2 } = await untypedFrom('employee_profiles')
         .select('id, email, full_name')
         .in('id', employeeIds);
+      const employees = (rawEmployees2 || []) as EmployeeProfileRow[];
 
       const emailMap = new Map<string, string>();
       const nameMap = new Map<string, string>();
-      (employees || []).forEach((emp: any) => {
+      employees.forEach((emp) => {
         if (emp.id && emp.email) {
           emailMap.set(emp.id, emp.email);
           nameMap.set(emp.id, emp.full_name || emp.email);
@@ -193,7 +214,7 @@ export function usePodHealthRecords() {
         .limit(1000);
 
       const productivityMap = new Map<string, number>();
-      (productivity || []).forEach((prod: any) => {
+      (productivity || []).forEach((prod) => {
         if (!productivityMap.has(prod.employee_email)) {
           const avg = ((prod.utilization_pct || 0) + (prod.efficiency_score || 0)) / 2;
           productivityMap.set(prod.employee_email, avg);
@@ -266,27 +287,27 @@ export function usePodMemberPerformance(podId: string | undefined) {
     queryFn: async (): Promise<PodMemberPerformance[]> => {
       if (!podId) return [];
 
-      const { data: podEmployees, error: peError } = await (supabase as any)
-        .from('pod_employees')
+      const { data: rawPodMembers, error: peError } = await untypedFrom('pod_employees')
         .select('employee_id, user_id, role')
         .eq('pod_id', podId)
         .eq('is_active', true);
 
       if (peError) throw peError;
-      if (!podEmployees || podEmployees.length === 0) return [];
+      const podEmployees = (rawPodMembers || []) as PodEmployeeRow[];
+      if (podEmployees.length === 0) return [];
 
-      const employeeIds = podEmployees.map((pe) => pe.employee_id).filter(Boolean);
-      const { data: employees } = await (supabase as any)
-        .from('employee_profiles')
+      const employeeIds = podEmployees.map((pe) => pe.employee_id).filter(Boolean) as string[];
+      const { data: rawEmpProfiles } = await untypedFrom('employee_profiles')
         .select('id, email, full_name, department, location')
         .in('id', employeeIds);
+      const employees = (rawEmpProfiles || []) as EmployeeProfileRow[];
 
-      const employeeMap = new Map<string, any>();
-      (employees || []).forEach((emp: any) => {
+      const employeeMap = new Map<string, EmployeeProfileRow>();
+      employees.forEach((emp) => {
         employeeMap.set(emp.id, emp);
       });
 
-      const emails = (employees || []).map((e: any) => e.email).filter(Boolean);
+      const emails = employees.map((e) => e.email).filter(Boolean);
       const { data: productivity } = await supabase
         .from('productivity_records')
         .select('employee_email, utilization_pct, efficiency_score')
@@ -295,7 +316,7 @@ export function usePodMemberPerformance(podId: string | undefined) {
         .limit(1000);
 
       const productivityMap = new Map<string, number>();
-      (productivity || []).forEach((prod: any) => {
+      (productivity || []).forEach((prod) => {
         if (!productivityMap.has(prod.employee_email)) {
           const avg = ((prod.utilization_pct || 0) + (prod.efficiency_score || 0)) / 2;
           productivityMap.set(prod.employee_email, avg);

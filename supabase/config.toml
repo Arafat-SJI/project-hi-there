@@ -17,9 +17,6 @@ verify_jwt = false
 [functions.sync-zoom-files]
 verify_jwt = false
 
-[functions.task-attachment-url]
-verify_jwt = false
-
 # API endpoints - require authentication
 [functions.api-v1-clients]
 verify_jwt = true
@@ -119,9 +116,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.user-oauth-disconnect]
-verify_jwt = false
-
-[functions.user-oauth-store-token]
 verify_jwt = false
 
 # Admin: user memory stats (auth + admin check in-code)
@@ -348,4 +342,51 @@ verify_jwt = false
 [functions.extract-meeting-action-items]
 verify_jwt = false
 
+# Previously missing entries — fixes 401 errors in production
+[functions.api-auth]
+verify_jwt = false
 
+[functions.auto-update-follow-up-statuses]
+verify_jwt = false
+
+[functions.consolidate-agent-memories]
+verify_jwt = false
+
+[functions.email-tracking]
+verify_jwt = false
+
+[functions.embedding-retention-cleanup]
+verify_jwt = false
+
+[functions.enforce-guardrails]
+verify_jwt = false
+
+[functions.generate-conversation-opener]
+verify_jwt = false
+
+[functions.lead-followup-research]
+verify_jwt = false
+
+[functions.orchestrate-agent-team]
+verify_jwt = false
+
+[functions.process-embedding-queue]
+verify_jwt = false
+
+[functions.process-scheduled-emails]
+verify_jwt = false
+
+[functions.request-approval]
+verify_jwt = false
+
+[functions.respond-to-approval]
+verify_jwt = false
+
+[functions.retrieve-agent-memories]
+verify_jwt = false
+
+[functions.send-email-with-tracking]
+verify_jwt = false
+
+[functions.validate-guardrails]
+verify_jwt = false
