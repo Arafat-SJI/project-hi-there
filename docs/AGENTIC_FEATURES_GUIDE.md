@@ -818,11 +818,14 @@ DROP TABLE IF EXISTS agent_memories CASCADE;
 
 **Problem:** Conversations don't create memories
 
+**Note:** Memory extraction is now automatic. After every assistant reply in a `memory_enabled` agent conversation, `extract-agent-memories` is called automatically (fire-and-forget) by `useSendMessage`. You no longer need to call it manually.
+
 **Checklist:**
-1. Is `memory_enabled` true on the agent?
+1. Is `memory_enabled` set to `true` on the agent? (Check in Admin → AI Agents → edit the agent)
 2. Is `extract-agent-memories` edge function deployed?
 3. Are embeddings being generated? (Check `generate-embeddings` function)
-4. Check Supabase function logs for errors
+4. Check Supabase Edge Function logs for errors from `extract-agent-memories`
+5. Verify with SQL: `SELECT COUNT(*), agent_id FROM agent_memories GROUP BY agent_id;`
 
 ### Memory Retrieval Returns Empty
 

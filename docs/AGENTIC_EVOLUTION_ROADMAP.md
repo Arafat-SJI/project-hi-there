@@ -808,6 +808,15 @@ User → Frontend → Agent Orchestrator
 
 ## 🚀 Quick Wins (Start Immediately)
 
+### ✅ Completed
+
+- **Memory System MVP** (completed March 10, 2026)
+  - Short-term memory via conversation history (already existed)
+  - Long-term memory extraction into `agent_memories` after every assistant reply (automatic, fire-and-forget via `useSendMessage`)
+  - Memory retrieval on each message send — relevant past memories injected into agent system prompt via `retrieve-agent-memories`
+  - Gated by `memory_enabled` flag per agent — zero impact on agents without memory enabled
+  - Memory badge shown in agent selector UI for memory-enabled agents
+
 ### Week 1-2: Low-Hanging Fruit
 1. **Complete MCP Database Tables** (2 days)
    - Already designed, just need to run migration
@@ -832,11 +841,6 @@ User → Frontend → Agent Orchestrator
    - Implement basic planning loop
    - Goal → Steps → Execute → Verify
    - No LangGraph yet (add later)
-
-6. **Memory System MVP** (10 days)
-   - Short-term memory (conversation history - already have)
-   - Long-term memory (user preferences - new)
-   - Memory injection in prompts
 
 ---
 
