@@ -15,6 +15,7 @@ interface ConversationChatRequest {
   model_id?: string
   include_rag?: boolean
   max_history?: number
+  memory_context?: string
 }
 
 serve(async (req) => {
@@ -38,6 +39,7 @@ serve(async (req) => {
       model_id,
       include_rag = true,
       max_history = 20,
+      memory_context = "",
     }: ConversationChatRequest = await req.json()
 
     // Validate required fields
@@ -121,6 +123,7 @@ serve(async (req) => {
     const systemPrompt = [
       agent.system_prompt,
       additionalContext,
+      memory_context,
       ragContext,
     ].filter(Boolean).join('\n\n')
 

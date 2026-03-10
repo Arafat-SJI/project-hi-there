@@ -33,6 +33,7 @@ export interface AgentConversation {
     description: string | null;
     welcome_message?: string | null;
     conversation_starters?: string[] | null;
+    memory_enabled?: boolean;
   };
 }
 
@@ -63,6 +64,7 @@ export interface SendMessageData {
   content: string;
   agent_id: string;
   model_id?: string;
+  memory_enabled?: boolean;
 }
 
 export function useAgentConversations(agentId: string | undefined) {
@@ -74,7 +76,7 @@ export function useAgentConversations(agentId: string | undefined) {
       const { data, error } = await db
         .from("agent_conversations")
         .select(
-          "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description, welcome_message, conversation_starters)"
+          "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description, welcome_message, conversation_starters, memory_enabled)"
         )
         .eq("agent_id", agentId)
         .eq("user_id", user.id)
@@ -97,7 +99,7 @@ export function useAgentConversation(conversationId: string | null) {
       const { data, error } = await db
         .from("agent_conversations")
         .select(
-          "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description, welcome_message, conversation_starters)"
+          "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description, welcome_message, conversation_starters, memory_enabled)"
         )
         .eq("id", conversationId)
         .single();
@@ -173,7 +175,7 @@ export function useSendMessage() {
 
   return useMutation({
     mutationFn: async (params: SendMessageData) => {
-      const { conversation_id, agent_id, content, model_id } = params;
+      const { conversation_id, agent_id, content, model_id, memory_enabled } = params;
       if (!user?.id) throw new Error("Not authenticated");
 
       // 1. Insert user message
@@ -186,7 +188,26 @@ export function useSendMessage() {
 
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.messages(conversation_id) });
 
-      // 2. Call agent-conversation-chat
+      // 2. Retrieve relevant memories (best-effort, never blocks chat)
+      let memoryContext = "";
+      if (memory_enabled) {
+        try {
+          const { data: memData } = await supabase.functions.invoke("retrieve-agent-memories", {
+            body: { agent_id, user_id: user.id, query: content, limit: 5, similarity_threshold: 0.7 },
+          });
+          if (memData?.memories?.length > 0) {
+            memoryContext =
+              "RELEVANT MEMORIES FROM PAST CONVERSATIONS:\n" +
+              (memData.memories as { memory_category?: string; content: string }[])
+                .map((m) => `- [${m.memory_category ?? "memory"}] ${m.content}`)
+                .join("\n");
+          }
+        } catch {
+          // silent — memory retrieval is best-effort
+        }
+      }
+
+      // 3. Call agent-conversation-chat
       const { data: chatData, error: chatError } = await supabase.functions.invoke(
         API.AI.AGENT_CONVERSATION,
         {
@@ -196,6 +217,7 @@ export function useSendMessage() {
             message: content,
             user_id: user.id,
             model_id: model_id ?? undefined,
+            memory_context: memoryContext,
           },
         }
       );
@@ -212,7 +234,7 @@ export function useSendMessage() {
       };
       if (result?.error) throw new Error(typeof result.error === "string" ? result.error : "Chat failed");
 
-      // 3. Insert assistant message
+      // 4. Insert assistant message
       const { error: insertAssistantError } = await db.from("agent_messages").insert({
         conversation_id,
         role: "assistant",
@@ -224,6 +246,15 @@ export function useSendMessage() {
         latency_ms: result.latency_ms ?? null,
       });
       if (insertAssistantError) throw insertAssistantError;
+
+      // 5. Extract memories after each reply (fire-and-forget, never blocks chat)
+      if (memory_enabled) {
+        supabase.functions
+          .invoke("extract-agent-memories", {
+            body: { agent_id, user_id: user.id, conversation_id, auto_extract: true },
+          })
+          .catch(() => {});
+      }
 
       // Sync conversation stats from actual message count (sidebar shows correct count)
       try {
@@ -307,7 +338,7 @@ export function useArchivedConversations(agentId: string | undefined) {
       const { data, error } = await db
         .from("agent_conversations")
         .select(
-          "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description)"
+          "id, agent_id, user_id, title, summary, is_archived, is_pinned, message_count, last_message_at, metadata, created_at, updated_at, ai_agents(id, name, slug, avatar, description, memory_enabled)"
         )
         .eq("agent_id", agentId)
         .eq("user_id", user.id)

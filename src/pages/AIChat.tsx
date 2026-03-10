@@ -27,6 +27,7 @@ interface AIAgent {
   slug: string;
   description: string | null;
   is_enabled: boolean;
+  memory_enabled: boolean;
 }
 
 export default function AIChat() {
@@ -58,7 +59,7 @@ export default function AIChat() {
     try {
       const { data, error } = await supabase
         .from("ai_agents")
-        .select("id, name, slug, description, is_enabled")
+        .select("id, name, slug, description, is_enabled, memory_enabled")
         .eq("is_enabled", true)
         .order("name");
 
@@ -145,7 +146,15 @@ export default function AIChat() {
                     <div className="flex items-center gap-2">
                       <span className="text-lg">🤖</span>
                       <div className="flex flex-col">
-                        <span>{agent.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span>{agent.name}</span>
+                          {agent.memory_enabled && (
+                            <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4 flex items-center gap-1">
+                              <Brain className="h-2.5 w-2.5" />
+                              Memory
+                            </Badge>
+                          )}
+                        </div>
                         {agent.description && (
                           <span className="text-xs text-muted-foreground">
                             {agent.description}

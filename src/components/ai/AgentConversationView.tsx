@@ -119,6 +119,7 @@ export function AgentConversationView({
         agent_id: agentId,
         content: messageContent,
         model_id: selectedModel || undefined,
+        memory_enabled: (agent as any)?.memory_enabled ?? false,
       });
     } catch (err) {
       const message =
