@@ -407,6 +407,7 @@ export const adminNavigation: NavGroup[] = [
         headerOnly: true,
         children: [
           { title: "Dashboard", href: "/admin/ai", icon: "LayoutDashboard" },
+          { title: "LLM Config", href: "/admin/ai/llm-config", icon: "Settings" },
           { title: "AI Agents", href: "/admin/ai/agents", icon: "Bot" },
           { title: "Agent Analytics", href: "/admin/ai/agent-analytics", icon: "BarChart3" },
           { title: "Agent Categories", href: "/admin/ai/agent-categories", icon: "FolderOpen" },

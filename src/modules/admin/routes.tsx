@@ -80,6 +80,7 @@ import EmailDraftingPerformance from "@/pages/admin/ai/EmailDraftingPerformance"
 import DealCoaching from "@/pages/admin/ai/DealCoaching";
 import AdminSemanticSearch from "@/pages/admin/ai/AdminSemanticSearch";
 import EmbeddingPipelineDashboard from "@/pages/admin/ai/EmbeddingPipelineDashboard";
+import LLMConfig from "@/pages/admin/ai/LLMConfig";
 import MemoryDashboard from "@/pages/admin/memory/MemoryDashboard";
 import UserMemoryStats from "@/pages/admin/memory/UserMemoryStats";
 import TeamLearningPatterns from "@/pages/admin/memory/TeamLearningPatterns";
@@ -102,6 +103,7 @@ export const adminRoutes = (
     <Route path="/admin/ai/deal-coaching" element={<DealCoaching />} />
     <Route path="/admin/ai/semantic-search" element={<AdminSemanticSearch />} />
     <Route path="/admin/ai/embeddings" element={<EmbeddingPipelineDashboard />} />
+    <Route path="/admin/ai/llm-config" element={<LLMConfig />} />
     <Route path="/admin/implementation-status" element={<ImplementationStatus />} />
 
     {/* Memory Dashboard – admin only, data from Supabase only */}
