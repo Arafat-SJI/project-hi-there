@@ -18,6 +18,8 @@ export interface SyncProjectsResponse {
 const PROJECT_MANAGEMENT_SYNC_FUNCTIONS: Record<string, string> = {
   activecollab: "sync-projects-activecollab",
   jira: "sync-projects-jira",
+  clickup: "sync-clickup",
+  workamajig: "sync-workamajig",
 };
 
 /**
