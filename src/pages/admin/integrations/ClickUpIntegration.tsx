@@ -3,7 +3,7 @@
  * Org-level config + user OAuth connect + project sync
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import {
   useUpdateIntegration,
 } from "@/hooks/useIntegrations";
 import { DynamicFormField } from "@/components/integrations/DynamicFormField";
+import { useUserOAuthToken, useDisconnectOAuth } from "@/hooks/useUserIntegrations";
 
 interface SyncResult {
   success: boolean;
@@ -59,6 +60,11 @@ export default function ClickUpIntegration() {
   const { data: integrationFields, isLoading: fieldsLoading } = useIntegrationFields(provider?.id || "");
   const { data: orgIntegration, isLoading: orgIntegrationLoading } = useOrganizationIntegration(provider?.id || "");
   const updateIntegration = useUpdateIntegration();
+
+  // User-level connection
+  const { data: clickupToken } = useUserOAuthToken("clickup");
+  const disconnectOAuth = useDisconnectOAuth();
+  const isUserConnected = !!clickupToken;
 
   const isOrgConfigured =
     !!orgIntegration && orgIntegration.enabled && orgIntegration.connection_status === "connected";
@@ -183,6 +189,41 @@ export default function ClickUpIntegration() {
       toast({
         title: "ClickUp connection failed",
         description: error?.message || "Failed to connect and sync ClickUp",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Manual "Sync Now" without re-running OAuth
+  const syncOnlyMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("sync-clickup", {});
+      if (error || data?.error) {
+        throw new Error(error?.message || data?.error || "Failed to sync ClickUp data");
+      }
+      return data as SyncResult;
+    },
+    onMutate: () => {
+      setStatusVariant("default");
+      setStatusMessage("Syncing your data...");
+    },
+    onSuccess: (result) => {
+      const projects = result.projects_synced ?? 0;
+      const tasks = result.tasks_synced ?? 0;
+      setStatusVariant("success");
+      setStatusMessage(`ClickUp connected! You have ${projects} projects and ${tasks} tasks synced.`);
+      toast({
+        title: "ClickUp synced",
+        description: `You have ${projects} projects and ${tasks} tasks synced.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["user-oauth-tokens"] });
+    },
+    onError: (error: any) => {
+      setStatusVariant("error");
+      setStatusMessage(error?.message || "Failed to sync ClickUp data");
+      toast({
+        title: "Sync failed",
+        description: error?.message || "Failed to sync ClickUp data",
         variant: "destructive",
       });
     },
@@ -346,6 +387,55 @@ export default function ClickUpIntegration() {
               </p>
             )}
           </div>
+
+          {isUserConnected && (
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  disconnectOAuth.mutate(
+                    { provider: "clickup" },
+                    {
+                      onSuccess: () => {
+                        toast({
+                          title: "Disconnected",
+                          description: "Your ClickUp account has been disconnected.",
+                        });
+                        queryClient.invalidateQueries({ queryKey: ["user-oauth-tokens"] });
+                      },
+                    },
+                  )
+                }
+                disabled={disconnectOAuth.isPending}
+              >
+                {disconnectOAuth.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Disconnecting…
+                  </>
+                ) : (
+                  "Disconnect"
+                )}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => syncOnlyMutation.mutate()}
+                disabled={syncOnlyMutation.isPending}
+              >
+                {syncOnlyMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Syncing…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sync Now
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
 
           {statusMessage && (
             <div

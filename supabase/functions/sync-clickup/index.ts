@@ -17,6 +17,21 @@ interface ClickUpSpace {
   name: string;
 }
 
+interface ClickUpList {
+  id: string;
+  name: string;
+}
+
+interface ClickUpTask {
+  id: string;
+  name: string;
+  status?: {
+    status?: string;
+    type?: string;
+  };
+  due_date?: string | number | null;
+}
+
 interface SyncResult {
   success: boolean;
   projects_synced: number;
@@ -33,6 +48,19 @@ function slugFromNameAndId(name: string, externalId: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `${base}-${externalId}`.slice(0, 100);
+}
+
+function mapTaskStatus(rawStatus?: { status?: string; type?: string }): "todo" | "in_progress" | "completed" {
+  const statusText = (rawStatus?.status || "").toLowerCase();
+  const typeText = (rawStatus?.type || "").toLowerCase();
+
+  if (statusText === "complete" || statusText === "completed" || typeText === "done") {
+    return "completed";
+  }
+  if (statusText.includes("progress") || typeText === "in_progress") {
+    return "in_progress";
+  }
+  return "todo";
 }
 
 serve(async (req) => {
@@ -92,6 +120,19 @@ serve(async (req) => {
     const errors: string[] = [];
     let projectsCreated = 0;
     let projectsUpdated = 0;
+    let tasksCreated = 0;
+    let tasksUpdated = 0;
+
+    // Get default project status (used for imported ClickUp projects)
+    let defaultStatusId: string | null = null;
+    const { data: defaultStatusRow } = await supabase
+      .from("project_statuses")
+      .select("id")
+      .eq("is_default", true)
+      .maybeSingle();
+    if (defaultStatusRow?.id) {
+      defaultStatusId = defaultStatusRow.id as string;
+    }
 
     // 1) Get teams for this user
     const teamsResp = await fetch("https://api.clickup.com/api/v2/team", {
@@ -172,7 +213,8 @@ serve(async (req) => {
         .eq("external_id", externalId)
         .maybeSingle();
 
-      const row = {
+      const nowIso = new Date().toISOString();
+      const row: any = {
         name: space.name,
         slug,
         description: null,
@@ -182,31 +224,139 @@ serve(async (req) => {
           source: "clickup",
           team_id: team.id,
         } as Record<string, unknown>,
-        updated_at: new Date().toISOString(),
+        status_id: defaultStatusId,
+        is_archived: false,
+        owner_id: user.id,
+        updated_at: nowIso,
       };
 
+      let projectId: string | null = null;
+
       if (existing) {
-        const { error } = await supabase.from("projects").update(row).eq("id", existing.id);
+        const { data: updated, error } = await supabase
+          .from("projects")
+          .update(row)
+          .eq("id", existing.id)
+          .select("id")
+          .maybeSingle();
         if (error) {
           errors.push(`Update ${space.name}: ${error.message}`);
         } else {
           projectsUpdated++;
+          projectId = updated?.id ?? existing.id;
         }
       } else {
-        const { error } = await supabase.from("projects").insert({
+        const insertRow = {
           ...row,
-          created_at: new Date().toISOString(),
-        });
+          created_at: nowIso,
+          created_by: user.id,
+        };
+        const { data: inserted, error } = await supabase
+          .from("projects")
+          .insert(insertRow)
+          .select("id")
+          .maybeSingle();
         if (error) {
           errors.push(`Insert ${space.name}: ${error.message}`);
         } else {
           projectsCreated++;
+          projectId = inserted?.id ?? null;
+        }
+      }
+
+      // 3) For each space, fetch lists and then tasks
+      const listsResp = await fetch(
+        `https://api.clickup.com/api/v2/space/${space.id}/list?archived=false`,
+        { method: "GET", headers },
+      );
+
+      if (!listsResp.ok) {
+        const text = await listsResp.text();
+        errors.push(`ClickUp /space/${space.id}/list error: ${listsResp.status} - ${text.slice(0, 200)}`);
+        continue;
+      }
+
+      const listsJson = await listsResp.json();
+      const lists: ClickUpList[] = listsJson.lists ?? [];
+
+      for (const list of lists) {
+        const tasksResp = await fetch(
+          `https://api.clickup.com/api/v2/list/${list.id}/task?archived=false&subtasks=false`,
+          { method: "GET", headers },
+        );
+
+        if (!tasksResp.ok) {
+          const text = await tasksResp.text();
+          errors.push(`ClickUp /list/${list.id}/task error: ${tasksResp.status} - ${text.slice(0, 200)}`);
+          continue;
+        }
+
+        const tasksJson = await tasksResp.json();
+        const tasks: ClickUpTask[] = tasksJson.tasks ?? [];
+
+        for (const task of tasks) {
+          const externalTaskId = String(task.id);
+
+          const { data: existingTask } = await supabase
+            .from("tasks")
+            .select("id")
+            .eq("created_by", user.id)
+            .contains("metadata", { source: "clickup", external_id: externalTaskId })
+            .maybeSingle();
+
+          const status = mapTaskStatus(task.status);
+          const due =
+            task.due_date != null
+              ? new Date(Number(task.due_date)).toISOString()
+              : null;
+
+          const taskRow: any = {
+            title: task.name || "ClickUp Task",
+            description: null,
+            status,
+            priority: "medium",
+            assigned_to: null,
+            meeting_id: null,
+            client_id: null,
+            due_date: due,
+            metadata: {
+              source: "clickup",
+              external_id: externalTaskId,
+              project_external_id: externalId,
+              synced: true,
+            },
+            updated_at: new Date().toISOString(),
+          };
+
+          if (existingTask) {
+            const { error } = await supabase
+              .from("tasks")
+              .update(taskRow)
+              .eq("id", existingTask.id);
+            if (error) {
+              errors.push(`Update task ${externalTaskId}: ${error.message}`);
+            } else {
+              tasksUpdated++;
+            }
+          } else {
+            const insertRow = {
+              ...taskRow,
+              created_at: new Date().toISOString(),
+              created_by: user.id,
+            };
+            const { error } = await supabase.from("tasks").insert(insertRow);
+            if (error) {
+              errors.push(`Insert task ${externalTaskId}: ${error.message}`);
+            } else {
+              tasksCreated++;
+            }
+          }
         }
       }
     }
 
     const projectsSynced = projectsCreated + projectsUpdated;
-    const tasksSynced = 0; // Tasks sync can be added later; for now we only sync projects.
+    const tasksSynced = tasksCreated + tasksUpdated;
 
     // Update metadata on user_oauth_tokens with last sync info
     const newMetadata = {
