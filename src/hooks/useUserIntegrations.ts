@@ -121,7 +121,6 @@ export function useAvailableUserProviders() {
             slug,
             name,
             description,
-            icon,
             oauth_config,
             auth_type
           )
@@ -134,7 +133,13 @@ export function useAvailableUserProviders() {
       const providers: AvailableProvider[] = (orgIntegrations || [])
         .filter((oi) => {
           const provider = (oi as any).integration_providers;
-          return provider && provider.auth_type === 'oauth' && provider.oauth_config;
+          // Support both 'oauth' and 'oauth2' auth types
+          return (
+            provider &&
+            typeof provider.auth_type === 'string' &&
+            provider.auth_type.toLowerCase().startsWith('oauth') &&
+            provider.oauth_config
+          );
         })
         .map((oi) => {
           const provider = (oi as any).integration_providers;
@@ -143,7 +148,7 @@ export function useAvailableUserProviders() {
             provider_slug: provider.slug,
             provider_name: provider.name,
             description: provider.description,
-            icon: provider.icon,
+            icon: '', // icon not stored on providers table; UI uses local mapping
             scopes: config.default_scopes || [],
             oauth_enabled: true,
           };

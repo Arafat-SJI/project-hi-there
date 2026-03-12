@@ -41,6 +41,9 @@ import {
   UserOAuthToken,
   AvailableProvider,
 } from '@/hooks/useUserIntegrations';
+import { useMutation } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Provider icons/logos
 const providerIcons: Record<string, string> = {
@@ -58,6 +61,8 @@ interface ServiceCardProps {
   isConnecting: boolean;
   isDisconnecting: boolean;
   isRefreshing: boolean;
+  onSync?: () => void;
+  isSyncing?: boolean;
 }
 
 function ServiceCard({
@@ -69,6 +74,8 @@ function ServiceCard({
   isConnecting,
   isDisconnecting,
   isRefreshing,
+  onSync,
+  isSyncing,
 }: ServiceCardProps) {
   const isConnected = connection?.is_active;
   const isExpired = connection?.expires_at && new Date(connection.expires_at) <= new Date();
@@ -146,7 +153,7 @@ function ServiceCard({
       )}
 
       {/* Actions */}
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         {isConnected ? (
           <>
             {(isExpired || hasError) && (
@@ -162,6 +169,21 @@ function ServiceCard({
                   <RefreshCw className="mr-2 h-4 w-4" />
                 )}
                 Reconnect
+              </Button>
+            )}
+            {onSync && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSync}
+                disabled={isAnyActionPending || !!isSyncing}
+              >
+                {isSyncing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Sync data
               </Button>
             )}
             <Button
@@ -221,6 +243,27 @@ export function ConnectedServices() {
   const disconnectOAuth = useDisconnectOAuth();
   const refreshToken = useRefreshOAuthToken();
 
+  const syncClickup = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('sync-clickup', {});
+      if (error || data?.error) {
+        throw new Error(error?.message || data?.error || 'Failed to sync ClickUp');
+      }
+      return data as {
+        projects_synced: number;
+        tasks_synced: number;
+      };
+    },
+    onSuccess: (res) => {
+      toast.success(
+        `ClickUp synced: ${res.projects_synced} projects, ${res.tasks_synced} tasks.`
+      );
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? 'Failed to sync ClickUp');
+    },
+  });
+
   const [disconnectProvider, setDisconnectProvider] = useState<string | null>(null);
   // Track which provider has a pending action
   const [pendingActions, setPendingActions] = useState<PendingState>({});
@@ -266,6 +309,21 @@ export function ConnectedServices() {
       disconnectOAuth.mutate(
         { provider: disconnectProvider },
         {
+          onSuccess: async () => {
+            try {
+              const { error } = await supabase.functions.invoke('user-integration-clear-data', {
+                body: { provider: disconnectProvider },
+              });
+              if (error) {
+                throw error;
+              }
+              toast.success('Disconnected and cleared synced data');
+            } catch (err: any) {
+              toast.error(
+                err?.message ?? 'Disconnected, but failed to clear synced data'
+              );
+            }
+          },
           onSettled: () => {
             setPendingActions(prev => ({ ...prev, [disconnectProvider]: null }));
           },
@@ -373,6 +431,14 @@ export function ConnectedServices() {
                   isConnecting={isPendingAction(provider.provider_slug, 'connect')}
                   isDisconnecting={isPendingAction(provider.provider_slug, 'disconnect')}
                   isRefreshing={isPendingAction(provider.provider_slug, 'refresh')}
+                  onSync={
+                    provider.provider_slug === 'clickup'
+                      ? () => syncClickup.mutate()
+                      : undefined
+                  }
+                  isSyncing={
+                    provider.provider_slug === 'clickup' && syncClickup.isPending
+                  }
                 />
               ))}
             </div>
