@@ -15,7 +15,7 @@ const corsHeaders = {
 interface TokenResponse {
   access_token: string;
   refresh_token?: string;
-  expires_in: number;
+  expires_in?: number;
   token_type: string;
   scope?: string;
 }
@@ -33,6 +33,7 @@ const getTokenEndpoint = (provider: string): string => {
     "google-drive": "https://oauth2.googleapis.com/token",
     zoom: "https://zoom.us/oauth/token",
     microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+    clickup: "https://api.clickup.com/api/v2/oauth/token",
   };
   return endpoints[provider] || "";
 };
@@ -54,6 +55,9 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
       break;
     case "microsoft":
       url = "https://graph.microsoft.com/v1.0/me";
+      break;
+    case "clickup":
+      url = "https://api.clickup.com/api/v2/user";
       break;
     default:
       return {};
@@ -89,6 +93,12 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
           email: data.mail || data.userPrincipalName,
           name: data.displayName,
           picture: undefined, // MS Graph requires separate call for photo
+        };
+      case "clickup":
+        return {
+          email: data.user?.email ?? undefined,
+          name: data.user?.username ?? data.user?.full_name ?? undefined,
+          picture: undefined,
         };
       default:
         return {};
@@ -201,7 +211,11 @@ serve(async (req) => {
     const userInfo = await getUserInfo(provider, tokens.access_token);
 
     // Calculate expiration time
-    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+    // Some providers (e.g. ClickUp) do not return expires_in; in that case store NULL and treat as non-expiring.
+    let expiresAt: string | null = null;
+    if (tokens.expires_in && tokens.expires_in > 0) {
+      expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+    }
 
     // Store tokens in user_oauth_tokens
     const { error: upsertError } = await supabase.from("user_oauth_tokens").upsert(
@@ -252,6 +266,8 @@ serve(async (req) => {
       finalRedirect = `${appUrl}/admin/integrations/google-meet`;
     } else if (provider === "google-drive") {
       finalRedirect = `${appUrl}/admin/integrations/google-drive`;
+    } else if (provider === "clickup") {
+      finalRedirect = `${appUrl}/admin/integrations/clickup`;
     } else {
       finalRedirect = `${appUrl}/settings`;
     }

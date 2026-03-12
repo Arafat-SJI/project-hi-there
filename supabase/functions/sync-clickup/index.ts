@@ -1,17 +1,29 @@
-// sync-clickup — Sync ClickUp spaces/projects into the projects table
+// @ts-nocheck
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface SyncResponse {
+interface ClickUpTeam {
+  id: string;
+  name: string;
+}
+
+interface ClickUpSpace {
+  id: string;
+  name: string;
+}
+
+interface SyncResult {
   success: boolean;
   projects_synced: number;
   projects_created: number;
   projects_updated: number;
+  tasks_synced: number;
+  duration_ms: number;
   errors: string[];
 }
 
@@ -23,158 +35,223 @@ function slugFromNameAndId(name: string, externalId: string): string {
   return `${base}-${externalId}`.slice(0, 100);
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  const started = Date.now();
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Auth check
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return new Response(
-        JSON.stringify({ success: false, projects_synced: 0, projects_created: 0, projects_updated: 0, errors: ["Missing authorization header"] } as SyncResponse),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+    const jwt = authHeader.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(jwt);
+
+    if (userError || !user) {
       return new Response(
-        JSON.stringify({ success: false, projects_synced: 0, projects_created: 0, projects_updated: 0, errors: ["Unauthorized"] } as SyncResponse),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Get user's ClickUp OAuth token
-    const { data: tokenData, error: tokenError } = await supabase
+    // Get ClickUp OAuth token for this user
+    const { data: tokenRow, error: tokenError } = await supabase
       .from("user_oauth_tokens")
-      .select("access_token")
+      .select("*")
       .eq("user_id", user.id)
       .eq("provider_slug", "clickup")
-      .eq("is_active", true)
       .maybeSingle();
 
-    if (tokenError || !tokenData?.access_token) {
+    if (tokenError || !tokenRow) {
       return new Response(
-        JSON.stringify({ success: false, projects_synced: 0, projects_created: 0, projects_updated: 0, errors: ["ClickUp not connected. Please connect via Integration Hub."] } as SyncResponse),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "No ClickUp connection found for this user" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const clickupToken = tokenData.access_token;
-    const headers = { Authorization: clickupToken, "Content-Type": "application/json" };
-
-    // Step 1: Get teams (workspaces)
-    const teamsRes = await fetch("https://api.clickup.com/api/v2/team", { headers });
-    if (!teamsRes.ok) {
-      return new Response(
-        JSON.stringify({ success: false, projects_synced: 0, projects_created: 0, projects_updated: 0, errors: [`ClickUp API error fetching teams: ${teamsRes.status}`] } as SyncResponse),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    const teamsData = await teamsRes.json();
-    const teams = teamsData.teams || [];
+    const accessToken = tokenRow.access_token as string;
+    const headers: HeadersInit = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    };
 
     const errors: string[] = [];
     let projectsCreated = 0;
     let projectsUpdated = 0;
 
-    // Step 2: For each team, get spaces → lists (treat lists as projects)
-    for (const team of teams) {
-      const spacesRes = await fetch(`https://api.clickup.com/api/v2/team/${team.id}/space?archived=false`, { headers });
-      if (!spacesRes.ok) {
-        errors.push(`Failed to fetch spaces for team ${team.name}`);
-        continue;
-      }
-      const spacesData = await spacesRes.json();
-      const spaces = spacesData.spaces || [];
+    // 1) Get teams for this user
+    const teamsResp = await fetch("https://api.clickup.com/api/v2/team", {
+      method: "GET",
+      headers,
+    });
 
-      for (const space of spaces) {
-        // Get folders and folderless lists
-        const [foldersRes, listsRes] = await Promise.all([
-          fetch(`https://api.clickup.com/api/v2/space/${space.id}/folder?archived=false`, { headers }),
-          fetch(`https://api.clickup.com/api/v2/space/${space.id}/list?archived=false`, { headers }),
-        ]);
+    if (!teamsResp.ok) {
+      const text = await teamsResp.text();
+      return new Response(
+        JSON.stringify({
+          success: false,
+          projects_synced: 0,
+          projects_created: 0,
+          projects_updated: 0,
+          tasks_synced: 0,
+          duration_ms: Date.now() - started,
+          errors: [`ClickUp /team error: ${teamsResp.status} - ${text.slice(0, 200)}`],
+        } satisfies SyncResult),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
-        const allLists: { id: string; name: string }[] = [];
+    const teamsJson = await teamsResp.json();
+    const teams: ClickUpTeam[] = teamsJson.teams ?? [];
 
-        if (listsRes.ok) {
-          const listsData = await listsRes.json();
-          allLists.push(...(listsData.lists || []));
+    if (teams.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          projects_synced: 0,
+          projects_created: 0,
+          projects_updated: 0,
+          tasks_synced: 0,
+          duration_ms: Date.now() - started,
+          errors: [],
+        } satisfies SyncResult),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // For now, use the first team as the primary workspace
+    const team = teams[0];
+
+    // 2) Get spaces (we treat each Space as a Project in our system)
+    const spacesResp = await fetch(
+      `https://api.clickup.com/api/v2/team/${team.id}/space?archived=false`,
+      { method: "GET", headers },
+    );
+
+    if (!spacesResp.ok) {
+      const text = await spacesResp.text();
+      return new Response(
+        JSON.stringify({
+          success: false,
+          projects_synced: 0,
+          projects_created: 0,
+          projects_updated: 0,
+          tasks_synced: 0,
+          duration_ms: Date.now() - started,
+          errors: [`ClickUp /space error: ${spacesResp.status} - ${text.slice(0, 200)}`],
+        } satisfies SyncResult),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const spacesJson = await spacesResp.json();
+    const spaces: ClickUpSpace[] = spacesJson.spaces ?? [];
+
+    for (const space of spaces) {
+      const externalId = String(space.id);
+      const slug = slugFromNameAndId(space.name, externalId);
+
+      const { data: existing } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("external_provider", "clickup")
+        .eq("external_id", externalId)
+        .maybeSingle();
+
+      const row = {
+        name: space.name,
+        slug,
+        description: null,
+        external_provider: "clickup",
+        external_id: externalId,
+        metadata: {
+          source: "clickup",
+          team_id: team.id,
+        } as Record<string, unknown>,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existing) {
+        const { error } = await supabase.from("projects").update(row).eq("id", existing.id);
+        if (error) {
+          errors.push(`Update ${space.name}: ${error.message}`);
+        } else {
+          projectsUpdated++;
         }
-
-        if (foldersRes.ok) {
-          const foldersData = await foldersRes.json();
-          for (const folder of foldersData.folders || []) {
-            allLists.push(...(folder.lists || []));
-          }
-        }
-
-        // Upsert each list as a project
-        for (const list of allLists) {
-          const externalId = list.id;
-          const slug = slugFromNameAndId(list.name, externalId);
-
-          const { data: existing } = await supabase
-            .from("projects")
-            .select("id")
-            .eq("external_provider", "clickup")
-            .eq("external_id", externalId)
-            .maybeSingle();
-
-          const row = {
-            name: list.name,
-            slug,
-            description: `ClickUp List — Space: ${space.name}`,
-            external_provider: "clickup",
-            external_id: externalId,
-            updated_at: new Date().toISOString(),
-          };
-
-          if (existing) {
-            const { error } = await supabase.from("projects").update(row).eq("id", existing.id);
-            if (error) errors.push(`Update ${list.name}: ${error.message}`);
-            else projectsUpdated++;
-          } else {
-            const { error } = await supabase.from("projects").insert({
-              ...row,
-              created_at: new Date().toISOString(),
-              owner_id: user.id,
-            });
-            if (error) errors.push(`Insert ${list.name}: ${error.message}`);
-            else projectsCreated++;
-          }
+      } else {
+        const { error } = await supabase.from("projects").insert({
+          ...row,
+          created_at: new Date().toISOString(),
+        });
+        if (error) {
+          errors.push(`Insert ${space.name}: ${error.message}`);
+        } else {
+          projectsCreated++;
         }
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: errors.length === 0,
-        projects_synced: projectsCreated + projectsUpdated,
-        projects_created: projectsCreated,
-        projects_updated: projectsUpdated,
-        errors,
-      } as SyncResponse),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const projectsSynced = projectsCreated + projectsUpdated;
+    const tasksSynced = 0; // Tasks sync can be added later; for now we only sync projects.
+
+    // Update metadata on user_oauth_tokens with last sync info
+    const newMetadata = {
+      ...(tokenRow.metadata || {}),
+      last_sync_at: new Date().toISOString(),
+      last_sync_status: errors.length === 0 ? "success" : "partial",
+      last_sync_error: errors.length ? errors[0] : null,
+      projects_synced: projectsSynced,
+      tasks_synced: tasksSynced,
+    };
+
+    await supabase
+      .from("user_oauth_tokens")
+      .update({ metadata: newMetadata })
+      .eq("id", tokenRow.id);
+
+    const result: SyncResult = {
+      success: errors.length === 0,
+      projects_synced: projectsSynced,
+      projects_created: projectsCreated,
+      projects_updated: projectsUpdated,
+      tasks_synced: tasksSynced,
+      duration_ms: Date.now() - started,
+      errors,
+    };
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("sync-clickup error:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        projects_synced: 0,
-        projects_created: 0,
-        projects_updated: 0,
-        errors: [error instanceof Error ? error.message : "Unknown error"],
-      } as SyncResponse),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const result: SyncResult = {
+      success: false,
+      projects_synced: 0,
+      projects_created: 0,
+      projects_updated: 0,
+      tasks_synced: 0,
+      duration_ms: Date.now() - started,
+      errors: [error instanceof Error ? error.message : "Unknown error"],
+    };
+    return new Response(JSON.stringify(result), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
+

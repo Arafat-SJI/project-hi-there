@@ -35,6 +35,11 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
         prompt: "consent",
       },
     },
+    clickup: {
+      authUrl: "https://app.clickup.com/api",
+      // ClickUp does not currently use OAuth scopes; keep empty array for compatibility
+      scopes: [],
+    },
     "google-meet": {
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       scopes: [

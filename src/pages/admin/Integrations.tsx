@@ -77,7 +77,7 @@ export default function Integrations() {
       </div>
     );
   }
-
+  console.log("filteredGrouped", filteredGrouped);
   return (
     <div className="space-y-6">
       {/* Header */}

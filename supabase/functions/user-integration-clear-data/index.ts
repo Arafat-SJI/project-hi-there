@@ -1,13 +1,20 @@
-// user-integration-clear-data — Clear user's OAuth tokens and synced data for a provider
+// @ts-nocheck
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+interface ClearResult {
+  success: boolean;
+  projects_deleted: number;
+  tasks_deleted: number;
+  errors: string[];
+}
+
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -17,95 +24,83 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Auth check
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+    const jwt = authHeader.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(jwt);
+
+    if (userError || !user) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Parse body
-    let body: { provider_slug: string; clear_synced_data?: boolean };
-    try {
-      body = await req.json();
-    } catch {
+    const body = await req.json().catch(() => ({}));
+    const provider = (body?.provider as string | undefined)?.toLowerCase();
+
+    if (!provider) {
       return new Response(
-        JSON.stringify({ error: "Invalid JSON" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Provider is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const { provider_slug, clear_synced_data = false } = body;
-    if (!provider_slug) {
-      return new Response(
-        JSON.stringify({ error: "provider_slug is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const errors: string[] = [];
+
+    // Delete projects synced from this provider
+    const { error: projError, count: projectsDeleted } = await supabase
+      .from("projects")
+      .delete({ count: "exact" })
+      .eq("external_provider", provider);
+
+    if (projError) {
+      errors.push(`Delete projects: ${projError.message}`);
     }
 
-    const results: Record<string, string> = {};
+    // Delete tasks created for this provider by this user (metadata.source + synced flag)
+    const { error: taskError, count: tasksDeleted } = await supabase
+      .from("tasks")
+      .delete({ count: "exact" })
+      .eq("created_by", user.id)
+      .contains("metadata", { source: provider, synced: true });
 
-    // 1. Remove OAuth token
-    const { error: tokenError } = await supabase
-      .from("user_oauth_tokens")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("provider_slug", provider_slug);
-
-    if (tokenError) {
-      console.error("Failed to delete token:", tokenError);
-      results.token = `error: ${tokenError.message}`;
-    } else {
-      results.token = "cleared";
+    if (taskError) {
+      errors.push(`Delete tasks: ${taskError.message}`);
     }
 
-    // 2. Optionally clear synced data (projects with this external_provider owned by user)
-    if (clear_synced_data) {
-      // Map provider slugs to external_provider values
-      const providerMap: Record<string, string> = {
-        clickup: "clickup",
-        workamajig: "workamajig",
-        jira: "jira",
-        activecollab: "activecollab",
-      };
+    const result: ClearResult = {
+      success: errors.length === 0,
+      projects_deleted: projectsDeleted ?? 0,
+      tasks_deleted: tasksDeleted ?? 0,
+      errors,
+    };
 
-      const externalProvider = providerMap[provider_slug];
-      if (externalProvider) {
-        const { error: projectsError, count } = await supabase
-          .from("projects")
-          .delete({ count: "exact" })
-          .eq("external_provider", externalProvider)
-          .eq("owner_id", user.id);
-
-        if (projectsError) {
-          console.error("Failed to delete synced projects:", projectsError);
-          results.synced_projects = `error: ${projectsError.message}`;
-        } else {
-          results.synced_projects = `${count || 0} removed`;
-        }
-      }
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, provider_slug, results }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify(result), {
+      status: errors.length ? 500 : 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("user-integration-clear-data error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const result: ClearResult = {
+      success: false,
+      projects_deleted: 0,
+      tasks_deleted: 0,
+      errors: [error instanceof Error ? error.message : "Unknown error"],
+    };
+    return new Response(JSON.stringify(result), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
+
