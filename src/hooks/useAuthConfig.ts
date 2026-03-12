@@ -8,8 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // Helper to query tables not yet in generated Supabase types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const untypedFrom = (table: string) =>
-  (supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }).from(table);
+  (supabase as any).from(table);
 
 export interface SSOProvider {
   id: string;
