@@ -390,3 +390,16 @@ verify_jwt = false
 
 [functions.validate-guardrails]
 verify_jwt = false
+
+# ClickUp & Workamajig integration functions
+[functions.clickup-oauth-exchange]
+verify_jwt = false
+
+[functions.sync-clickup]
+verify_jwt = false
+
+[functions.sync-workamajig]
+verify_jwt = false
+
+[functions.user-integration-clear-data]
+verify_jwt = false
