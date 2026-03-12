@@ -22,6 +22,7 @@ import OAuthCallback from "@/pages/admin/OAuthCallback";
 import MicrosoftTeamsIntegration from "@/pages/admin/integrations/MicrosoftTeamsIntegration";
 import TeamsMeetings from "@/pages/admin/integrations/TeamsMeetings";
 import ZoomIntegration from "@/pages/admin/integrations/ZoomIntegration";
+import ClickUpIntegration from "@/pages/admin/integrations/ClickUpIntegration";
 import ZoomMeetings from "@/pages/admin/integrations/ZoomMeetings";
 import ZoomDocumentation from "@/pages/admin/integrations/ZoomDocumentation";
 import GoogleMeetIntegration from "@/pages/admin/integrations/GoogleMeetIntegration";
@@ -131,6 +132,7 @@ export const adminRoutes = (
     <Route path="/admin/integrations/microsoft-teams" element={<MicrosoftTeamsIntegration />} />
     <Route path="/admin/integrations/microsoft-teams/meetings" element={<TeamsMeetings />} />
     <Route path="/admin/integrations/zoom" element={<ZoomIntegration />} />
+    <Route path="/admin/integrations/clickup" element={<ClickUpIntegration />} />
     <Route path="/admin/integrations/zoom/meetings" element={<ZoomMeetings />} />
     <Route path="/admin/integrations/zoom/documentation" element={<ZoomDocumentation />} />
     <Route path="/admin/integrations/google-meet" element={<GoogleMeetIntegration />} />
