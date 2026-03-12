@@ -112,6 +112,12 @@ serve(async (req) => {
       case 'monday':
         validationResult = await validateMonday(apiKey)
         break
+      case 'clickup':
+        validationResult = await validateClickUp(apiKey)
+        break
+      case 'workamajig':
+        validationResult = await validateWorkamajig(apiKey, credentials)
+        break
       default:
         return new Response(
           JSON.stringify({ valid: false, error: `Unknown service: ${service}` }),
