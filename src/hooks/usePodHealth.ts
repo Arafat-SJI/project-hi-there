@@ -25,8 +25,9 @@ type EmployeeProfileRow = {
 };
 
 // Helper to query a table whose name is not yet in generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const untypedFrom = (table: string) =>
-  (supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }).from(table);
+  (supabase as any).from(table);
 
 // ============================================
 // QUERY KEYS

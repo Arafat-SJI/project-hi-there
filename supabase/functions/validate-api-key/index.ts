@@ -1,3 +1,4 @@
+// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -111,6 +112,12 @@ serve(async (req) => {
         break
       case 'monday':
         validationResult = await validateMonday(apiKey)
+        break
+      case 'clickup':
+        validationResult = await validateClickUp(apiKey)
+        break
+      case 'workamajig':
+        validationResult = await validateWorkamajig(apiKey, credentials)
         break
       default:
         return new Response(
@@ -787,6 +794,109 @@ async function validateMonday(apiKey: string) {
     return {
       valid: false,
       message: `Monday.com validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate ClickUp API key (Personal API Token or OAuth token)
+async function validateClickUp(apiKey: string) {
+  try {
+    const response = await fetch('https://api.clickup.com/api/v2/user', {
+      method: 'GET',
+      headers: {
+        'Authorization': apiKey,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        valid: true,
+        message: 'ClickUp API key is valid',
+        details: {
+          username: data.user?.username || 'unknown',
+          email: data.user?.email || 'unknown',
+        },
+      }
+    } else if (response.status === 401) {
+      return {
+        valid: false,
+        message: 'Invalid ClickUp API key or token',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.err || 'Invalid ClickUp API key',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `ClickUp validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Workamajig API credentials (base_url + api_access_token + user_token)
+async function validateWorkamajig(apiKey: string, credentials?: Record<string, string>) {
+  try {
+    const baseUrl = credentials?.base_url
+    const accessToken = credentials?.api_access_token || apiKey
+    const userToken = credentials?.user_token
+
+    if (!baseUrl) {
+      return {
+        valid: false,
+        message: 'Workamajig base URL is required',
+        details: {},
+      }
+    }
+
+    // Test the Workamajig API with a simple endpoint
+    const headers: Record<string, string> = {
+      'APIAccessToken': accessToken,
+      'Content-Type': 'application/json',
+    }
+    if (userToken) {
+      headers['UserToken'] = userToken
+    }
+
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/beta1/services`, {
+      method: 'GET',
+      headers,
+    })
+
+    if (response.ok) {
+      return {
+        valid: true,
+        message: 'Workamajig credentials are valid',
+        details: { base_url: baseUrl },
+      }
+    } else if (response.status === 401 || response.status === 403) {
+      return {
+        valid: false,
+        message: 'Invalid Workamajig credentials',
+        details: { status: response.status },
+      }
+    } else {
+      return {
+        valid: false,
+        message: `Workamajig API returned status ${response.status}`,
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Workamajig validation error: ${message}`,
       details: {},
     }
   }
