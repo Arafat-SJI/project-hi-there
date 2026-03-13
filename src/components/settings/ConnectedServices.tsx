@@ -282,7 +282,12 @@ export function ConnectedServices() {
 
     setPendingActions(prev => ({ ...prev, [provider]: 'connect' }));
     connectOAuth.mutate(
-      { provider },
+      {
+        provider,
+        // Ensure the OAuth flow always returns to the same domain
+        // (preview, staging, or production) and to the Settings page.
+        redirect_uri: `${window.location.origin}/settings`,
+      },
       {
         onSettled: () => {
           setPendingActions(prev => ({ ...prev, [provider]: null }));

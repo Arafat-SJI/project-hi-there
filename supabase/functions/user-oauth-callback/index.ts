@@ -266,9 +266,9 @@ serve(async (req) => {
       finalRedirect = `${appUrl}/admin/integrations/google-meet`;
     } else if (provider === "google-drive") {
       finalRedirect = `${appUrl}/admin/integrations/google-drive`;
-    } else if (provider === "clickup") {
-      finalRedirect = `${appUrl}/admin/integrations/clickup`;
     } else {
+      // For ClickUp and any other providers without a dedicated admin page,
+      // send users back to the main Settings page where Connected Services lives.
       finalRedirect = `${appUrl}/settings`;
     }
     return Response.redirect(`${finalRedirect}?connected=${provider}`);
