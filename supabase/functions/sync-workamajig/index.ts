@@ -149,6 +149,7 @@ serve(async (req) => {
         .eq("external_id", externalId)
         .maybeSingle();
 
+      const nowIso = new Date().toISOString();
       const row = {
         name: p.name,
         slug,
@@ -158,7 +159,8 @@ serve(async (req) => {
         metadata: {
           source: "workamajig",
         } as Record<string, unknown>,
-        updated_at: new Date().toISOString(),
+        is_archived: false,
+        updated_at: nowIso,
       };
 
       if (existing) {
@@ -171,7 +173,7 @@ serve(async (req) => {
       } else {
         const { error } = await supabase.from("projects").insert({
           ...row,
-          created_at: new Date().toISOString(),
+          created_at: nowIso,
         });
         if (error) {
           errors.push(`Insert ${p.name}: ${error.message}`);

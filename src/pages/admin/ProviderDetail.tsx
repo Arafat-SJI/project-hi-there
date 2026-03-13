@@ -53,7 +53,7 @@ export default function ProviderDetail() {
   const [categorySlug, setCategorySlug] = useState<string>('');
   const isProjectManagementWithSync =
     categorySlug === 'project-management' &&
-    (slug === 'activecollab' || slug === 'jira');
+    (slug === 'activecollab' || slug === 'jira' || slug === 'clickup' || slug === 'workamajig');
   const syncProjects = useSyncProjects(slug || '');
 
   useEffect(() => {

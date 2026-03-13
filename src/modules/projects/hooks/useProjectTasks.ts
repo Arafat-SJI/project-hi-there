@@ -17,7 +17,7 @@ export interface ProjectTask {
   priority: string;
   due_date: string | null;
   assigned_to: string | null;
-  source: "internal" | "activecollab" | "jira";
+  source: "internal" | "activecollab" | "jira" | "clickup" | "workamajig";
   external_id: string | null;
   created_at: string;
 }
@@ -32,7 +32,8 @@ export function useProjectTasks(projectId: string) {
   return useQuery({
     queryKey: ["project-tasks", projectId],
     queryFn: async (): Promise<ProjectTask[]> => {
-      // Get the project to find its client_id
+      // Get the project so we can link tasks either by client_id (internal)
+      // or by external provider/id (for synced tools like ClickUp / Workamajig).
       const { data: project, error: projError } = await supabase
         .from("projects")
         .select("id, client_id, external_id, external_provider")
@@ -40,24 +41,62 @@ export function useProjectTasks(projectId: string) {
         .single();
 
       if (projError) throw projError;
-      if (!project?.client_id) return [];
+      if (!project) return [];
 
-      // Fetch tasks linked to the same client
-      const { data: tasks, error: taskError } = await supabase
-        .from("tasks")
-        .select("id, title, status, priority, due_date, assigned_to, metadata, created_at")
-        .eq("client_id", project.client_id)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      const queries: Promise<any>[] = [];
 
-      if (taskError) throw taskError;
-      if (!tasks) return [];
+      // 1) Tasks linked via client_id (existing behavior)
+      if (project.client_id) {
+        queries.push(
+          supabase
+            .from("tasks")
+            .select("id, title, status, priority, due_date, assigned_to, metadata, created_at")
+            .eq("client_id", project.client_id)
+            .order("created_at", { ascending: false })
+            .limit(50),
+        );
+      }
 
-      return tasks.map((t) => {
+      // 2) Tasks synced from external project tools (ClickUp, Workamajig, Jira, ActiveCollab)
+      if (project.external_id && project.external_provider) {
+        queries.push(
+          supabase
+            .from("tasks")
+            .select("id, title, status, priority, due_date, assigned_to, metadata, created_at")
+            .contains("metadata", {
+              project_external_id: project.external_id,
+            })
+            .order("created_at", { ascending: false })
+            .limit(50),
+        );
+      }
+
+      if (queries.length === 0) return [];
+
+      const results = await Promise.all(queries);
+      const allTasks = results
+        .flatMap((r) => {
+          if (r.error) throw r.error;
+          return r.data || [];
+        })
+        // De-duplicate by id in case the same task matches multiple filters
+        .reduce((acc: Record<string, any>, t: any) => {
+          acc[t.id] = t;
+          return acc;
+        }, {});
+
+      const tasksArray = Object.values(allTasks) as any[];
+
+      return tasksArray.map((t) => {
         const meta = (t as any).metadata || {};
         const rawSource = (meta.source as string) || "internal";
-        const source: ProjectTask["source"] =
-          rawSource === "activecollab" || rawSource === "jira" ? rawSource : "internal";
+        const normalizedSource: ProjectTask["source"] =
+          rawSource === "activecollab" ||
+          rawSource === "jira" ||
+          rawSource === "clickup" ||
+          rawSource === "workamajig"
+            ? (rawSource as ProjectTask["source"])
+            : "internal";
         const externalId = (meta.external_id as string) || null;
 
         return {
@@ -68,7 +107,7 @@ export function useProjectTasks(projectId: string) {
           priority: t.priority || "medium",
           due_date: t.due_date,
           assigned_to: t.assigned_to,
-          source,
+          source: normalizedSource,
           external_id: externalId,
           created_at: t.created_at,
         };

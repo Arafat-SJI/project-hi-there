@@ -5,7 +5,7 @@
  * and inline status/priority editing.
  */
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +75,7 @@ const priorityColors: Record<string, string> = {
 export default function TaskDetailPage() {
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [showDelete, setShowDelete] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -93,9 +94,14 @@ export default function TaskDetailPage() {
     }
   }, [task, idOrSlug, navigate]);
 
-  const backHref = task?.stream?.slug
-    ? `/tasks/stream/${task.stream.slug}`
-    : "/tasks";
+  const fromState = location.state as { fromProject?: { slug?: string } } | null;
+  const projectSlug = fromState?.fromProject?.slug;
+
+  const backHref = projectSlug
+    ? `/projects/${projectSlug}/tasks`
+    : task?.stream?.slug
+      ? `/tasks/stream/${task.stream.slug}`
+      : "/tasks";
 
   if (isLoading) {
     return (
@@ -130,8 +136,38 @@ export default function TaskDetailPage() {
     });
   };
 
+  const clickupMeta =
+    (task.metadata as any)?.clickup as
+      | {
+          timeEstimateMs?: number | null;
+          timeSpentMs?: number | null;
+          tags?: string[];
+          sprintPoints?: number | null;
+        }
+      | undefined;
+  const clickupExternalId = (task.metadata as any)?.external_id as string | undefined;
+  const isClickupTask = (task.metadata as any)?.source === "clickup" && !!clickupExternalId;
+
   const handleStatusChange = (status: TaskStatus) => {
-    updateTask.mutate({ id: task.id, data: { status } });
+    updateTask.mutate(
+      { id: task.id, data: { status } },
+      {
+        onSuccess: async () => {
+          if (isClickupTask) {
+            try {
+              await supabase.functions.invoke("update-clickup-task", {
+                body: {
+                  external_id: clickupExternalId,
+                  status,
+                },
+              });
+            } catch {
+              // best-effort sync
+            }
+          }
+        },
+      },
+    );
   };
 
   const handlePriorityChange = (priority: TaskPriority) => {
@@ -436,6 +472,41 @@ export default function TaskDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* ClickUp-specific fields */}
+          {(task.metadata as any)?.source === "clickup" && clickupMeta && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">ClickUp</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs text-muted-foreground">
+                {clickupMeta.timeEstimateMs != null && (
+                  <div>
+                    <span className="font-medium text-foreground">Time estimate: </span>
+                    <span>{Math.round(clickupMeta.timeEstimateMs / 60000)} min</span>
+                  </div>
+                )}
+                {clickupMeta.timeSpentMs != null && (
+                  <div>
+                    <span className="font-medium text-foreground">Time tracked: </span>
+                    <span>{Math.round(clickupMeta.timeSpentMs / 60000)} min</span>
+                  </div>
+                )}
+                {clickupMeta.sprintPoints != null && (
+                  <div>
+                    <span className="font-medium text-foreground">Sprint points: </span>
+                    <span>{clickupMeta.sprintPoints}</span>
+                  </div>
+                )}
+                {clickupMeta.tags && clickupMeta.tags.length > 0 && (
+                  <div>
+                    <span className="font-medium text-foreground">Tags: </span>
+                    <span>{clickupMeta.tags.join(", ")}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
