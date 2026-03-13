@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardList, Calendar, User } from "lucide-react";
@@ -23,6 +24,7 @@ const priorityConfig: Record<string, { label: string; className: string }> = {
 };
 
 export function TasksTab({ projectId, projectSlug, tasks = [], isLoading }: TasksTabProps) {
+  const navigate = useNavigate();
   const hasTasks = tasks.length > 0;
   const doneCount = tasks.filter((t) => t.status === "done").length;
 
@@ -49,7 +51,12 @@ export function TasksTab({ projectId, projectSlug, tasks = [], isLoading }: Task
                 return (
                   <li
                     key={t.id}
-                    className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-muted/60 transition-colors"
+                    onClick={() =>
+                      navigate(`/tasks/${t.id}`, {
+                        state: { fromProject: { slug: projectSlug } },
+                      })
+                    }
                   >
                     <div className="flex-1 min-w-0">
                       <span className={t.status === "done" ? "text-muted-foreground line-through" : ""}>

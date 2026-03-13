@@ -281,6 +281,7 @@ serve(async (req) => {
 
       for (const list of lists) {
         const tasksResp = await fetch(
+          // Include additional task details like time tracking, tags, and custom fields
           `https://api.clickup.com/api/v2/list/${list.id}/task?archived=false&subtasks=false`,
           { method: "GET", headers },
         );
@@ -304,14 +305,79 @@ serve(async (req) => {
             .contains("metadata", { source: "clickup", external_id: externalTaskId })
             .maybeSingle();
 
-          const status = mapTaskStatus(task.status);
+          // Fetch full task details to get time tracking, tags, points, checklists, etc.
+          let detailed: any = task;
+          try {
+            const detailResp = await fetch(
+              `https://api.clickup.com/api/v2/task/${externalTaskId}`,
+              { method: "GET", headers },
+            );
+            if (detailResp.ok) {
+              const detailJson = await detailResp.json();
+              detailed = detailJson;
+            }
+          } catch {
+            // best-effort; fall back to list task
+          }
+
+          const status = mapTaskStatus(detailed.status);
           const due =
-            task.due_date != null
-              ? new Date(Number(task.due_date)).toISOString()
+            detailed.due_date != null
+              ? new Date(Number(detailed.due_date)).toISOString()
               : null;
 
+          const timeEstimateMs =
+            detailed.time_estimate != null && detailed.time_estimate !== ""
+              ? Number(detailed.time_estimate) || null
+              : null;
+          const timeSpentMs =
+            detailed.time_spent != null && detailed.time_spent !== ""
+              ? Number(detailed.time_spent) || null
+              : null;
+
+          const rawTags = detailed.tags || [];
+          const tags = Array.isArray(rawTags)
+            ? rawTags
+                .map((t: any) => (typeof t === "string" ? t : t?.name))
+                .filter((t: unknown): t is string => typeof t === "string" && !!t)
+            : [];
+
+          const points =
+            typeof detailed.points === "number"
+              ? detailed.points
+              : (() => {
+                  const customFields = (detailed.custom_fields || []) as Array<{
+                    name?: string;
+                    type?: string;
+                    value?: unknown;
+                  }>;
+                  const pointsField = customFields.find(
+                    (f) =>
+                      f.type === "number" &&
+                      typeof f.name === "string" &&
+                      f.name.toLowerCase().includes("point"),
+                  );
+                  return (pointsField?.value as number | null) ?? null;
+                })();
+
+          const checklists = Array.isArray(detailed.checklists) ? detailed.checklists : [];
+          const checklistsCount = checklists.length;
+
+          // Extract richer ClickUp-specific details for the UI
+          const clickupDetails = {
+            timeEstimateMs,
+            timeSpentMs,
+            tags,
+            sprintPoints: points,
+            checklistsCount,
+            hasParent: !!detailed.parent,
+            url: detailed.url ?? null,
+            // Keep raw payload in case the UI needs other fields later
+            raw: detailed,
+          };
+
           const taskRow: any = {
-            title: task.name || "ClickUp Task",
+            title: detailed.name || task.name || "ClickUp Task",
             description: null,
             status,
             priority: "medium",
@@ -324,6 +390,7 @@ serve(async (req) => {
               external_id: externalTaskId,
               project_external_id: externalId,
               synced: true,
+              clickup: clickupDetails,
             },
             updated_at: new Date().toISOString(),
           };

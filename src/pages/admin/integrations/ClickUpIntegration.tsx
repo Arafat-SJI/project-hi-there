@@ -180,8 +180,9 @@ export default function ClickUpIntegration() {
         title: "ClickUp connected",
         description: `You have ${projects} projects and ${tasks} tasks synced.`,
       });
-      // Refresh any integration-related queries
+      // Refresh integration-related queries and the main projects list
       queryClient.invalidateQueries({ queryKey: ["user-oauth-tokens"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
     onError: (error: any) => {
       setStatusVariant("error");
@@ -216,7 +217,9 @@ export default function ClickUpIntegration() {
         title: "ClickUp synced",
         description: `You have ${projects} projects and ${tasks} tasks synced.`,
       });
+      // Ensure both integration token state and projects list are refreshed
       queryClient.invalidateQueries({ queryKey: ["user-oauth-tokens"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
     onError: (error: any) => {
       setStatusVariant("error");
