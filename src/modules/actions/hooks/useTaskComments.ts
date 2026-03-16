@@ -80,10 +80,14 @@ export function useAddComment() {
       taskId,
       content,
       parentCommentId,
+      source,
+      externalId,
     }: {
       taskId: string;
       content: string;
       parentCommentId?: string;
+      source?: string;
+      externalId?: string;
     }) => {
       const { data, error } = await supabase
         .from("task_comments")
@@ -97,7 +101,22 @@ export function useAddComment() {
         .single();
 
       if (error) throw error;
-      return data;
+      const created = data as TaskComment;
+
+      if (source === "clickup" && externalId) {
+        try {
+          await supabase.functions.invoke("create-clickup-comment", {
+            body: {
+              external_id: externalId,
+              comment_text: content,
+            },
+          });
+        } catch {
+          // Best-effort; ignore ClickUp failures for now
+        }
+      }
+
+      return created;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({

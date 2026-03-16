@@ -150,10 +150,74 @@ export default function TaskDetailPage() {
           size?: number | null;
           extension?: string | null;
         }>;
+        raw?: {
+          attachments?: unknown;
+        };
       };
     })?.clickup;
   const clickupExternalId = (task.metadata as any)?.external_id as string | undefined;
   const isClickupTask = (task.metadata as any)?.source === "clickup" && !!clickupExternalId;
+
+  const clickupRawAttachments: {
+    id: string;
+    name: string;
+    url: string;
+    size?: number | null;
+    extension?: string | null;
+  }[] =
+    clickupMeta && clickupMeta.raw && Array.isArray(clickupMeta.raw.attachments)
+      ? (clickupMeta.raw.attachments as unknown[])
+          .map((value) => {
+            const attachment = value as {
+              id?: unknown;
+              title?: unknown;
+              name?: unknown;
+              url?: unknown;
+              source?: unknown;
+              size?: unknown;
+              extension?: unknown;
+              type?: unknown;
+            };
+            const id = typeof attachment.id === "string" ? attachment.id : null;
+            const nameCandidate =
+              typeof attachment.title === "string"
+                ? attachment.title
+                : typeof attachment.name === "string"
+                ? attachment.name
+                : null;
+            const urlCandidate =
+              typeof attachment.url === "string"
+                ? attachment.url
+                : typeof attachment.source === "string"
+                ? attachment.source
+                : null;
+            const size =
+              typeof attachment.size === "number"
+                ? attachment.size
+                : typeof attachment.size === "string"
+                ? Number(attachment.size) || null
+                : null;
+            const extension =
+              typeof attachment.extension === "string"
+                ? attachment.extension
+                : typeof attachment.type === "string"
+                ? attachment.type
+                : null;
+
+            if (!id || !nameCandidate || !urlCandidate) {
+              return null;
+            }
+
+            return {
+              id,
+              name: nameCandidate,
+              url: urlCandidate,
+              size,
+              extension,
+            };
+          })
+          .filter((att): att is { id: string; name: string; url: string; size?: number | null; extension?: string | null } => att !== null)
+      : [];
 
   const handleStatusChange = (status: TaskStatus) => {
     updateTask.mutate(
@@ -323,11 +387,16 @@ export default function TaskDetailPage() {
             </CardHeader>
             <CardContent>
               {!attachments || attachments.length === 0 ? (
-                !isClickupTask || !clickupMeta?.attachments || clickupMeta.attachments.length === 0 ? (
+                !isClickupTask ||
+                (!clickupMeta?.attachments || clickupMeta.attachments.length === 0) &&
+                  clickupRawAttachments.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No attachments yet.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {clickupMeta.attachments.map((att) => (
+                    {(clickupMeta?.attachments && clickupMeta.attachments.length > 0
+                      ? clickupMeta.attachments
+                      : clickupRawAttachments
+                    ).map((att) => (
                       <li key={att.id} className="flex items-center justify-between gap-2 text-sm">
                         <span className="truncate font-medium" title={att.name}>
                           {att.name}
@@ -367,11 +436,15 @@ export default function TaskDetailPage() {
                       </li>
                     ))}
                   </ul>
-                  {isClickupTask && clickupMeta?.attachments && clickupMeta.attachments.length > 0 && (
+                  {isClickupTask &&
+                    (clickupMeta?.attachments?.length ?? 0) + clickupRawAttachments.length > 0 && (
                     <div className="pt-2 border-t mt-2">
                       <p className="text-xs text-muted-foreground mb-2">ClickUp attachments</p>
                       <ul className="space-y-2">
-                        {clickupMeta.attachments.map((att) => (
+                        {(clickupMeta?.attachments && clickupMeta.attachments.length > 0
+                          ? clickupMeta.attachments
+                          : clickupRawAttachments
+                        ).map((att) => (
                           <li key={att.id} className="flex items-center justify-between gap-2 text-sm">
                             <span className="truncate" title={att.name}>
                               {att.name}
@@ -406,7 +479,11 @@ export default function TaskDetailPage() {
           {/* Comments */}
           <Card>
             <CardContent className="pt-6">
-              <CommentThread taskId={task.id} />
+              <CommentThread
+                taskId={task.id}
+                source={(task.metadata as any)?.source as string | undefined}
+                externalId={clickupExternalId}
+              />
             </CardContent>
           </Card>
         </div>
