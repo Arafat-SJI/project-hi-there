@@ -137,14 +137,21 @@ export default function TaskDetailPage() {
   };
 
   const clickupMeta =
-    (task.metadata as any)?.clickup as
-      | {
-          timeEstimateMs?: number | null;
-          timeSpentMs?: number | null;
-          tags?: string[];
-          sprintPoints?: number | null;
-        }
-      | undefined;
+    (task.metadata as unknown as {
+      clickup?: {
+        timeEstimateMs?: number | null;
+        timeSpentMs?: number | null;
+        tags?: string[];
+        sprintPoints?: number | null;
+        attachments?: Array<{
+          id: string;
+          name: string;
+          url: string;
+          size?: number | null;
+          extension?: string | null;
+        }>;
+      };
+    })?.clickup;
   const clickupExternalId = (task.metadata as any)?.external_id as string | undefined;
   const isClickupTask = (task.metadata as any)?.source === "clickup" && !!clickupExternalId;
 
@@ -316,27 +323,75 @@ export default function TaskDetailPage() {
             </CardHeader>
             <CardContent>
               {!attachments || attachments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No attachments yet.</p>
+                !isClickupTask || !clickupMeta?.attachments || clickupMeta.attachments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No attachments yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {clickupMeta.attachments.map((att) => (
+                      <li key={att.id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="truncate font-medium" title={att.name}>
+                          {att.name}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0 h-8"
+                          onClick={() => window.open(att.url, "_blank", "noopener,noreferrer")}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Open in ClickUp
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )
               ) : (
-                <ul className="space-y-2">
-                  {attachments.map((att) => (
-                    <li key={att.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate font-medium" title={att.file_name}>
-                        {att.file_name}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="shrink-0 h-8"
-                        onClick={() => handleOpenAttachment(att.id)}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Open
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="space-y-2 mb-3">
+                    {attachments.map((att) => (
+                      <li key={att.id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="truncate font-medium" title={att.file_name}>
+                          {att.file_name}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0 h-8"
+                          onClick={() => handleOpenAttachment(att.id)}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Open
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                  {isClickupTask && clickupMeta?.attachments && clickupMeta.attachments.length > 0 && (
+                    <div className="pt-2 border-t mt-2">
+                      <p className="text-xs text-muted-foreground mb-2">ClickUp attachments</p>
+                      <ul className="space-y-2">
+                        {clickupMeta.attachments.map((att) => (
+                          <li key={att.id} className="flex items-center justify-between gap-2 text-sm">
+                            <span className="truncate" title={att.name}>
+                              {att.name}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0 h-8"
+                              onClick={() => window.open(att.url, "_blank", "noopener,noreferrer")}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-1" />
+                              Open in ClickUp
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

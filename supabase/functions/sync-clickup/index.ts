@@ -363,6 +363,51 @@ serve(async (req) => {
           const checklists = Array.isArray(detailed.checklists) ? detailed.checklists : [];
           const checklistsCount = checklists.length;
 
+          const attachments =
+            Array.isArray(detailed.attachments) && detailed.attachments.length > 0
+              ? (detailed.attachments as Array<Record<string, unknown>>)
+                  .map((att) => {
+                    const id = typeof att.id === "string" ? att.id : null;
+                    const name =
+                      typeof att.title === "string"
+                        ? att.title
+                        : typeof att.name === "string"
+                        ? att.name
+                        : null;
+                    const url =
+                      typeof att.url === "string"
+                        ? att.url
+                        : typeof att.url === "string"
+                        ? att.url
+                        : null;
+                    const size =
+                      typeof att.size === "number"
+                        ? att.size
+                        : typeof att.size === "string"
+                        ? Number(att.size) || null
+                        : null;
+                    const extension =
+                      typeof att.extension === "string"
+                        ? att.extension
+                        : typeof att.type === "string"
+                        ? att.type
+                        : null;
+
+                    if (!id || !name || !url) {
+                      return null;
+                    }
+
+                    return {
+                      id,
+                      name,
+                      url,
+                      size,
+                      extension,
+                    } as Record<string, unknown>;
+                  })
+                  .filter((att): att is Record<string, unknown> => att !== null)
+              : [];
+
           // Extract richer ClickUp-specific details for the UI
           const clickupDetails = {
             timeEstimateMs,
@@ -372,6 +417,7 @@ serve(async (req) => {
             checklistsCount,
             hasParent: !!detailed.parent,
             url: detailed.url ?? null,
+            attachments,
             // Keep raw payload in case the UI needs other fields later
             raw: detailed,
           };
@@ -449,6 +495,39 @@ serve(async (req) => {
       duration_ms: Date.now() - started,
       errors,
     };
+
+    try {
+      const { data: providerRow } = await supabase
+        .from("integration_providers")
+        .select("id")
+        .eq("slug", "clickup")
+        .maybeSingle();
+
+      const providerId = providerRow?.id ?? null;
+
+      await supabase.from("integration_usage_logs").insert({
+        organization_id: null,
+        provider_id: providerId,
+        service_id: null,
+        user_id: user.id,
+        action: "sync-clickup",
+        status: errors.length === 0 ? "success" : errors.length === projectsSynced + tasksSynced ? "error" : "partial",
+        request_metadata: {
+          triggered_from: "edge_function",
+        } as Record<string, unknown>,
+        response_metadata: {
+          projects_synced: projectsSynced,
+          projects_created: projectsCreated,
+          projects_updated: projectsUpdated,
+          tasks_synced: tasksSynced,
+          duration_ms: result.duration_ms,
+        } as Record<string, unknown>,
+        error_message: errors.length ? errors.join("; ").slice(0, 500) : null,
+        estimated_cost: 0,
+      });
+    } catch (_logError) {
+      // Logging failures should not break sync
+    }
 
     return new Response(JSON.stringify(result), {
       status: 200,

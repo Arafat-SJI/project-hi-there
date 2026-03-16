@@ -28,6 +28,8 @@ import { ProjectsRestoreBackupDialog } from "@/components/projects/ProjectsResto
 import { ProjectBudgetUtilizationCell } from "@/components/projects/ProjectBudgetUtilizationCell";
 import { ProjectNameCell } from "@/components/projects/ProjectNameCell";
 import type { Project } from "@/modules/projects/types";
+import { formatRelativeTime, getProviderIcon } from "@/lib/integration-utils";
+import type { LucideIcon } from "lucide-react";
 import { isSameMonth, isSameYear, differenceInDays } from "date-fns";
 
 const STORAGE_KEY = "projects_filters_v1";
@@ -41,6 +43,11 @@ const FIXED_STATUS_TABS = [
   { id: "on-hold", label: "On Hold", slugMatches: ["on-hold", "on_hold"] },
   { id: "completed", label: "Completed", slugMatches: ["completed"] },
 ] as const;
+
+interface ProjectIntegrationSummary {
+  slug: string;
+  last_sync_at: string | null;
+}
 
 function getTabIdForStatus(status: { slug?: string; name?: string } | null | undefined): string | null {
   if (!status) return null;
@@ -166,6 +173,54 @@ export default function Projects() {
   const { data: clients = [] } = useClients();
   const { data: managers = [] } = useManagers();
 
+  const { data: integrationSummaries = [] } = useQuery({
+    queryKey: ["project-sync-summary"],
+    queryFn: async (): Promise<ProjectIntegrationSummary[]> => {
+      const { data, error } = await supabase
+        .from("organization_integrations")
+        .select(
+          `
+          last_sync_at,
+          integration_providers (
+            slug
+          )
+        `,
+        );
+      if (error) {
+        throw error;
+      }
+      if (!data) {
+        return [];
+      }
+      return (data as Array<{ last_sync_at: string | null; integration_providers: { slug: string } | null }>).flatMap(
+        (row) => {
+          if (!row.integration_providers) {
+            return [];
+          }
+          return [
+            {
+              slug: row.integration_providers.slug,
+              last_sync_at: row.last_sync_at,
+            },
+          ];
+        },
+      );
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const lastProjectSyncAt = useMemo(() => {
+    const relevantSlugs: string[] = ["clickup", "workamajig"];
+    const times = (integrationSummaries || [])
+      .filter((summary) => relevantSlugs.includes(summary.slug) && summary.last_sync_at)
+      .map((summary) => new Date(summary.last_sync_at as string).getTime());
+    if (times.length === 0) {
+      return null;
+    }
+    const maxTime = Math.max(...times);
+    return new Date(maxTime).toISOString();
+  }, [integrationSummaries]);
+
   const ownerIds = useMemo(() => [...new Set(projects.map((p) => p.owner_id).filter(Boolean))] as string[], [projects]);
   const { data: ownerProfiles = [] } = useQuery({
     queryKey: ["profiles", ownerIds],
@@ -244,6 +299,32 @@ export default function Projects() {
     [projects, currentPage, pageSize]
   );
 
+  const renderProjectSourceBadge = (project: Project) => {
+    const metadata = project.metadata ?? {};
+    const sourceFromMetadata =
+      typeof (metadata as { source?: unknown }).source === "string"
+        ? ((metadata as { source?: string }).source ?? null)
+        : null;
+    const rawSlug = project.external_provider ?? sourceFromMetadata ?? null;
+    const slug = (rawSlug ?? "internal").toLowerCase();
+
+    let label = "Internal";
+    if (slug === "clickup") {
+      label = "ClickUp";
+    } else if (slug === "workamajig") {
+      label = "Workamajig";
+    }
+
+    const Icon: LucideIcon | null = slug === "internal" ? null : getProviderIcon(slug);
+
+    return (
+      <Badge variant="outline" className="text-xs font-normal gap-1">
+        {Icon ? <Icon className="h-3 w-3" /> : null}
+        {label}
+      </Badge>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -251,6 +332,13 @@ export default function Projects() {
           <h1 className="text-2xl font-bold">Projects</h1>
           <p className="text-muted-foreground">Manage your projects</p>
         </div>
+        {lastProjectSyncAt && (
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">
+              Last project sync: {formatRelativeTime(lastProjectSyncAt)}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* First part: 4 KPI cards – Total, Active, Completion Rate, Recent Activity */}
@@ -371,9 +459,10 @@ export default function Projects() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10" />
-                  <TableHead>Project Name</TableHead>
-                  <TableHead className="w-[140px]">Client</TableHead>
+                <TableHead className="w-10" />
+                <TableHead>Project Name</TableHead>
+                <TableHead className="w-[120px]">Source</TableHead>
+                <TableHead className="w-[140px]">Client</TableHead>
                   <TableHead className="w-[100px]">Team</TableHead>
                   <TableHead className="w-[100px]">Start Date</TableHead>
                   <TableHead className="w-[100px]">End Date</TableHead>
@@ -408,6 +497,9 @@ export default function Projects() {
                         statusColor={project.status_id ? statusById[project.status_id]?.color : undefined}
                         isNew={isNewProject}
                       />
+                    </TableCell>
+                    <TableCell>
+                      {renderProjectSourceBadge(project as Project)}
                     </TableCell>
                     <TableCell className="text-sm">
                       {project.client_id && clientById[project.client_id]
