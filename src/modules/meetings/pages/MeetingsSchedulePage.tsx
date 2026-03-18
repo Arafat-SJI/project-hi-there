@@ -57,6 +57,7 @@ import { CreateZoomMeetingDialog } from "@/components/meetings/CreateZoomMeeting
 import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeetingDialog";
 import { CreateGoogleMeetMeetingDialog } from "@/components/meetings/CreateGoogleMeetMeetingDialog";
 import { useToast } from "@/hooks/use-toast";
+import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
 
 const VIEW_MODE_KEY = "meetings-view-mode";
 type ViewMode = "list" | "calendar";
