@@ -15,6 +15,7 @@ import {
   Users,
   TrendingUp,
 } from "lucide-react";
+import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
 
 const features = [
   {
