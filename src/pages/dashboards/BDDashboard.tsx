@@ -351,7 +351,7 @@ export default function BDDashboard() {
             Here's your business development overview
           </p>
         </div>
-        <DashboardPreferencesSheet role="bd" />
+        <DashboardPreferencesSheet />
       </div>
 
       {/* Pipeline Stats */}
