@@ -180,6 +180,15 @@ const SEED_FILES: SeedFile[] = [
     sql: seed08,
     dependencies: ["00"],
   },
+  {
+    id: "11",
+    name: "BD Demo Data",
+    fileName: "11-demo-bd-data.sql",
+    description: "Business Development role preference, deal ownership, lead follow-up contacts with scores",
+    module: "business-dev",
+    sql: seed11,
+    dependencies: ["06"],
+  },
 ];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
