@@ -9,6 +9,9 @@ import {
   Clock,
   BarChart3,
   Zap,
+  Handshake,
+  Target,
+  Mail,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,6 +80,33 @@ const PM_ACTIONS: QuickAction[] = [
   },
 ];
 
+const BD_ACTIONS: QuickAction[] = [
+  {
+    label: "New Deal",
+    icon: Handshake,
+    to: "/deals",
+    description: "Create a deal",
+  },
+  {
+    label: "New Contact",
+    icon: UserPlus,
+    to: "/contacts",
+    description: "Add a contact",
+  },
+  {
+    label: "Follow-Ups",
+    icon: Target,
+    to: "/lead-followup",
+    description: "Check follow-ups",
+  },
+  {
+    label: "Quick Email",
+    icon: Mail,
+    to: "/contacts",
+    description: "Draft outreach",
+  },
+];
+
 const IC_ACTIONS: QuickAction[] = [
   {
     label: "New Task",
@@ -122,9 +152,9 @@ function ActionButton({ action }: { action: QuickAction }) {
 }
 
 export function QuickActionsCard() {
-  const { agencyRole, isOwner, isPM } = useAgencyRole();
+  const { agencyRole, isOwner, isPM, isBD } = useAgencyRole();
 
-  const actions = isOwner ? OWNER_ACTIONS : isPM ? PM_ACTIONS : IC_ACTIONS;
+  const actions = isOwner ? OWNER_ACTIONS : isPM ? PM_ACTIONS : isBD ? BD_ACTIONS : IC_ACTIONS;
 
   return (
     <Card>
