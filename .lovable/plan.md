@@ -1,58 +1,62 @@
 
 
-## Create Assignable Task for Tier 1 AI Agent Implementation
+## Problem
 
-### What We'll Do
+The admin sidebar has overlapping and confusing AI-related sections:
 
-Insert a single task into the `tasks` table via Supabase with a detailed description listing all 14 Tier 1 agents, implementation steps, and a reference path to the analysis document. This task will be assignable from the Tasks UI.
+| Current Group | Items |
+|---|---|
+| **KNOWLEDGE & AI** | AI Hub (7 sub-items), Semantic Search (2), User Memory (4), Knowledge Base (8) |
+| **AI & AUTOMATION** | AI Models, AI Usage Analytics, MCP Servers |
+| **KNOWLEDGE** (standalone) | 9 items duplicating items already inside KNOWLEDGE & AI |
+| **EOS** (standalone) | 5 items duplicating items already inside PEOPLE & PERFORMANCE |
 
-### Task Content
+This creates confusion: "Where do I go to manage AI agents? AI Hub or AI & Automation?" and "Which Knowledge section has what I need?"
 
-**Title:** Implement 14 Tier 1 AI Agents — Seed into `ai_agents` table
+## Proposed Reorganization
 
-**Description** (will include):
-- Reference to `docs/ai-agent-suggestions.md` for full context
-- The 14 agents listed with slug, category, and priority
-- Step-by-step implementation instructions (INSERT SQL pattern, system prompt crafting, testing via AI Hub)
-- Acceptance criteria (all 14 agents visible in AI Hub, runnable via Run Agent modal)
+Merge into two clean groups, remove duplicates:
 
-### The 14 Tier 1 Agents to List
+```text
+INTELLIGENCE & AI                    (merge of KNOWLEDGE & AI + AI & AUTOMATION)
+├─ AI Hub                            (collapsible)
+│  ├─ Dashboard
+│  ├─ AI Agents
+│  ├─ Agent Analytics
+│  ├─ Agent Categories
+│  ├─ Prompt Templates
+│  ├─ Email Drafting
+│  └─ Deal Coaching
+├─ AI Models & Usage                 (collapsible, was in AI & AUTOMATION)
+│  ├─ AI Models
+│  ├─ AI Usage Analytics
+│  └─ MCP Servers
+├─ Semantic Search                   (collapsible)
+│  ├─ Search
+│  └─ Embeddings
+├─ User Memory                       (collapsible)
+│  ├─ Memory Dashboard
+│  ├─ User Memory Stats
+│  ├─ Search Analytics
+│  └─ Team Learning Patterns
+└─ Knowledge Base                    (collapsible)
+   ├─ Common Knowledge
+   ├─ Processing Queue
+   ├─ Sources
+   ├─ Categories
+   ├─ Batch Upload
+   ├─ Files
+   ├─ Sync Status
+   └─ Gemini RAG
 
-| # | Slug | Category | Priority |
-|---|------|----------|----------|
-| 1 | `deal-ai-chat` | Sales & CRM | High |
-| 2 | `deal-daily-briefing` | Sales & CRM | Medium |
-| 3 | `quick-deal-email` | Sales & CRM | High |
-| 4 | `lovable-prototype-builder` | Sales & CRM | Medium |
-| 5 | `client-call-analyzer` | Meetings | High |
-| 6 | `client-communication-coach` | Meetings | Medium |
-| 7 | `meeting-efficiency-analyzer` | Meetings | High |
-| 8 | `eos-pattern-detective` | EOS | Medium |
-| 9 | `eos-pod-health` | EOS | Medium |
-| 10 | `eos-quarterly-digest` | EOS | High |
-| 11 | `bug-feature-planner` | Project Mgmt | High |
-| 12 | `code-review-generator` | Project Mgmt | Medium |
-| 13 | `technical-plan-generator` | Project Mgmt | High |
-| 14 | `project-analyzer` | Project Mgmt | Medium |
-
-### Technical Approach
-
-Use `supabase--read_query` to insert a task row directly:
-
-```sql
-INSERT INTO tasks (title, description, status, priority, created_by)
-VALUES (
-  'Implement 14 Tier 1 AI Agents...',
-  '## Overview\n\nReview docs/ai-agent-suggestions.md...\n\n## Agents to Implement\n...',
-  'todo',
-  'high',
-  (current user ID)
-);
+(Remove standalone KNOWLEDGE and EOS groups — they are duplicates)
 ```
 
-The task will appear in the Tasks section of the app. You can then assign it to someone via the UI by editing the task and setting `assigned_to`.
+## Changes
 
-### Files Changed
+| File | Change |
+|------|--------|
+| `src/shared/data/navigationStructure.ts` | Merge "AI & AUTOMATION" items into "KNOWLEDGE & AI" (renamed to "INTELLIGENCE & AI"), add "AI Models & Usage" as a collapsible sub-section. Remove duplicate `admin-knowledge` and `admin-eos` groups entirely. |
 
-None — this is a database insert only.
+No other files change — the sidebar component already supports `headerOnly` collapsible children, so the new structure renders automatically.
 
