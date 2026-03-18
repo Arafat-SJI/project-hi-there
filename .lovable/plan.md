@@ -1,62 +1,30 @@
 
 
-## Problem
+# Fix CEO Dashboard AI Card + Seed Demo Data for PM/IC
 
-The admin sidebar has overlapping and confusing AI-related sections:
+## Two Problems
 
-| Current Group | Items |
-|---|---|
-| **KNOWLEDGE & AI** | AI Hub (7 sub-items), Semantic Search (2), User Memory (4), Knowledge Base (8) |
-| **AI & AUTOMATION** | AI Models, AI Usage Analytics, MCP Servers |
-| **KNOWLEDGE** (standalone) | 9 items duplicating items already inside KNOWLEDGE & AI |
-| **EOS** (standalone) | 5 items duplicating items already inside PEOPLE & PERFORMANCE |
+### 1. CEO doesn't see the new AITeamsDashboardCard
+The CEO test account has an `admin` DB role. In `Dashboard.tsx` line 84, `if (!isAdmin)` skips all role-specific dashboards for admins — so the CEO falls through to the generic dashboard which has an older, simpler "Your AI Team" section instead of the new `AITeamsDashboardCard`.
 
-This creates confusion: "Where do I go to manage AI agents? AI Hub or AI & Automation?" and "Which Knowledge section has what I need?"
+**Fix:** Update the routing logic in `Dashboard.tsx` so that users with an `agencyRole` are routed to their role-specific dashboard *even if* they are also admins. The `isAdmin` bypass should only apply when `agencyRole` is null/undefined (i.e., the user hasn't picked an agency role). This way the CEO gets `OwnerDashboard` with the shiny AI card.
 
-## Proposed Reorganization
+### 2. PM and IC dashboards show no data
+All seed data (projects, tasks, project_members) is assigned to `u1` (the first `auth.users` row — the CEO). The PM and IC test accounts have no projects or tasks assigned, so their dashboards show "No active projects" and "No tasks assigned."
 
-Merge into two clean groups, remove duplicates:
+**Fix:** Create a new seed SQL file `supabase/seed/10-demo-role-data.sql` that:
+- Looks up the PM user (`demo@collabai.software`) and IC user (`ic@collabai.software`) by email in `auth.users`
+- Assigns the PM as `owner` of 2 existing projects (`techstart-ai-integration`, `enterprise-qbr-prep`) via `project_members` and updates `owner_id`
+- Assigns the IC as `member` on 2 projects (`acme-platform-rollout`, `techstart-ai-integration`) via `project_members`
+- Reassigns ~6 existing tasks to the PM user and ~6 to the IC user (from the 20 seed tasks), with a mix of statuses
+- All operations use `ON CONFLICT DO NOTHING` for idempotency
 
-```text
-INTELLIGENCE & AI                    (merge of KNOWLEDGE & AI + AI & AUTOMATION)
-├─ AI Hub                            (collapsible)
-│  ├─ Dashboard
-│  ├─ AI Agents
-│  ├─ Agent Analytics
-│  ├─ Agent Categories
-│  ├─ Prompt Templates
-│  ├─ Email Drafting
-│  └─ Deal Coaching
-├─ AI Models & Usage                 (collapsible, was in AI & AUTOMATION)
-│  ├─ AI Models
-│  ├─ AI Usage Analytics
-│  └─ MCP Servers
-├─ Semantic Search                   (collapsible)
-│  ├─ Search
-│  └─ Embeddings
-├─ User Memory                       (collapsible)
-│  ├─ Memory Dashboard
-│  ├─ User Memory Stats
-│  ├─ Search Analytics
-│  └─ Team Learning Patterns
-└─ Knowledge Base                    (collapsible)
-   ├─ Common Knowledge
-   ├─ Processing Queue
-   ├─ Sources
-   ├─ Categories
-   ├─ Batch Upload
-   ├─ Files
-   ├─ Sync Status
-   └─ Gemini RAG
+### Files
 
-(Remove standalone KNOWLEDGE and EOS groups — they are duplicates)
-```
-
-## Changes
-
-| File | Change |
+| File | Action |
 |------|--------|
-| `src/shared/data/navigationStructure.ts` | Merge "AI & AUTOMATION" items into "KNOWLEDGE & AI" (renamed to "INTELLIGENCE & AI"), add "AI Models & Usage" as a collapsible sub-section. Remove duplicate `admin-knowledge` and `admin-eos` groups entirely. |
+| `src/pages/Dashboard.tsx` | **Edit** — change routing logic so agencyRole takes priority over isAdmin |
+| `supabase/seed/10-demo-role-data.sql` | **Create** — seed data assigning projects/tasks to PM and IC test accounts |
 
-No other files change — the sidebar component already supports `headerOnly` collapsible children, so the new structure renders automatically.
+No migrations needed — only data inserts/updates via the seed file, and a frontend routing fix.
 
