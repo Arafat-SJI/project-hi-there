@@ -43,7 +43,7 @@ export function useProjectTasks(projectId: string) {
       if (projError) throw projError;
       if (!project) return [];
 
-      const queries: Promise<any>[] = [];
+      const queries: Array<PromiseLike<any>> = [];
 
       // 1) Tasks linked via client_id (existing behavior)
       if (project.client_id) {
@@ -53,7 +53,8 @@ export function useProjectTasks(projectId: string) {
             .select("id, title, status, priority, due_date, assigned_to, metadata, created_at")
             .eq("client_id", project.client_id)
             .order("created_at", { ascending: false })
-            .limit(50),
+            .limit(50)
+            .then(res => res),
         );
       }
 
@@ -67,7 +68,8 @@ export function useProjectTasks(projectId: string) {
               project_external_id: project.external_id,
             })
             .order("created_at", { ascending: false })
-            .limit(50),
+            .limit(50)
+            .then(res => res),
         );
       }
 

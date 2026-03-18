@@ -15,6 +15,8 @@ import {
   Users,
   TrendingUp,
 } from "lucide-react";
+import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
+import { AIAgentPresenceIndicator } from "@/components/ai/AIAgentPresenceIndicator";
 
 const features = [
   {
@@ -66,6 +68,10 @@ export default function EOSHubPage() {
 
   return (
     <div className="space-y-6">
+      <AgentTeamBanner team="eos" />
+      <div className="flex flex-wrap gap-2">
+        <AIAgentPresenceIndicator agentName="EOS Coach" agentSlug="eos-coach" gradientFrom="30 90% 50%" gradientTo="45 95% 55%" />
+      </div>
       <div>
         <h1 className="text-2xl font-bold">EOS</h1>
         <p className="text-muted-foreground">

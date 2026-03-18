@@ -9,6 +9,7 @@ import { EOSRocksCard } from "@/components/dashboards/EOSRocksCard";
 import { EOSScorecardCard } from "@/components/dashboards/EOSScorecardCard";
 import { AIDigestCard } from "@/components/dashboards/AIDigestCard";
 import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
+import { AITeamsDashboardCard } from "@/components/dashboards/AITeamsDashboardCard";
 import { DashboardCustomizeModal } from "@/components/dashboards/DashboardCustomizeModal";
 import { DashboardFilterBar } from "@/components/dashboards/DashboardFilterBar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -103,6 +104,9 @@ export default function OwnerDashboardWithEOS() {
 
       {/* Row 1: Quick Actions */}
       <QuickActionsCard />
+
+      {/* AI Team showcase */}
+      <AITeamsDashboardCard agencyRole="owner" />
 
       {/* Row 2: Agency health */}
       {showHealth && isWidgetVisible("health-metrics") && <HealthMetricsCard />}

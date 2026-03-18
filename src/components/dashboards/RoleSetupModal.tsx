@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, FolderKanban, User, Loader2, Sparkles } from "lucide-react";
+import { Building2, FolderKanban, User, Briefcase, Loader2, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,15 @@ const ROLE_OPTIONS: RoleOption[] = [
     color: "text-blue-700 dark:text-blue-400",
     bgColor: "bg-blue-500/10",
     borderColor: "border-blue-500/40",
+  },
+  {
+    role: "bd",
+    label: "Business Development",
+    subtitle: "Deals pipeline, contacts, lead follow-up, client outreach",
+    icon: Briefcase,
+    color: "text-amber-700 dark:text-amber-400",
+    bgColor: "bg-amber-500/10",
+    borderColor: "border-amber-500/40",
   },
   {
     role: "ic",

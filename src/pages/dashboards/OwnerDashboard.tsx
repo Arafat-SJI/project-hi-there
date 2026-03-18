@@ -5,6 +5,7 @@ import { HealthMetricsCard } from "@/components/dashboards/HealthMetricsCard";
 import { MeetingsThisWeekCard } from "@/components/dashboards/MeetingsThisWeekCard";
 import { WatchListCard } from "@/components/dashboards/WatchListCard";
 import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
+import { AITeamsDashboardCard } from "@/components/dashboards/AITeamsDashboardCard";
 import { DashboardCustomizeModal } from "@/components/dashboards/DashboardCustomizeModal";
 import { DashboardFilterBar } from "@/components/dashboards/DashboardFilterBar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -72,6 +73,9 @@ export default function OwnerDashboard() {
 
       {/* Row 1: Quick actions */}
       <QuickActionsCard />
+
+      {/* AI Team showcase */}
+      <AITeamsDashboardCard agencyRole="owner" />
 
       {/* Row 2: Health metrics */}
       {showHealth && isWidgetVisible("health-metrics") && <HealthMetricsCard />}

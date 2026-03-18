@@ -124,9 +124,14 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
       const stored = localStorage.getItem(EXPANDED_GROUPS_KEY);
       if (stored) return JSON.parse(stored);
     } catch {}
-    // Default: all groups expanded
+    // Default: all groups collapsed except the one containing the active route
     return navigationGroups.reduce((acc, group) => {
-      acc[group.id] = true;
+      const groupHasActiveRoute = group.items.some(
+        (item) =>
+          location.pathname.startsWith(item.href.split("?")[0]) ||
+          item.children?.some((child) => location.pathname.startsWith(child.href.split("?")[0]))
+      );
+      acc[group.id] = groupHasActiveRoute;
       return acc;
     }, {} as Record<string, boolean>);
   });
@@ -568,12 +573,28 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
         {/* Footer */}
         <div className={cn("border-t border-sidebar-border shrink-0", open ? "p-4" : "p-2")}>
           {open ? (
-            <div className="rounded-lg bg-sidebar-accent/50 px-4 py-3">
-              <p className="text-sm font-medium text-sidebar-foreground">Framework</p>
-              <p className="text-xs text-muted-foreground">v1.0.0 - Enterprise</p>
+            <div className="space-y-2">
+              <Link
+                to="/help"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+              >
+                <HelpCircle className="h-4 w-4 shrink-0" />
+                <span>Help & Guides</span>
+              </Link>
+              <div className="rounded-lg bg-sidebar-accent/50 px-4 py-3">
+                <p className="text-sm font-medium text-sidebar-foreground">Framework</p>
+                <p className="text-xs text-muted-foreground">v1.0.0 - Enterprise</p>
+              </div>
             </div>
           ) : onToggleSidebar ? (
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-1">
+              <Link
+                to="/help"
+                title="Help & Guides"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Link>
               <Button
                 variant="ghost"
                 size="icon"

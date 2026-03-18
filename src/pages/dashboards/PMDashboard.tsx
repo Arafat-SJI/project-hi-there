@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TeamCapacityCard } from "@/components/dashboards/TeamCapacityCard";
 import { MeetingsThisWeekCard } from "@/components/dashboards/MeetingsThisWeekCard";
 import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
+import { AITeamsDashboardCard } from "@/components/dashboards/AITeamsDashboardCard";
 import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/hooks/useProjects";
@@ -131,6 +132,9 @@ export default function PMDashboard() {
 
       {/* Row 1: Quick actions */}
       <QuickActionsCard />
+
+      {/* AI Team showcase */}
+      <AITeamsDashboardCard agencyRole="pm" />
 
       {/* Row 2: Projects table */}
       <Card>

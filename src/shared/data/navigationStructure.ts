@@ -16,7 +16,7 @@ import type { ModuleId } from "@/shared/config/modules";
  * Agency roles that can see a nav item or group.
  * When omitted the item is visible to all roles.
  */
-export type AgencyRole = "owner" | "pm" | "ic";
+export type AgencyRole = "owner" | "pm" | "ic" | "bd";
 
 export interface NavItem {
   title: string;
@@ -92,10 +92,6 @@ export const navigationGroups: NavGroup[] = [
         children: [
           { title: "Deals Dashboard", href: "/deals?tab=overview", icon: "LayoutDashboard", module: "business-dev", featureFlag: "enableClients" },
           { title: "All Deals", href: "/deals", icon: "LayoutDashboard", module: "business-dev", featureFlag: "enableClients" },
-          { title: "Lead", href: "/deals?tab=all&stage=lead", icon: "Users", module: "business-dev", featureFlag: "enableClients" },
-          { title: "Discovery", href: "/deals?tab=all&stage=discovery", icon: "Search", module: "business-dev", featureFlag: "enableClients" },
-          { title: "Estimation", href: "/deals?tab=all&stage=estimation", icon: "Calculator", module: "business-dev", featureFlag: "enableClients" },
-          { title: "Proposal", href: "/deals?tab=all&stage=proposal", icon: "FileText", module: "business-dev", featureFlag: "enableClients" },
         ],
       },
       {
@@ -166,6 +162,27 @@ export const navigationGroups: NavGroup[] = [
         icon: "Sparkles",
         module: "meetings",
         featureFlag: "enableMeetings",
+        agencyRoles: ["owner"],
+      },
+    ],
+  },
+  {
+    id: "ai-browse",
+    title: "AI Agents",
+    icon: "Sparkles",
+    isAI: true,
+    items: [
+      {
+        title: "Browse Agents",
+        href: "/agents",
+        icon: "Bot",
+        featureFlag: "enableAIAgents",
+      },
+      {
+        title: "My AI Chat",
+        href: "/ai-agents",
+        icon: "MessageSquare",
+        featureFlag: "enableAIAgents",
       },
     ],
   },
@@ -267,29 +284,6 @@ export const navigationGroups: NavGroup[] = [
         href: "/feedback",
         icon: "MessageCircle",
         featureFlag: "enableFeedback",
-      },
-    ],
-  },
-  {
-    id: "system-tools",
-    title: "System & Tools",
-    icon: "Wrench",
-    items: [
-      {
-        title: "Sessions",
-        href: "/sessions",
-        icon: "Monitor",
-      },
-      {
-        title: "Feedback",
-        href: "/feedback",
-        icon: "MessageCircle",
-        featureFlag: "enableFeedback",
-      },
-      {
-        title: "Help & Guides",
-        href: "/help",
-        icon: "HelpCircle",
       },
     ],
   },

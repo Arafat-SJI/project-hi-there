@@ -29,6 +29,8 @@ import Feedback from "@/pages/Feedback";
 import FeedbackDetail from "@/pages/FeedbackDetail";
 
 import AIAgents from "@/pages/AIAgents";
+import AgentsBrowse from "@/pages/AgentsBrowse";
+import AgentDetail from "@/pages/AgentDetail";
 import PersonalKnowledge from "@/modules/knowledge/pages/PersonalKnowledge";
 
 /**
@@ -68,6 +70,8 @@ export const coreProtectedRoutes = (
     {/* AI features */}
     <Route element={<ModuleRoute requiresFeatureFlag="enableAIAgents" />}>
       <Route path="/ai-agents" element={<AIAgents />} />
+      <Route path="/agents" element={<AgentsBrowse />} />
+      <Route path="/agents/:slug" element={<AgentDetail />} />
     </Route>
 
     {/* Personal knowledge */}

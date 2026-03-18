@@ -1,14 +1,3 @@
--- ============================================================================
--- Tasks RAG + Agent RAG toggle
--- ============================================================================
--- - Adds ai_agents.rag_enabled boolean flag
--- - Deletes task embeddings when a task is deleted
---
--- RAG storage uses existing public.embeddings table:
---   entity_type = 'task'
---   entity_id   = tasks.id::text
--- ============================================================================
-
 -- 1) Agent setting: rag_enabled
 DO $$
 BEGIN
@@ -38,7 +27,6 @@ BEGIN
       WHEN undefined_object THEN NULL;
     END;
 
-    -- Recreate with task allowed (keeps existing values valid).
     ALTER TABLE public.embedding_queue
       ADD CONSTRAINT embedding_queue_entity_type_check
       CHECK (entity_type IN ('file', 'entry', 'meeting', 'user_file', 'task'));
@@ -54,7 +42,6 @@ BEGIN
   DELETE FROM public.embeddings e
   WHERE e.entity_type = 'task'
     AND e.entity_id::text = OLD.id::text;
-
   RETURN OLD;
 END;
 $$;
@@ -68,4 +55,3 @@ BEGIN
       EXECUTE FUNCTION public.delete_task_embeddings();
   END IF;
 END $$;
-

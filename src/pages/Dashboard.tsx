@@ -9,6 +9,7 @@ import { useDashboardStats, useRecentActivity, getTimeAgo, useAITeamSummary } fr
 const OwnerDashboard = lazy(() => import("@/pages/dashboards/OwnerDashboard"));
 const OwnerDashboardWithEOS = lazy(() => import("@/pages/dashboards/OwnerDashboardWithEOS"));
 const PMDashboard = lazy(() => import("@/pages/dashboards/PMDashboard"));
+const BDDashboard = lazy(() => import("@/pages/dashboards/BDDashboard"));
 const ICDashboard = lazy(() => import("@/pages/dashboards/ICDashboard"));
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,33 +81,38 @@ export default function Dashboard() {
   if (loading) return <DashboardFallback />;
 
   // Route to role-specific dashboards.
-  // Admins always see the full generic dashboard.
-  if (!isAdmin) {
-    if (agencyRole === "owner") {
-      return (
-        <Suspense fallback={<DashboardFallback />}>
-          {isEosUser ? <OwnerDashboardWithEOS /> : <OwnerDashboard />}
-        </Suspense>
-      );
-    }
-    if (agencyRole === "pm") {
-      return (
-        <Suspense fallback={<DashboardFallback />}>
-          <PMDashboard />
-        </Suspense>
-      );
-    }
-    if (agencyRole === "ic") {
-      return (
-        <Suspense fallback={<DashboardFallback />}>
-          <ICDashboard />
-        </Suspense>
-      );
-    }
-    // agencyRole === null → show role-selection modal; render generic dashboard behind it
-    if (agencyRole === null) {
-      return <RoleSetupModal open />;
-    }
+  // agencyRole takes priority — even admins get their role dashboard when set.
+  if (agencyRole === "owner") {
+    return (
+      <Suspense fallback={<DashboardFallback />}>
+        {isEosUser ? <OwnerDashboardWithEOS /> : <OwnerDashboard />}
+      </Suspense>
+    );
+  }
+  if (agencyRole === "pm") {
+    return (
+      <Suspense fallback={<DashboardFallback />}>
+        <PMDashboard />
+      </Suspense>
+    );
+  }
+  if (agencyRole === "bd") {
+    return (
+      <Suspense fallback={<DashboardFallback />}>
+        <BDDashboard />
+      </Suspense>
+    );
+  }
+  if (agencyRole === "ic") {
+    return (
+      <Suspense fallback={<DashboardFallback />}>
+        <ICDashboard />
+      </Suspense>
+    );
+  }
+  // No agencyRole set: admins see generic dashboard; others pick a role
+  if (!isAdmin && agencyRole === null) {
+    return <RoleSetupModal open />;
   }
 
   const greeting = () => {
