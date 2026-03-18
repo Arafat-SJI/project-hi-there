@@ -74,6 +74,9 @@ export default function OwnerDashboard() {
       {/* Row 1: Quick actions */}
       <QuickActionsCard />
 
+      {/* AI Team showcase */}
+      <AITeamsDashboardCard />
+
       {/* Row 2: Health metrics */}
       {showHealth && isWidgetVisible("health-metrics") && <HealthMetricsCard />}
 

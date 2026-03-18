@@ -71,6 +71,7 @@ export const coreProtectedRoutes = (
     <Route element={<ModuleRoute requiresFeatureFlag="enableAIAgents" />}>
       <Route path="/ai-agents" element={<AIAgents />} />
       <Route path="/agents" element={<AgentsBrowse />} />
+      <Route path="/agents/:slug" element={<AgentDetail />} />
     </Route>
 
     {/* Personal knowledge */}
