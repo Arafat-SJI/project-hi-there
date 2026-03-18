@@ -29,6 +29,7 @@ import { ProjectBudgetUtilizationCell } from "@/components/projects/ProjectBudge
 import { ProjectNameCell } from "@/components/projects/ProjectNameCell";
 import type { Project } from "@/modules/projects/types";
 import { isSameMonth, isSameYear, differenceInDays } from "date-fns";
+import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
 
 const STORAGE_KEY = "projects_filters_v1";
 /** Red badge count on Project Queue tab (match reference UI; replace with API when available) */
