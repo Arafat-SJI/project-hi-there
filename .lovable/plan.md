@@ -1,105 +1,62 @@
 
 
-# Navigation UX Overhaul — Reduce Overwhelm
+## Problem
 
-## Problem Analysis
+The admin sidebar has overlapping and confusing AI-related sections:
 
-When a CEO logs in, the sidebar currently shows **7 expanded groups + Dashboard**, totaling **~28 visible links** before scrolling. Every group defaults to `open: true`. Here is the current inventory:
+| Current Group | Items |
+|---|---|
+| **KNOWLEDGE & AI** | AI Hub (7 sub-items), Semantic Search (2), User Memory (4), Knowledge Base (8) |
+| **AI & AUTOMATION** | AI Models, AI Usage Analytics, MCP Servers |
+| **KNOWLEDGE** (standalone) | 9 items duplicating items already inside KNOWLEDGE & AI |
+| **EOS** (standalone) | 5 items duplicating items already inside PEOPLE & PERFORMANCE |
 
-```text
-Dashboard
-▼ Sales Hub              (4 items, "Business Opportunities" expands to 6 more)
-▼ Work Management        (2 items)
-▼ Meetings               (5 items)
-▼ Knowledge              (3 items)
-▼ Strategy (EOS)         (6 items)  — owner-only
-▼ Operations             (3 items)
-▼ System & Tools         (3 items)
-                         ─────────
-                         ~28-34 links visible on load
-```
+This creates confusion: "Where do I go to manage AI agents? AI Hub or AI & Automation?" and "Which Knowledge section has what I need?"
 
-Compare to monday.com or Linear: on first load a user sees **5-8 top-level items**, not 30.
+## Proposed Reorganization
 
----
-
-## Recommendations (3 changes, 1 file each)
-
-### Change 1: Collapse all groups by default — expand only the active one
-
-**Current behavior:** All groups start expanded (`acc[group.id] = true`).
-**Proposed:** On load, only the group containing the current route is expanded. All others are collapsed. User overrides persist in localStorage as they do today.
-
-This alone cuts visible items from ~30 to ~8 on any given page.
-
-**File:** `src/components/layout/AppSidebar.tsx` (lines 122-132)
-- Change the default initializer from `true` for every group to `false`, then set the group containing the active route to `true`.
-
----
-
-### Change 2: Remove duplicate and developer-only items from front-end nav
-
-Several items are duplicated or not useful to end users:
-
-| Item | Issue | Action |
-|------|-------|--------|
-| **Feedback** | Appears in both "Operations" AND "System & Tools" | Remove from System & Tools |
-| **Sessions** | Developer/debug tool, not a user feature | Remove entirely (keep in admin) |
-| **Business Opportunities sub-items** (Lead, Discovery, Estimation, Proposal) | These are just filtered views of the Deals page — the Deals page already has tabs for these stages | Remove stage sub-items; keep "Deals Dashboard" and "All Deals" only |
-| **AI Match** under Meetings | Niche admin/power-user feature | Move to admin sidebar or hide behind a feature flag |
-
-This removes ~7 items from the sidebar.
-
-**File:** `src/shared/data/navigationStructure.ts`
-- Remove "Sessions" from `system-tools`
-- Remove "Feedback" from `system-tools` (keep in Operations)
-- Remove individual deal stage children (Lead/Discovery/Estimation/Proposal) from Business Opportunities — the Deals page tabs handle this
-- Add `agencyRoles: ["owner"]` or `adminOnly: true` to AI Match
-
----
-
-### Change 3: Consolidate "System & Tools" into a minimal footer section
-
-After removing duplicates, "System & Tools" has only "Help & Guides" left. Rather than a full nav group for one link, move it to the sidebar footer area (next to the version badge).
-
-**File:** `src/components/layout/AppSidebar.tsx`
-- Render a small "Help" icon-link in the footer section instead of a full group
-- Remove the `system-tools` group from `navigationStructure.ts`
-
----
-
-## Result
-
-After all three changes, the CEO's sidebar on load looks like:
+Merge into two clean groups, remove duplicates:
 
 ```text
-Dashboard
-► Sales Hub                    (collapsed)
-► Work Management              (collapsed)
-▼ Strategy (EOS)               (expanded — current page)
-    EOS Hub
-    V/TO
-    OKRs                       ← active
-    Issues
-    Scorecard
-    Accountability
-► Meetings                     (collapsed)
-► Knowledge                    (collapsed)
-► Operations                   (collapsed)
-─────────────────
-Help  |  v1.0.0 - Enterprise
+INTELLIGENCE & AI                    (merge of KNOWLEDGE & AI + AI & AUTOMATION)
+├─ AI Hub                            (collapsible)
+│  ├─ Dashboard
+│  ├─ AI Agents
+│  ├─ Agent Analytics
+│  ├─ Agent Categories
+│  ├─ Prompt Templates
+│  ├─ Email Drafting
+│  └─ Deal Coaching
+├─ AI Models & Usage                 (collapsible, was in AI & AUTOMATION)
+│  ├─ AI Models
+│  ├─ AI Usage Analytics
+│  └─ MCP Servers
+├─ Semantic Search                   (collapsible)
+│  ├─ Search
+│  └─ Embeddings
+├─ User Memory                       (collapsible)
+│  ├─ Memory Dashboard
+│  ├─ User Memory Stats
+│  ├─ Search Analytics
+│  └─ Team Learning Patterns
+└─ Knowledge Base                    (collapsible)
+   ├─ Common Knowledge
+   ├─ Processing Queue
+   ├─ Sources
+   ├─ Categories
+   ├─ Batch Upload
+   ├─ Files
+   ├─ Sync Status
+   └─ Gemini RAG
+
+(Remove standalone KNOWLEDGE and EOS groups — they are duplicates)
 ```
 
-**~10 visible items** vs. the current ~30. Clicking any collapsed group expands it (and the choice persists).
-
----
-
-## Files Changed Summary
+## Changes
 
 | File | Change |
 |------|--------|
-| `src/shared/data/navigationStructure.ts` | Remove Sessions, duplicate Feedback, deal stage sub-items, system-tools group. Restrict AI Match visibility. |
-| `src/components/layout/AppSidebar.tsx` | Default groups to collapsed (expand only active). Move Help link to footer. |
+| `src/shared/data/navigationStructure.ts` | Merge "AI & AUTOMATION" items into "KNOWLEDGE & AI" (renamed to "INTELLIGENCE & AI"), add "AI Models & Usage" as a collapsible sub-section. Remove duplicate `admin-knowledge` and `admin-eos` groups entirely. |
 
-No database changes. No new dependencies. No route changes.
+No other files change — the sidebar component already supports `headerOnly` collapsible children, so the new structure renders automatically.
 

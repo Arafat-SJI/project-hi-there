@@ -92,10 +92,6 @@ export const navigationGroups: NavGroup[] = [
         children: [
           { title: "Deals Dashboard", href: "/deals?tab=overview", icon: "LayoutDashboard", module: "business-dev", featureFlag: "enableClients" },
           { title: "All Deals", href: "/deals", icon: "LayoutDashboard", module: "business-dev", featureFlag: "enableClients" },
-          { title: "Lead", href: "/deals?tab=all&stage=lead", icon: "Users", module: "business-dev", featureFlag: "enableClients" },
-          { title: "Discovery", href: "/deals?tab=all&stage=discovery", icon: "Search", module: "business-dev", featureFlag: "enableClients" },
-          { title: "Estimation", href: "/deals?tab=all&stage=estimation", icon: "Calculator", module: "business-dev", featureFlag: "enableClients" },
-          { title: "Proposal", href: "/deals?tab=all&stage=proposal", icon: "FileText", module: "business-dev", featureFlag: "enableClients" },
         ],
       },
       {
@@ -166,6 +162,7 @@ export const navigationGroups: NavGroup[] = [
         icon: "Sparkles",
         module: "meetings",
         featureFlag: "enableMeetings",
+        agencyRoles: ["owner"],
       },
     ],
   },
@@ -267,29 +264,6 @@ export const navigationGroups: NavGroup[] = [
         href: "/feedback",
         icon: "MessageCircle",
         featureFlag: "enableFeedback",
-      },
-    ],
-  },
-  {
-    id: "system-tools",
-    title: "System & Tools",
-    icon: "Wrench",
-    items: [
-      {
-        title: "Sessions",
-        href: "/sessions",
-        icon: "Monitor",
-      },
-      {
-        title: "Feedback",
-        href: "/feedback",
-        icon: "MessageCircle",
-        featureFlag: "enableFeedback",
-      },
-      {
-        title: "Help & Guides",
-        href: "/help",
-        icon: "HelpCircle",
       },
     ],
   },
