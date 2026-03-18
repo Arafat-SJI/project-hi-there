@@ -11,7 +11,7 @@ interface Profile {
   avatar_url?: string;
   role?: string;
   // Agency role for dashboard routing (owner | pm | ic)
-  agencyRole?: "owner" | "pm" | "ic";
+  agencyRole?: "owner" | "pm" | "ic" | "bd";
   // EOS flag: owner sees EOS-enhanced dashboard when true
   isEosUser?: boolean;
 }
