@@ -167,6 +167,26 @@ export const navigationGroups: NavGroup[] = [
     ],
   },
   {
+    id: "ai-browse",
+    title: "AI Agents",
+    icon: "Sparkles",
+    isAI: true,
+    items: [
+      {
+        title: "Browse Agents",
+        href: "/agents",
+        icon: "Bot",
+        featureFlag: "enableAIAgents",
+      },
+      {
+        title: "My AI Chat",
+        href: "/ai-agents",
+        icon: "MessageSquare",
+        featureFlag: "enableAIAgents",
+      },
+    ],
+  },
+  {
     id: "knowledge",
     title: "Knowledge",
     icon: "BookOpen",

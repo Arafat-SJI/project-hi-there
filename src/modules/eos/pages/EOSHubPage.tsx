@@ -67,6 +67,7 @@ export default function EOSHubPage() {
 
   return (
     <div className="space-y-6">
+      <AgentTeamBanner team="eos" />
       <div>
         <h1 className="text-2xl font-bold">EOS</h1>
         <p className="text-muted-foreground">

@@ -247,6 +247,7 @@ export default function Projects() {
 
   return (
     <div className="space-y-4">
+      <AgentTeamBanner team="projects" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Projects</h1>

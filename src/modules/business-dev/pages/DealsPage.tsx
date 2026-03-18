@@ -219,6 +219,7 @@ export default function DealsPage() {
 
   return (
     <div className="space-y-6 pt-6">
+      <AgentTeamBanner team="sales" />
       <CrmConnectionBanner />
       {isStageOnlyView && stageMeta && stageLabelForBreadcrumb ? (
         <>

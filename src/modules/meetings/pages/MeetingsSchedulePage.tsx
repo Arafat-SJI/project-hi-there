@@ -228,6 +228,7 @@ export default function MeetingsSchedulePage() {
 
   return (
     <div className="space-y-6">
+      <AgentTeamBanner team="meetings" />
       {/* Header: title + subtitle left; List | Calendar | New Meeting right */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
