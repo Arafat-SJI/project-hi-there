@@ -12,6 +12,14 @@ import { Button } from "@/components/ui/button";
 import { allTeams, type AgentTeamDef } from "@/components/ai/agentTeamConfig";
 import { cn } from "@/lib/utils";
 
+type AgencyRole = "owner" | "pm" | "ic";
+
+const ROLE_TEAM_MAP: Record<AgencyRole, string[] | "all"> = {
+  owner: "all",
+  pm: ["projects", "meetings"],
+  ic: ["projects", "meetings"],
+};
+
 function TeamMiniCard({ team }: { team: AgentTeamDef }) {
   const navigate = useNavigate();
   const previewIcons = team.agents.slice(0, 4).map((a) => ({
