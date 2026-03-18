@@ -46,11 +46,11 @@ BEGIN
   UPDATE tasks SET assigned_to = u_pm
   WHERE slug IN (
     'implement-sso-entra',
-    'create-onboarding-flow',
-    'configure-rag-pipeline',
-    'setup-zoom-integration',
-    'build-qbr-dashboard',
-    'client-data-migration'
+    'onboard-acme-corp',
+    'techstart-training',
+    'qbr-enterprise-solutions',
+    'setup-monitoring-alerts',
+    'csv-export-productivity'
   );
 
   -- ───────────────────────────────────────────────
