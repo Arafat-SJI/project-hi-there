@@ -141,6 +141,7 @@ function UserRow({ row }: { row: UserAgencyRow }) {
           <SelectItem value="none">No role</SelectItem>
           <SelectItem value="owner">Owner</SelectItem>
           <SelectItem value="pm">PM</SelectItem>
+          <SelectItem value="bd">BD</SelectItem>
           <SelectItem value="ic">IC</SelectItem>
         </SelectContent>
       </Select>
