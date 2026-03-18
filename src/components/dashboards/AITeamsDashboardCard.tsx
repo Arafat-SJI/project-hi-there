@@ -111,7 +111,7 @@ export function AITeamsDashboardCard({ className, agencyRole }: { className?: st
       <CardContent>
         {/* Horizontal scroll container */}
         <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin">
-          {allTeams.map((team) => (
+          {filteredTeams.map((team) => (
             <TeamMiniCard key={team.id} team={team} />
           ))}
         </div>

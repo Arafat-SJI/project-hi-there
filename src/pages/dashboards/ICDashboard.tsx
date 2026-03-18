@@ -328,6 +328,9 @@ export default function ICDashboard() {
       {/* Row 1: Quick Actions */}
       <QuickActionsCard />
 
+      {/* AI Team showcase */}
+      <AITeamsDashboardCard agencyRole="ic" />
+
       {/* Row 2: My Work kanban (full width) */}
       <Card>
         <CardHeader className="pb-3">

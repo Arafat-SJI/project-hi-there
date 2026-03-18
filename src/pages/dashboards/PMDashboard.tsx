@@ -133,6 +133,9 @@ export default function PMDashboard() {
       {/* Row 1: Quick actions */}
       <QuickActionsCard />
 
+      {/* AI Team showcase */}
+      <AITeamsDashboardCard agencyRole="pm" />
+
       {/* Row 2: Projects table */}
       <Card>
         <CardHeader className="pb-3">

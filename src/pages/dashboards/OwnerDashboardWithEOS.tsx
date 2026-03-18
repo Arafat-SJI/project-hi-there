@@ -106,7 +106,7 @@ export default function OwnerDashboardWithEOS() {
       <QuickActionsCard />
 
       {/* AI Team showcase */}
-      <AITeamsDashboardCard />
+      <AITeamsDashboardCard agencyRole="owner" />
 
       {/* Row 2: Agency health */}
       {showHealth && isWidgetVisible("health-metrics") && <HealthMetricsCard />}
