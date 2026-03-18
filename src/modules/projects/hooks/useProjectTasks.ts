@@ -68,7 +68,8 @@ export function useProjectTasks(projectId: string) {
               project_external_id: project.external_id,
             })
             .order("created_at", { ascending: false })
-            .limit(50),
+            .limit(50)
+            .then(res => res),
         );
       }
 
