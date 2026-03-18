@@ -103,18 +103,20 @@ export default function AgentDetail() {
             </div>
 
             {/* CTA sidebar for desktop */}
-            <div className="hidden sm:block flex-shrink-0">
-              <Button
-                size="lg"
-                className="font-semibold text-white shadow-lg hover:shadow-xl transition-all"
-                style={{
-                  background: `linear-gradient(135deg, hsl(${gradientFrom}), hsl(${gradientTo}))`,
-                }}
-                onClick={() => navigate(`/ai-agents?run=${slug}`)}
-              >
-                <Play className="h-4 w-4 mr-2 fill-current" /> Run Agent
-              </Button>
-            </div>
+            {whereToFind && (
+              <div className="hidden sm:block flex-shrink-0">
+                <Button
+                  size="lg"
+                  className="font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(${gradientFrom}), hsl(${gradientTo}))`,
+                  }}
+                  onClick={() => navigate(whereToFind.path)}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" /> Go to {whereToFind.label}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
