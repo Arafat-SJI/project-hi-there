@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MeetingsThisWeekCard } from "@/components/dashboards/MeetingsThisWeekCard";
 import { AIDigestCard } from "@/components/dashboards/AIDigestCard";
 import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
+import { AITeamsDashboardCard } from "@/components/dashboards/AITeamsDashboardCard";
 import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyTasks, useMyProjects } from "@/hooks/usePMDashboard";
@@ -326,6 +327,9 @@ export default function ICDashboard() {
 
       {/* Row 1: Quick Actions */}
       <QuickActionsCard />
+
+      {/* AI Team showcase */}
+      <AITeamsDashboardCard agencyRole="ic" />
 
       {/* Row 2: My Work kanban (full width) */}
       <Card>

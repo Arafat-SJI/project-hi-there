@@ -12,6 +12,14 @@ import { Button } from "@/components/ui/button";
 import { allTeams, type AgentTeamDef } from "@/components/ai/agentTeamConfig";
 import { cn } from "@/lib/utils";
 
+type AgencyRole = "owner" | "pm" | "ic";
+
+const ROLE_TEAM_MAP: Record<AgencyRole, string[] | "all"> = {
+  owner: "all",
+  pm: ["projects", "meetings"],
+  ic: ["projects", "meetings"],
+};
+
 function TeamMiniCard({ team }: { team: AgentTeamDef }) {
   const navigate = useNavigate();
   const previewIcons = team.agents.slice(0, 4).map((a) => ({
@@ -65,8 +73,14 @@ function TeamMiniCard({ team }: { team: AgentTeamDef }) {
   );
 }
 
-export function AITeamsDashboardCard({ className }: { className?: string }) {
+export function AITeamsDashboardCard({ className, agencyRole }: { className?: string; agencyRole?: AgencyRole }) {
   const navigate = useNavigate();
+
+  const filteredTeams = agencyRole
+    ? ROLE_TEAM_MAP[agencyRole] === "all"
+      ? allTeams
+      : allTeams.filter((t) => (ROLE_TEAM_MAP[agencyRole] as string[]).includes(t.id))
+    : allTeams;
 
   return (
     <Card
@@ -90,14 +104,14 @@ export function AITeamsDashboardCard({ className }: { className?: string }) {
           Your AI Team
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          {allTeams.reduce((sum, t) => sum + t.agents.length, 0)} specialized agents across {allTeams.length} teams
+          {filteredTeams.reduce((sum, t) => sum + t.agents.length, 0)} specialized agents across {filteredTeams.length} teams
         </p>
       </CardHeader>
 
       <CardContent>
         {/* Horizontal scroll container */}
         <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin">
-          {allTeams.map((team) => (
+          {filteredTeams.map((team) => (
             <TeamMiniCard key={team.id} team={team} />
           ))}
         </div>

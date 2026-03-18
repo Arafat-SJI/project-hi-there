@@ -1,49 +1,62 @@
 
 
-# Role-Specific AI Teams on All Dashboards
+## Problem
 
-## What Changes
+The admin sidebar has overlapping and confusing AI-related sections:
 
-The current `AITeamsDashboardCard` shows all 4 agent teams to every user. We'll make it role-aware so each dashboard shows only the teams relevant to that role, and add the card to the PM and IC dashboards (which currently don't have it).
+| Current Group | Items |
+|---|---|
+| **KNOWLEDGE & AI** | AI Hub (7 sub-items), Semantic Search (2), User Memory (4), Knowledge Base (8) |
+| **AI & AUTOMATION** | AI Models, AI Usage Analytics, MCP Servers |
+| **KNOWLEDGE** (standalone) | 9 items duplicating items already inside KNOWLEDGE & AI |
+| **EOS** (standalone) | 5 items duplicating items already inside PEOPLE & PERFORMANCE |
 
-### Role-to-Team Mapping
+This creates confusion: "Where do I go to manage AI agents? AI Hub or AI & Automation?" and "Which Knowledge section has what I need?"
 
-| Role | Teams Shown | Rationale |
-|------|------------|-----------|
-| **Owner/CEO** | All 4 teams (Sales, Meetings, Strategy, Projects) | Owners oversee everything |
-| **PM** | Projects, Meetings | PMs manage projects and attend meetings |
-| **IC/Employee** | Projects, Meetings | ICs work on tasks, attend meetings |
+## Proposed Reorganization
 
-### Changes to `AITeamsDashboardCard.tsx`
+Merge into two clean groups, remove duplicates:
 
-- Add an optional `agencyRole` prop
-- Filter `allTeams` based on role mapping before rendering
-- Adjust subtitle text to reflect filtered count
-- When no role is passed, show all teams (backward compatible)
+```text
+INTELLIGENCE & AI                    (merge of KNOWLEDGE & AI + AI & AUTOMATION)
+├─ AI Hub                            (collapsible)
+│  ├─ Dashboard
+│  ├─ AI Agents
+│  ├─ Agent Analytics
+│  ├─ Agent Categories
+│  ├─ Prompt Templates
+│  ├─ Email Drafting
+│  └─ Deal Coaching
+├─ AI Models & Usage                 (collapsible, was in AI & AUTOMATION)
+│  ├─ AI Models
+│  ├─ AI Usage Analytics
+│  └─ MCP Servers
+├─ Semantic Search                   (collapsible)
+│  ├─ Search
+│  └─ Embeddings
+├─ User Memory                       (collapsible)
+│  ├─ Memory Dashboard
+│  ├─ User Memory Stats
+│  ├─ Search Analytics
+│  └─ Team Learning Patterns
+└─ Knowledge Base                    (collapsible)
+   ├─ Common Knowledge
+   ├─ Processing Queue
+   ├─ Sources
+   ├─ Categories
+   ├─ Batch Upload
+   ├─ Files
+   ├─ Sync Status
+   └─ Gemini RAG
 
-### Add to PM Dashboard (`PMDashboard.tsx`)
+(Remove standalone KNOWLEDGE and EOS groups — they are duplicates)
+```
 
-- Import `AITeamsDashboardCard`
-- Place it after `QuickActionsCard`, pass `agencyRole="pm"`
+## Changes
 
-### Add to IC Dashboard (`ICDashboard.tsx`)
-
-- Import `AITeamsDashboardCard`
-- Place it after `QuickActionsCard`, pass `agencyRole="ic"`
-
-### Update Owner Dashboards
-
-- Pass `agencyRole="owner"` to existing `<AITeamsDashboardCard />` in both `OwnerDashboard.tsx` and `OwnerDashboardWithEOS.tsx`
-
-### Files
-
-| File | Action |
+| File | Change |
 |------|--------|
-| `src/components/dashboards/AITeamsDashboardCard.tsx` | **Edit** — add role filtering |
-| `src/pages/dashboards/PMDashboard.tsx` | **Edit** — add card |
-| `src/pages/dashboards/ICDashboard.tsx` | **Edit** — add card |
-| `src/pages/dashboards/OwnerDashboard.tsx` | **Edit** — pass role prop |
-| `src/pages/dashboards/OwnerDashboardWithEOS.tsx` | **Edit** — pass role prop |
+| `src/shared/data/navigationStructure.ts` | Merge "AI & AUTOMATION" items into "KNOWLEDGE & AI" (renamed to "INTELLIGENCE & AI"), add "AI Models & Usage" as a collapsible sub-section. Remove duplicate `admin-knowledge` and `admin-eos` groups entirely. |
 
-No database changes. No new files.
+No other files change — the sidebar component already supports `headerOnly` collapsible children, so the new structure renders automatically.
 
