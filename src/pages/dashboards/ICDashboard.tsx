@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MeetingsThisWeekCard } from "@/components/dashboards/MeetingsThisWeekCard";
 import { AIDigestCard } from "@/components/dashboards/AIDigestCard";
 import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
+import { AITeamsDashboardCard } from "@/components/dashboards/AITeamsDashboardCard";
 import { DashboardPreferencesSheet } from "@/components/dashboards/DashboardPreferencesSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyTasks, useMyProjects } from "@/hooks/usePMDashboard";
