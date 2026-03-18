@@ -150,7 +150,7 @@ export default function DashboardWidgets() {
               </CardDescription>
             </div>
             <div className="flex gap-2 shrink-0">
-              {(["owner", "pm", "ic"] as const).map((role) => {
+              {(["owner", "pm", "bd", "ic"] as const).map((role) => {
                 const count = widgets?.filter(
                   (w) => w.agency_roles.includes(role) && w.is_enabled
                 ).length ?? 0;

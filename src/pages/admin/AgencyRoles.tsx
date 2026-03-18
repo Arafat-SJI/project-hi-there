@@ -259,6 +259,10 @@ export default function AgencyRoles() {
             table, team capacity by pod, meetings this week.
           </p>
           <p>
+            <strong className="text-foreground">BD</strong> — Business development: deals pipeline,
+            contacts & leads, follow-up tracking, client outreach.
+          </p>
+          <p>
             <strong className="text-foreground">IC</strong> — Individual contributor: My Work
             kanban, my projects list, meetings, AI digest.
           </p>
