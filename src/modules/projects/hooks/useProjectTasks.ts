@@ -53,7 +53,8 @@ export function useProjectTasks(projectId: string) {
             .select("id, title, status, priority, due_date, assigned_to, metadata, created_at")
             .eq("client_id", project.client_id)
             .order("created_at", { ascending: false })
-            .limit(50),
+            .limit(50)
+            .then(res => res),
         );
       }
 
