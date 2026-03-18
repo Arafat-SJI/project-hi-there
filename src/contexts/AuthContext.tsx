@@ -11,7 +11,7 @@ interface Profile {
   avatar_url?: string;
   role?: string;
   // Agency role for dashboard routing (owner | pm | ic)
-  agencyRole?: "owner" | "pm" | "ic";
+  agencyRole?: "owner" | "pm" | "ic" | "bd";
   // EOS flag: owner sees EOS-enhanced dashboard when true
   isEosUser?: boolean;
 }
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch agency role preferences from user_role_preferences table
   const fetchAgencyPreferences = async (
     userId: string
-  ): Promise<{ agencyRole?: "owner" | "pm" | "ic"; isEosUser: boolean }> => {
+  ): Promise<{ agencyRole?: "owner" | "pm" | "ic" | "bd"; isEosUser: boolean }> => {
     try {
       const { data, error } = await (supabase as any)
         .from("user_role_preferences")
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return {
-        agencyRole: (data?.agency_role as "owner" | "pm" | "ic" | null) ?? undefined,
+        agencyRole: (data?.agency_role as "owner" | "pm" | "ic" | "bd" | null) ?? undefined,
         isEosUser: data?.is_eos_user ?? false,
       };
     } catch (error) {

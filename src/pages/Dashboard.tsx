@@ -9,6 +9,7 @@ import { useDashboardStats, useRecentActivity, getTimeAgo, useAITeamSummary } fr
 const OwnerDashboard = lazy(() => import("@/pages/dashboards/OwnerDashboard"));
 const OwnerDashboardWithEOS = lazy(() => import("@/pages/dashboards/OwnerDashboardWithEOS"));
 const PMDashboard = lazy(() => import("@/pages/dashboards/PMDashboard"));
+const BDDashboard = lazy(() => import("@/pages/dashboards/BDDashboard"));
 const ICDashboard = lazy(() => import("@/pages/dashboards/ICDashboard"));
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,13 @@ export default function Dashboard() {
     return (
       <Suspense fallback={<DashboardFallback />}>
         <PMDashboard />
+      </Suspense>
+    );
+  }
+  if (agencyRole === "bd") {
+    return (
+      <Suspense fallback={<DashboardFallback />}>
+        <BDDashboard />
       </Suspense>
     );
   }
