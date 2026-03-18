@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch agency role preferences from user_role_preferences table
   const fetchAgencyPreferences = async (
     userId: string
-  ): Promise<{ agencyRole?: "owner" | "pm" | "ic"; isEosUser: boolean }> => {
+  ): Promise<{ agencyRole?: "owner" | "pm" | "ic" | "bd"; isEosUser: boolean }> => {
     try {
       const { data, error } = await (supabase as any)
         .from("user_role_preferences")
