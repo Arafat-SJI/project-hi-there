@@ -104,7 +104,7 @@ export function AITeamsDashboardCard({ className, agencyRole }: { className?: st
           Your AI Team
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          {allTeams.reduce((sum, t) => sum + t.agents.length, 0)} specialized agents across {allTeams.length} teams
+          {filteredTeams.reduce((sum, t) => sum + t.agents.length, 0)} specialized agents across {filteredTeams.length} teams
         </p>
       </CardHeader>
 
