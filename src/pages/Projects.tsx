@@ -249,6 +249,9 @@ export default function Projects() {
   return (
     <div className="space-y-4">
       <AgentTeamBanner team="projects" />
+      <div className="flex flex-wrap gap-2">
+        <AIAgentPresenceIndicator agentName="Project Analyst" agentSlug="project-analyst" gradientFrom="150 70% 40%" gradientTo="170 75% 50%" />
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Projects</h1>

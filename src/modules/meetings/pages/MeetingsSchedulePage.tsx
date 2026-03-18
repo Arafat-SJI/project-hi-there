@@ -230,6 +230,10 @@ export default function MeetingsSchedulePage() {
   return (
     <div className="space-y-6">
       <AgentTeamBanner team="meetings" />
+      <div className="flex flex-wrap gap-2">
+        <AIAgentPresenceIndicator agentName="Meeting Summarizer" agentSlug="meeting-summarizer" gradientFrom="190 80% 45%" gradientTo="210 85% 55%" />
+        <AIAgentPresenceIndicator agentName="Action Item Extractor" agentSlug="action-item-extractor" gradientFrom="190 80% 45%" gradientTo="210 85% 55%" />
+      </div>
       {/* Header: title + subtitle left; List | Calendar | New Meeting right */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>

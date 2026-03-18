@@ -221,6 +221,10 @@ export default function DealsPage() {
   return (
     <div className="space-y-6 pt-6">
       <AgentTeamBanner team="sales" />
+      <div className="flex flex-wrap gap-2">
+        <AIAgentPresenceIndicator agentName="Deal Coach" agentSlug="deal-coach" gradientFrom="280 70% 50%" gradientTo="330 80% 55%" />
+        <AIAgentPresenceIndicator agentName="Quick Deal Email" agentSlug="quick-deal-email" gradientFrom="280 70% 50%" gradientTo="330 80% 55%" />
+      </div>
       <CrmConnectionBanner />
       {isStageOnlyView && stageMeta && stageLabelForBreadcrumb ? (
         <>

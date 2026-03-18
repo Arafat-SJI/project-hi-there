@@ -44,9 +44,9 @@ export function AgentTeamCard({ agent, gradientFrom, gradientTo }: AgentTeamCard
           size="sm"
           variant="outline"
           className="mt-2 w-full text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-          onClick={() => navigate(`/ai-agents?run=${agent.slug}`)}
+          onClick={() => navigate(`/agents/${agent.slug}`)}
         >
-          Try Agent →
+          Learn More →
         </Button>
       </div>
     </div>
