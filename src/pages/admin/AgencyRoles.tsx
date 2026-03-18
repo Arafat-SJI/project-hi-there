@@ -197,7 +197,7 @@ export default function AgencyRoles() {
               </CardDescription>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {(["owner", "pm", "ic"] as const).map((role) => (
+              {(["owner", "pm", "bd", "ic"] as const).map((role) => (
                 <Badge
                   key={role}
                   variant="outline"
