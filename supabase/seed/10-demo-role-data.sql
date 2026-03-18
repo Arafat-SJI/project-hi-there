@@ -58,12 +58,12 @@ BEGIN
   -- ───────────────────────────────────────────────
   UPDATE tasks SET assigned_to = u_ic
   WHERE slug IN (
-    'fix-meeting-sync-bug',
-    'write-api-docs',
-    'optimize-embedding-search',
-    'design-feedback-widget',
-    'update-knowledge-categories',
-    'test-webhook-handlers'
+    'fix-datepicker-tz',
+    'api-rate-limit-docs',
+    'upgrade-react-router-v7',
+    'acme-billing-fix',
+    'renew-ssl-certs',
+    'followup-finedge'
   );
 
   RAISE NOTICE 'Demo role data seeded for PM (%) and IC (%)', u_pm, u_ic;
