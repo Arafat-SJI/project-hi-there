@@ -6,7 +6,7 @@
  */
 
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { icons, Sparkles, ArrowLeft, ArrowRight, MapPin, Zap, BookOpen, Play } from "lucide-react";
+import { icons, Sparkles, ArrowLeft, ArrowRight, MapPin, Zap, BookOpen, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -103,35 +103,39 @@ export default function AgentDetail() {
             </div>
 
             {/* CTA sidebar for desktop */}
-            <div className="hidden sm:block flex-shrink-0">
-              <Button
-                size="lg"
-                className="font-semibold text-white shadow-lg hover:shadow-xl transition-all"
-                style={{
-                  background: `linear-gradient(135deg, hsl(${gradientFrom}), hsl(${gradientTo}))`,
-                }}
-                onClick={() => navigate(`/ai-agents?run=${slug}`)}
-              >
-                <Play className="h-4 w-4 mr-2 fill-current" /> Run Agent
-              </Button>
-            </div>
+            {whereToFind && (
+              <div className="hidden sm:block flex-shrink-0">
+                <Button
+                  size="lg"
+                  className="font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(${gradientFrom}), hsl(${gradientTo}))`,
+                  }}
+                  onClick={() => navigate(whereToFind.path)}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" /> Go to {whereToFind.label}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Mobile CTA */}
-      <div className="sm:hidden">
-        <Button
-          size="lg"
-          className="w-full font-semibold text-white shadow-lg"
-          style={{
-            background: `linear-gradient(135deg, hsl(${gradientFrom}), hsl(${gradientTo}))`,
-          }}
-          onClick={() => navigate(`/ai-agents?run=${slug}`)}
-        >
-          <Play className="h-4 w-4 mr-2 fill-current" /> Run Agent
-        </Button>
-      </div>
+      {whereToFind && (
+        <div className="sm:hidden">
+          <Button
+            size="lg"
+            className="w-full font-semibold text-white shadow-lg"
+            style={{
+              background: `linear-gradient(135deg, hsl(${gradientFrom}), hsl(${gradientTo}))`,
+            }}
+            onClick={() => navigate(whereToFind.path)}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" /> Go to {whereToFind.label}
+          </Button>
+        </div>
+      )}
 
       {/* Content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

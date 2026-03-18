@@ -123,21 +123,14 @@ function AgentBrowseCard({ agent }: { agent: { name: string; slug: string; descr
         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 flex-1 mt-1">
           {agent.description || "An AI agent ready to assist you."}
         </p>
-        <div className="flex gap-2 mt-3">
+        <div className="mt-3">
           <Button
             size="sm"
             variant="outline"
-            className="flex-1 font-medium"
+            className="w-full font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
             onClick={() => navigate(`/agents/${agent.slug}`)}
           >
-            Details
-          </Button>
-          <Button
-            size="sm"
-            className="flex-1 font-medium"
-            onClick={() => navigate(`/ai-agents?run=${agent.slug}`)}
-          >
-            Run →
+            Learn More <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
           </Button>
         </div>
       </div>

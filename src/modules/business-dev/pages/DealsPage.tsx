@@ -27,6 +27,7 @@ import { generateDealsCSV } from "@/lib/csv";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
+import { AIAgentPresenceIndicator } from "@/components/ai/AIAgentPresenceIndicator";
 import DealsOverview from "../components/DealsOverview";
 import DealsStageTabContent from "../components/DealsStageTabContent";
 import DealsAnalytics from "../components/DealsAnalytics";
@@ -220,6 +221,10 @@ export default function DealsPage() {
   return (
     <div className="space-y-6 pt-6">
       <AgentTeamBanner team="sales" />
+      <div className="flex flex-wrap gap-2">
+        <AIAgentPresenceIndicator agentName="Deal Coach" agentSlug="deal-coach" gradientFrom="280 70% 50%" gradientTo="330 80% 55%" />
+        <AIAgentPresenceIndicator agentName="Quick Deal Email" agentSlug="quick-deal-email" gradientFrom="280 70% 50%" gradientTo="330 80% 55%" />
+      </div>
       <CrmConnectionBanner />
       {isStageOnlyView && stageMeta && stageLabelForBreadcrumb ? (
         <>

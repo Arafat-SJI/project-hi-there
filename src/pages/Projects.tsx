@@ -30,6 +30,7 @@ import { ProjectNameCell } from "@/components/projects/ProjectNameCell";
 import type { Project } from "@/modules/projects/types";
 import { isSameMonth, isSameYear, differenceInDays } from "date-fns";
 import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
+import { AIAgentPresenceIndicator } from "@/components/ai/AIAgentPresenceIndicator";
 
 const STORAGE_KEY = "projects_filters_v1";
 /** Red badge count on Project Queue tab (match reference UI; replace with API when available) */
@@ -248,6 +249,9 @@ export default function Projects() {
   return (
     <div className="space-y-4">
       <AgentTeamBanner team="projects" />
+      <div className="flex flex-wrap gap-2">
+        <AIAgentPresenceIndicator agentName="Project Analyst" agentSlug="project-analyst" gradientFrom="150 70% 40%" gradientTo="170 75% 50%" />
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Projects</h1>
