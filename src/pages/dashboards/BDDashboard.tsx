@@ -205,7 +205,7 @@ function RecentDealsCard() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{deal.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {deal.client_name || "No client"}
+                    {deal.client?.name || "No client"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
