@@ -764,6 +764,7 @@ export type Database = {
           metadata: Json | null
           name: string
           provider_config: Json | null
+          rag_enabled: boolean
           required_role: Database["public"]["Enums"]["app_role"] | null
           slug: string
           system_prompt: string
@@ -791,6 +792,7 @@ export type Database = {
           metadata?: Json | null
           name: string
           provider_config?: Json | null
+          rag_enabled?: boolean
           required_role?: Database["public"]["Enums"]["app_role"] | null
           slug: string
           system_prompt: string
@@ -818,6 +820,7 @@ export type Database = {
           metadata?: Json | null
           name?: string
           provider_config?: Json | null
+          rag_enabled?: boolean
           required_role?: Database["public"]["Enums"]["app_role"] | null
           slug?: string
           system_prompt?: string
