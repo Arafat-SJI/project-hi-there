@@ -73,8 +73,14 @@ function TeamMiniCard({ team }: { team: AgentTeamDef }) {
   );
 }
 
-export function AITeamsDashboardCard({ className }: { className?: string }) {
+export function AITeamsDashboardCard({ className, agencyRole }: { className?: string; agencyRole?: AgencyRole }) {
   const navigate = useNavigate();
+
+  const filteredTeams = agencyRole
+    ? ROLE_TEAM_MAP[agencyRole] === "all"
+      ? allTeams
+      : allTeams.filter((t) => (ROLE_TEAM_MAP[agencyRole] as string[]).includes(t.id))
+    : allTeams;
 
   return (
     <Card
