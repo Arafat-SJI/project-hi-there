@@ -29,6 +29,7 @@ import Feedback from "@/pages/Feedback";
 import FeedbackDetail from "@/pages/FeedbackDetail";
 
 import AIAgents from "@/pages/AIAgents";
+import AgentsBrowse from "@/pages/AgentsBrowse";
 import PersonalKnowledge from "@/modules/knowledge/pages/PersonalKnowledge";
 
 /**
