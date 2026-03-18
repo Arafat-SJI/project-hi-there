@@ -43,7 +43,7 @@ export function useProjectTasks(projectId: string) {
       if (projError) throw projError;
       if (!project) return [];
 
-      const queries: Promise<any>[] = [];
+      const queries: Array<PromiseLike<any>> = [];
 
       // 1) Tasks linked via client_id (existing behavior)
       if (project.client_id) {
