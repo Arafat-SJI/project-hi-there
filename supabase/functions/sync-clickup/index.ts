@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateEmbedding } from "../_shared/ai-provider-routing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,56 +40,6 @@ interface SyncResult {
   tasks_synced: number;
   duration_ms: number;
   errors: string[];
-}
-
-function chunkText(text: string, chunkSize = 800): string[] {
-  const chunks: string[] = [];
-  let start = 0;
-  while (start < text.length) {
-    chunks.push(text.slice(start, start + chunkSize));
-    start += chunkSize;
-  }
-  return chunks;
-}
-
-async function upsertTaskEmbeddings(args: {
-  supabase: ReturnType<typeof createClient>;
-  userId: string;
-  taskId: string;
-  content: string;
-  metadata: Record<string, unknown>;
-}): Promise<void> {
-  const { supabase, userId, taskId, content, metadata } = args;
-
-  // Clear prior embeddings for this task (idempotent updates)
-  await supabase
-    .from("embeddings")
-    .delete()
-    .eq("entity_type", "task")
-    .eq("entity_id", taskId)
-    .eq("user_id", userId);
-
-  const chunks = chunkText(content, 800);
-  const rows: Array<Record<string, unknown>> = [];
-
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    const emb = await generateEmbedding(supabase, chunk);
-    rows.push({
-      entity_type: "task",
-      entity_id: taskId,
-      user_id: userId,
-      content: chunk,
-      chunk_index: i,
-      metadata,
-      embedding: emb.embedding,
-      created_at: new Date().toISOString(),
-    });
-  }
-
-  if (rows.length > 0) {
-    await supabase.from("embeddings").insert(rows);
-  }
 }
 
 function slugFromNameAndId(name: string, externalId: string): string {
@@ -414,51 +363,6 @@ serve(async (req) => {
           const checklists = Array.isArray(detailed.checklists) ? detailed.checklists : [];
           const checklistsCount = checklists.length;
 
-          const attachments =
-            Array.isArray(detailed.attachments) && detailed.attachments.length > 0
-              ? (detailed.attachments as Array<Record<string, unknown>>)
-                  .map((att) => {
-                    const id = typeof att.id === "string" ? att.id : null;
-                    const name =
-                      typeof att.title === "string"
-                        ? att.title
-                        : typeof att.name === "string"
-                        ? att.name
-                        : null;
-                    const url =
-                      typeof att.url === "string"
-                        ? att.url
-                        : typeof att.url === "string"
-                        ? att.url
-                        : null;
-                    const size =
-                      typeof att.size === "number"
-                        ? att.size
-                        : typeof att.size === "string"
-                        ? Number(att.size) || null
-                        : null;
-                    const extension =
-                      typeof att.extension === "string"
-                        ? att.extension
-                        : typeof att.type === "string"
-                        ? att.type
-                        : null;
-
-                    if (!id || !name || !url) {
-                      return null;
-                    }
-
-                    return {
-                      id,
-                      name,
-                      url,
-                      size,
-                      extension,
-                    } as Record<string, unknown>;
-                  })
-                  .filter((att): att is Record<string, unknown> => att !== null)
-              : [];
-
           // Extract richer ClickUp-specific details for the UI
           const clickupDetails = {
             timeEstimateMs,
@@ -468,7 +372,6 @@ serve(async (req) => {
             checklistsCount,
             hasParent: !!detailed.parent,
             url: detailed.url ?? null,
-            attachments,
             // Keep raw payload in case the UI needs other fields later
             raw: detailed,
           };
@@ -492,24 +395,6 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           };
 
-          const ragTextParts: string[] = [
-            `Title: ${taskRow.title}`,
-            `Status: ${status}`,
-            due ? `Due: ${due}` : "",
-          ].filter((x) => typeof x === "string" && x.length > 0) as string[];
-
-          if (Array.isArray(tags) && tags.length > 0) {
-            ragTextParts.push(`Tags: ${tags.join(", ")}`);
-          }
-          if (clickupDetails?.url) {
-            ragTextParts.push(`ClickUp URL: ${String(clickupDetails.url)}`);
-          }
-          ragTextParts.push(`Source: ClickUp`);
-          ragTextParts.push(`External ID: ${externalTaskId}`);
-          ragTextParts.push(`Project External ID: ${externalId}`);
-
-          const ragContent = ragTextParts.join("\n");
-
           if (existingTask) {
             const { error } = await supabase
               .from("tasks")
@@ -519,19 +404,6 @@ serve(async (req) => {
               errors.push(`Update task ${externalTaskId}: ${error.message}`);
             } else {
               tasksUpdated++;
-              try {
-                await upsertTaskEmbeddings({
-                  supabase,
-                  userId: user.id,
-                  taskId: existingTask.id,
-                  content: ragContent,
-                  metadata: taskRow.metadata as Record<string, unknown>,
-                });
-              } catch (e) {
-                errors.push(
-                  `Embed task ${externalTaskId}: ${e instanceof Error ? e.message : "Unknown error"}`,
-                );
-              }
             }
           } else {
             const insertRow = {
@@ -539,28 +411,11 @@ serve(async (req) => {
               created_at: new Date().toISOString(),
               created_by: user.id,
             };
-            const { data: inserted, error } = await supabase
-              .from("tasks")
-              .insert(insertRow)
-              .select("id")
-              .maybeSingle();
-            if (error || !inserted?.id) {
-              errors.push(`Insert task ${externalTaskId}: ${error?.message || "Unknown insert error"}`);
+            const { error } = await supabase.from("tasks").insert(insertRow);
+            if (error) {
+              errors.push(`Insert task ${externalTaskId}: ${error.message}`);
             } else {
               tasksCreated++;
-              try {
-                await upsertTaskEmbeddings({
-                  supabase,
-                  userId: user.id,
-                  taskId: inserted.id as string,
-                  content: ragContent,
-                  metadata: taskRow.metadata as Record<string, unknown>,
-                });
-              } catch (e) {
-                errors.push(
-                  `Embed task ${externalTaskId}: ${e instanceof Error ? e.message : "Unknown error"}`,
-                );
-              }
             }
           }
         }
@@ -594,39 +449,6 @@ serve(async (req) => {
       duration_ms: Date.now() - started,
       errors,
     };
-
-    try {
-      const { data: providerRow } = await supabase
-        .from("integration_providers")
-        .select("id")
-        .eq("slug", "clickup")
-        .maybeSingle();
-
-      const providerId = providerRow?.id ?? null;
-
-      await supabase.from("integration_usage_logs").insert({
-        organization_id: null,
-        provider_id: providerId,
-        service_id: null,
-        user_id: user.id,
-        action: "sync-clickup",
-        status: errors.length === 0 ? "success" : errors.length === projectsSynced + tasksSynced ? "error" : "partial",
-        request_metadata: {
-          triggered_from: "edge_function",
-        } as Record<string, unknown>,
-        response_metadata: {
-          projects_synced: projectsSynced,
-          projects_created: projectsCreated,
-          projects_updated: projectsUpdated,
-          tasks_synced: tasksSynced,
-          duration_ms: result.duration_ms,
-        } as Record<string, unknown>,
-        error_message: errors.length ? errors.join("; ").slice(0, 500) : null,
-        estimated_cost: 0,
-      });
-    } catch (_logError) {
-      // Logging failures should not break sync
-    }
 
     return new Response(JSON.stringify(result), {
       status: 200,
