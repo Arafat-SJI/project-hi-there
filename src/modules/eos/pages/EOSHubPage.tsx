@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
+import { AIAgentPresenceIndicator } from "@/components/ai/AIAgentPresenceIndicator";
 
 const features = [
   {
