@@ -29,18 +29,21 @@ import type { AgencyRole } from "@/hooks/useAgencyRole";
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
   pm: "PM",
+  bd: "BD",
   ic: "IC",
 };
 
 const ROLE_COLORS: Record<string, string> = {
   owner: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
   pm: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  bd: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
   ic: "bg-green-500/15 text-green-700 dark:text-green-400",
 };
 
 const ROLE_ICONS: Record<string, React.ElementType> = {
   owner: Building2,
   pm: FolderKanban,
+  bd: Users,
   ic: User,
 };
 

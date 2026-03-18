@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, FolderKanban, User, Loader2, Sparkles } from "lucide-react";
+import { Building2, FolderKanban, User, Briefcase, Loader2, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
