@@ -26,6 +26,7 @@ import { useDeals, useDealPipelineStats } from "../hooks/useDeals";
 import { generateDealsCSV } from "@/lib/csv";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
 import DealsOverview from "../components/DealsOverview";
 import DealsStageTabContent from "../components/DealsStageTabContent";
 import DealsAnalytics from "../components/DealsAnalytics";
@@ -218,6 +219,7 @@ export default function DealsPage() {
 
   return (
     <div className="space-y-6 pt-6">
+      <AgentTeamBanner team="sales" />
       <CrmConnectionBanner />
       {isStageOnlyView && stageMeta && stageLabelForBreadcrumb ? (
         <>
