@@ -6,7 +6,7 @@
  */
 
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { icons, Sparkles, ArrowLeft, ArrowRight, MapPin, Zap, BookOpen, Play } from "lucide-react";
+import { icons, Sparkles, ArrowLeft, ArrowRight, MapPin, Zap, BookOpen, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
