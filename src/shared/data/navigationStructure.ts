@@ -162,6 +162,7 @@ export const navigationGroups: NavGroup[] = [
         icon: "Sparkles",
         module: "meetings",
         featureFlag: "enableMeetings",
+        agencyRoles: ["owner"],
       },
     ],
   },
