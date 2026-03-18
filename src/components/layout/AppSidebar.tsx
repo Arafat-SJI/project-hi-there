@@ -124,9 +124,14 @@ export function AppSidebar({ open = true, onToggleSidebar }: AppSidebarProps) {
       const stored = localStorage.getItem(EXPANDED_GROUPS_KEY);
       if (stored) return JSON.parse(stored);
     } catch {}
-    // Default: all groups expanded
+    // Default: all groups collapsed except the one containing the active route
     return navigationGroups.reduce((acc, group) => {
-      acc[group.id] = true;
+      const groupHasActiveRoute = group.items.some(
+        (item) =>
+          location.pathname.startsWith(item.href.split("?")[0]) ||
+          item.children?.some((child) => location.pathname.startsWith(child.href.split("?")[0]))
+      );
+      acc[group.id] = groupHasActiveRoute;
       return acc;
     }, {} as Record<string, boolean>);
   });
