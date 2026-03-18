@@ -1,8 +1,14 @@
-import { TrendingUp, Users, FolderKanban, AlertTriangle, Building2 } from "lucide-react";
+import { TrendingUp, Users, FolderKanban, AlertTriangle, Building2, RefreshCw, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useOwnerMetrics } from "@/hooks/useOwnerMetrics";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/cache";
+import { useState } from "react";
 
 function MetricTile({
   label,
@@ -38,6 +44,31 @@ function MetricTile({
 
 export function HealthMetricsCard() {
   const { data: metrics, isLoading, isError } = useOwnerMetrics();
+  const { profile } = useAuth();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const isAdmin = profile?.role === "admin" || profile?.role === "moderator";
+
+  const allZero = metrics &&
+    metrics.revenue_this_week === 0 &&
+    metrics.team_utilization === 0 &&
+    metrics.projects_in_progress === 0 &&
+    metrics.projects_at_risk === 0;
+
+  const handleRefreshDemoData = async () => {
+    setIsRefreshing(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await supabase.rpc("refresh_demo_data" as any);
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.ownerMetrics });
+    } catch {
+      // Silently fail — the button is a convenience feature
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -84,7 +115,25 @@ export function HealthMetricsCard() {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Business Health</CardTitle>
+        <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Business Health</CardTitle>
+            {isAdmin && allZero && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRefreshDemoData}
+                disabled={isRefreshing}
+                className="h-7 text-xs"
+              >
+                {isRefreshing ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                )}
+                Refresh demo data
+              </Button>
+            )}
+          </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">

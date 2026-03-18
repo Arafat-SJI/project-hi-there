@@ -58,6 +58,7 @@ import seed06 from "../../../supabase/seed/06-business-dev.sql?raw";
 import seed07 from "../../../supabase/seed/07-productivity.sql?raw";
 import seed07b from "../../../supabase/seed/07b-productivity-base.sql?raw";
 import seed08 from "../../../supabase/seed/08-ai-agents.sql?raw";
+import seed11 from "../../../supabase/seed/11-demo-refresh.sql?raw";
 
 // ── Seed file metadata ────────────────────────────────────────────────────────
 
@@ -179,6 +180,15 @@ const SEED_FILES: SeedFile[] = [
     module: "ai-agents",
     sql: seed08,
     dependencies: ["00"],
+  },
+  {
+    id: "11",
+    name: "Demo Data Refresh",
+    fileName: "11-demo-refresh.sql",
+    description: "Refreshes relative-date demo data: 2 deals, 5 productivity records, 4 meetings, 3 projects in-progress. Safe to re-run weekly.",
+    module: "platform",
+    sql: seed11,
+    dependencies: ["00", "05", "06", "07"],
   },
 ];
 
@@ -516,7 +526,7 @@ export default function SeedRunner() {
             <AlertDialogHeader>
               <AlertDialogTitle>Run all {SEED_FILES.length} seed files?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will execute all seed SQL files in order (00 through 08, including 05b and 05c).
+                This will execute all seed SQL files in order (00 through 11, including 05b and 05c).
                 Seeds are idempotent and use ON CONFLICT / guard checks, so
                 re-running is safe. If any seed fails, remaining seeds will be skipped.
               </AlertDialogDescription>
