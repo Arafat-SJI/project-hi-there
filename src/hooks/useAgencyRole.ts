@@ -1,11 +1,11 @@
 import { useAuth } from "@/contexts/AuthContext";
 
-export type AgencyRole = "owner" | "pm" | "ic";
+export type AgencyRole = "owner" | "pm" | "ic" | "bd";
 
 /**
  * Returns the current user's agency role and EOS flag.
  *
- * Agency roles (owner / pm / ic) are separate from the DB auth roles
+ * Agency roles (owner / pm / ic / bd) are separate from the DB auth roles
  * (admin / moderator / user) and are stored in user_role_preferences.
  *
  * - agencyRole: undefined means no preference row exists → defaults to IC view
@@ -26,5 +26,6 @@ export function useAgencyRole() {
     isOwner: agencyRole === "owner",
     isPM: agencyRole === "pm",
     isIC: agencyRole === "ic" || agencyRole === null,
+    isBD: agencyRole === "bd",
   };
 }

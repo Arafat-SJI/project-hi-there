@@ -12,6 +12,7 @@ const TEST_ACCOUNTS = [
   { label: "CEO / Owner", email: "ceo@collabai.software", role: "owner", icon: Crown, color: "border-amber-500/30 hover:bg-amber-500/10" },
   { label: "Project Manager", email: "demo@collabai.software", role: "pm", icon: Briefcase, color: "border-blue-500/30 hover:bg-blue-500/10" },
   { label: "IC", email: "ic@collabai.software", role: "ic", icon: Code, color: "border-emerald-500/30 hover:bg-emerald-500/10" },
+  { label: "Business Dev", email: "bd@collabai.software", role: "bd", icon: Shield, color: "border-purple-500/30 hover:bg-purple-500/10" },
 ] as const;
 
 const TEST_PASSWORD = "Demo@123"; // Must match docs/public_website/features.md; ensure demo users exist in Supabase Auth.

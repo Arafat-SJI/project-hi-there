@@ -12,11 +12,12 @@ import { Button } from "@/components/ui/button";
 import { allTeams, type AgentTeamDef } from "@/components/ai/agentTeamConfig";
 import { cn } from "@/lib/utils";
 
-type AgencyRole = "owner" | "pm" | "ic";
+type AgencyRole = "owner" | "pm" | "ic" | "bd";
 
 const ROLE_TEAM_MAP: Record<AgencyRole, string[] | "all"> = {
   owner: "all",
   pm: ["projects", "meetings"],
+  bd: ["sales"],
   ic: ["projects", "meetings"],
 };
 

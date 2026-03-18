@@ -29,18 +29,21 @@ import type { AgencyRole } from "@/hooks/useAgencyRole";
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
   pm: "PM",
+  bd: "BD",
   ic: "IC",
 };
 
 const ROLE_COLORS: Record<string, string> = {
   owner: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
   pm: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  bd: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
   ic: "bg-green-500/15 text-green-700 dark:text-green-400",
 };
 
 const ROLE_ICONS: Record<string, React.ElementType> = {
   owner: Building2,
   pm: FolderKanban,
+  bd: Users,
   ic: User,
 };
 
@@ -138,6 +141,7 @@ function UserRow({ row }: { row: UserAgencyRow }) {
           <SelectItem value="none">No role</SelectItem>
           <SelectItem value="owner">Owner</SelectItem>
           <SelectItem value="pm">PM</SelectItem>
+          <SelectItem value="bd">BD</SelectItem>
           <SelectItem value="ic">IC</SelectItem>
         </SelectContent>
       </Select>
@@ -193,7 +197,7 @@ export default function AgencyRoles() {
               </CardDescription>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {(["owner", "pm", "ic"] as const).map((role) => (
+              {(["owner", "pm", "bd", "ic"] as const).map((role) => (
                 <Badge
                   key={role}
                   variant="outline"
@@ -253,6 +257,10 @@ export default function AgencyRoles() {
           <p>
             <strong className="text-foreground">PM</strong> — Project manager view: my projects
             table, team capacity by pod, meetings this week.
+          </p>
+          <p>
+            <strong className="text-foreground">BD</strong> — Business development: deals pipeline,
+            contacts & leads, follow-up tracking, client outreach.
           </p>
           <p>
             <strong className="text-foreground">IC</strong> — Individual contributor: My Work

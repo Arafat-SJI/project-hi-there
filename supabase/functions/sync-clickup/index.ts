@@ -42,6 +42,98 @@ interface SyncResult {
   errors: string[];
 }
 
+interface OpenAIEmbeddingResponse {
+  data: Array<{
+    embedding: number[];
+  }>;
+}
+
+function chunkText(text: string, chunkSize = 800): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < text.length) {
+    chunks.push(text.slice(start, start + chunkSize));
+    start += chunkSize;
+  }
+  return chunks;
+}
+
+async function embedTextOpenAI(args: { openAiApiKey: string; input: string }): Promise<number[]> {
+  const resp = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${args.openAiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "text-embedding-3-small",
+      input: args.input,
+    }),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`OpenAI embeddings failed: ${resp.status} - ${text.slice(0, 300)}`);
+  }
+
+  const json = (await resp.json()) as OpenAIEmbeddingResponse;
+  const embedding = json.data?.[0]?.embedding;
+  if (!Array.isArray(embedding)) {
+    throw new Error("OpenAI embeddings response missing embedding vector");
+  }
+  return embedding;
+}
+
+async function upsertTaskEmbeddings(args: {
+  supabase: ReturnType<typeof createClient>;
+  userId: string;
+  taskId: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  openAiApiKey: string;
+}): Promise<void> {
+  const { supabase, userId, taskId, content, metadata } = args;
+
+  // Clear prior embeddings for this task (idempotent updates)
+  const { error: deleteError } = await supabase
+    .from("embeddings")
+    .delete()
+    .eq("entity_type", "task")
+    .eq("entity_id", taskId)
+    .eq("user_id", userId);
+  if (deleteError) {
+    throw new Error(`Failed deleting prior embeddings: ${deleteError.message}`);
+  }
+
+  const chunks = chunkText(content, 800);
+  const rows: Array<Record<string, unknown>> = [];
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const embedding = await embedTextOpenAI({ openAiApiKey: args.openAiApiKey, input: chunk });
+    rows.push({
+      entity_type: "task",
+      entity_id: taskId,
+      user_id: userId,
+      content: chunk,
+      chunk_index: i,
+      metadata,
+      embedding,
+      created_at: new Date().toISOString(),
+    });
+
+    // Small delay to reduce rate-limiting risk during big syncs
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  if (rows.length > 0) {
+    const { error: insertError } = await supabase.from("embeddings").insert(rows);
+    if (insertError) {
+      throw new Error(`Failed inserting embeddings: ${insertError.message}`);
+    }
+  }
+}
+
 function slugFromNameAndId(name: string, externalId: string): string {
   const base = name
     .toLowerCase()
@@ -71,6 +163,11 @@ serve(async (req) => {
   const started = Date.now();
 
   try {
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured (required to embed synced tasks)");
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -122,6 +219,8 @@ serve(async (req) => {
     let projectsUpdated = 0;
     let tasksCreated = 0;
     let tasksUpdated = 0;
+    let taskEmbeddingsInserted = 0;
+    let taskEmbeddingsFailed = 0;
 
     // Get default project status (used for imported ClickUp projects)
     let defaultStatusId: string | null = null;
@@ -404,6 +503,22 @@ serve(async (req) => {
               errors.push(`Update task ${externalTaskId}: ${error.message}`);
             } else {
               tasksUpdated++;
+              try {
+                await upsertTaskEmbeddings({
+                  supabase,
+                  userId: user.id,
+                  taskId: existingTask.id,
+                  content: ragContent,
+                  metadata: taskRow.metadata as Record<string, unknown>,
+                  openAiApiKey: OPENAI_API_KEY,
+                });
+                taskEmbeddingsInserted++;
+              } catch (e) {
+                taskEmbeddingsFailed++;
+                errors.push(
+                  `Embed task ${externalTaskId}: ${e instanceof Error ? e.message : "Unknown error"}`,
+                );
+              }
             }
           } else {
             const insertRow = {
@@ -416,6 +531,22 @@ serve(async (req) => {
               errors.push(`Insert task ${externalTaskId}: ${error.message}`);
             } else {
               tasksCreated++;
+              try {
+                await upsertTaskEmbeddings({
+                  supabase,
+                  userId: user.id,
+                  taskId: inserted.id as string,
+                  content: ragContent,
+                  metadata: taskRow.metadata as Record<string, unknown>,
+                  openAiApiKey: OPENAI_API_KEY,
+                });
+                taskEmbeddingsInserted++;
+              } catch (e) {
+                taskEmbeddingsFailed++;
+                errors.push(
+                  `Embed task ${externalTaskId}: ${e instanceof Error ? e.message : "Unknown error"}`,
+                );
+              }
             }
           }
         }
@@ -441,14 +572,51 @@ serve(async (req) => {
       .eq("id", tokenRow.id);
 
     const result: SyncResult = {
-      success: errors.length === 0,
+      success: errors.length === 0 && taskEmbeddingsFailed === 0,
       projects_synced: projectsSynced,
       projects_created: projectsCreated,
       projects_updated: projectsUpdated,
       tasks_synced: tasksSynced,
       duration_ms: Date.now() - started,
-      errors,
+      errors: [
+        ...errors,
+        // Always include a short embedding summary as a final line (helps verify behavior in UI logs)
+        `Embedding summary: tasks_embedded=${taskEmbeddingsInserted}, embedding_failures=${taskEmbeddingsFailed}`,
+      ],
     };
+
+    try {
+      const { data: providerRow } = await supabase
+        .from("integration_providers")
+        .select("id")
+        .eq("slug", "clickup")
+        .maybeSingle();
+
+      const providerId = providerRow?.id ?? null;
+
+      await supabase.from("integration_usage_logs").insert({
+        organization_id: null,
+        provider_id: providerId,
+        service_id: null,
+        user_id: user.id,
+        action: "sync-clickup",
+        status: errors.length === 0 ? "success" : errors.length === projectsSynced + tasksSynced ? "error" : "partial",
+        request_metadata: {
+          triggered_from: "edge_function",
+        } as Record<string, unknown>,
+        response_metadata: {
+          projects_synced: projectsSynced,
+          projects_created: projectsCreated,
+          projects_updated: projectsUpdated,
+          tasks_synced: tasksSynced,
+          duration_ms: result.duration_ms,
+        } as Record<string, unknown>,
+        error_message: errors.length ? errors.join("; ").slice(0, 500) : null,
+        estimated_cost: 0,
+      });
+    } catch (_logError) {
+      // Logging failures should not break sync
+    }
 
     return new Response(JSON.stringify(result), {
       status: 200,
