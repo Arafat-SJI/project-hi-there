@@ -96,6 +96,13 @@ export default function Dashboard() {
       </Suspense>
     );
   }
+  if (agencyRole === "bd") {
+    return (
+      <Suspense fallback={<DashboardFallback />}>
+        <BDDashboard />
+      </Suspense>
+    );
+  }
   if (agencyRole === "ic") {
     return (
       <Suspense fallback={<DashboardFallback />}>
