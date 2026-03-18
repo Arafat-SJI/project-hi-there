@@ -58,7 +58,7 @@ import seed06 from "../../../supabase/seed/06-business-dev.sql?raw";
 import seed07 from "../../../supabase/seed/07-productivity.sql?raw";
 import seed07b from "../../../supabase/seed/07b-productivity-base.sql?raw";
 import seed08 from "../../../supabase/seed/08-ai-agents.sql?raw";
-
+import seed11 from "../../../supabase/seed/11-demo-bd-data.sql?raw";
 // ── Seed file metadata ────────────────────────────────────────────────────────
 
 interface SeedFile {
