@@ -26,6 +26,7 @@ import { useDeals, useDealPipelineStats } from "../hooks/useDeals";
 import { generateDealsCSV } from "@/lib/csv";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
 import DealsOverview from "../components/DealsOverview";
 import DealsStageTabContent from "../components/DealsStageTabContent";
 import DealsAnalytics from "../components/DealsAnalytics";
