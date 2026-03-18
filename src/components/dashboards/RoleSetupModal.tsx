@@ -45,6 +45,15 @@ const ROLE_OPTIONS: RoleOption[] = [
     borderColor: "border-blue-500/40",
   },
   {
+    role: "bd",
+    label: "Business Development",
+    subtitle: "Deals pipeline, contacts, lead follow-up, client outreach",
+    icon: Briefcase,
+    color: "text-amber-700 dark:text-amber-400",
+    bgColor: "bg-amber-500/10",
+    borderColor: "border-amber-500/40",
+  },
+  {
     role: "ic",
     label: "Individual Contributor",
     subtitle: "My Work kanban, my projects, meetings, AI digest",
