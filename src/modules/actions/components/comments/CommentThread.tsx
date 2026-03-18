@@ -17,9 +17,11 @@ import type { TaskComment } from "../../types/tasks";
 interface CommentThreadProps {
   taskId: string;
   comments?: TaskComment[];
+  source?: string;
+  externalId?: string;
 }
 
-export function CommentThread({ taskId, comments: commentsProp }: CommentThreadProps) {
+export function CommentThread({ taskId, comments: commentsProp, source, externalId }: CommentThreadProps) {
   const addComment = useAddComment();
   const { data: commentsFetched, isLoading: commentsLoading } = useTaskComments(taskId);
 
@@ -28,9 +30,9 @@ export function CommentThread({ taskId, comments: commentsProp }: CommentThreadP
 
   const handleSubmit = useCallback(
     async (content: string) => {
-      await addComment.mutateAsync({ taskId, content });
+      await addComment.mutateAsync({ taskId, content, source, externalId });
     },
-    [taskId, addComment],
+    [taskId, addComment, source, externalId],
   );
 
   return (

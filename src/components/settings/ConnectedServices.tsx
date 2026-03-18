@@ -41,6 +41,7 @@ import {
   UserOAuthToken,
   AvailableProvider,
 } from '@/hooks/useUserIntegrations';
+import { formatRelativeTime } from '@/lib/integration-utils';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -82,6 +83,23 @@ function ServiceCard({
   const hasError = !!connection?.error_message;
   const isAnyActionPending = isConnecting || isDisconnecting || isRefreshing;
 
+  const lastSyncAt =
+    typeof connection?.metadata?.last_sync_at === 'string'
+      ? (connection.metadata.last_sync_at as string)
+      : null;
+  const projectsSynced =
+    typeof connection?.metadata?.projects_synced === 'number'
+      ? (connection.metadata.projects_synced as number)
+      : null;
+  const tasksSynced =
+    typeof connection?.metadata?.tasks_synced === 'number'
+      ? (connection.metadata.tasks_synced as number)
+      : null;
+  const lastSyncStatus =
+    typeof connection?.metadata?.last_sync_status === 'string'
+      ? (connection.metadata.last_sync_status as string)
+      : null;
+
   return (
     <div
       className={`p-4 border-2 rounded-lg ${
@@ -115,6 +133,29 @@ function ServiceCard({
                   Connected{' '}
                   {formatDistanceToNow(new Date(connection.created_at), { addSuffix: true })}
                 </div>
+                {provider.provider_slug === 'clickup' && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    {lastSyncAt ? (
+                      <span>
+                        Last sync {formatRelativeTime(lastSyncAt)}{' '}
+                        {lastSyncStatus === 'success'
+                          ? '(OK)'
+                          : lastSyncStatus === 'partial'
+                          ? '(Partial)'
+                          : lastSyncStatus === 'error'
+                          ? '(Error)'
+                          : ''}
+                      </span>
+                    ) : (
+                      <span>No sync has been run yet.</span>
+                    )}
+                    {projectsSynced != null && tasksSynced != null && (
+                      <span>
+                        {projectsSynced} projects, {tasksSynced} tasks
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
