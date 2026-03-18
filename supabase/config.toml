@@ -8,6 +8,9 @@ verify_jwt = false
 [functions.seed-template-data]
 verify_jwt = true
 
+[functions.seed-test-accounts]
+verify_jwt = false
+
 [functions.validate-api-key]
 verify_jwt = false
 
