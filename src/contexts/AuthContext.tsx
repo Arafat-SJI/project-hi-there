@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return {
-        agencyRole: (data?.agency_role as "owner" | "pm" | "ic" | null) ?? undefined,
+        agencyRole: (data?.agency_role as "owner" | "pm" | "ic" | "bd" | null) ?? undefined,
         isEosUser: data?.is_eos_user ?? false,
       };
     } catch (error) {

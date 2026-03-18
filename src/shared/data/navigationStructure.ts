@@ -16,7 +16,7 @@ import type { ModuleId } from "@/shared/config/modules";
  * Agency roles that can see a nav item or group.
  * When omitted the item is visible to all roles.
  */
-export type AgencyRole = "owner" | "pm" | "ic";
+export type AgencyRole = "owner" | "pm" | "ic" | "bd";
 
 export interface NavItem {
   title: string;
