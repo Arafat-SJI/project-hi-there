@@ -32,6 +32,63 @@ interface ClickUpTask {
   due_date?: string | number | null;
 }
 
+interface ClickUpUserProfile {
+  id?: number | string;
+  username?: string | null;
+  email?: string | null;
+}
+
+interface ClickUpTag {
+  name?: string;
+}
+
+interface ClickUpPriority {
+  id?: string;
+  priority?: string;
+  color?: string;
+}
+
+interface ClickUpAttachment {
+  id?: string;
+  title?: string;
+  mimetype?: string;
+  size?: number;
+  url?: string;
+}
+
+interface ClickUpTaskLocation {
+  location?: string;
+}
+
+interface ClickUpTaskDetailed extends ClickUpTask {
+  text_content?: string | null;
+  description?: string | null;
+  assignees?: ClickUpUserProfile[];
+  watchers?: ClickUpUserProfile[];
+  tags?: ClickUpTag[];
+  priority?: ClickUpPriority | null;
+  due_date?: string | number | null;
+  start_date?: string | number | null;
+  date_created?: string | number | null;
+  date_updated?: string | number | null;
+  points?: number | null;
+  time_estimate?: number | string | null;
+  time_spent?: number | string | null;
+  custom_fields?: Array<{ name?: string; type?: string; value?: unknown }>;
+  dependencies?: unknown[];
+  linked_tasks?: unknown[];
+  locations?: ClickUpTaskLocation[];
+  checklists?: unknown[];
+  parent?: string | number | null;
+  team_id?: string | number | null;
+  url?: string | null;
+  list?: { id?: string; name?: string };
+  project?: { id?: string; name?: string };
+  folder?: { id?: string; name?: string };
+  space?: { id?: string };
+  attachments?: ClickUpAttachment[];
+}
+
 interface SyncResult {
   success: boolean;
   projects_synced: number;
@@ -155,7 +212,97 @@ function mapTaskStatus(rawStatus?: { status?: string; type?: string }): "todo" |
   return "todo";
 }
 
+function toIsoOrNull(value: string | number | null | undefined): string | null {
+  if (value == null || value === "") {
+    return null;
+  }
+  const millis = Number(value);
+  if (!Number.isFinite(millis)) {
+    return null;
+  }
+  return new Date(millis).toISOString();
+}
+
+function toUserLabel(user: ClickUpUserProfile): string {
+  const name = user.username?.trim();
+  const email = user.email?.trim();
+  if (name && email) {
+    return `${name} <${email}>`;
+  }
+  if (email) {
+    return email;
+  }
+  if (name) {
+    return name;
+  }
+  return String(user.id ?? "unknown");
+}
+
+function buildTaskEmbeddingContent(args: {
+  task: ClickUpTaskDetailed;
+  normalizedStatus: "todo" | "in_progress" | "completed";
+  dueIso: string | null;
+  startIso: string | null;
+  createdIso: string | null;
+  updatedIso: string | null;
+  tags: string[];
+  points: number | null;
+  timeEstimateMs: number | null;
+  timeSpentMs: number | null;
+}): string {
+  const { task } = args;
+  const assignees = Array.isArray(task.assignees) ? task.assignees.map(toUserLabel).filter(Boolean) : [];
+  const watchers = Array.isArray(task.watchers) ? task.watchers.map(toUserLabel).filter(Boolean) : [];
+  const attachments = Array.isArray(task.attachments)
+    ? task.attachments.map((a) => ({
+        id: a.id ?? null,
+        title: a.title ?? null,
+        mimetype: a.mimetype ?? null,
+        size: typeof a.size === "number" ? a.size : null,
+        url: a.url ?? null,
+      }))
+    : [];
+
+  const sections: string[] = [
+    `Task ID: ${String(task.id)}`,
+    `Task Name: ${task.name || "ClickUp Task"}`,
+    task.text_content ? `Text Content: ${task.text_content}` : "",
+    task.description ? `Description: ${task.description}` : "",
+    `Status (Normalized): ${args.normalizedStatus}`,
+    task.status?.status ? `Status (ClickUp): ${task.status.status}` : "",
+    task.status?.type ? `Status Type (ClickUp): ${task.status.type}` : "",
+    task.priority?.priority ? `Priority: ${task.priority.priority}` : "",
+    args.dueIso ? `Due Date: ${args.dueIso}` : "",
+    args.startIso ? `Start Date: ${args.startIso}` : "",
+    args.createdIso ? `Created At: ${args.createdIso}` : "",
+    args.updatedIso ? `Updated At: ${args.updatedIso}` : "",
+    args.tags.length > 0 ? `Tags: ${args.tags.join(", ")}` : "",
+    args.points != null ? `Points: ${args.points}` : "",
+    args.timeEstimateMs != null ? `Time Estimate (ms): ${args.timeEstimateMs}` : "",
+    args.timeSpentMs != null ? `Time Spent (ms): ${args.timeSpentMs}` : "",
+    assignees.length > 0 ? `Assignees: ${assignees.join(", ")}` : "",
+    watchers.length > 0 ? `Watchers: ${watchers.join(", ")}` : "",
+    task.list?.name ? `List: ${task.list.name}` : "",
+    task.project?.name ? `Project: ${task.project.name}` : "",
+    task.folder?.name ? `Folder: ${task.folder.name}` : "",
+    task.space?.id ? `Space ID: ${task.space.id}` : "",
+    task.team_id != null ? `Team ID: ${String(task.team_id)}` : "",
+    task.url ? `Task URL: ${task.url}` : "",
+    attachments.length > 0 ? `Attachments: ${JSON.stringify(attachments)}` : "",
+    Array.isArray(task.custom_fields) ? `Custom Fields: ${JSON.stringify(task.custom_fields)}` : "",
+    Array.isArray(task.checklists) ? `Checklists Count: ${task.checklists.length}` : "",
+    Array.isArray(task.dependencies) ? `Dependencies Count: ${task.dependencies.length}` : "",
+    Array.isArray(task.linked_tasks) ? `Linked Tasks Count: ${task.linked_tasks.length}` : "",
+    Array.isArray(task.locations) ? `Locations: ${JSON.stringify(task.locations)}` : "",
+    `Has Parent: ${Boolean(task.parent)}`,
+    `Raw Task Payload: ${JSON.stringify(task)}`,
+  ];
+
+  return sections.filter((line) => line !== "").join("\n");
+}
+
 serve(async (req) => {
+  console.log("req:", req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -405,14 +552,14 @@ serve(async (req) => {
             .maybeSingle();
 
           // Fetch full task details to get time tracking, tags, points, checklists, etc.
-          let detailed: any = task;
+          let detailed: ClickUpTaskDetailed = task;
           try {
             const detailResp = await fetch(
               `https://api.clickup.com/api/v2/task/${externalTaskId}`,
               { method: "GET", headers },
             );
             if (detailResp.ok) {
-              const detailJson = await detailResp.json();
+              const detailJson = (await detailResp.json()) as ClickUpTaskDetailed;
               detailed = detailJson;
             }
           } catch {
@@ -420,10 +567,10 @@ serve(async (req) => {
           }
 
           const status = mapTaskStatus(detailed.status);
-          const due =
-            detailed.due_date != null
-              ? new Date(Number(detailed.due_date)).toISOString()
-              : null;
+          const due = toIsoOrNull(detailed.due_date);
+          const startDate = toIsoOrNull(detailed.start_date);
+          const createdAt = toIsoOrNull(detailed.date_created);
+          const updatedAt = toIsoOrNull(detailed.date_updated);
 
           const timeEstimateMs =
             detailed.time_estimate != null && detailed.time_estimate !== ""
@@ -437,7 +584,7 @@ serve(async (req) => {
           const rawTags = detailed.tags || [];
           const tags = Array.isArray(rawTags)
             ? rawTags
-                .map((t: any) => (typeof t === "string" ? t : t?.name))
+                .map((t) => (typeof t === "string" ? t : t?.name))
                 .filter((t: unknown): t is string => typeof t === "string" && !!t)
             : [];
 
@@ -475,9 +622,22 @@ serve(async (req) => {
             raw: detailed,
           };
 
+          const ragContent = buildTaskEmbeddingContent({
+            task: detailed,
+            normalizedStatus: status,
+            dueIso: due,
+            startIso: startDate,
+            createdIso: createdAt,
+            updatedIso: updatedAt,
+            tags,
+            points,
+            timeEstimateMs,
+            timeSpentMs,
+          });
+
           const taskRow: any = {
             title: detailed.name || task.name || "ClickUp Task",
-            description: null,
+            description: detailed.description ?? detailed.text_content ?? null,
             status,
             priority: "medium",
             assigned_to: null,
@@ -526,12 +686,19 @@ serve(async (req) => {
               created_at: new Date().toISOString(),
               created_by: user.id,
             };
-            const { error } = await supabase.from("tasks").insert(insertRow);
+            const { data: inserted, error } = await supabase
+              .from("tasks")
+              .insert(insertRow)
+              .select("id")
+              .maybeSingle();
             if (error) {
               errors.push(`Insert task ${externalTaskId}: ${error.message}`);
             } else {
               tasksCreated++;
               try {
+                if (!inserted?.id) {
+                  throw new Error("Inserted task id is missing");
+                }
                 await upsertTaskEmbeddings({
                   supabase,
                   userId: user.id,
