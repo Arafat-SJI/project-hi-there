@@ -160,6 +160,8 @@ export default function ClickUpIntegration() {
 
       // 2) Trigger sync
       const { data: syncData, error: syncError } = await supabase.functions.invoke("sync-clickup", {});
+      console.log("syncData:", syncData);
+      console.log("syncError:", syncError);
 
       if (syncError || syncData?.error) {
         throw new Error(syncError?.message || syncData?.error || "Failed to sync ClickUp data");
@@ -199,6 +201,8 @@ export default function ClickUpIntegration() {
   const syncOnlyMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("sync-clickup", {});
+      console.log("syncData:", data);
+      console.log("syncError:", error);
       if (error || data?.error) {
         throw new Error(error?.message || data?.error || "Failed to sync ClickUp data");
       }
