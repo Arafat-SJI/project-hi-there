@@ -44,6 +44,7 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { syncClickupLocal, LocalClickupSyncResult } from '@/lib/clickupLocalSync';
 
 // Provider icons/logos
 const providerIcons: Record<string, string> = {
@@ -244,15 +245,8 @@ export function ConnectedServices() {
   const refreshToken = useRefreshOAuthToken();
 
   const syncClickup = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('sync-clickup', {});
-      if (error || data?.error) {
-        throw new Error(error?.message || data?.error || 'Failed to sync ClickUp');
-      }
-      return data as {
-        projects_synced: number;
-        tasks_synced: number;
-      };
+    mutationFn: async (): Promise<LocalClickupSyncResult> => {
+      return syncClickupLocal();
     },
     onSuccess: (res) => {
       toast.success(

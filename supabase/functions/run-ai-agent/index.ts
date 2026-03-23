@@ -6,6 +6,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function tokenizeForMatch(input: string): string[] {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 3)
+    .slice(0, 20)
+}
+
+function scoreOverlap(content: string, tokens: string[]): number {
+  const lower = content.toLowerCase()
+  let score = 0
+  for (const token of tokens) {
+    if (lower.includes(token)) {
+      score += 1
+    }
+  }
+  return score
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -101,6 +122,56 @@ serve(async (req) => {
           ? (typeof execution_context === 'string' ? execution_context : JSON.stringify(execution_context))
           : 'No context provided. Please respond with a default helpful message.'
 
+    // Build lightweight RAG context from embeddings table when agent has RAG enabled.
+    let ragContext = ''
+    if (agent.rag_enabled === true && typeof user_id === 'string' && user_id.length > 0) {
+      try {
+        const { data: embeddingRows, error: embeddingError } = await supabaseClient
+          .from('embeddings')
+          .select('entity_id, content, metadata')
+          .eq('entity_type', 'task')
+          .eq('user_id', user_id)
+          .limit(500)
+
+        if (!embeddingError && Array.isArray(embeddingRows) && embeddingRows.length > 0) {
+          const taskEmbeddings = embeddingRows
+            .filter((row) => {
+              const metadata = row.metadata
+              if (!metadata || typeof metadata !== 'object') return false
+              const source = (metadata as Record<string, unknown>).source
+              return source === 'clickup' || source === 'workamajig'
+            })
+            .map((row) => ({
+              entity_id: String(row.entity_id ?? ''),
+              content: typeof row.content === 'string' ? row.content : '',
+              metadata: row.metadata,
+            }))
+            .filter((row) => row.content.length > 0)
+
+          const tokens = tokenizeForMatch(userMessage)
+          const ranked = taskEmbeddings
+            .map((row) => ({
+              ...row,
+              score: scoreOverlap(row.content, tokens),
+            }))
+            .filter((row) => row.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 8)
+
+          if (ranked.length > 0) {
+            const contextChunks = ranked.map((row, idx) => {
+              const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata as Record<string, unknown> : {}
+              const source = typeof metadata.source === 'string' ? metadata.source : 'unknown'
+              return `Context ${idx + 1} [source=${source}, task_id=${row.entity_id}]\n${row.content}`
+            })
+            ragContext = contextChunks.join('\n\n')
+          }
+        }
+      } catch (ragError) {
+        console.warn('RAG context fetch failed:', ragError)
+      }
+    }
+
     // Execute agent with OpenAI
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -113,7 +184,12 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: agent.system_prompt + (additionalPrompt ? `\n\n${additionalPrompt}` : '')
+            content:
+              agent.system_prompt +
+              (additionalPrompt ? `\n\n${additionalPrompt}` : '') +
+              (ragContext
+                ? `\n\nUse this retrieved context from synced task embeddings when relevant. If context is insufficient, say so clearly.\n\n${ragContext}`
+                : '')
           },
           {
             role: 'user',

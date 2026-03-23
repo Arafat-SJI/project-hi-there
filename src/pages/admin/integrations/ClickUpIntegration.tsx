@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { syncClickupLocal } from "@/lib/clickupLocalSync";
 import {
   useIntegrationProvider,
   useIntegrationFields,
@@ -159,14 +160,7 @@ export default function ClickUpIntegration() {
       }
 
       // 2) Trigger sync
-      const { data: syncData, error: syncError } = await supabase.functions.invoke("sync-clickup", {});
-      console.log("syncData:", syncData);
-      console.log("syncError:", syncError);
-
-      if (syncError || syncData?.error) {
-        throw new Error(syncError?.message || syncData?.error || "Failed to sync ClickUp data");
-      }
-
+      const syncData = await syncClickupLocal();
       return syncData as SyncResult;
     },
     onMutate: () => {
@@ -200,11 +194,9 @@ export default function ClickUpIntegration() {
   // Manual "Sync Now" without re-running OAuth
   const syncOnlyMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("sync-clickup", {});
-      console.log("syncData:", data);
-      console.log("syncError:", error);
-      if (error || data?.error) {
-        throw new Error(error?.message || data?.error || "Failed to sync ClickUp data");
+      const data = await syncClickupLocal();
+      if (!data.success && data.errors.length > 0) {
+        throw new Error(data.errors[0] || "Failed to sync ClickUp data");
       }
       return data as SyncResult;
     },

@@ -84,6 +84,7 @@ export default function AIAgents() {
     system_prompt: "",
     is_enabled: true,
     memory_enabled: false,
+    rag_enabled: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,6 +117,7 @@ export default function AIAgents() {
       system_prompt: agent.system_prompt,
       is_enabled: agent.is_enabled,
       memory_enabled: agent.memory_enabled,
+      rag_enabled: agent.rag_enabled,
     });
     setDialogOpen(true);
   };
@@ -179,6 +181,7 @@ export default function AIAgents() {
       system_prompt: "",
       is_enabled: true,
       memory_enabled: false,
+      rag_enabled: false,
     });
     setEditingAgent(null);
   };
@@ -346,6 +349,22 @@ export default function AIAgents() {
                   />
                 </div>
 
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <Label>Enable RAG</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow this agent to answer using synced task context
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!formData.rag_enabled}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, rag_enabled: checked })
+                    }
+                    disabled={isProcessing}
+                  />
+                </div>
+
                 <Separator className="my-4" />
 
                 <div className="space-y-4">
@@ -469,6 +488,9 @@ export default function AIAgents() {
                   )}
                   {agent.memory_enabled && (
                     <Badge variant="outline">Memory</Badge>
+                  )}
+                  {agent.rag_enabled && (
+                    <Badge variant="secondary">RAG</Badge>
                   )}
                 </div>
 
