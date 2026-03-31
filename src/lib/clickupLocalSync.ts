@@ -464,16 +464,13 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
       }
     }
 
-    const listsResp: Response = await fetch(
-      `/api/clickup/space/${space.id}/list?archived=false`,
-      { method: "GET", headers },
-    );
-    if (!listsResp.ok) {
-      const text: string = await listsResp.text();
-      errors.push(`ClickUp /space/${space.id}/list error: ${listsResp.status} - ${text.slice(0, 200)}`);
+    let listsJson: { lists?: ClickUpList[] };
+    try {
+      listsJson = (await clickupApiFetch(`space/${space.id}/list?archived=false`)) as { lists?: ClickUpList[] };
+    } catch (err) {
+      errors.push(`ClickUp /space/${space.id}/list error: ${err instanceof Error ? err.message : String(err)}`);
       continue;
     }
-    const listsJson: { lists?: ClickUpList[] } = (await listsResp.json()) as { lists?: ClickUpList[] };
     const lists: ClickUpList[] = listsJson.lists ?? [];
 
     for (const list of lists) {
