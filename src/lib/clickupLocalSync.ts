@@ -416,15 +416,7 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
   }
 
   const primaryTeam: ClickUpTeam = teams[0];
-  const spacesResp: Response = await fetch(
-    `/api/clickup/team/${primaryTeam.id}/space?archived=false`,
-    { method: "GET", headers },
-  );
-  if (!spacesResp.ok) {
-    const text: string = await spacesResp.text();
-    throw new Error(`ClickUp /space error: ${spacesResp.status} - ${text.slice(0, 200)}`);
-  }
-  const spacesJson: { spaces?: ClickUpSpace[] } = (await spacesResp.json()) as { spaces?: ClickUpSpace[] };
+  const spacesJson = (await clickupApiFetch(`team/${primaryTeam.id}/space?archived=false`)) as { spaces?: ClickUpSpace[] };
   const spaces: ClickUpSpace[] = spacesJson.spaces ?? [];
 
   for (const space of spaces) {
