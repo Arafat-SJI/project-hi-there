@@ -189,26 +189,19 @@ function buildEmbeddingContent(input: {
   return lines.filter((line: string) => line.length > 0).join("\n");
 }
 
-async function embedChunkWithOpenAI(apiKey: string, content: string): Promise<number[]> {
-  const resp: Response = await fetch("/api/openai/embeddings", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "text-embedding-3-small",
+async function embedChunkWithOpenAI(_apiKeyUnused: string, content: string): Promise<number[]> {
+  const { data, error } = await supabase.functions.invoke("openai-embeddings-proxy", {
+    body: {
       input: content,
-    }),
+      model: "text-embedding-3-small",
+    },
   });
 
-  if (!resp.ok) {
-    const text: string = await resp.text();
-    throw new Error(`OpenAI embeddings failed: ${resp.status} - ${text.slice(0, 240)}`);
+  if (error) {
+    throw new Error(`OpenAI embeddings failed: ${error.message}`);
   }
 
-  const json: EmbeddingResponse = (await resp.json()) as EmbeddingResponse;
-  const embedding: number[] | undefined = json.data?.[0]?.embedding;
+  const embedding: number[] | undefined = data?.data?.[0]?.embedding;
   if (!Array.isArray(embedding)) {
     throw new Error("OpenAI embeddings response missing vector");
   }
