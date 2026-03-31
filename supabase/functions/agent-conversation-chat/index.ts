@@ -78,20 +78,24 @@ serve(async (req) => {
       additionalContext = personalization.additional_prompt
     }
 
-    // 3. Get RAG context if enabled (semantic search over user + org knowledge)
+    // 3. Get RAG context if agent has RAG enabled OR include_rag was explicitly requested
     let ragContext = ''
-    if (include_rag) {
+    const shouldDoRag = agent.rag_enabled === true || include_rag
+    if (shouldDoRag) {
       try {
         const baseUrl = Deno.env.get('SUPABASE_URL')
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
         if (baseUrl && serviceKey) {
+          const ragThreshold = personalization?.relevance_threshold ?? 0.5
+          const ragCount = personalization?.max_context_files ?? 8
+          console.log(`RAG search: query="${message.substring(0, 80)}", threshold=${ragThreshold}, count=${ragCount}, rag_enabled=${agent.rag_enabled}`)
           const semRes = await fetch(`${baseUrl}/functions/v1/semantic-search`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
             body: JSON.stringify({
               query: message,
-              match_threshold: personalization?.relevance_threshold ?? 0.7,
-              match_count: personalization?.max_context_files ?? 5,
+              match_threshold: ragThreshold,
+              match_count: ragCount,
               entity_type: null,
               user_id: personalization?.use_all_knowledge ? null : user_id,
             }),
@@ -99,11 +103,17 @@ serve(async (req) => {
           if (semRes.ok) {
             const semBody = await semRes.json()
             const relevantDocs = semBody.results ?? []
+            console.log(`RAG search returned ${relevantDocs.length} results`)
             if (relevantDocs.length > 0) {
-              ragContext = '\n\nRELEVANT KNOWLEDGE:\n' + relevantDocs
-                .map((doc: { content?: string }, i: number) => `[${i + 1}] ${doc.content ?? ''}`)
+              ragContext = '\n\nRELEVANT CONTEXT (from knowledge base):\nUse the following retrieved context to answer the user\'s query. If the context doesn\'t contain relevant information, say so clearly.\n\n' + relevantDocs
+                .map((doc: { content?: string; entity_type?: string; similarity?: number }, i: number) => {
+                  const source = doc.entity_type ?? 'unknown'
+                  return `[${i + 1}] (${source}, relevance: ${(doc.similarity ?? 0).toFixed(2)})\n${doc.content ?? ''}`
+                })
                 .join('\n\n')
             }
+          } else {
+            console.warn('RAG semantic search returned non-OK:', semRes.status)
           }
         }
       } catch (ragError) {
