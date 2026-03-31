@@ -36,9 +36,9 @@ serve(async (req) => {
 
   // GET or ping = health check (no OpenAI call)
   if (req.method === 'GET') {
-    const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+    const hasKey = !!(Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('OPENAI_API_KEY'))
     return new Response(
-      JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'OpenAI configured' : 'OPENAI_API_KEY not set' }),
+      JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'AI provider configured' : 'No AI provider key set' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   }
