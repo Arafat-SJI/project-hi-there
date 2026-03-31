@@ -474,17 +474,14 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
     const lists: ClickUpList[] = listsJson.lists ?? [];
 
     for (const list of lists) {
-      const tasksResp: Response = await fetch(
-        `/api/clickup/list/${list.id}/task?archived=false&subtasks=false`,
-        { method: "GET", headers },
-      );
-      if (!tasksResp.ok) {
-        const text: string = await tasksResp.text();
-        errors.push(`ClickUp /list/${list.id}/task error: ${tasksResp.status} - ${text.slice(0, 200)}`);
+      let tasksJson: { tasks?: ClickUpTask[] };
+      try {
+        tasksJson = (await clickupApiFetch(`list/${list.id}/task?archived=false&subtasks=false`)) as { tasks?: ClickUpTask[] };
+      } catch (err) {
+        errors.push(`ClickUp /list/${list.id}/task error: ${err instanceof Error ? err.message : String(err)}`);
         continue;
       }
 
-      const tasksJson: { tasks?: ClickUpTask[] } = (await tasksResp.json()) as { tasks?: ClickUpTask[] };
       const tasks: ClickUpTask[] = tasksJson.tasks ?? [];
       console.log("tasks:", tasks);
 
@@ -492,16 +489,9 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
         const externalTaskId: string = String(task.id);
         let detailedTask: ClickUpTask = task;
         try {
-          const detailedResp: Response = await fetch(`/api/clickup/task/${externalTaskId}`, {
-            method: "GET",
-            headers,
-          });
-          console.log("detailedResp:", detailedResp);
-          if (detailedResp.ok) {
-            detailedTask = (await detailedResp.json()) as ClickUpTask;
-          }
+          detailedTask = (await clickupApiFetch(`task/${externalTaskId}`)) as ClickUpTask;
         } catch {
-          // best effort
+          // best effort — use list-level task data
         }
 
         console.log("detailedTask:", detailedTask);
