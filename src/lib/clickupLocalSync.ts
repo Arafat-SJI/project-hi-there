@@ -355,6 +355,16 @@ async function getOpenAiApiKeyFromDb(): Promise<string | null> {
   return typeof fallbackEnvKey === "string" && fallbackEnvKey.length > 0 ? fallbackEnvKey : null;
 }
 
+async function clickupApiFetch(path: string, method: string = "GET"): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke("clickup-api-proxy", {
+    body: { path, method },
+  });
+  if (error) {
+    throw new Error(`ClickUp API error (${path}): ${error.message}`);
+  }
+  return data;
+}
+
 export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
   const startedAt: number = Date.now();
   const errors: string[] = [];
@@ -384,11 +394,6 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
     throw new Error(tokenResult.error?.message ?? "No ClickUp connection found");
   }
 
-  const headers: HeadersInit = {
-    Authorization: `Bearer ${tokenResult.data.access_token}`,
-    "Content-Type": "application/json",
-  };
-
   const defaultStatusResp = await supabase
     .from("project_statuses")
     .select("id")
@@ -396,15 +401,7 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
     .maybeSingle();
   const defaultStatusId: string | null = defaultStatusResp.data?.id ?? null;
 
-  const teamsResp: Response = await fetch("/api/clickup/team", {
-    method: "GET",
-    headers,
-  });
-  if (!teamsResp.ok) {
-    const text: string = await teamsResp.text();
-    throw new Error(`ClickUp /team error: ${teamsResp.status} - ${text.slice(0, 200)}`);
-  }
-  const teamsJson: { teams?: ClickUpTeam[] } = (await teamsResp.json()) as { teams?: ClickUpTeam[] };
+  const teamsJson = (await clickupApiFetch("team")) as { teams?: ClickUpTeam[] };
   const teams: ClickUpTeam[] = teamsJson.teams ?? [];
   if (teams.length === 0) {
     return {
