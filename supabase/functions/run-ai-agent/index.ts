@@ -250,8 +250,8 @@ serve(async (req) => {
         output: output,
         token_metrics: data.usage,
         latency_ms: latency,
-        provider_used: 'openai',
-        model_used: 'gpt-4o-mini',
+        provider_used: LOVABLE_API_KEY ? 'lovable' : 'openai',
+        model_used: modelName,
       }])
       .select()
       .single()
