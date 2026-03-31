@@ -189,26 +189,19 @@ function buildEmbeddingContent(input: {
   return lines.filter((line: string) => line.length > 0).join("\n");
 }
 
-async function embedChunkWithOpenAI(apiKey: string, content: string): Promise<number[]> {
-  const resp: Response = await fetch("/api/openai/embeddings", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "text-embedding-3-small",
+async function embedChunkWithOpenAI(_apiKeyUnused: string, content: string): Promise<number[]> {
+  const { data, error } = await supabase.functions.invoke("openai-embeddings-proxy", {
+    body: {
       input: content,
-    }),
+      model: "text-embedding-3-small",
+    },
   });
 
-  if (!resp.ok) {
-    const text: string = await resp.text();
-    throw new Error(`OpenAI embeddings failed: ${resp.status} - ${text.slice(0, 240)}`);
+  if (error) {
+    throw new Error(`OpenAI embeddings failed: ${error.message}`);
   }
 
-  const json: EmbeddingResponse = (await resp.json()) as EmbeddingResponse;
-  const embedding: number[] | undefined = json.data?.[0]?.embedding;
+  const embedding: number[] | undefined = data?.data?.[0]?.embedding;
   if (!Array.isArray(embedding)) {
     throw new Error("OpenAI embeddings response missing vector");
   }
@@ -362,6 +355,16 @@ async function getOpenAiApiKeyFromDb(): Promise<string | null> {
   return typeof fallbackEnvKey === "string" && fallbackEnvKey.length > 0 ? fallbackEnvKey : null;
 }
 
+async function clickupApiFetch(path: string, method: string = "GET"): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke("clickup-api-proxy", {
+    body: { path, method },
+  });
+  if (error) {
+    throw new Error(`ClickUp API error (${path}): ${error.message}`);
+  }
+  return data;
+}
+
 export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
   const startedAt: number = Date.now();
   const errors: string[] = [];
@@ -391,11 +394,6 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
     throw new Error(tokenResult.error?.message ?? "No ClickUp connection found");
   }
 
-  const headers: HeadersInit = {
-    Authorization: `Bearer ${tokenResult.data.access_token}`,
-    "Content-Type": "application/json",
-  };
-
   const defaultStatusResp = await supabase
     .from("project_statuses")
     .select("id")
@@ -403,15 +401,7 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
     .maybeSingle();
   const defaultStatusId: string | null = defaultStatusResp.data?.id ?? null;
 
-  const teamsResp: Response = await fetch("/api/clickup/team", {
-    method: "GET",
-    headers,
-  });
-  if (!teamsResp.ok) {
-    const text: string = await teamsResp.text();
-    throw new Error(`ClickUp /team error: ${teamsResp.status} - ${text.slice(0, 200)}`);
-  }
-  const teamsJson: { teams?: ClickUpTeam[] } = (await teamsResp.json()) as { teams?: ClickUpTeam[] };
+  const teamsJson = (await clickupApiFetch("team")) as { teams?: ClickUpTeam[] };
   const teams: ClickUpTeam[] = teamsJson.teams ?? [];
   if (teams.length === 0) {
     return {
@@ -426,15 +416,7 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
   }
 
   const primaryTeam: ClickUpTeam = teams[0];
-  const spacesResp: Response = await fetch(
-    `/api/clickup/team/${primaryTeam.id}/space?archived=false`,
-    { method: "GET", headers },
-  );
-  if (!spacesResp.ok) {
-    const text: string = await spacesResp.text();
-    throw new Error(`ClickUp /space error: ${spacesResp.status} - ${text.slice(0, 200)}`);
-  }
-  const spacesJson: { spaces?: ClickUpSpace[] } = (await spacesResp.json()) as { spaces?: ClickUpSpace[] };
+  const spacesJson = (await clickupApiFetch(`team/${primaryTeam.id}/space?archived=false`)) as { spaces?: ClickUpSpace[] };
   const spaces: ClickUpSpace[] = spacesJson.spaces ?? [];
 
   for (const space of spaces) {
@@ -482,30 +464,24 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
       }
     }
 
-    const listsResp: Response = await fetch(
-      `/api/clickup/space/${space.id}/list?archived=false`,
-      { method: "GET", headers },
-    );
-    if (!listsResp.ok) {
-      const text: string = await listsResp.text();
-      errors.push(`ClickUp /space/${space.id}/list error: ${listsResp.status} - ${text.slice(0, 200)}`);
+    let listsJson: { lists?: ClickUpList[] };
+    try {
+      listsJson = (await clickupApiFetch(`space/${space.id}/list?archived=false`)) as { lists?: ClickUpList[] };
+    } catch (err) {
+      errors.push(`ClickUp /space/${space.id}/list error: ${err instanceof Error ? err.message : String(err)}`);
       continue;
     }
-    const listsJson: { lists?: ClickUpList[] } = (await listsResp.json()) as { lists?: ClickUpList[] };
     const lists: ClickUpList[] = listsJson.lists ?? [];
 
     for (const list of lists) {
-      const tasksResp: Response = await fetch(
-        `/api/clickup/list/${list.id}/task?archived=false&subtasks=false`,
-        { method: "GET", headers },
-      );
-      if (!tasksResp.ok) {
-        const text: string = await tasksResp.text();
-        errors.push(`ClickUp /list/${list.id}/task error: ${tasksResp.status} - ${text.slice(0, 200)}`);
+      let tasksJson: { tasks?: ClickUpTask[] };
+      try {
+        tasksJson = (await clickupApiFetch(`list/${list.id}/task?archived=false&subtasks=false`)) as { tasks?: ClickUpTask[] };
+      } catch (err) {
+        errors.push(`ClickUp /list/${list.id}/task error: ${err instanceof Error ? err.message : String(err)}`);
         continue;
       }
 
-      const tasksJson: { tasks?: ClickUpTask[] } = (await tasksResp.json()) as { tasks?: ClickUpTask[] };
       const tasks: ClickUpTask[] = tasksJson.tasks ?? [];
       console.log("tasks:", tasks);
 
@@ -513,16 +489,9 @@ export async function syncClickupLocal(): Promise<LocalClickupSyncResult> {
         const externalTaskId: string = String(task.id);
         let detailedTask: ClickUpTask = task;
         try {
-          const detailedResp: Response = await fetch(`/api/clickup/task/${externalTaskId}`, {
-            method: "GET",
-            headers,
-          });
-          console.log("detailedResp:", detailedResp);
-          if (detailedResp.ok) {
-            detailedTask = (await detailedResp.json()) as ClickUpTask;
-          }
+          detailedTask = (await clickupApiFetch(`task/${externalTaskId}`)) as ClickUpTask;
         } catch {
-          // best effort
+          // best effort — use list-level task data
         }
 
         console.log("detailedTask:", detailedTask);
