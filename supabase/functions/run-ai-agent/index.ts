@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const LOVABLE_GATEWAY = 'https://ai.gateway.lovable.dev/v1/chat/completions'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -34,9 +36,9 @@ serve(async (req) => {
 
   // GET or ping = health check (no OpenAI call)
   if (req.method === 'GET') {
-    const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+    const hasKey = !!(Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('OPENAI_API_KEY'))
     return new Response(
-      JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'OpenAI configured' : 'OPENAI_API_KEY not set' }),
+      JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'AI provider configured' : 'No AI provider key set' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   }
@@ -54,16 +56,11 @@ serve(async (req) => {
     }
 
     if (body.ping === true) {
-      const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+      const hasKey = !!(Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('OPENAI_API_KEY'))
       return new Response(
-        JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'OpenAI configured' : 'OPENAI_API_KEY not set' }),
+        JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'AI provider configured' : 'No AI provider key set' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
-    }
-
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured')
     }
 
     const supabaseClient = createClient(
@@ -122,79 +119,111 @@ serve(async (req) => {
           ? (typeof execution_context === 'string' ? execution_context : JSON.stringify(execution_context))
           : 'No context provided. Please respond with a default helpful message.'
 
-    // Build lightweight RAG context from embeddings table when agent has RAG enabled.
+    // Build RAG context via semantic search when agent has RAG enabled.
     let ragContext = ''
-    if (agent.rag_enabled === true && typeof user_id === 'string' && user_id.length > 0) {
+    if (agent.rag_enabled === true) {
       try {
-        const { data: embeddingRows, error: embeddingError } = await supabaseClient
-          .from('embeddings')
-          .select('entity_id, content, metadata')
-          .eq('entity_type', 'task')
-          .eq('user_id', user_id)
-          .limit(500)
-
-        if (!embeddingError && Array.isArray(embeddingRows) && embeddingRows.length > 0) {
-          const taskEmbeddings = embeddingRows
-            .filter((row) => {
-              const metadata = row.metadata
-              if (!metadata || typeof metadata !== 'object') return false
-              const source = (metadata as Record<string, unknown>).source
-              return source === 'clickup' || source === 'workamajig'
-            })
-            .map((row) => ({
-              entity_id: String(row.entity_id ?? ''),
-              content: typeof row.content === 'string' ? row.content : '',
-              metadata: row.metadata,
-            }))
-            .filter((row) => row.content.length > 0)
-
-          const tokens = tokenizeForMatch(userMessage)
-          const ranked = taskEmbeddings
-            .map((row) => ({
-              ...row,
-              score: scoreOverlap(row.content, tokens),
-            }))
-            .filter((row) => row.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 8)
-
-          if (ranked.length > 0) {
-            const contextChunks = ranked.map((row, idx) => {
-              const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata as Record<string, unknown> : {}
-              const source = typeof metadata.source === 'string' ? metadata.source : 'unknown'
-              return `Context ${idx + 1} [source=${source}, task_id=${row.entity_id}]\n${row.content}`
-            })
-            ragContext = contextChunks.join('\n\n')
+        const baseUrl = Deno.env.get('SUPABASE_URL')
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+        if (baseUrl && serviceKey) {
+          const semRes = await fetch(`${baseUrl}/functions/v1/semantic-search`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${serviceKey}`,
+            },
+            body: JSON.stringify({
+              query: userMessage,
+              match_threshold: 0.65,
+              match_count: 8,
+              entity_type: null, // search ALL entity types
+              user_id: typeof user_id === 'string' && user_id.length > 0 ? user_id : null,
+            }),
+          })
+          if (semRes.ok) {
+            const semBody = await semRes.json()
+            const results = semBody.results ?? []
+            if (results.length > 0) {
+              const contextChunks = results.map((doc: { content?: string; entity_type?: string; similarity?: number; metadata?: Record<string, unknown> }, idx: number) => {
+                const source = doc.metadata?.source ?? doc.entity_type ?? 'unknown'
+                return `[${idx + 1}] (${source}, relevance: ${(doc.similarity ?? 0).toFixed(2)})\n${doc.content ?? ''}`
+              })
+              ragContext = contextChunks.join('\n\n')
+            }
+          } else {
+            console.warn('Semantic search returned non-OK:', semRes.status)
           }
         }
       } catch (ragError) {
-        console.warn('RAG context fetch failed:', ragError)
+        console.warn('RAG semantic search failed, falling back to keyword match:', ragError)
+        // Fallback: simple keyword search on embeddings
+        try {
+          const { data: embeddingRows } = await supabaseClient
+            .from('embeddings')
+            .select('entity_id, entity_type, content, metadata')
+            .limit(200)
+
+          if (Array.isArray(embeddingRows) && embeddingRows.length > 0) {
+            const tokens = tokenizeForMatch(userMessage)
+            const ranked = embeddingRows
+              .filter((row) => typeof row.content === 'string' && row.content.length > 0)
+              .map((row) => ({ ...row, score: scoreOverlap(row.content, tokens) }))
+              .filter((row) => row.score > 0)
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 8)
+
+            if (ranked.length > 0) {
+              ragContext = ranked.map((row, idx) => {
+                const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata as Record<string, unknown> : {}
+                const source = typeof metadata.source === 'string' ? metadata.source : (row.entity_type ?? 'unknown')
+                return `[${idx + 1}] (${source})\n${row.content}`
+              }).join('\n\n')
+            }
+          }
+        } catch (fallbackErr) {
+          console.warn('Keyword fallback also failed:', fallbackErr)
+        }
       }
     }
 
-    // Execute agent with OpenAI
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Build system prompt with RAG context
+    const systemPrompt = [
+      agent.system_prompt,
+      additionalPrompt ? additionalPrompt : null,
+      ragContext
+        ? `\n\nRELEVANT CONTEXT (from knowledge base):\nUse the following retrieved context to answer the user's query. If the context doesn't contain relevant information, say so clearly and answer based on your general knowledge.\n\n${ragContext}`
+        : null,
+    ].filter(Boolean).join('\n\n')
+
+    // Determine AI provider: prefer Lovable AI gateway, fallback to OpenAI
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+
+    let aiUrl: string
+    let aiHeaders: Record<string, string>
+    let modelName: string
+
+    if (LOVABLE_API_KEY) {
+      aiUrl = LOVABLE_GATEWAY
+      aiHeaders = { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' }
+      modelName = 'google/gemini-2.5-flash'
+    } else if (OPENAI_API_KEY) {
+      aiUrl = 'https://api.openai.com/v1/chat/completions'
+      aiHeaders = { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' }
+      modelName = 'gpt-4o-mini'
+    } else {
+      throw new Error('No AI provider configured (LOVABLE_API_KEY or OPENAI_API_KEY required)')
+    }
+
+    // Execute agent
+    const openaiResponse = await fetch(aiUrl, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers: aiHeaders,
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: modelName,
         messages: [
-          {
-            role: 'system',
-            content:
-              agent.system_prompt +
-              (additionalPrompt ? `\n\n${additionalPrompt}` : '') +
-              (ragContext
-                ? `\n\nUse this retrieved context from synced task embeddings when relevant. If context is insufficient, say so clearly.\n\n${ragContext}`
-                : '')
-          },
-          {
-            role: 'user',
-            content: userMessage
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
         ],
         temperature: 0.7,
       }),
@@ -221,8 +250,8 @@ serve(async (req) => {
         output: output,
         token_metrics: data.usage,
         latency_ms: latency,
-        provider_used: 'openai',
-        model_used: 'gpt-4o-mini',
+        provider_used: LOVABLE_API_KEY ? 'lovable' : 'openai',
+        model_used: modelName,
       }])
       .select()
       .single()
