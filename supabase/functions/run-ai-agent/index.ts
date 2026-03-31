@@ -56,16 +56,11 @@ serve(async (req) => {
     }
 
     if (body.ping === true) {
-      const hasKey = !!Deno.env.get('OPENAI_API_KEY')
+      const hasKey = !!(Deno.env.get('LOVABLE_API_KEY') || Deno.env.get('OPENAI_API_KEY'))
       return new Response(
-        JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'OpenAI configured' : 'OPENAI_API_KEY not set' }),
+        JSON.stringify({ ok: true, configured: hasKey, message: hasKey ? 'AI provider configured' : 'No AI provider key set' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
-    }
-
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured')
     }
 
     const supabaseClient = createClient(
