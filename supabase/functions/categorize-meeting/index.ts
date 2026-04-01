@@ -96,7 +96,9 @@ serve(async (req) => {
 
 Respond with a JSON object containing:
 - category: one of the categories above
-- confidence: a number between 0 and 1 indicating your confidence`
+- confidence: a number between 0 and 1 indicating your confidence
+- confidence_reason: short rationale for this classification
+- topic_tags: array of up to 5 concise tags`
           },
           {
             role: 'user',
@@ -120,7 +122,11 @@ Respond with a JSON object containing:
     // Ensure we have the expected format
     const response = {
       category: result.category || 'other',
-      confidence: result.confidence || 0.5
+      confidence: result.confidence || 0.5,
+      confidence_reason: typeof result.confidence_reason === 'string' ? result.confidence_reason : 'Inferred from title and description signals',
+      topic_tags: Array.isArray(result.topic_tags)
+        ? result.topic_tags.filter((tag: unknown) => typeof tag === 'string').slice(0, 5)
+        : [],
     };
 
     return new Response(
