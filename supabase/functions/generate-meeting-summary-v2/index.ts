@@ -5,7 +5,7 @@
  * Uses the shared AI provider routing for multi-provider support.
  *
  * Input:  { meeting_id: string, force?: boolean }
- * Output: { executive_summary, key_decisions[], action_items[], follow_up_topics[], participants_mentioned[], sentiment, meeting_effectiveness_score }
+ * Output: { executive_summary, key_decisions[], action_items[], follow_up_topics[], participants_mentioned[], sentiment, meeting_effectiveness_score, issues[], risks[], blockers[] }
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -93,12 +93,12 @@ serve(async (req) => {
       )
     }
 
-    // Generate structured summary via AI
+    // Generate structured meeting intelligence via AI
     const result = await chatCompletion(supabaseClient, {
       messages: [
         {
           role: 'system',
-          content: `You are a meeting analyst. Produce a structured summary of the meeting transcript provided. Your response must be valid JSON with the following structure:
+          content: `You are a meeting intelligence analyst. Produce structured output from the transcript. Your response must be valid JSON with the following structure:
 
 {
   "executive_summary": "A concise 2-4 sentence summary of the meeting",
@@ -107,10 +107,13 @@ serve(async (req) => {
   "follow_up_topics": ["Topic 1", "Topic 2"],
   "participants_mentioned": ["Name 1", "Name 2"],
   "sentiment": "positive" | "neutral" | "negative" | "mixed",
-  "meeting_effectiveness_score": 1-10
+  "meeting_effectiveness_score": 1-10,
+  "issues": [{"title":"string","severity":"low|medium|high|critical","evidence":"string"}],
+  "risks": [{"title":"string","impact":"low|medium|high","evidence":"string"}],
+  "blockers": [{"title":"string","owner":"string|null","evidence":"string"}]
 }
 
-Be thorough but concise. Extract all key decisions, action items, and follow-up topics. Rate meeting effectiveness based on clarity of outcomes, participation, and actionability.`
+Be thorough but concise. Extract all key decisions, action items, follow-up topics, and risk signals. Rate effectiveness based on clarity of outcomes, participation, and actionability.`
         },
         {
           role: 'user',
@@ -140,6 +143,9 @@ Be thorough but concise. Extract all key decisions, action items, and follow-up 
           participants_mentioned: [],
           sentiment: 'neutral',
           meeting_effectiveness_score: 5,
+          issues: [],
+          risks: [],
+          blockers: [],
         }
       }
     }

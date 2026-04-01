@@ -2,10 +2,184 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const LOVABLE_GATEWAY = 'https://ai.gateway.lovable.dev/v1/chat/completions'
+const MAX_DATA_SOURCE_ROWS = 20
+const MAX_DATA_CONTEXT_CHARS = 14000
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+interface DataSourceConfig {
+  table: string
+  columns?: string[]
+  limit?: number
+  order_by?: string
+  ascending?: boolean
+  filters?: Record<string, string | number | boolean | null>
+  user_scope_column?: string
+}
+
+type GenericRecord = Record<string, unknown>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function normalizeDataSourceConfig(raw: unknown): DataSourceConfig[] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  const normalized: DataSourceConfig[] = []
+  for (const source of raw) {
+    if (typeof source === 'string' && source.trim().length > 0) {
+      normalized.push({
+        table: source.trim(),
+        limit: 5,
+      })
+      continue
+    }
+
+    if (!isRecord(source)) {
+      continue
+    }
+
+    const tableCandidate = source.table
+    if (typeof tableCandidate !== 'string' || tableCandidate.trim().length === 0) {
+      continue
+    }
+
+    const columnsRaw = source.columns
+    const columns = Array.isArray(columnsRaw)
+      ? columnsRaw.filter((col): col is string => typeof col === 'string' && col.trim().length > 0)
+      : undefined
+
+    const limitRaw = source.limit
+    const safeLimit = typeof limitRaw === 'number' && Number.isFinite(limitRaw)
+      ? Math.min(Math.max(Math.floor(limitRaw), 1), MAX_DATA_SOURCE_ROWS)
+      : 5
+
+    const orderBy = typeof source.order_by === 'string' && source.order_by.trim().length > 0
+      ? source.order_by
+      : undefined
+
+    const filtersRaw = source.filters
+    const filters: Record<string, string | number | boolean | null> = {}
+    if (isRecord(filtersRaw)) {
+      for (const [key, value] of Object.entries(filtersRaw)) {
+        if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          filters[key] = value
+        }
+      }
+    }
+
+    const userScopeColumn = typeof source.user_scope_column === 'string' && source.user_scope_column.trim().length > 0
+      ? source.user_scope_column
+      : undefined
+
+    normalized.push({
+      table: tableCandidate.trim(),
+      columns,
+      limit: safeLimit,
+      order_by: orderBy,
+      ascending: source.ascending === false ? false : true,
+      filters: Object.keys(filters).length > 0 ? filters : undefined,
+      user_scope_column: userScopeColumn,
+    })
+  }
+
+  return normalized
+}
+
+function applyFilterPlaceholders(
+  value: string | number | boolean | null,
+  userId: string | null,
+): string | number | boolean | null {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  if (value === '$user_id') {
+    return userId
+  }
+
+  return value
+}
+
+async function fetchDataSourceRecords(
+  supabaseClient: ReturnType<typeof createClient>,
+  source: DataSourceConfig,
+  userId: string | null,
+): Promise<GenericRecord[]> {
+  const selectClause = source.columns && source.columns.length > 0 ? source.columns.join(',') : '*'
+
+  let query = supabaseClient
+    .from(source.table)
+    .select(selectClause)
+    .limit(source.limit ?? 5)
+
+  if (source.order_by) {
+    query = query.order(source.order_by, { ascending: source.ascending !== false })
+  }
+
+  if (source.user_scope_column && userId) {
+    query = query.eq(source.user_scope_column, userId)
+  }
+
+  if (source.filters) {
+    for (const [column, rawValue] of Object.entries(source.filters)) {
+      const resolvedValue = applyFilterPlaceholders(rawValue, userId)
+      if (resolvedValue === null) {
+        query = query.is(column, null)
+        continue
+      }
+      query = query.eq(column, resolvedValue)
+    }
+  }
+
+  const { data, error } = await query
+  if (error) {
+    console.warn(`Failed to fetch data source "${source.table}":`, error.message)
+    return []
+  }
+
+  if (!Array.isArray(data)) {
+    return []
+  }
+
+  return data as GenericRecord[]
+}
+
+async function buildDataSourceContext(
+  supabaseClient: ReturnType<typeof createClient>,
+  rawDataSources: unknown,
+  userId: string | null,
+): Promise<string> {
+  const sources = normalizeDataSourceConfig(rawDataSources)
+  if (sources.length === 0) {
+    return ''
+  }
+
+  const sections: string[] = []
+  let totalChars = 0
+
+  for (const source of sources) {
+    const records = await fetchDataSourceRecords(supabaseClient, source, userId)
+    if (records.length === 0) {
+      continue
+    }
+
+    const serialized = JSON.stringify(records, null, 2)
+    const section = `### ${source.table}\n${serialized}`
+    if (totalChars + section.length > MAX_DATA_CONTEXT_CHARS) {
+      break
+    }
+    totalChars += section.length
+    sections.push(section)
+  }
+
+  return sections.join('\n\n')
 }
 
 function tokenizeForMatch(input: string): string[] {
@@ -119,6 +293,13 @@ serve(async (req) => {
           ? (typeof execution_context === 'string' ? execution_context : JSON.stringify(execution_context))
           : 'No context provided. Please respond with a default helpful message.'
 
+    // Build contextual database data based on agent.data_sources.
+    const dataSourceContext = await buildDataSourceContext(
+      supabaseClient,
+      agent.data_sources,
+      typeof user_id === 'string' && user_id.length > 0 ? user_id : null,
+    )
+
     // Build RAG context via semantic search when agent has RAG enabled.
     let ragContext = ''
     if (agent.rag_enabled === true) {
@@ -186,10 +367,13 @@ serve(async (req) => {
       }
     }
 
-    // Build system prompt with RAG context
+    // Build system prompt with data context + RAG context.
     const systemPrompt = [
       agent.system_prompt,
       additionalPrompt ? additionalPrompt : null,
+      dataSourceContext
+        ? `\n\nDATABASE CONTEXT (from configured data_sources):\nUse only this context when it is relevant. If context is missing or insufficient, state assumptions clearly.\n\n${dataSourceContext}`
+        : null,
       ragContext
         ? `\n\nRELEVANT CONTEXT (from knowledge base):\nUse the following retrieved context to answer the user's query. If the context doesn't contain relevant information, say so clearly and answer based on your general knowledge.\n\n${ragContext}`
         : null,
