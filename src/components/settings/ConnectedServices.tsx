@@ -51,6 +51,8 @@ const providerIcons: Record<string, string> = {
   google: '🔵',
   zoom: '📹',
   microsoft: '🔷',
+  activecollab: '🗂️',
+  clickup: '📌',
 };
 
 interface ServiceCardProps {
@@ -258,6 +260,38 @@ export function ConnectedServices() {
     },
   });
 
+  const syncActiveCollab = useMutation({
+    mutationFn: async (): Promise<{
+      success: boolean;
+      projects_synced: number;
+      projects_created: number;
+      projects_updated: number;
+      tasks_synced: number;
+      errors: string[];
+    }> => {
+      const { data, error } = await supabase.functions.invoke('sync-projects-activecollab');
+      if (error) {
+        throw error;
+      }
+      return data as {
+        success: boolean;
+        projects_synced: number;
+        projects_created: number;
+        projects_updated: number;
+        tasks_synced: number;
+        errors: string[];
+      };
+    },
+    onSuccess: (res) => {
+      toast.success(
+        `ActiveCollab synced: ${res.projects_synced} projects, ${res.tasks_synced} tasks.`
+      );
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? 'Failed to sync ActiveCollab');
+    },
+  });
+
   const [disconnectProvider, setDisconnectProvider] = useState<string | null>(null);
   // Track which provider has a pending action
   const [pendingActions, setPendingActions] = useState<PendingState>({});
@@ -433,10 +467,13 @@ export function ConnectedServices() {
                   onSync={
                     provider.provider_slug === 'clickup'
                       ? () => syncClickup.mutate()
-                      : undefined
+                      : provider.provider_slug === 'activecollab'
+                        ? () => syncActiveCollab.mutate()
+                        : undefined
                   }
                   isSyncing={
-                    provider.provider_slug === 'clickup' && syncClickup.isPending
+                    (provider.provider_slug === 'clickup' && syncClickup.isPending) ||
+                    (provider.provider_slug === 'activecollab' && syncActiveCollab.isPending)
                   }
                 />
               ))}
