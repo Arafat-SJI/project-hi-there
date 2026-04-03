@@ -20,15 +20,6 @@ interface TokenResponse {
   scope?: string;
 }
 
-interface ActiveCollabTokenResponse {
-  token?: string;
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  token_type?: string;
-  scope?: string;
-}
-
 interface UserInfo {
   email?: string;
   name?: string;
@@ -43,12 +34,11 @@ const getTokenEndpoint = (provider: string): string => {
     zoom: "https://zoom.us/oauth/token",
     microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
     clickup: "https://api.clickup.com/api/v2/oauth/token",
-    activecollab: "",
   };
   return endpoints[provider] || "";
 };
 
-const getUserInfo = async (provider: string, accessToken: string, baseUrl?: string): Promise<UserInfo> => {
+const getUserInfo = async (provider: string, accessToken: string): Promise<UserInfo> => {
   let url = "";
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
@@ -68,9 +58,6 @@ const getUserInfo = async (provider: string, accessToken: string, baseUrl?: stri
       break;
     case "clickup":
       url = "https://api.clickup.com/api/v2/user";
-      break;
-    case "activecollab":
-      url = baseUrl ? `${baseUrl.replace(/\/+$/, "")}/api/v1/users/me` : "https://app.activecollab.com/api/v1/users/me";
       break;
     default:
       return {};
@@ -111,12 +98,6 @@ const getUserInfo = async (provider: string, accessToken: string, baseUrl?: stri
         return {
           email: data.user?.email ?? undefined,
           name: data.user?.username ?? data.user?.full_name ?? undefined,
-          picture: undefined,
-        };
-      case "activecollab":
-        return {
-          email: data.email ?? data.user?.email ?? undefined,
-          name: data.display_name ?? data.name ?? data.user?.name ?? undefined,
           picture: undefined,
         };
       default:
@@ -201,27 +182,7 @@ serve(async (req) => {
     }
 
     // Exchange code for tokens
-    const tokenEndpoint = (() => {
-      if (provider === "activecollab") {
-        const providerOauthConfig = orgIntegration.integration_providers?.oauth_config || {};
-        const configuredBaseUrl = config.base_url;
-        const baseUrl = typeof configuredBaseUrl === "string" ? configuredBaseUrl.replace(/\/+$/, "") : "";
-        const configuredTokenUrl = providerOauthConfig?.token_url;
-        if (typeof configuredTokenUrl === "string" && configuredTokenUrl.length > 0) {
-          return configuredTokenUrl.includes("{base_url}")
-            ? configuredTokenUrl.replace("{base_url}", baseUrl)
-            : configuredTokenUrl;
-        }
-        return baseUrl ? `${baseUrl}/api/v1/external/login` : "";
-      }
-      return getTokenEndpoint(provider);
-    })();
-
-    if (!tokenEndpoint) {
-      return Response.redirect(
-        `${appUrl}/settings?error=${encodeURIComponent("Provider token endpoint is not configured")}`,
-      );
-    }
+    const tokenEndpoint = getTokenEndpoint(provider);
 
     const tokenParams = new URLSearchParams({
       code,
@@ -245,38 +206,10 @@ serve(async (req) => {
       return Response.redirect(`${appUrl}/settings?error=${encodeURIComponent("Failed to exchange code for token")}`);
     }
 
-    const rawTokens = (await tokenResponse.json()) as TokenResponse | ActiveCollabTokenResponse | string;
-    const tokens: TokenResponse = (() => {
-      if (typeof rawTokens === "string") {
-        return {
-          access_token: rawTokens,
-          token_type: "Bearer",
-        };
-      }
-
-      const accessTokenCandidate =
-        typeof rawTokens.access_token === "string"
-          ? rawTokens.access_token
-          : typeof rawTokens.token === "string"
-            ? rawTokens.token
-            : null;
-
-      if (!accessTokenCandidate) {
-        throw new Error("Token response missing access token");
-      }
-
-      return {
-        access_token: accessTokenCandidate,
-        refresh_token: typeof rawTokens.refresh_token === "string" ? rawTokens.refresh_token : undefined,
-        expires_in: typeof rawTokens.expires_in === "number" ? rawTokens.expires_in : undefined,
-        token_type: typeof rawTokens.token_type === "string" ? rawTokens.token_type : "Bearer",
-        scope: typeof rawTokens.scope === "string" ? rawTokens.scope : undefined,
-      };
-    })();
+    const tokens: TokenResponse = await tokenResponse.json();
 
     // Get user info from provider
-    const providerBaseUrl = typeof config.base_url === "string" ? config.base_url : undefined;
-    const userInfo = await getUserInfo(provider, tokens.access_token, providerBaseUrl);
+    const userInfo = await getUserInfo(provider, tokens.access_token);
 
     // Calculate expiration time
     // Some providers (e.g. ClickUp) do not return expires_in; in that case store NULL and treat as non-expiring.
@@ -334,8 +267,6 @@ serve(async (req) => {
       finalRedirect = `${appUrl}/admin/integrations/google-meet`;
     } else if (provider === "google-drive") {
       finalRedirect = `${appUrl}/admin/integrations/google-drive`;
-    } else if (provider === "activecollab") {
-      finalRedirect = `${appUrl}/admin/integrations/activecollab`;
     } else {
       // For ClickUp and any other providers without a dedicated admin page,
       // send users back to the main Settings page where Connected Services lives.

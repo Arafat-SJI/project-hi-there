@@ -19,11 +19,6 @@ interface OAuthConfig {
   additionalParams?: Record<string, string>;
 }
 
-interface ProviderRecord {
-  id: string;
-  oauth_config: Record<string, unknown> | null;
-}
-
 const getProviderConfig = (provider: string): OAuthConfig | null => {
   const configs: Record<string, OAuthConfig> = {
     google: {
@@ -43,10 +38,6 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
     clickup: {
       authUrl: "https://app.clickup.com/api",
       // ClickUp does not currently use OAuth scopes; keep empty array for compatibility
-      scopes: [],
-    },
-    activecollab: {
-      authUrl: "https://app.activecollab.com/auth/login",
       scopes: [],
     },
     "google-meet": {
@@ -170,9 +161,9 @@ serve(async (req) => {
     // First get the provider ID from slug
     const { data: providerData, error: providerError } = await supabase
       .from("integration_providers")
-      .select("id, oauth_config")
+      .select("id")
       .eq("slug", provider)
-      .single<ProviderRecord>();
+      .single();
 
     if (providerError || !providerData) {
       return new Response(JSON.stringify({ error: `Unknown provider: ${provider}` }), {
@@ -229,24 +220,6 @@ serve(async (req) => {
       scopes.push(...additional_scopes);
     }
 
-    const baseUrlRaw = orgIntegration.config?.base_url || orgIntegration.credentials?.base_url;
-    const baseUrl = typeof baseUrlRaw === "string" ? baseUrlRaw.replace(/\/+$/, "") : "";
-    const providerAuthorizeUrl = (() => {
-      if (provider === "activecollab") {
-        if (!baseUrl) {
-          throw new Error("Provider activecollab requires a Base URL in integration settings.");
-        }
-        const oauthAuthorizeFromProvider = providerData.oauth_config?.authorize_url;
-        if (typeof oauthAuthorizeFromProvider === "string" && oauthAuthorizeFromProvider.length > 0) {
-          return oauthAuthorizeFromProvider.includes("{base_url}")
-            ? oauthAuthorizeFromProvider.replace("{base_url}", baseUrl)
-            : oauthAuthorizeFromProvider;
-        }
-        return `${baseUrl}/auth/login`;
-      }
-      return providerConfig.authUrl;
-    })();
-
     // Build the authorization URL
     const params = new URLSearchParams({
       client_id: clientId,
@@ -257,7 +230,7 @@ serve(async (req) => {
       ...providerConfig.additionalParams,
     });
 
-    const authorizationUrl = `${providerAuthorizeUrl}?${params.toString()}`;
+    const authorizationUrl = `${providerConfig.authUrl}?${params.toString()}`;
 
     return new Response(
       JSON.stringify({

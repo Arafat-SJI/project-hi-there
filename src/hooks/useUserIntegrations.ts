@@ -26,7 +26,7 @@ export interface UserOAuthToken {
   last_refreshed_at: string | null;
   error_message: string | null;
   error_at: string | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -53,13 +53,17 @@ const SAFE_TOKEN_COLUMNS = `
   updated_at
 `;
 
+export type UserProviderConnectionMethod = 'oauth_redirect' | 'activecollab_issue_token';
+
 export interface AvailableProvider {
   provider_slug: string;
   provider_name: string;
   description: string;
   icon: string;
   scopes: string[];
+  /** True when the provider uses browser OAuth (not ActiveCollab issue-token). */
   oauth_enabled: boolean;
+  connection_method: UserProviderConnectionMethod;
 }
 
 // Fetch user's connected services (excludes sensitive token fields)
@@ -107,12 +111,19 @@ export function useUserOAuthToken(providerSlug: string) {
   });
 }
 
+export interface ConnectActiveCollabTokenInput {
+  base_url: string;
+  client_name: string;
+  client_vendor: string;
+  username: string;
+  password: string;
+}
+
 // Check if a provider is available for user connection (admin enabled it)
 export function useAvailableUserProviders() {
   return useQuery<AvailableProvider[]>({
     queryKey: ['available-user-providers'],
     queryFn: async () => {
-      // Get organization integrations that support user connections
       const { data: orgIntegrations, error } = await supabase
         .from('organization_integrations')
         .select(`
@@ -129,32 +140,63 @@ export function useAvailableUserProviders() {
 
       if (error) throw error;
 
-      // Filter to providers that support OAuth and are configured
-      const providers: AvailableProvider[] = (orgIntegrations || [])
-        .filter((oi) => {
-          const provider = (oi as any).integration_providers;
-          // Support both 'oauth' and 'oauth2' auth types
-          return (
-            provider &&
-            typeof provider.auth_type === 'string' &&
-            provider.auth_type.toLowerCase().startsWith('oauth') &&
-            provider.oauth_config
-          );
+      interface OrgIntegrationRow {
+        enabled?: boolean | null;
+        integration_providers: {
+          slug: string;
+          name: string;
+          description: string | null;
+          oauth_config: unknown;
+          auth_type: string | null;
+        } | null;
+      }
+
+      const oauthProviders: AvailableProvider[] = (orgIntegrations || [])
+        .filter((raw) => {
+          const oi = raw as OrgIntegrationRow;
+          const provider = oi.integration_providers;
+          if (!provider || oi.enabled === false) return false;
+          if (provider.slug === 'activecollab') return false;
+          const auth = (provider.auth_type ?? '').toLowerCase();
+          return auth.startsWith('oauth') && provider.oauth_config != null;
         })
-        .map((oi) => {
-          const provider = (oi as any).integration_providers;
-          const config = provider.oauth_config || {};
+        .map((raw) => {
+          const oi = raw as OrgIntegrationRow;
+          const provider = oi.integration_providers!;
+          const oauthCfg = (provider.oauth_config || {}) as { default_scopes?: string[] };
           return {
             provider_slug: provider.slug,
             provider_name: provider.name,
-            description: provider.description,
-            icon: '', // icon not stored on providers table; UI uses local mapping
-            scopes: config.default_scopes || [],
+            description: provider.description ?? '',
+            icon: '',
+            scopes: oauthCfg.default_scopes ?? [],
             oauth_enabled: true,
+            connection_method: 'oauth_redirect' as const,
           };
         });
 
-      return providers;
+      const { data: acRow, error: acError } = await supabase
+        .from('integration_providers')
+        .select('slug, name, description, is_available')
+        .eq('slug', 'activecollab')
+        .maybeSingle();
+
+      if (acError) throw acError;
+
+      const list: AvailableProvider[] = [...oauthProviders];
+      if (acRow && acRow.is_available !== false) {
+        list.push({
+          provider_slug: acRow.slug,
+          provider_name: acRow.name,
+          description: acRow.description ?? '',
+          icon: '',
+          scopes: [],
+          oauth_enabled: false,
+          connection_method: 'activecollab_issue_token',
+        });
+      }
+
+      return list;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -182,6 +224,40 @@ export function useConnectOAuth() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to connect: ${error.message}`);
+    },
+  });
+}
+
+/** ActiveCollab: POST issue-token with user email/password; stores API token server-side. */
+export function useConnectActiveCollabToken() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (input: ConnectActiveCollabTokenInput): Promise<void> => {
+      const { data, error } = await supabase.functions.invoke('activecollab-issue-token', {
+        body: {
+          base_url: input.base_url.trim(),
+          client_name: input.client_name.trim(),
+          client_vendor: input.client_vendor.trim(),
+          username: input.username.trim(),
+          password: input.password,
+        },
+      });
+      if (error) throw error;
+      const payload = data as { error?: string } | null;
+      if (payload && typeof payload.error === 'string' && payload.error.length > 0) {
+        throw new Error(payload.error);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-oauth-tokens'] });
+      queryClient.invalidateQueries({ queryKey: ['user-oauth-token', user?.id, 'activecollab'] });
+      queryClient.invalidateQueries({ queryKey: ['available-user-providers'] });
+      toast.success('ActiveCollab connected');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Failed to connect ActiveCollab');
     },
   });
 }
