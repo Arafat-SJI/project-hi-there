@@ -88,7 +88,10 @@ serve(async (req) => {
         if (baseUrl && serviceKey) {
           const ragThreshold = personalization?.relevance_threshold ?? 0.5
           const ragCount = personalization?.max_context_files ?? 8
-          console.log(`RAG search: query="${message.substring(0, 80)}", threshold=${ragThreshold}, count=${ragCount}, rag_enabled=${agent.rag_enabled}`)
+          // When agent has rag_enabled, search ALL embeddings (org-wide data like ClickUp tasks)
+          // Only scope to user when explicitly not using all knowledge AND agent doesn't have rag_enabled
+          const searchUserId = (agent.rag_enabled === true || personalization?.use_all_knowledge) ? null : user_id
+          console.log(`RAG search: query="${message.substring(0, 80)}", threshold=${ragThreshold}, count=${ragCount}, rag_enabled=${agent.rag_enabled}, searchUserId=${searchUserId}`)
           const semRes = await fetch(`${baseUrl}/functions/v1/semantic-search`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
@@ -97,7 +100,7 @@ serve(async (req) => {
               match_threshold: ragThreshold,
               match_count: ragCount,
               entity_type: null,
-              user_id: personalization?.use_all_knowledge ? null : user_id,
+              user_id: searchUserId,
             }),
           })
           if (semRes.ok) {
