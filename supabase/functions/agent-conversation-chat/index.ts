@@ -249,6 +249,8 @@ serve(async (req) => {
           conversation_id,
           agent_id,
           had_rag_context: ragContext.length > 0,
+          rag_result_count: ragResultCount,
+          had_clickup_task_summary: hadClickUpTaskSummary,
           history_count: history?.length || 0,
         },
       }),
