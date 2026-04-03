@@ -80,6 +80,8 @@ serve(async (req) => {
 
     // 3. Get RAG context if agent has RAG enabled OR include_rag was explicitly requested
     let ragContext = ''
+    let ragResultCount = 0
+    let hadClickUpTaskSummary = false
     const shouldDoRag = agent.rag_enabled === true || include_rag
     if (shouldDoRag) {
       try {
@@ -88,6 +90,12 @@ serve(async (req) => {
         if (baseUrl && serviceKey) {
           const ragThreshold = personalization?.relevance_threshold ?? 0.5
           const ragCount = personalization?.max_context_files ?? 8
+          const normalizedMessage = message.toLowerCase()
+          const isClickUpTaskCountQuery =
+            /\bclickup\b/.test(normalizedMessage) &&
+            /\btasks?\b/.test(normalizedMessage) &&
+            /\b(how many|count|number of|total)\b/.test(normalizedMessage)
+
           // When agent has rag_enabled, search ALL embeddings (org-wide data like ClickUp tasks)
           // Only scope to user when explicitly not using all knowledge AND agent doesn't have rag_enabled
           const searchUserId = (agent.rag_enabled === true || personalization?.use_all_knowledge) ? null : user_id
@@ -106,14 +114,38 @@ serve(async (req) => {
           if (semRes.ok) {
             const semBody = await semRes.json()
             const relevantDocs = semBody.results ?? []
+            ragResultCount = relevantDocs.length
             console.log(`RAG search returned ${relevantDocs.length} results`)
-            if (relevantDocs.length > 0) {
-              ragContext = '\n\nRELEVANT CONTEXT (from knowledge base):\nUse the following retrieved context to answer the user\'s query. If the context doesn\'t contain relevant information, say so clearly.\n\n' + relevantDocs
-                .map((doc: { content?: string; entity_type?: string; similarity?: number }, i: number) => {
-                  const source = doc.entity_type ?? 'unknown'
-                  return `[${i + 1}] (${source}, relevance: ${(doc.similarity ?? 0).toFixed(2)})\n${doc.content ?? ''}`
-                })
-                .join('\n\n')
+
+            let ragSummary = ''
+            if (isClickUpTaskCountQuery) {
+              const { count: clickUpTaskEmbeddingCount, error: clickUpCountError } = await supabaseClient
+                .from('embeddings')
+                .select('id', { count: 'exact', head: true })
+                .eq('entity_type', 'task')
+                .contains('metadata', { source: 'clickup' })
+
+              if (clickUpCountError) {
+                console.error('ClickUp task embedding count error:', clickUpCountError)
+              } else if (typeof clickUpTaskEmbeddingCount === 'number') {
+                hadClickUpTaskSummary = true
+                ragSummary = [
+                  'RETRIEVED DATA SUMMARY:',
+                  `- Total ClickUp task embeddings currently available: ${clickUpTaskEmbeddingCount}`,
+                  '- If the user asks how many ClickUp tasks exist, use this exact total in the answer.',
+                ].join('\n')
+              }
+            }
+
+            if (relevantDocs.length > 0 || ragSummary) {
+              ragContext = '\n\nRELEVANT CONTEXT (from knowledge base):\nYou MUST answer from the retrieved context below when it is relevant. Treat the retrieved records and summaries as authoritative. If a summary includes an exact total, use that total directly in your answer. Only say the context is insufficient when there is truly no relevant context.\n\n'
+                + (ragSummary ? `${ragSummary}\n\n` : '')
+                + relevantDocs
+                  .map((doc: { content?: string; entity_type?: string; similarity?: number; metadata?: { source?: string } }, i: number) => {
+                    const source = doc.metadata?.source ?? doc.entity_type ?? 'unknown'
+                    return `[${i + 1}] (${source}, relevance: ${(doc.similarity ?? 0).toFixed(2)})\n${doc.content ?? ''}`
+                  })
+                  .join('\n\n')
             }
           } else {
             console.warn('RAG semantic search returned non-OK:', semRes.status)
