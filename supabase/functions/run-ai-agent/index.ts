@@ -315,10 +315,10 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               query: userMessage,
-              match_threshold: 0.65,
+              match_threshold: 0.5,
               match_count: 8,
               entity_type: null, // search ALL entity types
-              user_id: typeof user_id === 'string' && user_id.length > 0 ? user_id : null,
+              user_id: null, // RAG-enabled agents search all org-wide embeddings
             }),
           })
           if (semRes.ok) {
