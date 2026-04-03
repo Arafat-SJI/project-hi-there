@@ -152,7 +152,7 @@ async function fetchDataSourceRecords(
 }
 
 async function buildDataSourceContext(
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: any,
   rawDataSources: unknown,
   userId: string | null,
 ): Promise<string> {
