@@ -272,6 +272,9 @@ verify_jwt = false
 [functions.sync-projects-activecollab]
 verify_jwt = false
 
+[functions.activecollab-issue-token]
+verify_jwt = false
+
 [functions.sync-projects-jira]
 verify_jwt = false
 

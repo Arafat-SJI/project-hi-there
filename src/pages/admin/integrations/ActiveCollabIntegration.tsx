@@ -1,96 +1,57 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, Kanban, Loader2, RefreshCw, Settings, AlertCircle } from "lucide-react";
+import { ArrowLeft, Kanban, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { DynamicFormField } from "@/components/integrations/DynamicFormField";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import {
-  useIntegrationFields,
-  useIntegrationProvider,
-  useOrganizationIntegration,
-  useUpdateIntegration,
-} from "@/hooks/useIntegrations";
-import { useDisconnectOAuth, useUserOAuthToken, useConnectOAuth } from "@/hooks/useUserIntegrations";
+import { useIntegrationProvider } from "@/hooks/useIntegrations";
+import { useDisconnectOAuth, useUserOAuthToken, useConnectActiveCollabToken } from "@/hooks/useUserIntegrations";
 import { useSyncProjects } from "@/hooks/useIntegrationSync";
 
 export default function ActiveCollabIntegration() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [orgConfigValues, setOrgConfigValues] = useState<Record<string, string>>({});
-  const [isSavingConfig, setIsSavingConfig] = useState<boolean>(false);
+  const [baseUrl, setBaseUrl] = useState<string>("");
+  const [clientName, setClientName] = useState<string>("Control Tower");
+  const [clientVendor, setClientVendor] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
 
-  const { data: provider, isLoading: providerLoading } = useIntegrationProvider("activecollab");
-  const { data: integrationFields, isLoading: fieldsLoading } = useIntegrationFields(provider?.id ?? "");
-  const { data: orgIntegration, isLoading: orgIntegrationLoading } = useOrganizationIntegration(provider?.id ?? "");
-  const updateIntegration = useUpdateIntegration();
+  const { data: provider, isLoading: providerLoading, error: providerError } =
+    useIntegrationProvider("activecollab");
 
   const { data: userToken } = useUserOAuthToken("activecollab");
-  const connectOAuth = useConnectOAuth();
+  const connectActiveCollab = useConnectActiveCollabToken();
   const disconnectOAuth = useDisconnectOAuth();
   const syncProjects = useSyncProjects("activecollab");
 
   const isUserConnected = Boolean(userToken?.is_active);
-  const isOrgConfigured = Boolean(
-    orgIntegration && orgIntegration.enabled && orgIntegration.connection_status === "connected",
-  );
-
-  useEffect(() => {
-    if (orgIntegration?.config) {
-      setOrgConfigValues(orgIntegration.config as Record<string, string>);
-    }
-  }, [orgIntegration]);
-
-  const hasRequiredFields = useMemo((): boolean => {
-    return (
-      integrationFields?.every((field) => {
-        if (!field.is_required) return true;
-        return Boolean(orgConfigValues[field.field_key]);
-      }) ?? false
-    );
-  }, [integrationFields, orgConfigValues]);
-
-  const handleFieldChange = (fieldKey: string, value: string): void => {
-    setOrgConfigValues((prev) => ({
-      ...prev,
-      [fieldKey]: value,
-    }));
-  };
-
-  const handleSaveOrgConfig = async (): Promise<void> => {
-    if (!provider) return;
-    setIsSavingConfig(true);
-    try {
-      await updateIntegration.mutateAsync({
-        providerId: provider.id,
-        config: orgConfigValues,
-        enabled: true,
-      });
-      queryClient.invalidateQueries({ queryKey: ["integrations"] });
-      toast({
-        title: "Configuration saved",
-        description: "ActiveCollab organization configuration has been saved successfully.",
-      });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to save configuration";
-      toast({
-        title: "Save failed",
-        description: message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSavingConfig(false);
-    }
-  };
+  const canSubmit =
+    baseUrl.trim().length > 0 &&
+    clientName.trim().length > 0 &&
+    clientVendor.trim().length > 0 &&
+    username.trim().length > 0 &&
+    password.length > 0;
 
   const handleConnect = (): void => {
-    connectOAuth.mutate({
-      provider: "activecollab",
-      redirect_uri: `${window.location.origin}/admin/integrations/activecollab`,
-    });
+    connectActiveCollab.mutate(
+      {
+        base_url: baseUrl,
+        client_name: clientName,
+        client_vendor: clientVendor,
+        username: username.trim(),
+        password,
+      },
+      {
+        onSuccess: () => {
+          setPassword("");
+          queryClient.invalidateQueries({ queryKey: ["user-oauth-tokens"] });
+        },
+      },
+    );
   };
 
   const handleDisconnect = (): void => {
@@ -101,19 +62,32 @@ export default function ActiveCollabIntegration() {
           queryClient.invalidateQueries({ queryKey: ["user-oauth-tokens"] });
           toast({
             title: "Disconnected",
-            description: "Your ActiveCollab account has been disconnected.",
+            description: "Your ActiveCollab API token has been removed from Control Tower.",
           });
         },
       },
     );
   };
 
-  const isLoading = providerLoading || fieldsLoading || orgIntegrationLoading;
-
-  if (isLoading) {
+  if (providerLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (providerError || !provider || provider.is_available === false) {
+    return (
+      <div className="container mx-auto p-6 max-w-6xl">
+        <Link
+          to="/admin/integrations"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Integrations
+        </Link>
+        <p className="text-destructive">ActiveCollab is not available.</p>
       </div>
     );
   }
@@ -133,9 +107,19 @@ export default function ActiveCollabIntegration() {
             <Kanban className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">ActiveCollab Integration</h1>
+            <h1 className="text-3xl font-bold tracking-tight">ActiveCollab</h1>
             <p className="text-muted-foreground mt-1">
-              Configure ActiveCollab for your organization and let users connect their own accounts.
+              Connect with your instance URL and account. Tokens are issued via ActiveCollab&apos;s{" "}
+              <code className="text-xs">issue-token</code> API (
+              <a
+                href="https://developers.activecollab.com/api-documentation/v1/authentication.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                docs
+              </a>
+              ).
             </p>
           </div>
         </div>
@@ -144,78 +128,91 @@ export default function ActiveCollabIntegration() {
       <Card className="border-2 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
-            <Settings className="h-5 w-5 text-muted-foreground" />
-            Organization Configuration
-            {isOrgConfigured ? (
-              <Badge variant="outline" className="ml-2 border-green-200 text-green-700">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Configured
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="ml-2 border-amber-200 text-amber-700">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                Setup Required
-              </Badge>
-            )}
-          </CardTitle>
-          <CardDescription>
-            Enter ActiveCollab Base URL, Client ID and Client Secret. These are stored on the server.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {integrationFields?.map((field) => (
-            <DynamicFormField
-              key={field.id}
-              field={field}
-              value={orgConfigValues[field.field_key] ?? ""}
-              onChange={(value) => handleFieldChange(field.field_key, value)}
-              showMasked={isOrgConfigured}
-            />
-          ))}
-
-          <Separator />
-
-          <Button onClick={handleSaveOrgConfig} disabled={isSavingConfig || !hasRequiredFields}>
-            {isSavingConfig ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Configuration"
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="border-2 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
             <Kanban className="h-5 w-5 text-primary" />
-            User OAuth & Sync
+            User API token
           </CardTitle>
           <CardDescription>
-            Users connect their personal ActiveCollab account from this page or Settings. After connection, you can run
-            sync to import projects and tasks.
+            Enter your ActiveCollab base URL, application labels (required by the API), and your sign-in
+            credentials. Only the issued API token is stored.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid gap-4 max-w-md">
+            <div className="grid gap-2">
+              <Label htmlFor="ac-base-url">Base URL</Label>
+              <Input
+                id="ac-base-url"
+                type="url"
+                autoComplete="off"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                disabled={isUserConnected}
+                placeholder="https://your-company.activecollab.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ac-client-name">Client name</Label>
+              <Input
+                id="ac-client-name"
+                type="text"
+                autoComplete="off"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                disabled={isUserConnected}
+                placeholder="Control Tower"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ac-client-vendor">Client vendor</Label>
+              <Input
+                id="ac-client-vendor"
+                type="text"
+                autoComplete="organization"
+                value={clientVendor}
+                onChange={(e) => setClientVendor(e.target.value)}
+                disabled={isUserConnected}
+                placeholder="Your company name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ac-admin-email">Email</Label>
+              <Input
+                id="ac-admin-email"
+                type="email"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={isUserConnected}
+                placeholder="you@company.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ac-admin-password">Password</Label>
+              <Input
+                id="ac-admin-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isUserConnected}
+              />
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={handleConnect} disabled={!isOrgConfigured || connectOAuth.isPending}>
-              {connectOAuth.isPending ? (
+            <Button
+              onClick={handleConnect}
+              disabled={isUserConnected || connectActiveCollab.isPending || !canSubmit}
+            >
+              {connectActiveCollab.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Connecting...
                 </>
               ) : (
-                "Connect with ActiveCollab"
+                "Issue token & connect"
               )}
             </Button>
-            {!isOrgConfigured && (
-              <p className="text-sm text-muted-foreground">
-                Save the organization configuration before users can connect.
-              </p>
-            )}
           </div>
 
           {isUserConnected && (
@@ -239,7 +236,7 @@ export default function ActiveCollabIntegration() {
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Sync Now
+                    Sync now
                   </>
                 )}
               </Button>

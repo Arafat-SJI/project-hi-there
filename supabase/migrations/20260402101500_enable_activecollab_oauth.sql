@@ -1,4 +1,7 @@
--- Enable ActiveCollab as OAuth provider and add org-level configuration fields
+-- ActiveCollab: API token via issue-token (org supplies base URL + client app labels).
+-- User connects with email/password once; token is stored in user_oauth_tokens.
+-- @see https://developers.activecollab.com/api-documentation/v1/authentication.html
+
 DO $$
 DECLARE
   cat_pm UUID;
@@ -37,9 +40,9 @@ BEGIN
       'ActiveCollab',
       'activecollab',
       'Project management and task tracking with time tracking and invoicing',
-      'oauth2',
-      '{"authorize_url":"https://app.activecollab.com/auth/login","token_url":"https://app.activecollab.com/api/v1/external/login","userinfo_url":"https://app.activecollab.com/api/v1/users/me","response_type":"code"}'::jsonb,
-      'https://developers.activecollab.com/api-documentation/index.html',
+      'api_key',
+      NULL,
+      'https://developers.activecollab.com/api-documentation/v1/authentication.html',
       true,
       false,
       55
@@ -49,18 +52,17 @@ BEGIN
     UPDATE public.integration_providers
     SET
       category_id = cat_pm,
-      auth_type = 'oauth2',
-      oauth_config = COALESCE(
-        oauth_config,
-        '{"authorize_url":"https://app.activecollab.com/auth/login","token_url":"https://app.activecollab.com/api/v1/external/login","userinfo_url":"https://app.activecollab.com/api/v1/users/me","response_type":"code"}'::jsonb
+      auth_type = 'api_key',
+      oauth_config = NULL,
+      docs_url = COALESCE(
+        docs_url,
+        'https://developers.activecollab.com/api-documentation/v1/authentication.html'
       ),
-      docs_url = COALESCE(docs_url, 'https://developers.activecollab.com/api-documentation/index.html'),
       is_available = true,
       is_coming_soon = false
     WHERE id = provider_activecollab;
   END IF;
 
-  -- ActiveCollab OAuth app and tenant configuration
   INSERT INTO public.integration_fields (
     provider_id,
     field_key,
@@ -80,7 +82,7 @@ BEGIN
     'https://your-company.activecollab.com',
     true,
     false,
-    'Your ActiveCollab instance base URL. OAuth and API calls are resolved from this URL.',
+    'Your ActiveCollab instance base URL (API under /api/v1).',
     10
   )
   ON CONFLICT (provider_id, field_key) DO UPDATE
@@ -106,13 +108,13 @@ BEGIN
   )
   VALUES (
     provider_activecollab,
-    'client_id',
-    'Client ID',
+    'client_name',
+    'Client name',
     'text',
-    'activecollab_client_id',
+    'Control Tower',
     true,
     false,
-    'OAuth client id for your ActiveCollab app.',
+    'Application name for ActiveCollab issue-token (see API authentication docs).',
     20
   )
   ON CONFLICT (provider_id, field_key) DO UPDATE
@@ -138,13 +140,13 @@ BEGIN
   )
   VALUES (
     provider_activecollab,
-    'client_secret',
-    'Client Secret',
-    'password',
-    '****************',
+    'client_vendor',
+    'Client vendor',
+    'text',
+    'Your company name',
     true,
-    true,
-    'OAuth client secret for your ActiveCollab app.',
+    false,
+    'Vendor name for ActiveCollab issue-token (see API authentication docs).',
     30
   )
   ON CONFLICT (provider_id, field_key) DO UPDATE
@@ -156,5 +158,8 @@ BEGIN
     is_sensitive = EXCLUDED.is_sensitive,
     help_text = EXCLUDED.help_text,
     display_order = EXCLUDED.display_order;
+
+  DELETE FROM public.integration_fields
+  WHERE provider_id = provider_activecollab AND field_key IN ('client_id', 'client_secret');
 END;
 $$;

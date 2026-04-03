@@ -36,6 +36,7 @@ import {
   useUserOAuthTokens,
   useAvailableUserProviders,
   useConnectOAuth,
+  useConnectActiveCollabToken,
   useDisconnectOAuth,
   useRefreshOAuthToken,
   UserOAuthToken,
@@ -45,6 +46,16 @@ import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { syncClickupLocal, LocalClickupSyncResult } from '@/lib/clickupLocalSync';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 // Provider icons/logos
 const providerIcons: Record<string, string> = {
@@ -61,6 +72,8 @@ interface ServiceCardProps {
   onConnect: () => void;
   onDisconnect: () => void;
   onRefresh: () => void;
+  /** For providers without OAuth refresh (e.g. ActiveCollab issue-token). */
+  onReconnect?: () => void;
   isConnecting: boolean;
   isDisconnecting: boolean;
   isRefreshing: boolean;
@@ -74,6 +87,7 @@ function ServiceCard({
   onConnect,
   onDisconnect,
   onRefresh,
+  onReconnect,
   isConnecting,
   isDisconnecting,
   isRefreshing,
@@ -163,7 +177,7 @@ function ServiceCard({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onRefresh}
+                onClick={onReconnect ?? onRefresh}
                 disabled={isAnyActionPending}
               >
                 {isRefreshing ? (
@@ -243,8 +257,24 @@ export function ConnectedServices() {
   } = useAvailableUserProviders();
 
   const connectOAuth = useConnectOAuth();
+  const connectActiveCollab = useConnectActiveCollabToken();
   const disconnectOAuth = useDisconnectOAuth();
   const refreshToken = useRefreshOAuthToken();
+
+  const [activeCollabDialogOpen, setActiveCollabDialogOpen] = useState(false);
+  const [activeCollabBaseUrl, setActiveCollabBaseUrl] = useState('');
+  const [activeCollabClientName, setActiveCollabClientName] = useState('Control Tower');
+  const [activeCollabClientVendor, setActiveCollabClientVendor] = useState('');
+  const [activeCollabEmail, setActiveCollabEmail] = useState('');
+  const [activeCollabPassword, setActiveCollabPassword] = useState('');
+
+  const resetActiveCollabDialogFields = (): void => {
+    setActiveCollabBaseUrl('');
+    setActiveCollabClientName('Control Tower');
+    setActiveCollabClientVendor('');
+    setActiveCollabEmail('');
+    setActiveCollabPassword('');
+  };
 
   const syncClickup = useMutation({
     mutationFn: async (): Promise<LocalClickupSyncResult> => {
@@ -304,23 +334,47 @@ export function ConnectedServices() {
     if (providersError) refetchProviders();
   };
 
-  const handleConnect = (provider: string) => {
-    // Prevent duplicate clicks
-    if (pendingActions[provider]) return;
+  const handleConnect = (provider: AvailableProvider) => {
+    if (provider.connection_method === 'activecollab_issue_token') {
+      resetActiveCollabDialogFields();
+      setActiveCollabDialogOpen(true);
+      return;
+    }
 
-    setPendingActions(prev => ({ ...prev, [provider]: 'connect' }));
+    // Prevent duplicate clicks
+    if (pendingActions[provider.provider_slug]) return;
+
+    setPendingActions(prev => ({ ...prev, [provider.provider_slug]: 'connect' }));
     connectOAuth.mutate(
       {
-        provider,
+        provider: provider.provider_slug,
         // Ensure the OAuth flow always returns to the same domain
         // (preview, staging, or production) and to the Settings page.
         redirect_uri: `${window.location.origin}/settings`,
       },
       {
         onSettled: () => {
-          setPendingActions(prev => ({ ...prev, [provider]: null }));
+          setPendingActions(prev => ({ ...prev, [provider.provider_slug]: null }));
         },
       }
+    );
+  };
+
+  const submitActiveCollabConnect = (): void => {
+    connectActiveCollab.mutate(
+      {
+        base_url: activeCollabBaseUrl.trim(),
+        client_name: activeCollabClientName.trim(),
+        client_vendor: activeCollabClientVendor.trim(),
+        username: activeCollabEmail.trim(),
+        password: activeCollabPassword,
+      },
+      {
+        onSuccess: () => {
+          setActiveCollabDialogOpen(false);
+          resetActiveCollabDialogFields();
+        },
+      },
     );
   };
 
@@ -458,10 +512,22 @@ export function ConnectedServices() {
                   key={provider.provider_slug}
                   provider={provider}
                   connection={getConnectionForProvider(provider.provider_slug)}
-                  onConnect={() => handleConnect(provider.provider_slug)}
+                  onConnect={() => handleConnect(provider)}
                   onDisconnect={() => handleDisconnect(provider.provider_slug)}
                   onRefresh={() => handleRefresh(provider.provider_slug)}
-                  isConnecting={isPendingAction(provider.provider_slug, 'connect')}
+                  onReconnect={
+                    provider.connection_method === 'activecollab_issue_token'
+                      ? () => {
+                          resetActiveCollabDialogFields();
+                          setActiveCollabDialogOpen(true);
+                        }
+                      : undefined
+                  }
+                  isConnecting={
+                    provider.connection_method === 'activecollab_issue_token'
+                      ? connectActiveCollab.isPending
+                      : isPendingAction(provider.provider_slug, 'connect')
+                  }
                   isDisconnecting={isPendingAction(provider.provider_slug, 'disconnect')}
                   isRefreshing={isPendingAction(provider.provider_slug, 'refresh')}
                   onSync={
@@ -497,6 +563,114 @@ export function ConnectedServices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={activeCollabDialogOpen} onOpenChange={setActiveCollabDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Connect ActiveCollab</DialogTitle>
+            <DialogDescription>
+              Your instance URL and application labels are required by ActiveCollab&apos;s issue-token API. Your password
+              is used only to obtain an API token and is not stored. See{' '}
+              <a
+                href="https://developers.activecollab.com/api-documentation/v1/authentication.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                ActiveCollab authentication
+              </a>
+              .
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="ac-base-url">Base URL</Label>
+              <Input
+                id="ac-base-url"
+                type="url"
+                autoComplete="off"
+                value={activeCollabBaseUrl}
+                onChange={(e) => setActiveCollabBaseUrl(e.target.value)}
+                placeholder="https://your-company.activecollab.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ac-client-name">Client name</Label>
+              <Input
+                id="ac-client-name"
+                type="text"
+                autoComplete="off"
+                value={activeCollabClientName}
+                onChange={(e) => setActiveCollabClientName(e.target.value)}
+                placeholder="Control Tower"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ac-client-vendor">Client vendor</Label>
+              <Input
+                id="ac-client-vendor"
+                type="text"
+                autoComplete="organization"
+                value={activeCollabClientVendor}
+                onChange={(e) => setActiveCollabClientVendor(e.target.value)}
+                placeholder="Your company name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ac-email">Email</Label>
+              <Input
+                id="ac-email"
+                type="email"
+                autoComplete="username"
+                value={activeCollabEmail}
+                onChange={(e) => setActiveCollabEmail(e.target.value)}
+                placeholder="you@company.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ac-password">Password</Label>
+              <Input
+                id="ac-password"
+                type="password"
+                autoComplete="current-password"
+                value={activeCollabPassword}
+                onChange={(e) => setActiveCollabPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setActiveCollabDialogOpen(false)}
+              disabled={connectActiveCollab.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={submitActiveCollabConnect}
+              disabled={
+                connectActiveCollab.isPending ||
+                activeCollabBaseUrl.trim().length === 0 ||
+                activeCollabClientName.trim().length === 0 ||
+                activeCollabClientVendor.trim().length === 0 ||
+                activeCollabEmail.trim().length === 0 ||
+                activeCollabPassword.length === 0
+              }
+            >
+              {connectActiveCollab.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting…
+                </>
+              ) : (
+                'Connect'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

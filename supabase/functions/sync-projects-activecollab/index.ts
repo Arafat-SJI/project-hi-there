@@ -253,23 +253,14 @@ serve(async (req) => {
       throw new Error("ActiveCollab provider record not found");
     }
 
-    const { data: orgIntegration, error: orgIntegrationError } = await supabase
-      .from("organization_integrations")
-      .select("config")
-      .eq("provider_id", providerRow.id)
-      .eq("enabled", true)
-      .eq("connection_status", "connected")
-      .maybeSingle<{ config: Record<string, unknown> | null }>();
-
-    if (orgIntegrationError || !orgIntegration?.config) {
-      throw new Error("ActiveCollab organization integration is not configured");
+    const meta = tokenRow.metadata ?? {};
+    const fromMeta = meta.activecollab_base_url;
+    if (typeof fromMeta !== "string" || fromMeta.trim().length === 0) {
+      throw new Error(
+        "ActiveCollab Base URL missing on your connection. Disconnect and connect again with your instance URL.",
+      );
     }
-
-    const configuredBaseUrl = orgIntegration.config.base_url;
-    if (typeof configuredBaseUrl !== "string" || configuredBaseUrl.trim().length === 0) {
-      throw new Error("ActiveCollab Base URL is required in organization integration config");
-    }
-    const apiUrl = configuredBaseUrl.replace(/\/+$/, "");
+    const apiUrl = fromMeta.replace(/\/+$/, "");
 
     const apiHeaders: HeadersInit = {
       Authorization: `Bearer ${tokenRow.access_token}`,
