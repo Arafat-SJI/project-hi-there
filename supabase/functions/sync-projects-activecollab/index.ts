@@ -102,7 +102,7 @@ async function embedTextOpenAI(args: { openAiApiKey: string; input: string }): P
 }
 
 async function upsertTaskEmbeddings(args: {
-  supabase: ReturnType<typeof createClient>;
+  supabase: any;
   userId: string;
   taskId: string;
   content: string;
