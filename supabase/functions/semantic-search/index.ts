@@ -39,7 +39,7 @@ serve(async (req) => {
     } = body;
 
     const match_threshold =
-      similarity_threshold ?? bodyThreshold ?? 0.7;
+      similarity_threshold ?? bodyThreshold ?? 0.5;
     const match_count = limit ?? bodyCount ?? 10;
     const entity_type =
       bodyEntityType ??
