@@ -12,6 +12,8 @@ export interface SyncProjectsResponse {
   projects_synced: number;
   projects_created: number;
   projects_updated: number;
+  queued?: boolean;
+  message?: string;
   errors: string[];
 }
 
@@ -45,7 +47,23 @@ export function useSyncProjects(providerSlug: string) {
       return result;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      const invalidateProjects = () => queryClient.invalidateQueries({ queryKey: ["projects"] });
+      invalidateProjects();
+
+      if (data.queued) {
+        if (typeof window !== "undefined") {
+          [5000, 15000, 30000].forEach((delay) => {
+            window.setTimeout(invalidateProjects, delay);
+          });
+        }
+
+        toast.success(data.message ?? "Sync started. Your projects will update shortly.");
+        if (data.errors?.length) {
+          data.errors.forEach((e) => toast.warning(e));
+        }
+        return;
+      }
+
       const msg =
         data.projects_synced === 0
           ? "No projects to sync."
