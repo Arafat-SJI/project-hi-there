@@ -44,12 +44,6 @@ interface TokenRow {
   metadata: Record<string, unknown> | null;
 }
 
-interface OpenAIEmbeddingResponse {
-  data: Array<{
-    embedding: number[];
-  }>;
-}
-
 function slugFromNameAndId(name: string, externalId: string): string {
   const base = name
     .toLowerCase()
@@ -58,113 +52,11 @@ function slugFromNameAndId(name: string, externalId: string): string {
   return `${base}-${externalId}`.slice(0, 100);
 }
 
-function chunkText(text: string, chunkSize = 800): string[] {
-  const chunks: string[] = [];
-  let start = 0;
-  while (start < text.length) {
-    chunks.push(text.slice(start, start + chunkSize));
-    start += chunkSize;
-  }
-  return chunks;
-}
-
 function toIsoOrNull(value: string | null | undefined): string | null {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
-}
-
-async function embedTextOpenAI(args: { openAiApiKey: string; input: string }): Promise<number[]> {
-  const resp = await fetch("https://api.openai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${args.openAiApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "text-embedding-3-small",
-      input: args.input,
-    }),
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`OpenAI embeddings failed: ${resp.status} - ${text.slice(0, 300)}`);
-  }
-
-  const json = (await resp.json()) as OpenAIEmbeddingResponse;
-  const embedding = json.data?.[0]?.embedding;
-  if (!Array.isArray(embedding)) {
-    throw new Error("OpenAI embeddings response missing embedding vector");
-  }
-  return embedding;
-}
-
-async function upsertTaskEmbeddings(args: {
-  supabase: any;
-  userId: string;
-  taskId: string;
-  content: string;
-  metadata: Record<string, unknown>;
-  openAiApiKey: string;
-}): Promise<void> {
-  const { supabase, userId, taskId, content, metadata, openAiApiKey } = args;
-
-  const { error: deleteError } = await supabase
-    .from("embeddings")
-    .delete()
-    .eq("entity_type", "task")
-    .eq("entity_id", taskId)
-    .eq("user_id", userId);
-  if (deleteError) {
-    throw new Error(`Failed deleting prior embeddings: ${deleteError.message}`);
-  }
-
-  const rows: Array<Record<string, unknown>> = [];
-  const chunks = chunkText(content, 800);
-  for (let index = 0; index < chunks.length; index += 1) {
-    const embedding = await embedTextOpenAI({ openAiApiKey, input: chunks[index] });
-    rows.push({
-      entity_type: "task",
-      entity_id: taskId,
-      user_id: userId,
-      content: chunks[index],
-      chunk_index: index,
-      metadata,
-      embedding,
-      created_at: new Date().toISOString(),
-    });
-  }
-
-  if (rows.length > 0) {
-    const { error: insertError } = await supabase.from("embeddings").insert(rows);
-    if (insertError) {
-      throw new Error(`Failed inserting embeddings: ${insertError.message}`);
-    }
-  }
-}
-
-function buildTaskEmbeddingContent(input: {
-  task: ActiveCollabTask;
-  projectName: string;
-  projectExternalId: string;
-}): string {
-  const lines: string[] = [
-    `Provider: ActiveCollab`,
-    `Project ID: ${input.projectExternalId}`,
-    `Project Name: ${input.projectName}`,
-    `Task ID: ${String(input.task.id)}`,
-    `Task Name: ${input.task.name ?? "ActiveCollab Task"}`,
-    input.task.body ? `Description: ${input.task.body}` : "",
-    `Completed: ${Boolean(input.task.is_completed)}`,
-    input.task.due_on ? `Due Date: ${input.task.due_on}` : "",
-    input.task.created_on ? `Created At: ${input.task.created_on}` : "",
-    input.task.updated_on ? `Updated At: ${input.task.updated_on}` : "",
-    input.task.assignee_id ? `Assignee ID: ${String(input.task.assignee_id)}` : "",
-    `Raw Task Payload: ${JSON.stringify(input.task)}`,
-  ];
-  return lines.filter((line) => line.length > 0).join("\n");
 }
 
 serve(async (req) => {
@@ -177,23 +69,14 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openAiApiKey) {
-      throw new Error("OPENAI_API_KEY is not configured (required for task embeddings)");
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({
-          success: false,
-          projects_synced: 0,
-          projects_created: 0,
-          projects_updated: 0,
-          tasks_synced: 0,
-          duration_ms: Date.now() - startedAt,
+          success: false, projects_synced: 0, projects_created: 0, projects_updated: 0,
+          tasks_synced: 0, duration_ms: Date.now() - startedAt,
           errors: ["Missing authorization header"],
         } as SyncResponse),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -201,20 +84,13 @@ serve(async (req) => {
     }
 
     const jwt = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(jwt);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
 
     if (userError || !user) {
       return new Response(
         JSON.stringify({
-          success: false,
-          projects_synced: 0,
-          projects_created: 0,
-          projects_updated: 0,
-          tasks_synced: 0,
-          duration_ms: Date.now() - startedAt,
+          success: false, projects_synced: 0, projects_created: 0, projects_updated: 0,
+          tasks_synced: 0, duration_ms: Date.now() - startedAt,
           errors: ["Invalid token"],
         } as SyncResponse),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -231,12 +107,8 @@ serve(async (req) => {
     if (tokenError || !tokenRow?.access_token) {
       return new Response(
         JSON.stringify({
-          success: false,
-          projects_synced: 0,
-          projects_created: 0,
-          projects_updated: 0,
-          tasks_synced: 0,
-          duration_ms: Date.now() - startedAt,
+          success: false, projects_synced: 0, projects_created: 0, projects_updated: 0,
+          tasks_synced: 0, duration_ms: Date.now() - startedAt,
           errors: ["No ActiveCollab connection found for this user"],
         } as SyncResponse),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -256,9 +128,7 @@ serve(async (req) => {
     const meta = tokenRow.metadata ?? {};
     const fromMeta = meta.activecollab_base_url;
     if (typeof fromMeta !== "string" || fromMeta.trim().length === 0) {
-      throw new Error(
-        "ActiveCollab Base URL missing on your connection. Disconnect and connect again with your instance URL.",
-      );
+      throw new Error("ActiveCollab Base URL missing on your connection. Disconnect and connect again with your instance URL.");
     }
     const apiUrl = fromMeta.replace(/\/+$/, "");
 
@@ -268,21 +138,26 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    const response = await fetch(`${apiUrl}/api/v1/projects`, {
-      method: "GET",
-      headers: apiHeaders,
-    });
+    // Fetch projects with a timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    let response: Response;
+    try {
+      response = await fetch(`${apiUrl}/api/v1/projects`, {
+        method: "GET",
+        headers: apiHeaders,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       const text = await response.text();
       return new Response(
         JSON.stringify({
-          success: false,
-          projects_synced: 0,
-          projects_created: 0,
-          projects_updated: 0,
-          tasks_synced: 0,
-          duration_ms: Date.now() - startedAt,
+          success: false, projects_synced: 0, projects_created: 0, projects_updated: 0,
+          tasks_synced: 0, duration_ms: Date.now() - startedAt,
           errors: [`ActiveCollab API error: ${response.status} - ${text.slice(0, 200)}`],
         } as SyncResponse),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -296,8 +171,7 @@ serve(async (req) => {
     let projectsUpdated = 0;
     let tasksCreated = 0;
     let tasksUpdated = 0;
-    let embeddedTasks = 0;
-    let embeddingFailures = 0;
+    let embeddingsQueued = 0;
 
     let defaultStatusId: string | null = null;
     const { data: defaultStatus } = await supabase
@@ -329,10 +203,7 @@ serve(async (req) => {
         budget: ac.budget ?? null,
         external_provider: "activecollab",
         external_id: externalId,
-        metadata: {
-          source: "activecollab",
-          external_id: externalId,
-        } as Record<string, unknown>,
+        metadata: { source: "activecollab", external_id: externalId } as Record<string, unknown>,
         status_id: defaultStatusId,
         owner_id: user.id,
         is_archived: false,
@@ -342,37 +213,33 @@ serve(async (req) => {
       let projectDbId: string | null = null;
       if (existing) {
         const { data: updatedProject, error } = await supabase
-          .from("projects")
-          .update(row)
-          .eq("id", existing.id)
-          .select("id")
-          .maybeSingle();
+          .from("projects").update(row).eq("id", existing.id).select("id").maybeSingle();
         if (error) errors.push(`Update ${ac.name}: ${error.message}`);
-        else {
-          projectsUpdated++;
-          projectDbId = updatedProject?.id ?? existing.id;
-        }
+        else { projectsUpdated++; projectDbId = updatedProject?.id ?? existing.id; }
       } else {
         const { data: insertedProject, error } = await supabase
-          .from("projects")
-          .insert({
-          ...row,
-          created_at: new Date().toISOString(),
-          created_by: user.id,
-        })
-          .select("id")
-          .maybeSingle();
+          .from("projects").insert({ ...row, created_at: new Date().toISOString(), created_by: user.id })
+          .select("id").maybeSingle();
         if (error) errors.push(`Insert ${ac.name}: ${error.message}`);
-        else {
-          projectsCreated++;
-          projectDbId = insertedProject?.id ?? null;
-        }
+        else { projectsCreated++; projectDbId = insertedProject?.id ?? null; }
       }
 
-      const tasksResp = await fetch(`${apiUrl}/api/v1/projects/${externalId}/tasks`, {
-        method: "GET",
-        headers: apiHeaders,
-      });
+      // Fetch tasks with timeout
+      const taskCtrl = new AbortController();
+      const taskTimeout = setTimeout(() => taskCtrl.abort(), 10000);
+      let tasksResp: Response;
+      try {
+        tasksResp = await fetch(`${apiUrl}/api/v1/projects/${externalId}/tasks`, {
+          method: "GET", headers: apiHeaders, signal: taskCtrl.signal,
+        });
+      } catch (fetchErr) {
+        clearTimeout(taskTimeout);
+        errors.push(`Tasks fetch timeout for project ${externalId}`);
+        continue;
+      } finally {
+        clearTimeout(taskTimeout);
+      }
+
       if (!tasksResp.ok) {
         const text = await tasksResp.text();
         errors.push(`Tasks for project ${externalId}: ${tasksResp.status} - ${text.slice(0, 200)}`);
@@ -382,11 +249,9 @@ serve(async (req) => {
       const taskPayload = await tasksResp.json();
       const projectTasks: ActiveCollabTask[] = Array.isArray(taskPayload)
         ? taskPayload
-        : Array.isArray(taskPayload?.tasks)
-          ? (taskPayload.tasks as ActiveCollabTask[])
-          : Array.isArray(taskPayload?.data)
-            ? (taskPayload.data as ActiveCollabTask[])
-            : [];
+        : Array.isArray(taskPayload?.tasks) ? taskPayload.tasks as ActiveCollabTask[]
+        : Array.isArray(taskPayload?.data) ? taskPayload.data as ActiveCollabTask[]
+        : [];
 
       for (const acTask of projectTasks) {
         const externalTaskId = String(acTask.id);
@@ -395,14 +260,11 @@ serve(async (req) => {
           external_id: externalTaskId,
           project_external_id: externalId,
           synced: true,
-          activecollab: {
-            raw: acTask,
-          },
+          activecollab: { raw: acTask },
         } as Record<string, unknown>;
 
         const { data: existingTask } = await supabase
-          .from("tasks")
-          .select("id")
+          .from("tasks").select("id")
           .eq("created_by", user.id)
           .contains("metadata", { source: "activecollab", external_id: externalTaskId })
           .maybeSingle();
@@ -421,51 +283,30 @@ serve(async (req) => {
         let taskDbId: string | null = null;
         if (existingTask?.id) {
           const { error: taskUpdateError } = await supabase.from("tasks").update(taskRow).eq("id", existingTask.id);
-          if (taskUpdateError) {
-            errors.push(`Update task ${externalTaskId}: ${taskUpdateError.message}`);
-            continue;
-          }
+          if (taskUpdateError) { errors.push(`Update task ${externalTaskId}: ${taskUpdateError.message}`); continue; }
           tasksUpdated++;
           taskDbId = existingTask.id;
         } else {
           const { data: insertedTask, error: taskInsertError } = await supabase
-            .from("tasks")
-            .insert({
-              ...taskRow,
-              created_at: new Date().toISOString(),
-              created_by: user.id,
-            })
-            .select("id")
-            .maybeSingle();
-          if (taskInsertError) {
-            errors.push(`Insert task ${externalTaskId}: ${taskInsertError.message}`);
-            continue;
-          }
+            .from("tasks").insert({ ...taskRow, created_at: new Date().toISOString(), created_by: user.id })
+            .select("id").maybeSingle();
+          if (taskInsertError) { errors.push(`Insert task ${externalTaskId}: ${taskInsertError.message}`); continue; }
           tasksCreated++;
           taskDbId = insertedTask?.id ?? null;
         }
 
+        // Queue embedding instead of doing it inline (prevents timeout)
         if (taskDbId) {
-          try {
-            const content = buildTaskEmbeddingContent({
-              task: acTask,
-              projectName: ac.name,
-              projectExternalId: externalId,
-            });
-            await upsertTaskEmbeddings({
-              supabase,
-              userId: user.id,
-              taskId: taskDbId,
-              content,
-              metadata: taskMetadata,
-              openAiApiKey,
-            });
-            embeddedTasks++;
-          } catch (embeddingError: unknown) {
-            embeddingFailures++;
-            const message = embeddingError instanceof Error ? embeddingError.message : "Unknown embedding error";
-            errors.push(`Embed task ${externalTaskId}: ${message}`);
-          }
+          const { error: queueError } = await supabase.from("embedding_queue").insert({
+            entity_type: "task",
+            entity_id: taskDbId,
+            priority: 5,
+            status: "pending",
+            attempts: 0,
+            max_attempts: 3,
+            created_at: new Date().toISOString(),
+          });
+          if (!queueError) embeddingsQueued++;
         }
       }
     }
@@ -491,16 +332,13 @@ serve(async (req) => {
       user_id: user.id,
       action: "sync-activecollab",
       status,
-      request_metadata: {
-        triggered_from: "edge_function",
-      } as Record<string, unknown>,
+      request_metadata: { triggered_from: "edge_function" } as Record<string, unknown>,
       response_metadata: {
         projects_synced: projectsSynced,
         projects_created: projectsCreated,
         projects_updated: projectsUpdated,
         tasks_synced: tasksSynced,
-        tasks_embedded: embeddedTasks,
-        embedding_failures: embeddingFailures,
+        embeddings_queued: embeddingsQueued,
       } as Record<string, unknown>,
       error_message: errors.length ? errors.join("; ").slice(0, 500) : null,
       estimated_cost: 0,
@@ -508,16 +346,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        success: errors.length === 0 && embeddingFailures === 0,
+        success: errors.length === 0,
         projects_synced: projectsSynced,
         projects_created: projectsCreated,
         projects_updated: projectsUpdated,
         tasks_synced: tasksSynced,
         duration_ms: Date.now() - startedAt,
-        errors: [
-          ...errors,
-          `Embedding summary: tasks_embedded=${embeddedTasks}, embedding_failures=${embeddingFailures}`,
-        ],
+        errors,
       } as SyncResponse),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
     );
@@ -525,12 +360,8 @@ serve(async (req) => {
     console.error("sync-projects-activecollab error:", error);
     return new Response(
       JSON.stringify({
-        success: false,
-        projects_synced: 0,
-        projects_created: 0,
-        projects_updated: 0,
-        tasks_synced: 0,
-        duration_ms: Date.now() - startedAt,
+        success: false, projects_synced: 0, projects_created: 0, projects_updated: 0,
+        tasks_synced: 0, duration_ms: Date.now() - startedAt,
         errors: [error instanceof Error ? error.message : "Unknown error"],
       } as SyncResponse),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
