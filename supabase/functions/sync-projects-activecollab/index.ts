@@ -57,7 +57,7 @@ interface BackgroundSyncContext {
   tokenRow: TokenRow;
 }
 
-type SupabaseClient = ReturnType<typeof createClient>;
+type SupabaseClient = any;
 
 function fromTable(supabase: SupabaseClient, table: string): any {
   return (supabase as any).from(table);
