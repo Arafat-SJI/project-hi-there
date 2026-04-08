@@ -59,12 +59,8 @@ interface BackgroundSyncContext {
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
-type UntypedSupabaseClient = SupabaseClient & {
-  from: (table: string) => any;
-};
-
-function fromTable(supabase: SupabaseClient, table: string) {
-  return (supabase as UntypedSupabaseClient).from(table);
+function fromTable(supabase: SupabaseClient, table: string): any {
+  return (supabase as any).from(table);
 }
 
 function slugFromNameAndId(name: string, externalId: string): string {
