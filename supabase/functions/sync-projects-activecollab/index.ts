@@ -745,7 +745,7 @@ Deno.serve(async (req) => {
       }, 401);
     }
 
-    const { data: tokenRow, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError } = await supabase
       .from("user_oauth_tokens")
       .select("id, access_token, metadata, account_email")
       .eq("user_id", user.id)
