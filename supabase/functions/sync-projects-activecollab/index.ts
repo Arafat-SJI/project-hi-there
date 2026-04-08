@@ -39,6 +39,7 @@ interface TokenRow {
   id: string;
   access_token: string;
   metadata: Record<string, unknown> | null;
+  account_email?: string | null;
 }
 
 interface SyncCounters {
@@ -185,6 +186,31 @@ function parseTasks(payload: unknown): ActiveCollabTask[] {
     return record.data as ActiveCollabTask[];
   }
 
+  return [];
+}
+
+interface ActiveCollabUser {
+  id?: number;
+  email?: string;
+}
+
+function parseUsers(payload: unknown): ActiveCollabUser[] {
+  if (Array.isArray(payload)) {
+    return payload as ActiveCollabUser[];
+  }
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+  const record = payload as Record<string, unknown>;
+  if (Array.isArray(record.users)) {
+    return record.users as ActiveCollabUser[];
+  }
+  if (Array.isArray(record.data)) {
+    return record.data as ActiveCollabUser[];
+  }
+  if (record.single && typeof record.single === "object") {
+    return [record.single as ActiveCollabUser];
+  }
   return [];
 }
 
@@ -544,14 +570,38 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
       "Content-Type": "application/json",
     };
 
-    const mePayload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/users/me`, apiHeaders, 10000);
     let activeCollabUserId: number | null = null;
-    if (mePayload && typeof mePayload === "object") {
-      const meRecord = mePayload as Record<string, unknown>;
-      const single = meRecord.single;
-      const source = single && typeof single === "object" ? (single as Record<string, unknown>) : meRecord;
-      if (typeof source.id === "number") {
-        activeCollabUserId = source.id;
+    const tokenEmail =
+      typeof tokenRow.account_email === "string" && tokenRow.account_email.trim().length > 0
+        ? tokenRow.account_email.trim().toLowerCase()
+        : null;
+
+    try {
+      const mePayload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/users/me`, apiHeaders, 8000);
+      if (mePayload && typeof mePayload === "object") {
+        const meRecord = mePayload as Record<string, unknown>;
+        const single = meRecord.single;
+        const source = single && typeof single === "object" ? (single as Record<string, unknown>) : meRecord;
+        if (typeof source.id === "number") {
+          activeCollabUserId = source.id;
+        }
+      }
+    } catch (_meError) {
+      // Some ActiveCollab instances do not support /users/me. Fall back to /users by email.
+    }
+
+    if (activeCollabUserId == null && tokenEmail) {
+      try {
+        const usersPayload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/users`, apiHeaders, 10000);
+        const users = parseUsers(usersPayload);
+        const matched = users.find(
+          (u) => typeof u.email === "string" && u.email.trim().toLowerCase() === tokenEmail && typeof u.id === "number",
+        );
+        if (matched && typeof matched.id === "number") {
+          activeCollabUserId = matched.id;
+        }
+      } catch (_usersError) {
+        // Continue without assignee filter if user lookup endpoint is unavailable.
       }
     }
 
@@ -701,7 +751,7 @@ Deno.serve(async (req) => {
 
     const { data: tokenRow, error: tokenError } = await supabase
       .from("user_oauth_tokens")
-      .select("id, access_token, metadata")
+      .select("id, access_token, metadata, account_email")
       .eq("user_id", user.id)
       .eq("provider_slug", "activecollab")
       .maybeSingle<TokenRow>();
