@@ -5,12 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const edgeRuntime = globalThis as typeof globalThis & {
-  EdgeRuntime?: {
-    waitUntil: (promise: Promise<unknown>) => void;
-  };
-};
-
 interface ActiveCollabProject {
   id: number;
   name: string;
@@ -26,6 +20,7 @@ interface ActiveCollabTask {
   body?: string;
   due_on?: string;
   is_completed?: boolean;
+  assignee_id?: number | null;
 }
 
 interface SyncResponse {
@@ -403,9 +398,10 @@ async function syncProject(args: {
   apiUrl: string;
   apiHeaders: HeadersInit;
   defaultStatusId: string | null;
+  activeCollabUserId: number | null;
   project: ActiveCollabProject;
 }): Promise<SyncCounters> {
-  const { supabase, userId, apiUrl, apiHeaders, defaultStatusId, project } = args;
+  const { supabase, userId, apiUrl, apiHeaders, defaultStatusId, activeCollabUserId, project } = args;
   const externalId = String(project.id);
   const slug = slugFromNameAndId(project.name, externalId);
 
@@ -476,8 +472,12 @@ async function syncProject(args: {
 
     const taskPayload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/projects/${externalId}/tasks`, apiHeaders, 10000);
     const projectTasks = parseTasks(taskPayload);
+    const filteredTasks =
+      activeCollabUserId == null
+        ? projectTasks
+        : projectTasks.filter((task) => task.assignee_id === activeCollabUserId);
 
-    const taskResults = await runWithConcurrency(projectTasks, 5, (task) =>
+    const taskResults = await runWithConcurrency(filteredTasks, 5, (task) =>
       syncTask({
         supabase,
         userId,
@@ -509,7 +509,7 @@ async function syncProject(args: {
   }
 }
 
-async function performBackgroundSync(context: BackgroundSyncContext): Promise<void> {
+async function performBackgroundSync(context: BackgroundSyncContext): Promise<SyncResponse> {
   const { supabaseUrl, supabaseServiceKey, userId, tokenRow } = context;
   const startedAt = Date.now();
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -544,6 +544,17 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<vo
       "Content-Type": "application/json",
     };
 
+    const mePayload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/users/me`, apiHeaders, 10000);
+    let activeCollabUserId: number | null = null;
+    if (mePayload && typeof mePayload === "object") {
+      const meRecord = mePayload as Record<string, unknown>;
+      const single = meRecord.single;
+      const source = single && typeof single === "object" ? (single as Record<string, unknown>) : meRecord;
+      if (typeof source.id === "number") {
+        activeCollabUserId = source.id;
+      }
+    }
+
     const payload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/projects`, apiHeaders, 15000);
     const projects = parseProjects(payload);
 
@@ -566,6 +577,7 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<vo
         apiUrl,
         apiHeaders,
         defaultStatusId,
+        activeCollabUserId,
         project,
       })
     );
@@ -606,6 +618,15 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<vo
       errors: counters.errors.length,
       durationMs: Date.now() - startedAt,
     });
+
+    return createSyncResponse(startedAt, {
+      success: status === "success",
+      projects_synced: projectsSynced,
+      projects_created: counters.projectsCreated,
+      projects_updated: counters.projectsUpdated,
+      tasks_synced: tasksSynced,
+      errors: counters.errors,
+    });
   } catch (error) {
     const message = getErrorMessage(error);
 
@@ -631,6 +652,11 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<vo
         embeddings_queued: 0,
         duration_ms: Date.now() - startedAt,
       },
+    });
+
+    return createSyncResponse(startedAt, {
+      success: false,
+      errors: [message],
     });
   }
 }
@@ -693,21 +719,12 @@ Deno.serve(async (req) => {
       supabaseServiceKey,
       userId: user.id,
       tokenRow,
-    }).catch((error) => {
-      console.error("Unhandled background ActiveCollab sync error:", error);
     });
 
-    if (edgeRuntime.EdgeRuntime?.waitUntil) {
-      edgeRuntime.EdgeRuntime.waitUntil(backgroundTask);
-    } else {
-      void backgroundTask;
-    }
-
-    return jsonResponse(startedAt, {
-      success: true,
-      queued: true,
-      message: "ActiveCollab sync started. Projects and tasks will continue syncing in the background.",
-    }, 202);
+    // Run inline so caller receives real counts immediately and sync is not dropped.
+    // If runtime supports waitUntil, it is still safe to await here for deterministic UX.
+    const result = await backgroundTask;
+    return jsonResponse(startedAt, result, result.success ? 200 : 500);
   } catch (error) {
     return jsonResponse(startedAt, {
       errors: [getErrorMessage(error)],
