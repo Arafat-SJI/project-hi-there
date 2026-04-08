@@ -230,8 +230,9 @@ async function updateTokenMetadata(
     ...patch,
   };
 
-  const { error } = await supabase
-    |> ((query) => fromTable(supabase, "user_oauth_tokens").update({ metadata: nextMetadata }).eq("id", tokenRow.id));
+  const { error } = await fromTable(supabase, "user_oauth_tokens")
+    .update({ metadata: nextMetadata })
+    .eq("id", tokenRow.id);
 
   if (error) {
     console.error("Failed updating ActiveCollab token metadata:", error);
