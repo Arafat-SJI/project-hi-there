@@ -57,7 +57,11 @@ interface BackgroundSyncContext {
   tokenRow: TokenRow;
 }
 
-type SupabaseClient = ReturnType<typeof createClient>;
+type SupabaseClient = any;
+
+function fromTable(supabase: SupabaseClient, table: string): any {
+  return (supabase as any).from(table);
+}
 
 function slugFromNameAndId(name: string, externalId: string): string {
   const base = name
@@ -222,8 +226,7 @@ async function updateTokenMetadata(
     ...patch,
   };
 
-  const { error } = await supabase
-    .from("user_oauth_tokens")
+  const { error } = await fromTable(supabase, "user_oauth_tokens")
     .update({ metadata: nextMetadata })
     .eq("id", tokenRow.id);
 
@@ -243,7 +246,7 @@ async function insertUsageLog(args: {
   errorMessage: string | null;
   responseMetadata: Record<string, unknown>;
 }): Promise<void> {
-  const { error } = await args.supabase.from("integration_usage_logs").insert({
+  const { error } = await fromTable(args.supabase, "integration_usage_logs").insert({
     organization_id: null,
     provider_id: args.providerId,
     service_id: null,
@@ -300,8 +303,7 @@ async function syncTask(args: {
   } as Record<string, unknown>;
 
   try {
-    const { data: existingTask, error: existingTaskError } = await supabase
-      .from("tasks")
+    const { data: existingTask, error: existingTaskError } = await fromTable(supabase, "tasks")
       .select("id")
       .eq("created_by", userId)
       .contains("metadata", { source: "activecollab", external_id: externalTaskId })
@@ -327,7 +329,7 @@ async function syncTask(args: {
     let tasksUpdated = 0;
 
     if (existingTask?.id) {
-      const { error: updateError } = await supabase.from("tasks").update(taskRow).eq("id", existingTask.id);
+      const { error: updateError } = await fromTable(supabase, "tasks").update(taskRow).eq("id", existingTask.id);
       if (updateError) {
         throw new Error(updateError.message);
       }
@@ -335,8 +337,7 @@ async function syncTask(args: {
       taskDbId = existingTask.id;
       tasksUpdated = 1;
     } else {
-      const { data: insertedTask, error: insertError } = await supabase
-        .from("tasks")
+      const { data: insertedTask, error: insertError } = await fromTable(supabase, "tasks")
         .insert({
           ...taskRow,
           created_at: new Date().toISOString(),
@@ -355,7 +356,7 @@ async function syncTask(args: {
 
     let embeddingsQueued = 0;
     if (taskDbId) {
-      const { error: queueError } = await supabase.from("embedding_queue").insert({
+      const { error: queueError } = await fromTable(supabase, "embedding_queue").insert({
         entity_type: "task",
         entity_id: taskDbId,
         priority: 5,
@@ -406,8 +407,7 @@ async function syncProject(args: {
   const slug = slugFromNameAndId(project.name, externalId);
 
   try {
-    const { data: existingProject, error: existingProjectError } = await supabase
-      .from("projects")
+    const { data: existingProject, error: existingProjectError } = await fromTable(supabase, "projects")
       .select("id")
       .eq("external_provider", "activecollab")
       .eq("external_id", externalId)
@@ -438,8 +438,7 @@ async function syncProject(args: {
     let projectsUpdated = 0;
 
     if (existingProject?.id) {
-      const { data: updatedProject, error: updateError } = await supabase
-        .from("projects")
+      const { data: updatedProject, error: updateError } = await fromTable(supabase, "projects")
         .update(row)
         .eq("id", existingProject.id)
         .select("id")
@@ -452,8 +451,7 @@ async function syncProject(args: {
       projectDbId = updatedProject?.id ?? existingProject.id;
       projectsUpdated = 1;
     } else {
-      const { data: insertedProject, error: insertError } = await supabase
-        .from("projects")
+      const { data: insertedProject, error: insertError } = await fromTable(supabase, "projects")
         .insert({
           ...row,
           created_at: new Date().toISOString(),
@@ -525,8 +523,7 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
       last_sync_error: null,
     });
 
-    const { data: providerRow, error: providerError } = await supabase
-      .from("integration_providers")
+    const { data: providerRow, error: providerError } = await fromTable(supabase, "integration_providers")
       .select("id")
       .eq("slug", "activecollab")
       .maybeSingle();
@@ -558,8 +555,7 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
     const payload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/projects`, apiHeaders, 15000);
     const projects = parseProjects(payload);
 
-    const { data: defaultStatus, error: defaultStatusError } = await supabase
-      .from("project_statuses")
+    const { data: defaultStatus, error: defaultStatusError } = await fromTable(supabase, "project_statuses")
       .select("id")
       .eq("is_default", true)
       .maybeSingle();
@@ -699,12 +695,13 @@ Deno.serve(async (req) => {
       }, 401);
     }
 
-    const { data: tokenRow, error: tokenError } = await supabase
-      .from("user_oauth_tokens")
+    const { data: tokenData, error: tokenError } = await fromTable(supabase, "user_oauth_tokens")
       .select("id, access_token, metadata")
       .eq("user_id", user.id)
       .eq("provider_slug", "activecollab")
-      .maybeSingle<TokenRow>();
+      .maybeSingle();
+
+    const tokenRow = tokenData as TokenRow | null;
 
     if (tokenError || !tokenRow?.access_token) {
       return jsonResponse(startedAt, {
