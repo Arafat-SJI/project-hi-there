@@ -9,8 +9,8 @@ interface ActiveCollabProject {
   id: number;
   name: string;
   body?: string;
-  created_on?: string;
-  completed_on?: string;
+  created_on?: string | number;
+  completed_on?: string | number;
   budget?: number;
 }
 
@@ -18,7 +18,7 @@ interface ActiveCollabTask {
   id: number;
   name?: string;
   body?: string;
-  due_on?: string;
+  due_on?: string | number;
   is_completed?: boolean;
   assignee_id?: number | null;
 }
@@ -73,10 +73,24 @@ function slugFromNameAndId(name: string, externalId: string): string {
   return `${base}-${externalId}`.slice(0, 100);
 }
 
-function toIsoOrNull(value: string | null | undefined): string | null {
-  if (!value) return null;
+function toIsoOrNull(value: string | number | null | undefined): string | null {
+  if (value == null || value === "") return null;
 
-  const date = new Date(value);
+  let date: Date;
+
+  if (typeof value === "number") {
+    // Unix timestamp in seconds → convert to milliseconds
+    date = new Date(value < 1e12 ? value * 1000 : value);
+  } else {
+    // Check if the string is a pure numeric Unix timestamp
+    const numeric = Number(value);
+    if (!Number.isNaN(numeric) && /^\d+$/.test(value.trim())) {
+      date = new Date(numeric < 1e12 ? numeric * 1000 : numeric);
+    } else {
+      date = new Date(value);
+    }
+  }
+
   if (Number.isNaN(date.getTime())) return null;
 
   return date.toISOString();
