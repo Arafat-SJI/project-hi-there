@@ -9,8 +9,8 @@ interface ActiveCollabProject {
   id: number;
   name: string;
   body?: string;
-  created_on?: string;
-  completed_on?: string;
+  created_on?: string | number;
+  completed_on?: string | number;
   budget?: number;
 }
 
@@ -18,7 +18,7 @@ interface ActiveCollabTask {
   id: number;
   name?: string;
   body?: string;
-  due_on?: string;
+  due_on?: string | number;
   is_completed?: boolean;
   assignee_id?: number | null;
 }
