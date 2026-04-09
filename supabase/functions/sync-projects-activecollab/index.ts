@@ -605,10 +605,12 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
     const payload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/projects`, apiHeaders, 15000);
     const projects = parseProjects(payload);
 
-    const { data: defaultStatus, error: defaultStatusError } = await fromTable(supabase, "project_statuses")
+    const { data: defaultStatusRows, error: defaultStatusError } = await fromTable(supabase, "project_statuses")
       .select("id")
       .eq("is_default", true)
-      .maybeSingle();
+      .limit(1);
+
+    const defaultStatus = Array.isArray(defaultStatusRows) ? defaultStatusRows[0] ?? null : null;
 
     if (defaultStatusError) {
       throw new Error(defaultStatusError.message);
