@@ -73,16 +73,14 @@ function slugFromNameAndId(name: string, externalId: string): string {
   return `${base}-${externalId}`.slice(0, 100);
 }
 
-function toIsoOrNull(value: string | number | null | undefined): string | null {
+function parseDate(value: string | number | null | undefined): Date | null {
   if (value == null || value === "") return null;
 
   let date: Date;
 
   if (typeof value === "number") {
-    // Unix timestamp in seconds → convert to milliseconds
     date = new Date(value < 1e12 ? value * 1000 : value);
   } else {
-    // Check if the string is a pure numeric Unix timestamp
     const numeric = Number(value);
     if (!Number.isNaN(numeric) && /^\d+$/.test(value.trim())) {
       date = new Date(numeric < 1e12 ? numeric * 1000 : numeric);
@@ -92,8 +90,22 @@ function toIsoOrNull(value: string | number | null | undefined): string | null {
   }
 
   if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
 
-  return date.toISOString();
+function toIsoOrNull(value: string | number | null | undefined): string | null {
+  const date = parseDate(value);
+  return date ? date.toISOString() : null;
+}
+
+/** Returns YYYY-MM-DD for PostgreSQL `date` columns */
+function toDateStringOrNull(value: string | number | null | undefined): string | null {
+  const date = parseDate(value);
+  if (!date) return null;
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function getErrorMessage(error: unknown): string {
