@@ -145,8 +145,26 @@ export default function TaskDetailPage() {
           sprintPoints?: number | null;
         }
       | undefined;
+  interface ExternalAttachment {
+    id?: string | number | null;
+    title?: string | null;
+    name?: string | null;
+    mimetype?: string | null;
+    mime_type?: string | null;
+    url?: string | null;
+    download_url?: string | null;
+  }
   const clickupExternalId = (task.metadata as any)?.external_id as string | undefined;
   const isClickupTask = (task.metadata as any)?.source === "clickup" && !!clickupExternalId;
+  const integrationSource = (task.metadata as any)?.source as string | undefined;
+  const providerLabel =
+    integrationSource === "clickup"
+      ? "ClickUp"
+      : integrationSource === "activecollab"
+        ? "ActiveCollab"
+        : "External";
+  const integrationAttachmentsRaw = (task.metadata as any)?.attachments as ExternalAttachment[] | undefined;
+  const integrationAttachments = Array.isArray(integrationAttachmentsRaw) ? integrationAttachmentsRaw : [];
 
   const handleStatusChange = (status: TaskStatus) => {
     updateTask.mutate(
@@ -315,28 +333,66 @@ export default function TaskDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!attachments || attachments.length === 0 ? (
+              {(!attachments || attachments.length === 0) && integrationAttachments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No attachments yet.</p>
               ) : (
-                <ul className="space-y-2">
-                  {attachments.map((att) => (
-                    <li key={att.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate font-medium" title={att.file_name}>
-                        {att.file_name}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="shrink-0 h-8"
-                        onClick={() => handleOpenAttachment(att.id)}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Open
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-3">
+                  {attachments && attachments.length > 0 && (
+                    <ul className="space-y-2">
+                      {attachments.map((att) => (
+                        <li key={att.id} className="flex items-center justify-between gap-2 text-sm">
+                          <span className="truncate font-medium" title={att.file_name}>
+                            {att.file_name}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="shrink-0 h-8"
+                            onClick={() => handleOpenAttachment(att.id)}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Open
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {integrationAttachments.length > 0 && (
+                    <ul className="space-y-2">
+                      {integrationAttachments.map((att, idx) => {
+                        const link = att.download_url ?? att.url ?? null;
+                        const fileName = att.title ?? att.name ?? `Attachment ${idx + 1}`;
+                        return (
+                          <li key={`${att.id ?? `external-${idx}`}`} className="flex items-center justify-between gap-2 text-sm">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0">
+                                {providerLabel}
+                              </Badge>
+                              <span className="truncate font-medium" title={fileName}>
+                                {fileName}
+                              </span>
+                            </div>
+                            {link ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="shrink-0 h-8"
+                                onClick={() => window.open(link, "_blank")}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                Open
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">No link</span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
