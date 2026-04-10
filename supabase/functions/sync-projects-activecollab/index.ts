@@ -618,8 +618,9 @@ async function syncProject(args: {
   activeCollabUserId: number | null;
   project: ActiveCollabProject;
   openAiApiKey: string;
+  userNameMap?: Map<number, string>;
 }): Promise<SyncCounters> {
-  const { supabase, userId, apiUrl, apiHeaders, defaultStatusId, activeCollabUserId, project, openAiApiKey } = args;
+  const { supabase, userId, apiUrl, apiHeaders, defaultStatusId, activeCollabUserId, project, openAiApiKey, userNameMap } = args;
   const externalId = String(project.id);
   const slug = slugFromNameAndId(project.name, externalId);
 
