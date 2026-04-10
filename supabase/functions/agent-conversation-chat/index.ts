@@ -18,6 +18,13 @@ interface ConversationChatRequest {
   memory_context?: string
 }
 
+function isIntegrationTaskQuery(message: string): boolean {
+  const normalized = message.toLowerCase()
+  const mentionsTask = /\btasks?\b/.test(normalized)
+  const mentionsIntegration = /\b(clickup|click up|activecollab|active collab)\b/.test(normalized)
+  return mentionsTask && mentionsIntegration
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -82,7 +89,8 @@ serve(async (req) => {
     let ragContext = ''
     let ragResultCount = 0
     let hadClickUpTaskSummary = false
-    const shouldDoRag = agent.rag_enabled === true || include_rag
+    const integrationTaskQuery = isIntegrationTaskQuery(message)
+    const shouldDoRag = agent.rag_enabled === true || include_rag || integrationTaskQuery
     if (shouldDoRag) {
       try {
         const baseUrl = Deno.env.get('SUPABASE_URL')
@@ -107,13 +115,19 @@ serve(async (req) => {
               query: message,
               match_threshold: ragThreshold,
               match_count: ragCount,
-              entity_type: null,
+              entity_type: integrationTaskQuery ? 'task' : null,
               user_id: searchUserId,
             }),
           })
           if (semRes.ok) {
             const semBody = await semRes.json()
-            const relevantDocs = semBody.results ?? []
+            const rawDocs = semBody.results ?? []
+            const relevantDocs = integrationTaskQuery
+              ? rawDocs.filter((doc: { metadata?: { source?: string } }) => {
+                  const source = doc.metadata?.source?.toLowerCase()
+                  return source === 'clickup' || source === 'activecollab'
+                })
+              : rawDocs
             ragResultCount = relevantDocs.length
             console.log(`RAG search returned ${relevantDocs.length} results`)
 

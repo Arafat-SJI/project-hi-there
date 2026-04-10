@@ -203,6 +203,13 @@ function scoreOverlap(content: string, tokens: string[]): number {
   return score
 }
 
+function isIntegrationTaskQuery(message: string): boolean {
+  const normalized = message.toLowerCase()
+  const mentionsTask = /\btasks?\b/.test(normalized)
+  const mentionsIntegration = /\b(clickup|click up|activecollab|active collab)\b/.test(normalized)
+  return mentionsTask && mentionsIntegration
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -302,7 +309,8 @@ serve(async (req) => {
 
     // Build RAG context via semantic search when agent has RAG enabled.
     let ragContext = ''
-    if (agent.rag_enabled === true) {
+    const integrationTaskQuery = isIntegrationTaskQuery(userMessage)
+    if (agent.rag_enabled === true || integrationTaskQuery) {
       try {
         const baseUrl = Deno.env.get('SUPABASE_URL')
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -317,13 +325,20 @@ serve(async (req) => {
               query: userMessage,
               match_threshold: 0.5,
               match_count: 8,
-              entity_type: null, // search ALL entity types
-              user_id: null, // RAG-enabled agents search all org-wide embeddings
+              entity_type: integrationTaskQuery ? 'task' : null,
+              user_id: typeof user_id === 'string' && user_id.length > 0 ? user_id : null,
             }),
           })
           if (semRes.ok) {
             const semBody = await semRes.json()
-            const results = semBody.results ?? []
+            const rawResults = semBody.results ?? []
+            const results = integrationTaskQuery
+              ? rawResults.filter((doc: { metadata?: Record<string, unknown> }) => {
+                  const sourceValue = doc.metadata?.source
+                  const source = typeof sourceValue === 'string' ? sourceValue.toLowerCase() : ''
+                  return source === 'clickup' || source === 'activecollab'
+                })
+              : rawResults
             if (results.length > 0) {
               const contextChunks = results.map((doc: { content?: string; entity_type?: string; similarity?: number; metadata?: Record<string, unknown> }, idx: number) => {
                 const source = doc.metadata?.source ?? doc.entity_type ?? 'unknown'

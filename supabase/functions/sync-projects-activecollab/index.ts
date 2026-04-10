@@ -47,7 +47,8 @@ interface SyncCounters {
   projectsUpdated: number;
   tasksCreated: number;
   tasksUpdated: number;
-  embeddingsQueued: number;
+  embeddingsInserted: number;
+  embeddingsFailed: number;
   errors: string[];
 }
 
@@ -110,6 +111,116 @@ function toDateStringOrNull(value: string | number | null | undefined): string |
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+interface OpenAIEmbeddingResponse {
+  data: Array<{
+    embedding: number[];
+  }>;
+}
+
+async function embedTextOpenAI(args: {
+  openAiApiKey: string;
+  input: string;
+}): Promise<number[]> {
+  const response = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${args.openAiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "text-embedding-3-small",
+      input: args.input,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`OpenAI embeddings failed: ${response.status} - ${body.slice(0, 300)}`);
+  }
+
+  const json = (await response.json()) as OpenAIEmbeddingResponse;
+  const embedding = json.data?.[0]?.embedding;
+  if (!Array.isArray(embedding)) {
+    throw new Error("OpenAI embeddings response missing embedding vector");
+  }
+  return embedding;
+}
+
+function chunkText(text: string, chunkSize = 800): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < text.length) {
+    chunks.push(text.slice(start, start + chunkSize));
+    start += chunkSize;
+  }
+  return chunks;
+}
+
+function buildTaskEmbeddingContent(task: ActiveCollabTask, projectExternalId: string): string {
+  const sections: string[] = [
+    `Task ID: ${String(task.id)}`,
+    `Task Name: ${task.name ?? "ActiveCollab Task"}`,
+    task.body ? `Description: ${task.body}` : "",
+    `Status: ${task.is_completed ? "completed" : "todo"}`,
+    task.due_on ? `Due Date: ${toIsoOrNull(task.due_on)}` : "",
+    task.assignee_id != null ? `Assignee ID: ${String(task.assignee_id)}` : "",
+    `Project External ID: ${projectExternalId}`,
+    `Source: activecollab`,
+    `Raw Task Payload: ${JSON.stringify(task)}`,
+  ];
+  return sections.filter((line) => line !== "").join("\n");
+}
+
+async function upsertTaskEmbeddings(args: {
+  supabase: SupabaseClient;
+  userId: string;
+  taskId: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  openAiApiKey: string;
+}): Promise<void> {
+  const { supabase, userId, taskId, content, metadata, openAiApiKey } = args;
+
+  const { error: deleteError } = await fromTable(supabase, "embeddings")
+    .delete()
+    .eq("entity_type", "task")
+    .eq("entity_id", taskId)
+    .eq("user_id", userId);
+
+  if (deleteError) {
+    throw new Error(`Failed deleting prior embeddings: ${deleteError.message}`);
+  }
+
+  const chunks = chunkText(content, 800);
+  const rows: Array<Record<string, unknown>> = [];
+
+  for (let i = 0; i < chunks.length; i += 1) {
+    const chunk = chunks[i];
+    const embedding = await embedTextOpenAI({
+      openAiApiKey,
+      input: chunk,
+    });
+    rows.push({
+      entity_type: "task",
+      entity_id: taskId,
+      user_id: userId,
+      content: chunk,
+      chunk_index: i,
+      metadata,
+      embedding,
+      created_at: new Date().toISOString(),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  if (rows.length > 0) {
+    const { error: insertError } = await fromTable(supabase, "embeddings").insert(rows);
+    if (insertError) {
+      throw new Error(`Failed inserting embeddings: ${insertError.message}`);
+    }
+  }
 }
 
 function createSyncResponse(startedAt: number, overrides: Partial<SyncResponse> = {}): SyncResponse {
@@ -323,7 +434,8 @@ function combineCounters(results: SyncCounters[]): SyncCounters {
       projectsUpdated: acc.projectsUpdated + result.projectsUpdated,
       tasksCreated: acc.tasksCreated + result.tasksCreated,
       tasksUpdated: acc.tasksUpdated + result.tasksUpdated,
-      embeddingsQueued: acc.embeddingsQueued + result.embeddingsQueued,
+      embeddingsInserted: acc.embeddingsInserted + result.embeddingsInserted,
+      embeddingsFailed: acc.embeddingsFailed + result.embeddingsFailed,
       errors: [...acc.errors, ...result.errors],
     }),
     {
@@ -331,7 +443,8 @@ function combineCounters(results: SyncCounters[]): SyncCounters {
       projectsUpdated: 0,
       tasksCreated: 0,
       tasksUpdated: 0,
-      embeddingsQueued: 0,
+      embeddingsInserted: 0,
+      embeddingsFailed: 0,
       errors: [],
     },
   );
@@ -343,8 +456,9 @@ async function syncTask(args: {
   projectDbId: string | null;
   projectExternalId: string;
   task: ActiveCollabTask;
+  openAiApiKey: string;
 }): Promise<SyncCounters> {
-  const { supabase, userId, projectDbId, projectExternalId, task } = args;
+  const { supabase, userId, projectDbId, projectExternalId, task, openAiApiKey } = args;
   const externalTaskId = String(task.id);
   const taskMetadata = {
     source: "activecollab",
@@ -379,6 +493,9 @@ async function syncTask(args: {
     let taskDbId: string | null = null;
     let tasksCreated = 0;
     let tasksUpdated = 0;
+    let embeddingsInserted = 0;
+    let embeddingsFailed = 0;
+    const taskEmbeddingContent = buildTaskEmbeddingContent(task, projectExternalId);
 
     if (existingTask?.id) {
       const { error: updateError } = await fromTable(supabase, "tasks").update(taskRow).eq("id", existingTask.id);
@@ -406,23 +523,30 @@ async function syncTask(args: {
       tasksCreated = 1;
     }
 
-    let embeddingsQueued = 0;
     if (taskDbId) {
-      const { error: queueError } = await fromTable(supabase, "embedding_queue").insert({
-        entity_type: "task",
-        entity_id: taskDbId,
-        priority: 5,
-        status: "pending",
-        attempts: 0,
-        max_attempts: 3,
-        created_at: new Date().toISOString(),
-      });
-
-      if (queueError) {
-        throw new Error(`Embedding queue: ${queueError.message}`);
+      try {
+        await upsertTaskEmbeddings({
+          supabase,
+          userId,
+          taskId: taskDbId,
+          content: taskEmbeddingContent,
+          metadata: taskMetadata,
+          openAiApiKey,
+        });
+        embeddingsInserted = 1;
+      } catch (embeddingError) {
+        embeddingsFailed = 1;
+        const message = getErrorMessage(embeddingError);
+        return {
+          projectsCreated: 0,
+          projectsUpdated: 0,
+          tasksCreated,
+          tasksUpdated,
+          embeddingsInserted,
+          embeddingsFailed,
+          errors: [`Task ${externalTaskId} embedding: ${message}`],
+        };
       }
-
-      embeddingsQueued = 1;
     }
 
     return {
@@ -430,7 +554,8 @@ async function syncTask(args: {
       projectsUpdated: 0,
       tasksCreated,
       tasksUpdated,
-      embeddingsQueued,
+      embeddingsInserted,
+      embeddingsFailed,
       errors: [],
     };
   } catch (error) {
@@ -439,7 +564,8 @@ async function syncTask(args: {
       projectsUpdated: 0,
       tasksCreated: 0,
       tasksUpdated: 0,
-      embeddingsQueued: 0,
+      embeddingsInserted: 0,
+      embeddingsFailed: 0,
       errors: [`Task ${externalTaskId}: ${getErrorMessage(error)}`],
     };
   }
@@ -453,8 +579,9 @@ async function syncProject(args: {
   defaultStatusId: string | null;
   activeCollabUserId: number | null;
   project: ActiveCollabProject;
+  openAiApiKey: string;
 }): Promise<SyncCounters> {
-  const { supabase, userId, apiUrl, apiHeaders, defaultStatusId, activeCollabUserId, project } = args;
+  const { supabase, userId, apiUrl, apiHeaders, defaultStatusId, activeCollabUserId, project, openAiApiKey } = args;
   const externalId = String(project.id);
   const slug = slugFromNameAndId(project.name, externalId);
 
@@ -534,6 +661,7 @@ async function syncProject(args: {
         projectDbId,
         projectExternalId: externalId,
         task,
+        openAiApiKey,
       })
     );
 
@@ -544,7 +672,8 @@ async function syncProject(args: {
       projectsUpdated,
       tasksCreated: taskCounters.tasksCreated,
       tasksUpdated: taskCounters.tasksUpdated,
-      embeddingsQueued: taskCounters.embeddingsQueued,
+      embeddingsInserted: taskCounters.embeddingsInserted,
+      embeddingsFailed: taskCounters.embeddingsFailed,
       errors: taskCounters.errors,
     };
   } catch (error) {
@@ -553,7 +682,8 @@ async function syncProject(args: {
       projectsUpdated: 0,
       tasksCreated: 0,
       tasksUpdated: 0,
-      embeddingsQueued: 0,
+      embeddingsInserted: 0,
+      embeddingsFailed: 0,
       errors: [`Project ${externalId}: ${getErrorMessage(error)}`],
     };
   }
@@ -567,6 +697,11 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
   let providerId: string | null = null;
 
   try {
+    const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openAiApiKey) {
+      throw new Error("OPENAI_API_KEY is not configured (required to embed synced ActiveCollab tasks)");
+    }
+
     console.log("Starting background ActiveCollab sync", { userId, tokenId: tokenRow.id });
 
     await updateTokenMetadata(supabase, tokenRow, {
@@ -653,6 +788,7 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
         defaultStatusId,
         activeCollabUserId,
         project,
+        openAiApiKey,
       })
     );
 
@@ -680,7 +816,8 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
         projects_created: counters.projectsCreated,
         projects_updated: counters.projectsUpdated,
         tasks_synced: tasksSynced,
-        embeddings_queued: counters.embeddingsQueued,
+        embeddings_inserted: counters.embeddingsInserted,
+        embedding_failures: counters.embeddingsFailed,
         duration_ms: Date.now() - startedAt,
       },
     });
@@ -690,6 +827,8 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
       projectsSynced,
       tasksSynced,
       errors: counters.errors.length,
+        embeddingsInserted: counters.embeddingsInserted,
+        embeddingsFailed: counters.embeddingsFailed,
       durationMs: Date.now() - startedAt,
     });
 
@@ -723,7 +862,8 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
         projects_created: 0,
         projects_updated: 0,
         tasks_synced: 0,
-        embeddings_queued: 0,
+        embeddings_inserted: 0,
+        embedding_failures: 0,
         duration_ms: Date.now() - startedAt,
       },
     });
