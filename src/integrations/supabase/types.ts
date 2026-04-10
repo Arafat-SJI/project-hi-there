@@ -6865,6 +6865,7 @@ export type Database = {
           parent_id: string | null
           position: number | null
           priority: string
+          project_id: string | null
           slug: string | null
           status: string
           stream_id: string | null
@@ -6886,6 +6887,7 @@ export type Database = {
           parent_id?: string | null
           position?: number | null
           priority?: string
+          project_id?: string | null
           slug?: string | null
           status?: string
           stream_id?: string | null
@@ -6907,6 +6909,7 @@ export type Database = {
           parent_id?: string | null
           position?: number | null
           priority?: string
+          project_id?: string | null
           slug?: string | null
           status?: string
           stream_id?: string | null
@@ -6940,6 +6943,20 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_risk_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
