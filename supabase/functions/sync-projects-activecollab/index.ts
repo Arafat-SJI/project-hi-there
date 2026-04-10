@@ -846,6 +846,7 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
         activeCollabUserId,
         project,
         openAiApiKey,
+        userNameMap,
       })
     );
 
