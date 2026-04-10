@@ -810,6 +810,61 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
     const counters = combineCounters(projectResults);
     const projectsSynced = counters.projectsCreated + counters.projectsUpdated;
     const tasksSynced = counters.tasksCreated + counters.tasksUpdated;
+
+    // Post-sync sweep: find any AC tasks missing embeddings and generate them
+    try {
+      const { data: tasksWithoutEmbeddings, error: sweepQueryError } = await fromTable(supabase, "tasks")
+        .select("id, title, description, status, priority, due_date, metadata")
+        .eq("created_by", userId)
+        .contains("metadata", { source: "activecollab" });
+
+      if (!sweepQueryError && tasksWithoutEmbeddings) {
+        for (const task of tasksWithoutEmbeddings) {
+          const { data: existingEmb } = await fromTable(supabase, "embeddings")
+            .select("id")
+            .eq("entity_type", "task")
+            .eq("entity_id", task.id)
+            .limit(1);
+
+          if (!existingEmb || existingEmb.length === 0) {
+            console.log(`Post-sync sweep: generating missing embedding for task ${task.id} "${task.title}"`);
+            try {
+              const meta = task.metadata || {};
+              const sweepContent = [
+                `Task ID: ${meta.external_id || task.id}`,
+                `Task Name: ${task.title}`,
+                task.description ? `Description: ${task.description}` : "",
+                `Status: ${task.status}`,
+                `Priority: ${task.priority || "medium"}`,
+                task.due_date ? `Due Date: ${task.due_date}` : "",
+                `Project External ID: ${meta.project_external_id || "unknown"}`,
+                `Source: activecollab`,
+              ].filter(Boolean).join("\n");
+
+              await upsertTaskEmbeddings({
+                supabase,
+                userId,
+                taskId: task.id,
+                content: sweepContent,
+                metadata: meta,
+                openAiApiKey,
+                retries: 2,
+              });
+              counters.embeddingsInserted += 1;
+              console.log(`Post-sync sweep: embedded task ${task.id} successfully`);
+            } catch (sweepEmbedError) {
+              counters.embeddingsFailed += 1;
+              counters.errors.push(`Sweep embed ${task.id}: ${getErrorMessage(sweepEmbedError)}`);
+              console.error(`Post-sync sweep: failed to embed task ${task.id}:`, getErrorMessage(sweepEmbedError));
+            }
+          }
+        }
+      }
+    } catch (sweepError) {
+      console.error("Post-sync embedding sweep failed:", getErrorMessage(sweepError));
+      counters.errors.push(`Embedding sweep: ${getErrorMessage(sweepError)}`);
+    }
+
     const status = counters.errors.length === 0 ? "success" : projectsSynced + tasksSynced === 0 ? "error" : "partial";
 
     await updateTokenMetadata(supabase, tokenRow, {
@@ -842,8 +897,8 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
       projectsSynced,
       tasksSynced,
       errors: counters.errors.length,
-        embeddingsInserted: counters.embeddingsInserted,
-        embeddingsFailed: counters.embeddingsFailed,
+      embeddingsInserted: counters.embeddingsInserted,
+      embeddingsFailed: counters.embeddingsFailed,
       durationMs: Date.now() - startedAt,
     });
 
