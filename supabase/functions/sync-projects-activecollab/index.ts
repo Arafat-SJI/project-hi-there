@@ -788,11 +788,16 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
       // Some ActiveCollab instances do not support /users/me. Fall back to /users by email.
     }
 
+    // Fetch all AC users to build ID → display name map for embedding content
+    let userNameMap = new Map<number, string>();
+    let allUsers: ActiveCollabUser[] = [];
+
     if (activeCollabUserId == null && tokenEmail) {
       try {
         const usersPayload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/users`, apiHeaders, 10000);
-        const users = parseUsers(usersPayload);
-        const matched = users.find(
+        allUsers = parseUsers(usersPayload);
+        userNameMap = buildUserNameMap(allUsers);
+        const matched = allUsers.find(
           (u) => typeof u.email === "string" && u.email.trim().toLowerCase() === tokenEmail && typeof u.id === "number",
         );
         if (matched && typeof matched.id === "number") {
@@ -800,6 +805,18 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
         }
       } catch (_usersError) {
         // Continue without assignee filter if user lookup endpoint is unavailable.
+      }
+    }
+
+    // If we already found activeCollabUserId via /me but haven't fetched the full user list yet
+    if (userNameMap.size === 0) {
+      try {
+        const usersPayload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/users`, apiHeaders, 10000);
+        allUsers = parseUsers(usersPayload);
+        userNameMap = buildUserNameMap(allUsers);
+        console.log(`Fetched ${userNameMap.size} ActiveCollab users for name resolution`);
+      } catch (_usersError) {
+        console.warn("Could not fetch AC users for name resolution, will use IDs");
       }
     }
 
