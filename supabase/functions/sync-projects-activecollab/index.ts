@@ -701,6 +701,7 @@ async function syncProject(args: {
         projectExternalId: externalId,
         task,
         openAiApiKey,
+        userNameMap,
       })
     );
 
