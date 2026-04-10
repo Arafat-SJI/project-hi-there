@@ -492,14 +492,17 @@ async function syncTask(args: {
   projectExternalId: string;
   task: ActiveCollabTask;
   openAiApiKey: string;
+  userNameMap?: Map<number, string>;
 }): Promise<SyncCounters> {
-  const { supabase, userId, projectDbId, projectExternalId, task, openAiApiKey } = args;
+  const { supabase, userId, projectDbId, projectExternalId, task, openAiApiKey, userNameMap } = args;
   const externalTaskId = String(task.id);
+  const assigneeName = task.assignee_id != null ? (userNameMap?.get(task.assignee_id) ?? null) : null;
   const taskMetadata = {
     source: "activecollab",
     external_id: externalTaskId,
     project_external_id: projectExternalId,
     synced: true,
+    assignee_name: assigneeName,
     activecollab: { raw: task },
   } as Record<string, unknown>;
 
