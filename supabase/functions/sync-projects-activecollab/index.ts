@@ -180,45 +180,60 @@ async function upsertTaskEmbeddings(args: {
   content: string;
   metadata: Record<string, unknown>;
   openAiApiKey: string;
+  retries?: number;
 }): Promise<void> {
-  const { supabase, userId, taskId, content, metadata, openAiApiKey } = args;
+  const { supabase, userId, taskId, content, metadata, openAiApiKey, retries = 2 } = args;
 
-  const { error: deleteError } = await fromTable(supabase, "embeddings")
-    .delete()
-    .eq("entity_type", "task")
-    .eq("entity_id", taskId)
-    .eq("user_id", userId);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const { error: deleteError } = await fromTable(supabase, "embeddings")
+        .delete()
+        .eq("entity_type", "task")
+        .eq("entity_id", taskId)
+        .eq("user_id", userId);
 
-  if (deleteError) {
-    throw new Error(`Failed deleting prior embeddings: ${deleteError.message}`);
-  }
+      if (deleteError) {
+        throw new Error(`Failed deleting prior embeddings: ${deleteError.message}`);
+      }
 
-  const chunks = chunkText(content, 800);
-  const rows: Array<Record<string, unknown>> = [];
+      const chunks = chunkText(content, 800);
+      const rows: Array<Record<string, unknown>> = [];
 
-  for (let i = 0; i < chunks.length; i += 1) {
-    const chunk = chunks[i];
-    const embedding = await embedTextOpenAI({
-      openAiApiKey,
-      input: chunk,
-    });
-    rows.push({
-      entity_type: "task",
-      entity_id: taskId,
-      user_id: userId,
-      content: chunk,
-      chunk_index: i,
-      metadata,
-      embedding,
-      created_at: new Date().toISOString(),
-    });
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
+      for (let i = 0; i < chunks.length; i += 1) {
+        const chunk = chunks[i];
+        const embedding = await embedTextOpenAI({
+          openAiApiKey,
+          input: chunk,
+        });
+        rows.push({
+          entity_type: "task",
+          entity_id: taskId,
+          user_id: userId,
+          content: chunk,
+          chunk_index: i,
+          metadata,
+          embedding,
+          created_at: new Date().toISOString(),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
 
-  if (rows.length > 0) {
-    const { error: insertError } = await fromTable(supabase, "embeddings").insert(rows);
-    if (insertError) {
-      throw new Error(`Failed inserting embeddings: ${insertError.message}`);
+      if (rows.length > 0) {
+        const { error: insertError } = await fromTable(supabase, "embeddings").insert(rows);
+        if (insertError) {
+          throw new Error(`Failed inserting embeddings: ${insertError.message}`);
+        }
+      }
+
+      // Success — exit retry loop
+      return;
+    } catch (error) {
+      if (attempt < retries) {
+        console.warn(`Embedding attempt ${attempt + 1} failed for task ${taskId}, retrying...`, getErrorMessage(error));
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+      } else {
+        throw error;
+      }
     }
   }
 }
@@ -795,6 +810,61 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
     const counters = combineCounters(projectResults);
     const projectsSynced = counters.projectsCreated + counters.projectsUpdated;
     const tasksSynced = counters.tasksCreated + counters.tasksUpdated;
+
+    // Post-sync sweep: find any AC tasks missing embeddings and generate them
+    try {
+      const { data: tasksWithoutEmbeddings, error: sweepQueryError } = await fromTable(supabase, "tasks")
+        .select("id, title, description, status, priority, due_date, metadata")
+        .eq("created_by", userId)
+        .contains("metadata", { source: "activecollab" });
+
+      if (!sweepQueryError && tasksWithoutEmbeddings) {
+        for (const task of tasksWithoutEmbeddings) {
+          const { data: existingEmb } = await fromTable(supabase, "embeddings")
+            .select("id")
+            .eq("entity_type", "task")
+            .eq("entity_id", task.id)
+            .limit(1);
+
+          if (!existingEmb || existingEmb.length === 0) {
+            console.log(`Post-sync sweep: generating missing embedding for task ${task.id} "${task.title}"`);
+            try {
+              const meta = task.metadata || {};
+              const sweepContent = [
+                `Task ID: ${meta.external_id || task.id}`,
+                `Task Name: ${task.title}`,
+                task.description ? `Description: ${task.description}` : "",
+                `Status: ${task.status}`,
+                `Priority: ${task.priority || "medium"}`,
+                task.due_date ? `Due Date: ${task.due_date}` : "",
+                `Project External ID: ${meta.project_external_id || "unknown"}`,
+                `Source: activecollab`,
+              ].filter(Boolean).join("\n");
+
+              await upsertTaskEmbeddings({
+                supabase,
+                userId,
+                taskId: task.id,
+                content: sweepContent,
+                metadata: meta,
+                openAiApiKey,
+                retries: 2,
+              });
+              counters.embeddingsInserted += 1;
+              console.log(`Post-sync sweep: embedded task ${task.id} successfully`);
+            } catch (sweepEmbedError) {
+              counters.embeddingsFailed += 1;
+              counters.errors.push(`Sweep embed ${task.id}: ${getErrorMessage(sweepEmbedError)}`);
+              console.error(`Post-sync sweep: failed to embed task ${task.id}:`, getErrorMessage(sweepEmbedError));
+            }
+          }
+        }
+      }
+    } catch (sweepError) {
+      console.error("Post-sync embedding sweep failed:", getErrorMessage(sweepError));
+      counters.errors.push(`Embedding sweep: ${getErrorMessage(sweepError)}`);
+    }
+
     const status = counters.errors.length === 0 ? "success" : projectsSynced + tasksSynced === 0 ? "error" : "partial";
 
     await updateTokenMetadata(supabase, tokenRow, {
@@ -827,8 +897,8 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
       projectsSynced,
       tasksSynced,
       errors: counters.errors.length,
-        embeddingsInserted: counters.embeddingsInserted,
-        embeddingsFailed: counters.embeddingsFailed,
+      embeddingsInserted: counters.embeddingsInserted,
+      embeddingsFailed: counters.embeddingsFailed,
       durationMs: Date.now() - startedAt,
     });
 
