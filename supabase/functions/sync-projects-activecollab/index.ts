@@ -348,6 +348,9 @@ function parseTasks(payload: unknown): ActiveCollabTask[] {
 interface ActiveCollabUser {
   id?: number;
   email?: string;
+  display_name?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 function parseUsers(payload: unknown): ActiveCollabUser[] {
@@ -368,6 +371,20 @@ function parseUsers(payload: unknown): ActiveCollabUser[] {
     return [record.single as ActiveCollabUser];
   }
   return [];
+}
+
+function buildUserNameMap(users: ActiveCollabUser[]): Map<number, string> {
+  const map = new Map<number, string>();
+  for (const u of users) {
+    if (typeof u.id !== "number") continue;
+    const name =
+      u.display_name ||
+      [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
+      u.email ||
+      `User ${u.id}`;
+    map.set(u.id, name);
+  }
+  return map;
 }
 
 async function runWithConcurrency<T, TResult>(
