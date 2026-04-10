@@ -21,6 +21,16 @@ interface ActiveCollabTask {
   due_on?: string | number;
   is_completed?: boolean;
   assignee_id?: number | null;
+  attachments?: ActiveCollabAttachment[];
+}
+
+interface ActiveCollabAttachment {
+  id?: number | string;
+  name?: string;
+  size?: number | string;
+  mime_type?: string;
+  download_url?: string;
+  url?: string;
 }
 
 interface SyncResponse {
@@ -162,6 +172,9 @@ function buildTaskEmbeddingContent(task: ActiveCollabTask, projectExternalId: st
   const assigneeLabel = task.assignee_id != null
     ? `Assignee: ${userNameMap?.get(task.assignee_id) ?? `User ${task.assignee_id}`}`
     : "";
+  const attachmentSummary = Array.isArray(task.attachments) && task.attachments.length > 0
+    ? `Attachments: ${JSON.stringify(task.attachments)}`
+    : "";
   const sections: string[] = [
     `Task ID: ${String(task.id)}`,
     `Task Name: ${task.name ?? "ActiveCollab Task"}`,
@@ -169,11 +182,54 @@ function buildTaskEmbeddingContent(task: ActiveCollabTask, projectExternalId: st
     `Status: ${task.is_completed ? "completed" : "todo"}`,
     task.due_on ? `Due Date: ${toIsoOrNull(task.due_on)}` : "",
     assigneeLabel,
+    attachmentSummary,
     `Project External ID: ${projectExternalId}`,
     `Source: activecollab`,
     `Raw Task Payload: ${JSON.stringify(task)}`,
   ];
   return sections.filter((line) => line !== "").join("\n");
+}
+
+function parseActiveCollabAttachments(payload: unknown): ActiveCollabAttachment[] {
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+  const record = payload as Record<string, unknown>;
+  const candidates: unknown[] = [];
+
+  if (Array.isArray(record.attachments)) {
+    candidates.push(...record.attachments);
+  }
+  if (Array.isArray(record.files)) {
+    candidates.push(...record.files);
+  }
+  if (record.single && typeof record.single === "object") {
+    const single = record.single as Record<string, unknown>;
+    if (Array.isArray(single.attachments)) {
+      candidates.push(...single.attachments);
+    }
+    if (Array.isArray(single.files)) {
+      candidates.push(...single.files);
+    }
+  }
+
+  return candidates
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+    .map((item) => ({
+      id: typeof item.id === "number" || typeof item.id === "string" ? item.id : undefined,
+      name: typeof item.name === "string"
+        ? item.name
+        : (typeof item.filename === "string" ? item.filename : undefined),
+      size: typeof item.size === "number" || typeof item.size === "string" ? item.size : undefined,
+      mime_type: typeof item.mime_type === "string"
+        ? item.mime_type
+        : (typeof item.type === "string" ? item.type : undefined),
+      download_url: typeof item.download_url === "string"
+        ? item.download_url
+        : (typeof item.url === "string" ? item.url : undefined),
+      url: typeof item.url === "string" ? item.url : undefined,
+    }))
+    .filter((a) => !!a.download_url || !!a.url || !!a.name);
 }
 
 async function upsertTaskEmbeddings(args: {
@@ -493,9 +549,38 @@ async function syncTask(args: {
   task: ActiveCollabTask;
   openAiApiKey: string;
   userNameMap?: Map<number, string>;
+  apiUrl: string;
+  apiHeaders: HeadersInit;
 }): Promise<SyncCounters> {
-  const { supabase, userId, projectDbId, projectExternalId, task, openAiApiKey, userNameMap } = args;
+  const { supabase, userId, projectDbId, projectExternalId, task, openAiApiKey, userNameMap, apiUrl, apiHeaders } = args;
   const externalTaskId = String(task.id);
+  let taskWithDetails: ActiveCollabTask = task;
+
+  try {
+    const detailPayload = await fetchJsonWithTimeout(
+      `${apiUrl}/api/v1/projects/${projectExternalId}/tasks/${externalTaskId}`,
+      apiHeaders,
+      10000,
+    );
+    const detailRecord = detailPayload && typeof detailPayload === "object"
+      ? (detailPayload as Record<string, unknown>)
+      : null;
+    const maybeSingle = detailRecord?.single;
+    if (maybeSingle && typeof maybeSingle === "object") {
+      taskWithDetails = {
+        ...task,
+        ...(maybeSingle as ActiveCollabTask),
+      };
+    }
+    const normalizedAttachments = parseActiveCollabAttachments(detailPayload);
+    if (normalizedAttachments.length > 0) {
+      taskWithDetails.attachments = normalizedAttachments;
+    }
+  } catch (_detailError) {
+    // Keep list payload if per-task detail endpoint is unavailable
+  }
+
+  const normalizedAttachments = Array.isArray(taskWithDetails.attachments) ? taskWithDetails.attachments : [];
   const assigneeName = task.assignee_id != null ? (userNameMap?.get(task.assignee_id) ?? null) : null;
   const taskMetadata = {
     source: "activecollab",
@@ -503,7 +588,8 @@ async function syncTask(args: {
     project_external_id: projectExternalId,
     synced: true,
     assignee_name: assigneeName,
-    activecollab: { raw: task },
+    attachments: normalizedAttachments,
+    activecollab: { raw: taskWithDetails, attachments: normalizedAttachments },
   } as Record<string, unknown>;
 
   try {
@@ -519,10 +605,10 @@ async function syncTask(args: {
 
     const taskRow = {
       title: task.name ?? "ActiveCollab Task",
-      description: task.body ?? null,
-      status: task.is_completed ? "completed" : "todo",
+      description: taskWithDetails.body ?? task.body ?? null,
+      status: taskWithDetails.is_completed ? "completed" : "todo",
       priority: "medium",
-      due_date: toIsoOrNull(task.due_on),
+      due_date: toIsoOrNull(taskWithDetails.due_on ?? task.due_on),
       project_id: projectDbId,
       metadata: taskMetadata,
       updated_at: new Date().toISOString(),
@@ -533,7 +619,7 @@ async function syncTask(args: {
     let tasksUpdated = 0;
     let embeddingsInserted = 0;
     let embeddingsFailed = 0;
-    const taskEmbeddingContent = buildTaskEmbeddingContent(task, projectExternalId, userNameMap);
+    const taskEmbeddingContent = buildTaskEmbeddingContent(taskWithDetails, projectExternalId, userNameMap);
 
     if (existingTask?.id) {
       const { error: updateError } = await fromTable(supabase, "tasks").update(taskRow).eq("id", existingTask.id);
@@ -702,6 +788,8 @@ async function syncProject(args: {
         task,
         openAiApiKey,
         userNameMap,
+        apiUrl,
+        apiHeaders,
       })
     );
 

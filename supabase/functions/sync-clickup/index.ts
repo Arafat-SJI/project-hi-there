@@ -618,6 +618,15 @@ serve(async (req) => {
             checklistsCount,
             hasParent: !!detailed.parent,
             url: detailed.url ?? null,
+            attachments: Array.isArray(detailed.attachments)
+              ? detailed.attachments.map((a) => ({
+                  id: a.id ?? null,
+                  title: a.title ?? null,
+                  mimetype: a.mimetype ?? null,
+                  size: typeof a.size === "number" ? a.size : null,
+                  url: a.url ?? null,
+                }))
+              : [],
             // Keep raw payload in case the UI needs other fields later
             raw: detailed,
           };
@@ -649,6 +658,7 @@ serve(async (req) => {
               external_id: externalTaskId,
               project_external_id: externalId,
               synced: true,
+              attachments: clickupDetails.attachments,
               clickup: clickupDetails,
             },
             updated_at: new Date().toISOString(),
