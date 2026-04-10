@@ -533,7 +533,7 @@ async function syncTask(args: {
     let tasksUpdated = 0;
     let embeddingsInserted = 0;
     let embeddingsFailed = 0;
-    const taskEmbeddingContent = buildTaskEmbeddingContent(task, projectExternalId);
+    const taskEmbeddingContent = buildTaskEmbeddingContent(task, projectExternalId, userNameMap);
 
     if (existingTask?.id) {
       const { error: updateError } = await fromTable(supabase, "tasks").update(taskRow).eq("id", existingTask.id);
