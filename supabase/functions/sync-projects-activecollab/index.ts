@@ -180,45 +180,60 @@ async function upsertTaskEmbeddings(args: {
   content: string;
   metadata: Record<string, unknown>;
   openAiApiKey: string;
+  retries?: number;
 }): Promise<void> {
-  const { supabase, userId, taskId, content, metadata, openAiApiKey } = args;
+  const { supabase, userId, taskId, content, metadata, openAiApiKey, retries = 2 } = args;
 
-  const { error: deleteError } = await fromTable(supabase, "embeddings")
-    .delete()
-    .eq("entity_type", "task")
-    .eq("entity_id", taskId)
-    .eq("user_id", userId);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const { error: deleteError } = await fromTable(supabase, "embeddings")
+        .delete()
+        .eq("entity_type", "task")
+        .eq("entity_id", taskId)
+        .eq("user_id", userId);
 
-  if (deleteError) {
-    throw new Error(`Failed deleting prior embeddings: ${deleteError.message}`);
-  }
+      if (deleteError) {
+        throw new Error(`Failed deleting prior embeddings: ${deleteError.message}`);
+      }
 
-  const chunks = chunkText(content, 800);
-  const rows: Array<Record<string, unknown>> = [];
+      const chunks = chunkText(content, 800);
+      const rows: Array<Record<string, unknown>> = [];
 
-  for (let i = 0; i < chunks.length; i += 1) {
-    const chunk = chunks[i];
-    const embedding = await embedTextOpenAI({
-      openAiApiKey,
-      input: chunk,
-    });
-    rows.push({
-      entity_type: "task",
-      entity_id: taskId,
-      user_id: userId,
-      content: chunk,
-      chunk_index: i,
-      metadata,
-      embedding,
-      created_at: new Date().toISOString(),
-    });
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
+      for (let i = 0; i < chunks.length; i += 1) {
+        const chunk = chunks[i];
+        const embedding = await embedTextOpenAI({
+          openAiApiKey,
+          input: chunk,
+        });
+        rows.push({
+          entity_type: "task",
+          entity_id: taskId,
+          user_id: userId,
+          content: chunk,
+          chunk_index: i,
+          metadata,
+          embedding,
+          created_at: new Date().toISOString(),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
 
-  if (rows.length > 0) {
-    const { error: insertError } = await fromTable(supabase, "embeddings").insert(rows);
-    if (insertError) {
-      throw new Error(`Failed inserting embeddings: ${insertError.message}`);
+      if (rows.length > 0) {
+        const { error: insertError } = await fromTable(supabase, "embeddings").insert(rows);
+        if (insertError) {
+          throw new Error(`Failed inserting embeddings: ${insertError.message}`);
+        }
+      }
+
+      // Success — exit retry loop
+      return;
+    } catch (error) {
+      if (attempt < retries) {
+        console.warn(`Embedding attempt ${attempt + 1} failed for task ${taskId}, retrying...`, getErrorMessage(error));
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+      } else {
+        throw error;
+      }
     }
   }
 }
