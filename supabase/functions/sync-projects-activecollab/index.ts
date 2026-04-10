@@ -158,14 +158,17 @@ function chunkText(text: string, chunkSize = 800): string[] {
   return chunks;
 }
 
-function buildTaskEmbeddingContent(task: ActiveCollabTask, projectExternalId: string): string {
+function buildTaskEmbeddingContent(task: ActiveCollabTask, projectExternalId: string, userNameMap?: Map<number, string>): string {
+  const assigneeLabel = task.assignee_id != null
+    ? `Assignee: ${userNameMap?.get(task.assignee_id) ?? `User ${task.assignee_id}`}`
+    : "";
   const sections: string[] = [
     `Task ID: ${String(task.id)}`,
     `Task Name: ${task.name ?? "ActiveCollab Task"}`,
     task.body ? `Description: ${task.body}` : "",
     `Status: ${task.is_completed ? "completed" : "todo"}`,
     task.due_on ? `Due Date: ${toIsoOrNull(task.due_on)}` : "",
-    task.assignee_id != null ? `Assignee ID: ${String(task.assignee_id)}` : "",
+    assigneeLabel,
     `Project External ID: ${projectExternalId}`,
     `Source: activecollab`,
     `Raw Task Payload: ${JSON.stringify(task)}`,
@@ -348,6 +351,9 @@ function parseTasks(payload: unknown): ActiveCollabTask[] {
 interface ActiveCollabUser {
   id?: number;
   email?: string;
+  display_name?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 function parseUsers(payload: unknown): ActiveCollabUser[] {
@@ -368,6 +374,20 @@ function parseUsers(payload: unknown): ActiveCollabUser[] {
     return [record.single as ActiveCollabUser];
   }
   return [];
+}
+
+function buildUserNameMap(users: ActiveCollabUser[]): Map<number, string> {
+  const map = new Map<number, string>();
+  for (const u of users) {
+    if (typeof u.id !== "number") continue;
+    const name =
+      u.display_name ||
+      [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
+      u.email ||
+      `User ${u.id}`;
+    map.set(u.id, name);
+  }
+  return map;
 }
 
 async function runWithConcurrency<T, TResult>(
@@ -472,14 +492,17 @@ async function syncTask(args: {
   projectExternalId: string;
   task: ActiveCollabTask;
   openAiApiKey: string;
+  userNameMap?: Map<number, string>;
 }): Promise<SyncCounters> {
-  const { supabase, userId, projectDbId, projectExternalId, task, openAiApiKey } = args;
+  const { supabase, userId, projectDbId, projectExternalId, task, openAiApiKey, userNameMap } = args;
   const externalTaskId = String(task.id);
+  const assigneeName = task.assignee_id != null ? (userNameMap?.get(task.assignee_id) ?? null) : null;
   const taskMetadata = {
     source: "activecollab",
     external_id: externalTaskId,
     project_external_id: projectExternalId,
     synced: true,
+    assignee_name: assigneeName,
     activecollab: { raw: task },
   } as Record<string, unknown>;
 
@@ -510,7 +533,7 @@ async function syncTask(args: {
     let tasksUpdated = 0;
     let embeddingsInserted = 0;
     let embeddingsFailed = 0;
-    const taskEmbeddingContent = buildTaskEmbeddingContent(task, projectExternalId);
+    const taskEmbeddingContent = buildTaskEmbeddingContent(task, projectExternalId, userNameMap);
 
     if (existingTask?.id) {
       const { error: updateError } = await fromTable(supabase, "tasks").update(taskRow).eq("id", existingTask.id);
@@ -595,8 +618,9 @@ async function syncProject(args: {
   activeCollabUserId: number | null;
   project: ActiveCollabProject;
   openAiApiKey: string;
+  userNameMap?: Map<number, string>;
 }): Promise<SyncCounters> {
-  const { supabase, userId, apiUrl, apiHeaders, defaultStatusId, activeCollabUserId, project, openAiApiKey } = args;
+  const { supabase, userId, apiUrl, apiHeaders, defaultStatusId, activeCollabUserId, project, openAiApiKey, userNameMap } = args;
   const externalId = String(project.id);
   const slug = slugFromNameAndId(project.name, externalId);
 
@@ -677,6 +701,7 @@ async function syncProject(args: {
         projectExternalId: externalId,
         task,
         openAiApiKey,
+        userNameMap,
       })
     );
 
@@ -763,11 +788,16 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
       // Some ActiveCollab instances do not support /users/me. Fall back to /users by email.
     }
 
+    // Fetch all AC users to build ID → display name map for embedding content
+    let userNameMap = new Map<number, string>();
+    let allUsers: ActiveCollabUser[] = [];
+
     if (activeCollabUserId == null && tokenEmail) {
       try {
         const usersPayload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/users`, apiHeaders, 10000);
-        const users = parseUsers(usersPayload);
-        const matched = users.find(
+        allUsers = parseUsers(usersPayload);
+        userNameMap = buildUserNameMap(allUsers);
+        const matched = allUsers.find(
           (u) => typeof u.email === "string" && u.email.trim().toLowerCase() === tokenEmail && typeof u.id === "number",
         );
         if (matched && typeof matched.id === "number") {
@@ -775,6 +805,18 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
         }
       } catch (_usersError) {
         // Continue without assignee filter if user lookup endpoint is unavailable.
+      }
+    }
+
+    // If we already found activeCollabUserId via /me but haven't fetched the full user list yet
+    if (userNameMap.size === 0) {
+      try {
+        const usersPayload = await fetchJsonWithTimeout(`${apiUrl}/api/v1/users`, apiHeaders, 10000);
+        allUsers = parseUsers(usersPayload);
+        userNameMap = buildUserNameMap(allUsers);
+        console.log(`Fetched ${userNameMap.size} ActiveCollab users for name resolution`);
+      } catch (_usersError) {
+        console.warn("Could not fetch AC users for name resolution, will use IDs");
       }
     }
 
@@ -804,6 +846,7 @@ async function performBackgroundSync(context: BackgroundSyncContext): Promise<Sy
         activeCollabUserId,
         project,
         openAiApiKey,
+        userNameMap,
       })
     );
 
