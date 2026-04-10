@@ -158,14 +158,17 @@ function chunkText(text: string, chunkSize = 800): string[] {
   return chunks;
 }
 
-function buildTaskEmbeddingContent(task: ActiveCollabTask, projectExternalId: string): string {
+function buildTaskEmbeddingContent(task: ActiveCollabTask, projectExternalId: string, userNameMap?: Map<number, string>): string {
+  const assigneeLabel = task.assignee_id != null
+    ? `Assignee: ${userNameMap?.get(task.assignee_id) ?? `User ${task.assignee_id}`}`
+    : "";
   const sections: string[] = [
     `Task ID: ${String(task.id)}`,
     `Task Name: ${task.name ?? "ActiveCollab Task"}`,
     task.body ? `Description: ${task.body}` : "",
     `Status: ${task.is_completed ? "completed" : "todo"}`,
     task.due_on ? `Due Date: ${toIsoOrNull(task.due_on)}` : "",
-    task.assignee_id != null ? `Assignee ID: ${String(task.assignee_id)}` : "",
+    assigneeLabel,
     `Project External ID: ${projectExternalId}`,
     `Source: activecollab`,
     `Raw Task Payload: ${JSON.stringify(task)}`,
