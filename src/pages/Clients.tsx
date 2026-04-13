@@ -28,10 +28,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Edit, Eye, Users, Briefcase, DollarSign, TrendingUp, Building2 } from "lucide-react";
+import { Plus, Search, Trash2, Edit, Eye, Users, Briefcase, DollarSign, TrendingUp, Building2, RefreshCw, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
+import { useSyncCrmData } from "@/hooks/useIntegrationSync";
 
 const NO_COMPANY_LABEL = "— No company —";
 
@@ -76,6 +77,7 @@ export default function Clients() {
   });
   const { data: stats, isLoading: statsLoading } = useClientStats(statusFilter ?? undefined);
   const deleteClient = useDeleteClient();
+  const syncZohoAccounts = useSyncCrmData("zoho-crm", "accounts");
 
   const companiesGrouped = useMemo(() => {
     if (!clients?.length) return { keys: [] as string[], map: new Map<string, Client[]>() };
@@ -111,10 +113,16 @@ export default function Clients() {
               Add Manually
             </Link>
           </Button>
-          <Button asChild>
-            <Link to="/admin/integrations">
-              Sync from CRM
-            </Link>
+          <Button
+            variant="outline"
+            disabled={syncZohoAccounts.isPending}
+            onClick={() => syncZohoAccounts.mutate()}
+          >
+            {syncZohoAccounts.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Sync from Zoho
+          </Button>
+          <Button variant="secondary" asChild>
+            <Link to="/admin/integrations">Integrations</Link>
           </Button>
         </div>
       </div>

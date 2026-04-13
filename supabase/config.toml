@@ -448,3 +448,22 @@ verify_jwt = false
 
 [functions.openai-embeddings-proxy]
 verify_jwt = false
+
+# Zoho CRM (JWT validated in-function)
+[functions.zoho-crm-sync]
+verify_jwt = false
+
+[functions.zoho-deal-attachments-sync]
+verify_jwt = false
+
+[functions.zoho-deal-engagements-sync]
+verify_jwt = false
+
+[functions.zoho-deal-events-sync]
+verify_jwt = false
+
+[functions.zoho-deal-contact-enrichment-sync]
+verify_jwt = false
+
+[functions.zoho-deal-account-enrichment-sync]
+verify_jwt = false

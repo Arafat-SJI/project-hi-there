@@ -506,8 +506,15 @@ export function useProvidersGroupedByCategory() {
   const error = categoriesQuery.error || providersQuery.error || orgIntegrationsQuery.error;
 
   const grouped: GroupedProviders[] | undefined = categoriesQuery.data?.map((category) => {
-    const categoryProviders =
+    let categoryProviders =
       providersQuery.data?.filter((p) => p.category_id === category.id) || [];
+
+    // CRM hub: hide placeholder providers (Coming Soon + not available) so only actionable CRMs show (e.g. Zoho).
+    if (category.slug === 'crm-systems') {
+      categoryProviders = categoryProviders.filter(
+        (p) => p.is_available === true || p.is_coming_soon !== true
+      );
+    }
 
     // Attach org integration to each provider
     const providersWithIntegration = categoryProviders.map((provider) => ({
@@ -523,7 +530,7 @@ export function useProvidersGroupedByCategory() {
       category,
       providers: providersWithIntegration,
       stats: {
-        totalProviders: categoryProviders.length,
+        totalProviders: providersWithIntegration.length,
         connectedProviders,
       },
     };

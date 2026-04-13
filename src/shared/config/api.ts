@@ -83,6 +83,16 @@ export const API = {
     GENERATE_DOC: "generate-business-doc",
   },
 
+  // CRM (Zoho)
+  CRM: {
+    ZOHO_SYNC: "zoho-crm-sync",
+    ZOHO_DEAL_ATTACHMENTS_SYNC: "zoho-deal-attachments-sync",
+    ZOHO_DEAL_ENGAGEMENTS_SYNC: "zoho-deal-engagements-sync",
+    ZOHO_DEAL_EVENTS_SYNC: "zoho-deal-events-sync",
+    ZOHO_DEAL_CONTACT_ENRICHMENT_SYNC: "zoho-deal-contact-enrichment-sync",
+    ZOHO_DEAL_ACCOUNT_ENRICHMENT_SYNC: "zoho-deal-account-enrichment-sync",
+  },
+
   // Clients (current)
   CLIENTS: {
     BASE: "api-v1-clients",

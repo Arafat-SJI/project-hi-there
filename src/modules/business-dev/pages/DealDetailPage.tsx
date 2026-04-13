@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, DollarSign, Calendar, User, Building2, MessageSquare, Activity, Loader2, ChevronRight, Pencil, Trash2, Video, Plus, Bot, Tag, Send, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, DollarSign, Calendar, User, Building2, MessageSquare, Activity, Loader2, ChevronRight, Pencil, Trash2, Video, Plus, Bot, Tag, Send, MoreHorizontal, RefreshCw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +23,9 @@ import { useDeal, useDealActivities, useDealComments, useAddDealComment, useUpda
 import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import { useDealMeetings } from "@/modules/meetings/hooks/useCrossModuleMeetings";
 import { useAssignMeeting } from "@/modules/meetings/hooks/useMeetingAssignment";
+import { DealZohoCrmTab } from "@/components/deals/DealZohoCrmTab";
+import { isZohoCrmDealExternalId } from "@/hooks/useZohoDealTabs";
+import { useSyncZohoCrmRecord } from "@/hooks/useIntegrationSync";
 import type { DealStage, DealActivityType } from "../types";
 
 const STAGE_CONFIG: Record<DealStage, { label: string; color: string }> = {
@@ -85,6 +88,9 @@ export default function DealDetailPage() {
   const deleteDeal = useDeleteDeal();
   const assignMeeting = useAssignMeeting();
   const { data: linkedMeetings = [] } = useDealMeetings(deal?.id);
+  const syncZohoRecord = useSyncZohoCrmRecord();
+
+  const zohoPullMatch = deal?.external_id?.match(/^zoho-(deal|lead)-(.+)$/);
 
   // Fetch available meetings for linking
   const { data: availableMeetings = [] } = useQuery({
@@ -197,6 +203,22 @@ export default function DealDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {zohoPullMatch && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={syncZohoRecord.isPending}
+              onClick={() =>
+                syncZohoRecord.mutate({
+                  resource: zohoPullMatch[1] === "lead" ? "leads" : "deals",
+                  recordId: zohoPullMatch[2],
+                })
+              }
+            >
+              {syncZohoRecord.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+              Pull from Zoho
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => navigate(`/deals/${slug}/edit`)}>
             <Pencil className="h-4 w-4 mr-1" />Edit
           </Button>
@@ -258,6 +280,9 @@ export default function DealDetailPage() {
           <TabsTrigger value="comments">Comments ({comments.length})</TabsTrigger>
           <TabsTrigger value="meetings">Meetings ({linkedMeetings.length})</TabsTrigger>
           <TabsTrigger value="ai-coach"><Bot className="h-3.5 w-3.5 mr-1" />AI Coach</TabsTrigger>
+          {isZohoCrmDealExternalId(deal.external_id) && (
+            <TabsTrigger value="zoho-crm">Zoho CRM</TabsTrigger>
+          )}
         </TabsList>
 
         {/* === OVERVIEW TAB === */}
@@ -495,6 +520,13 @@ export default function DealDetailPage() {
             </div>
           )}
         </TabsContent>
+
+        {/* === ZOHO CRM TAB === */}
+        {isZohoCrmDealExternalId(deal.external_id) && (
+          <TabsContent value="zoho-crm" className="mt-4 space-y-4">
+            <DealZohoCrmTab dealId={deal.id} dealExternalId={deal.external_id} />
+          </TabsContent>
+        )}
 
         {/* === AI COACH TAB === */}
         <TabsContent value="ai-coach" className="mt-4 space-y-4">

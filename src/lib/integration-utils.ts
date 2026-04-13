@@ -409,21 +409,41 @@ export function areRequiredFieldsFilled(
 export function buildOAuthAuthorizationUrl(
   provider: IntegrationProvider,
   state: string,
-  redirectUri: string
+  redirectUri: string,
+  credentials?: Record<string, string>
 ): string {
   if (!provider.oauth_config) {
     throw new Error('Provider does not have OAuth configuration');
   }
 
+  const oauth = provider.oauth_config as OAuthConfig & { scopes?: string[] };
+  const scopesArr = Array.isArray(oauth.scopes) ? oauth.scopes : [];
+  const clientId =
+    (credentials?.zoho_client_id && credentials.zoho_client_id.trim()) ||
+    (credentials?.client_id && credentials.client_id.trim()) ||
+    oauth.client_id ||
+    '';
+
+  if (!clientId) {
+    throw new Error(
+      'Client ID is missing. Enter and save your Zoho Client ID (or client ID) in Configuration first.'
+    );
+  }
+
   const params = new URLSearchParams({
-    client_id: provider.oauth_config.client_id || '',
+    client_id: clientId,
     redirect_uri: redirectUri,
-    response_type: provider.oauth_config.response_type || 'code',
+    response_type: oauth.response_type || 'code',
     state,
-    scope: provider.oauth_config.scopes.join(' '),
+    scope: scopesArr.join(' '),
   });
 
-  return `${provider.oauth_config.authorize_url}?${params.toString()}`;
+  const authorizeUrl = oauth.authorize_url;
+  if (!authorizeUrl) {
+    throw new Error('Provider is missing authorize_url in OAuth configuration');
+  }
+
+  return `${authorizeUrl}?${params.toString()}`;
 }
 
 /**
@@ -567,12 +587,14 @@ export function filterProvidersByQuery(
   if (!query) return providers;
 
   const lowerQuery = query.toLowerCase();
-  return providers.filter(
-    (provider) =>
+  return providers.filter((provider) => {
+    const desc = (provider.description ?? '').toLowerCase();
+    return (
       provider.name.toLowerCase().includes(lowerQuery) ||
-      provider.description.toLowerCase().includes(lowerQuery) ||
+      desc.includes(lowerQuery) ||
       provider.slug.toLowerCase().includes(lowerQuery)
-  );
+    );
+  });
 }
 
 // ============================================

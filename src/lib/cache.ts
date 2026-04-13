@@ -81,6 +81,15 @@ export const queryKeys = {
     agentPersonalizations: (userId: string) => ["knowledge", "agentPersonalizations", userId] as const,
   },
 
+  // Zoho CRM (deal-scoped cache)
+  zoho: {
+    attachments: (dealId: string) => ["zoho", "attachments", dealId] as const,
+    engagements: (dealId: string) => ["zoho", "engagements", dealId] as const,
+    events: (dealId: string) => ["zoho", "events", dealId] as const,
+    contactEnrichment: (dealId: string) => ["zoho", "contact-enrichment", dealId] as const,
+    accountEnrichment: (dealId: string) => ["zoho", "account-enrichment", dealId] as const,
+  },
+
   // Deals
   deals: {
     all: ["deals"] as const,
@@ -291,5 +300,12 @@ export const invalidateKeys = {
     queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.config });
     queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.integration });
     queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.trackingEvents() });
+  },
+  zohoDeal: (queryClient: any, dealId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.zoho.attachments(dealId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.zoho.engagements(dealId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.zoho.events(dealId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.zoho.contactEnrichment(dealId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.zoho.accountEnrichment(dealId) });
   },
 };
