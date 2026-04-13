@@ -12,10 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Users, Loader2, Mail, Phone, Building2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Plus, Search, Users, Loader2, Mail, Phone, Building2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw } from "lucide-react";
 import { useContacts, useCreateContact } from "../hooks/useContacts";
 import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
+import { useSyncCrmData } from "@/hooks/useIntegrationSync";
 import type { Contact } from "../types";
 
 const PAGE_SIZES = [10, 25, 50, 100];
@@ -37,6 +38,7 @@ export default function ContactsPage() {
   const [pageSize, setPageSize] = useState(25);
   const { data: contacts = [], isLoading } = useContacts(search || undefined);
   const createContact = useCreateContact();
+  const syncZohoContacts = useSyncCrmData("zoho-crm", "contacts");
 
   const totalCount = contacts.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -74,6 +76,15 @@ export default function ContactsPage() {
           <p className="text-muted-foreground">Synced from your CRM and tools</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={syncZohoContacts.isPending}
+            onClick={() => syncZohoContacts.mutate()}
+          >
+            {syncZohoContacts.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Sync from Zoho
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline"><Plus className="h-4 w-4 mr-2" />Add Manually</Button>

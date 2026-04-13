@@ -3,7 +3,7 @@
  * Category-based view of all available integrations
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,13 +33,14 @@ export default function Integrations() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const didExpandInitially = useRef(false);
 
-  // Expand all categories by default on first load
-  useState(() => {
-    if (grouped && expandedCategories.length === 0) {
-      setExpandedCategories(grouped.map((g) => g.category.id));
-    }
-  });
+  // Expand every category once data loads (misuse of useState previously left all sections collapsed).
+  useEffect(() => {
+    if (!grouped?.length || didExpandInitially.current) return;
+    didExpandInitially.current = true;
+    setExpandedCategories(grouped.map((g) => g.category.id));
+  }, [grouped]);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) =>
@@ -77,7 +78,6 @@ export default function Integrations() {
       </div>
     );
   }
-  console.log("filteredGrouped", filteredGrouped);
   return (
     <div className="space-y-6">
       {/* Header */}

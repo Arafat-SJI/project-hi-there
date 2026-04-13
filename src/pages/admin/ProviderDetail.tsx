@@ -162,6 +162,9 @@ export default function ProviderDetail() {
     }
   };
 
+  const isOAuthProvider =
+    provider?.auth_type === 'oauth2' || provider?.auth_type === 'oauth';
+
   // Handle OAuth connect
   const handleOAuthConnect = () => {
     if (!provider || !provider.oauth_config) {
@@ -170,6 +173,13 @@ export default function ProviderDetail() {
     }
 
     try {
+      const mergedCreds: Record<string, string> = {
+        ...(typeof orgIntegration?.config === 'object' && orgIntegration.config !== null
+          ? (orgIntegration.config as Record<string, string>)
+          : {}),
+        ...formValues,
+      };
+
       // 1. Generate and store state for CSRF protection
       const state = generateOAuthState();
       storeOAuthState(state, provider.id);
@@ -177,8 +187,8 @@ export default function ProviderDetail() {
       // 2. Build redirect URI
       const redirectUri = `${window.location.origin}/admin/integrations/oauth/callback`;
 
-      // 3. Build authorization URL
-      const authUrl = buildOAuthAuthorizationUrl(provider, state, redirectUri);
+      // 3. Build authorization URL (client_id from saved config + unsaved form values)
+      const authUrl = buildOAuthAuthorizationUrl(provider, state, redirectUri, mergedCreds);
 
       // 4. Redirect to provider authorization page
       window.location.href = authUrl;
@@ -360,13 +370,13 @@ export default function ProviderDetail() {
         </Card>
       )}
 
-      {/* OAuth Connect for OAuth providers */}
-      {provider.auth_type === 'oauth' && !orgIntegration && (
+      {/* OAuth Connect — DB uses auth_type "oauth2"; was incorrectly gated on "oauth" only */}
+      {isOAuthProvider && orgIntegration?.connection_status !== 'connected' && (
         <Card>
           <CardHeader>
             <CardTitle>Connect with OAuth</CardTitle>
             <CardDescription>
-              Connect your {provider.name} account using OAuth
+              Save your Client ID and Client Secret above, then connect your {provider.name} account.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -374,6 +384,18 @@ export default function ProviderDetail() {
               Connect {provider.name}
             </Button>
           </CardContent>
+        </Card>
+      )}
+
+      {isOAuthProvider && fields.length === 0 && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardHeader>
+            <CardTitle className="text-base">Configuration fields missing</CardTitle>
+            <CardDescription>
+              No credential fields are defined for this provider in the database. Apply the latest
+              Supabase migrations (including Zoho CRM integration fields), then refresh this page.
+            </CardDescription>
+          </CardHeader>
         </Card>
       )}
 
