@@ -2753,6 +2753,132 @@ export type Database = {
         }
         Relationships: []
       }
+      float_synced_allocations: {
+        Row: {
+          created_at: string
+          ends_at: string | null
+          float_allocation_id: string
+          float_people_id: string | null
+          float_project_id: string | null
+          hours: number | null
+          id: string
+          raw: Json
+          source_type: string | null
+          starts_at: string | null
+          synced_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at?: string | null
+          float_allocation_id: string
+          float_people_id?: string | null
+          float_project_id?: string | null
+          hours?: number | null
+          id?: string
+          raw?: Json
+          source_type?: string | null
+          starts_at?: string | null
+          synced_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string | null
+          float_allocation_id?: string
+          float_people_id?: string | null
+          float_project_id?: string | null
+          hours?: number | null
+          id?: string
+          raw?: Json
+          source_type?: string | null
+          starts_at?: string | null
+          synced_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      float_synced_people: {
+        Row: {
+          created_at: string
+          email: string | null
+          float_people_id: string
+          id: string
+          name: string | null
+          raw: Json
+          role: string | null
+          synced_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          float_people_id: string
+          id?: string
+          name?: string | null
+          raw?: Json
+          role?: string | null
+          synced_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          float_people_id?: string
+          id?: string
+          name?: string | null
+          raw?: Json
+          role?: string | null
+          synced_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      float_synced_projects: {
+        Row: {
+          client_name: string | null
+          created_at: string
+          float_project_id: string
+          id: string
+          name: string | null
+          projects_linked: boolean
+          raw: Json
+          synced_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string
+          float_project_id: string
+          id?: string
+          name?: string | null
+          projects_linked?: boolean
+          raw?: Json
+          synced_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string
+          float_project_id?: string
+          id?: string
+          name?: string | null
+          projects_linked?: boolean
+          raw?: Json
+          synced_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gemini_corpora: {
         Row: {
           created_at: string | null
