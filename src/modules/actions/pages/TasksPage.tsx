@@ -234,7 +234,7 @@ export default function TasksPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => syncJiraTasks.mutate()}
+            onClick={() => syncJiraTasks.mutate(undefined)}
             disabled={syncJiraTasks.isPending}
             title="Requires JIRA_* secrets on sync-tasks-jira"
           >

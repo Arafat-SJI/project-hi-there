@@ -10,10 +10,11 @@ export function JiraWorkTypeIcon({
   className?: string;
 }) {
   return (
-    <Ticket
-      className={cn("h-4 w-4 shrink-0 text-muted-foreground", className)}
-      aria-hidden
-      title={workType || "Jira issue"}
-    />
+    <span title={workType || "Jira issue"}>
+      <Ticket
+        className={cn("h-4 w-4 shrink-0 text-muted-foreground", className)}
+        aria-hidden
+      />
+    </span>
   );
 }
