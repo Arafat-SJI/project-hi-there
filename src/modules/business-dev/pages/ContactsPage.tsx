@@ -80,7 +80,7 @@ export default function ContactsPage() {
             variant="outline"
             size="sm"
             disabled={syncZohoContacts.isPending}
-            onClick={() => syncZohoContacts.mutate()}
+            onClick={() => syncZohoContacts.mutate(undefined)}
           >
             {syncZohoContacts.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Sync from Zoho

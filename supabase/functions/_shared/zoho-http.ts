@@ -6,7 +6,7 @@ import { getCorsHeaders, handleCorsPreflight } from "../../cors.ts"
 import { resolveZohoAuth, ZohoAuthError, zohoDealIdFromExternalId } from "./zoho.ts"
 
 export interface ZohoDealSyncContext {
-  supabase: ReturnType<typeof createClient>
+  supabase: ReturnType<typeof createClient<unknown, "public">>
   userId: string
   dealId: string
   zohoDealId: string

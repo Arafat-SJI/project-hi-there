@@ -16,7 +16,7 @@ serve(async (req) => {
 
     if (dErr || !deal) throw new Error("Deal not found")
 
-    const clients = deal.clients as { external_id: string | null } | { external_id: string | null }[] | null
+    const clients = (deal as any).clients as { external_id: string | null } | { external_id: string | null }[] | null
     const clientRow = Array.isArray(clients) ? clients[0] : clients
     const zohoAccountId = zohoAccountIdFromClientExternalId(clientRow?.external_id ?? null)
     if (!zohoAccountId) {
