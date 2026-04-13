@@ -194,6 +194,7 @@ export function getProviderIcon(slug: string): LucideIcon {
     trello: Kanban,
     clickup: Kanban,
     activecollab: Kanban,
+    float: Kanban,
 
     // Storage & Productivity
     'google-workspace': Cloud,

@@ -42,6 +42,16 @@ export interface SyncTasksChunkResponse {
   next_page_token?: string;
 }
 
+export interface SyncFloatScheduleResponse {
+  success: boolean;
+  credential_source?: "integration_config" | "env";
+  people_synced: number;
+  projects_synced: number;
+  allocations_synced: number;
+  projects_linked: number;
+  errors: string[];
+}
+
 /**
  * Sync projects from a Project Management provider (ActiveCollab, Jira, etc.).
  */
@@ -153,6 +163,33 @@ export function useSyncTasks(providerSlug: string) {
     },
     onError: (err: Error) => {
       toast.error(err.message ?? "Failed to sync tasks");
+    },
+  });
+}
+
+export function useSyncFloatSchedule() {
+  return useMutation({
+    mutationFn: async (): Promise<SyncFloatScheduleResponse> => {
+      const { data, error } = await supabase.functions.invoke("sync-float-schedule", {});
+      if (error) throw error;
+      const result = data as SyncFloatScheduleResponse;
+      if (!result.success && result.errors?.length) {
+        throw new Error(result.errors[0] ?? "Float schedule sync failed");
+      }
+      return result;
+    },
+    onSuccess: (data) => {
+      const msg =
+        data.people_synced + data.projects_synced + data.allocations_synced === 0
+          ? "Float sync completed with no rows."
+          : `Float sync complete: ${data.people_synced} people, ${data.projects_synced} projects, ${data.allocations_synced} allocations.`;
+      toast.success(msg);
+      if (data.errors?.length) {
+        data.errors.forEach((e) => toast.warning(e));
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to sync Float schedule");
     },
   });
 }
