@@ -116,7 +116,7 @@ export default function Clients() {
           <Button
             variant="outline"
             disabled={syncZohoAccounts.isPending}
-            onClick={() => syncZohoAccounts.mutate()}
+            onClick={() => syncZohoAccounts.mutate(undefined)}
           >
             {syncZohoAccounts.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Sync from Zoho
