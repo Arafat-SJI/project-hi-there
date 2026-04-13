@@ -290,6 +290,9 @@ verify_jwt = false
 [functions.sync-workamajig]
 verify_jwt = false
 
+[functions.sync-float-schedule]
+verify_jwt = false
+
 [functions.user-integration-clear-data]
 verify_jwt = false
 

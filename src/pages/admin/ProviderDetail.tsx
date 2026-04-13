@@ -22,7 +22,7 @@ import {
   useToggleService,
   useSetDefaultService,
 } from '@/hooks/useIntegrations';
-import { useSyncProjects, useSyncTasks } from '@/hooks/useIntegrationSync';
+import { useSyncProjects, useSyncTasks, useSyncFloatSchedule } from '@/hooks/useIntegrationSync';
 import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
 import { UsageStats } from '@/components/integrations/UsageStats';
@@ -56,6 +56,7 @@ export default function ProviderDetail() {
     (slug === 'activecollab' || slug === 'jira' || slug === 'clickup' || slug === 'workamajig');
   const syncProjects = useSyncProjects(slug || '');
   const syncTasks = useSyncTasks(slug || '');
+  const syncFloatSchedule = useSyncFloatSchedule();
 
   useEffect(() => {
     const fetchCategory = async () => {
@@ -482,11 +483,12 @@ export default function ProviderDetail() {
           <CardHeader>
             <CardTitle>Sync Jira issues</CardTitle>
             <CardDescription>
-              Pull issues into Tasks (comments and worklogs included). Set{' '}
+              Pull issues into Tasks (comments and worklogs included). Sync reads credentials
+              from this provider&apos;s saved configuration first, with{' '}
               <code className="text-xs bg-muted px-1 rounded">JIRA_HOST</code>,{' '}
               <code className="text-xs bg-muted px-1 rounded">JIRA_EMAIL</code>, and{' '}
-              <code className="text-xs bg-muted px-1 rounded">JIRA_API_TOKEN</code> in Supabase Edge
-              Function secrets to match the values above, or sync will fail.
+              <code className="text-xs bg-muted px-1 rounded">JIRA_API_TOKEN</code> as fallback
+              Edge Function secrets.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -500,6 +502,27 @@ export default function ProviderDetail() {
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
               Sync tasks
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {slug === 'float' && orgIntegration?.connection_status === 'connected' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sync Float schedule</CardTitle>
+            <CardDescription>
+              Pull people, projects, tasks, and allocations from Float into synced tables.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button onClick={() => syncFloatSchedule.mutate()} disabled={syncFloatSchedule.isPending}>
+              {syncFloatSchedule.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Sync schedule
             </Button>
           </CardContent>
         </Card>

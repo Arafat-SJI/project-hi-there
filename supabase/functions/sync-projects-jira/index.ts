@@ -20,6 +20,27 @@ interface SyncResponse {
   projects_created: number;
   projects_updated: number;
   errors: string[];
+  credential_source?: "integration_config" | "env";
+}
+
+interface JiraCredentials {
+  host: string;
+  email: string;
+  apiToken: string;
+  source: "integration_config" | "env";
+}
+
+function readConfigString(
+  config: Record<string, unknown>,
+  keys: string[],
+): string {
+  for (const key of keys) {
+    const value = config[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
 }
 
 function slugFromNameAndId(name: string, externalId: string): string {
@@ -28,6 +49,62 @@ function slugFromNameAndId(name: string, externalId: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `${base}-${externalId}`.slice(0, 100);
+}
+
+async function resolveJiraCredentials(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<JiraCredentials | null> {
+  const { data: provider } = await supabase
+    .from("integration_providers")
+    .select("id")
+    .eq("slug", "jira")
+    .maybeSingle();
+
+  if (provider?.id) {
+    const { data: orgIntegration } = await supabase
+      .from("organization_integrations")
+      .select("config")
+      .eq("provider_id", provider.id)
+      .eq("user_id", userId)
+      .eq("enabled", true)
+      .in("connection_status", ["connected", "testing", "error", "disconnected"])
+      .maybeSingle();
+
+    const config = (orgIntegration?.config ?? {}) as Record<string, unknown>;
+    const host = readConfigString(config, ["jira_host", "jiraHost", "host"]);
+    const email = readConfigString(config, ["jira_email", "jiraEmail", "email"]);
+    const apiToken = readConfigString(config, [
+      "jira_api_token",
+      "jiraApiToken",
+      "api_token",
+      "apiToken",
+      "token",
+    ]);
+
+    if (host && email && apiToken) {
+      return {
+        host,
+        email,
+        apiToken,
+        source: "integration_config",
+      };
+    }
+  }
+
+  const host = Deno.env.get("JIRA_HOST")?.trim() ?? "";
+  const email = Deno.env.get("JIRA_EMAIL")?.trim() ?? "";
+  const apiToken = Deno.env.get("JIRA_API_TOKEN")?.trim() ?? "";
+  if (host && email && apiToken) {
+    return {
+      host,
+      email,
+      apiToken,
+      source: "env",
+    };
+  }
+
+  return null;
 }
 
 serve(async (req) => {
@@ -40,11 +117,47 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const jiraHost = Deno.env.get("JIRA_HOST");
-    const jiraEmail = Deno.env.get("JIRA_EMAIL");
-    const jiraApiToken = Deno.env.get("JIRA_API_TOKEN");
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          projects_synced: 0,
+          projects_created: 0,
+          projects_updated: 0,
+          errors: ["Missing authorization header"],
+        } as SyncResponse),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
-    if (!jiraHost || !jiraEmail || !jiraApiToken) {
+    const jwt = authHeader.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(jwt);
+
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          projects_synced: 0,
+          projects_created: 0,
+          projects_updated: 0,
+          errors: ["Invalid token"],
+        } as SyncResponse),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const creds = await resolveJiraCredentials(supabase, user.id);
+    if (!creds) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -52,18 +165,18 @@ serve(async (req) => {
           projects_created: 0,
           projects_updated: 0,
           errors: [
-            "Jira credentials not configured (JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN)",
+            "Jira credentials not configured. Save jira_host, jira_email, jira_api_token in Admin Integrations or set JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN secrets.",
           ],
         } as SyncResponse),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
-    const baseUrl = jiraHost.replace(/\/$/, "");
-    const auth = btoa(`${jiraEmail}:${jiraApiToken}`);
+    const baseUrl = creds.host.replace(/\/$/, "");
+    const auth = btoa(`${creds.email}:${creds.apiToken}`);
     const response = await fetch(`${baseUrl}/rest/api/3/project`, {
       method: "GET",
       headers: {
@@ -135,8 +248,9 @@ serve(async (req) => {
         projects_synced: projectsCreated + projectsUpdated,
         projects_created: projectsCreated,
         projects_updated: projectsUpdated,
+        credential_source: creds.source,
         errors,
-      } as SyncResponse),
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

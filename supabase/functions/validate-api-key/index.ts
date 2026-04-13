@@ -1,4 +1,4 @@
-// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig
+// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -91,7 +91,8 @@ serve(async (req) => {
       // Extract API key from credentials - common field names
       // Skip first-value fallback for Jira so jira_host URL is never passed to legacy validateJira
       if (provider !== 'jira') {
-        apiKey = credentials.api_key || credentials.apiKey || credentials.access_token ||
+        apiKey = credentials.float_api_key || credentials.floatApiKey ||
+          credentials.api_key || credentials.apiKey || credentials.access_token ||
           credentials.secret_key || credentials.token || Object.values(credentials)[0];
       } else {
         apiKey = credentials.api_key || credentials.apiKey || credentials.access_token ||
@@ -154,6 +155,9 @@ serve(async (req) => {
         break
       case 'clickup':
         validationResult = await validateClickUp(apiKey)
+        break
+      case 'float':
+        validationResult = await validateFloat(apiKey, credentials)
         break
       case 'workamajig':
         validationResult = await validateWorkamajig(apiKey, credentials)
@@ -928,6 +932,49 @@ async function validateClickUp(apiKey: string) {
     return {
       valid: false,
       message: `ClickUp validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Float API key
+async function validateFloat(apiKey: string, credentials?: Record<string, string>) {
+  try {
+    const baseUrl = (credentials?.float_base_url || credentials?.floatBaseUrl || 'https://api.float.com/v3')
+      .replace(/\/$/, '')
+    const response = await fetch(`${baseUrl}/people?page=1&per-page=1`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      return {
+        valid: true,
+        message: 'Float API key is valid',
+        details: { base_url: baseUrl },
+      }
+    } else if (response.status === 401 || response.status === 403) {
+      return {
+        valid: false,
+        message: 'Invalid Float API key',
+        details: { status: response.status },
+      }
+    } else {
+      const text = await response.text()
+      return {
+        valid: false,
+        message: `Float validation failed (${response.status})`,
+        details: { status: response.status, body: text.slice(0, 140) },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Float validation error: ${message}`,
       details: {},
     }
   }
