@@ -55,9 +55,9 @@ serve(async (req) => {
 
     // Jira: integration hub sends jira_host, jira_email, jira_api_token (not a single apiKey)
     if (provider === 'jira' && credentials) {
-      const jiraHost = credentials.jira_host || credentials.jiraHost
-      const jiraEmail = credentials.jira_email || credentials.jiraEmail
-      const jiraToken = credentials.jira_api_token || credentials.jiraApiToken
+      const jiraHost = String(credentials.jira_host || credentials.jiraHost || '').trim()
+      const jiraEmail = String(credentials.jira_email || credentials.jiraEmail || '').trim()
+      const jiraToken = String(credentials.jira_api_token || credentials.jiraApiToken || '').trim()
       if (jiraHost && jiraEmail && jiraToken) {
         const jiraResult = await validateJiraFromFields(jiraHost, jiraEmail, jiraToken)
         return new Response(
@@ -65,13 +65,38 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
       }
+      // Hub form uses jira_* keys — do not fall through to legacy colon parser (would treat URL as apiKey).
+      const hubUsesTriplet =
+        'jira_host' in credentials ||
+        'jiraHost' in credentials ||
+        'jira_email' in credentials ||
+        'jiraEmail' in credentials ||
+        'jira_api_token' in credentials ||
+        'jiraApiToken' in credentials
+      if (hubUsesTriplet) {
+        return new Response(
+          JSON.stringify({
+            valid: false,
+            message:
+              'Jira requires all three: site URL, Atlassian email, and API token. Fill every field (token is often not sent until you tab out or save), then test again.',
+            details: {},
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        )
+      }
     }
-    
+
     if (provider && credentials) {
       service = provider;
       // Extract API key from credentials - common field names
-      apiKey = credentials.api_key || credentials.apiKey || credentials.access_token || 
-               credentials.secret_key || credentials.token || Object.values(credentials)[0];
+      // Skip first-value fallback for Jira so jira_host URL is never passed to legacy validateJira
+      if (provider !== 'jira') {
+        apiKey = credentials.api_key || credentials.apiKey || credentials.access_token ||
+          credentials.secret_key || credentials.token || Object.values(credentials)[0];
+      } else {
+        apiKey = credentials.api_key || credentials.apiKey || credentials.access_token ||
+          credentials.secret_key || credentials.token;
+      }
     }
 
     if (!apiKey || !service) {
