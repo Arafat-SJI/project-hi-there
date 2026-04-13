@@ -7488,6 +7488,214 @@ export type Database = {
         }
         Relationships: []
       }
+      zoho_account_enrichment: {
+        Row: {
+          deal_id: string
+          id: string
+          payload: Json
+          updated_at: string
+          zoho_account_id: string
+        }
+        Insert: {
+          deal_id: string
+          id?: string
+          payload?: Json
+          updated_at?: string
+          zoho_account_id: string
+        }
+        Update: {
+          deal_id?: string
+          id?: string
+          payload?: Json
+          updated_at?: string
+          zoho_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zoho_account_enrichment_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zoho_contact_enrichment: {
+        Row: {
+          deal_id: string
+          id: string
+          payload: Json
+          updated_at: string
+          zoho_contact_id: string
+        }
+        Insert: {
+          deal_id: string
+          id?: string
+          payload?: Json
+          updated_at?: string
+          zoho_contact_id: string
+        }
+        Update: {
+          deal_id?: string
+          id?: string
+          payload?: Json
+          updated_at?: string
+          zoho_contact_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zoho_contact_enrichment_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zoho_deal_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          deal_id: string
+          download_url: string | null
+          file_name: string | null
+          id: string
+          raw: Json
+          size_bytes: number | null
+          synced_at: string
+          zoho_attachment_id: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          deal_id: string
+          download_url?: string | null
+          file_name?: string | null
+          id?: string
+          raw?: Json
+          size_bytes?: number | null
+          synced_at?: string
+          zoho_attachment_id: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          deal_id?: string
+          download_url?: string | null
+          file_name?: string | null
+          id?: string
+          raw?: Json
+          size_bytes?: number | null
+          synced_at?: string
+          zoho_attachment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zoho_deal_attachments_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zoho_deal_engagements: {
+        Row: {
+          activity_type: string | null
+          content: string | null
+          created_at: string
+          deal_id: string
+          id: string
+          occurred_at: string | null
+          raw: Json
+          synced_at: string
+          title: string | null
+          zoho_module: string
+          zoho_record_id: string
+        }
+        Insert: {
+          activity_type?: string | null
+          content?: string | null
+          created_at?: string
+          deal_id: string
+          id?: string
+          occurred_at?: string | null
+          raw?: Json
+          synced_at?: string
+          title?: string | null
+          zoho_module: string
+          zoho_record_id: string
+        }
+        Update: {
+          activity_type?: string | null
+          content?: string | null
+          created_at?: string
+          deal_id?: string
+          id?: string
+          occurred_at?: string | null
+          raw?: Json
+          synced_at?: string
+          title?: string | null
+          zoho_module?: string
+          zoho_record_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zoho_deal_engagements_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zoho_deal_events: {
+        Row: {
+          created_at: string
+          deal_id: string
+          end_at: string | null
+          id: string
+          location: string | null
+          raw: Json
+          start_at: string | null
+          synced_at: string
+          title: string | null
+          zoho_event_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          end_at?: string | null
+          id?: string
+          location?: string | null
+          raw?: Json
+          start_at?: string | null
+          synced_at?: string
+          title?: string | null
+          zoho_event_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          end_at?: string | null
+          id?: string
+          location?: string | null
+          raw?: Json
+          start_at?: string | null
+          synced_at?: string
+          title?: string | null
+          zoho_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zoho_deal_events_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zoom_files: {
         Row: {
           created_at: string
