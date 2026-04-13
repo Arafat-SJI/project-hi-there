@@ -6707,30 +6707,39 @@ export type Database = {
           created_at: string | null
           id: string
           is_edited: boolean | null
+          jira_author_email: string | null
+          jira_author_name: string | null
+          jira_comment_id: string | null
           parent_comment_id: string | null
           task_id: string
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           content: string
           created_at?: string | null
           id?: string
           is_edited?: boolean | null
+          jira_author_email?: string | null
+          jira_author_name?: string | null
+          jira_comment_id?: string | null
           parent_comment_id?: string | null
           task_id: string
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           content?: string
           created_at?: string | null
           id?: string
           is_edited?: boolean | null
+          jira_author_email?: string | null
+          jira_author_name?: string | null
+          jira_comment_id?: string | null
           parent_comment_id?: string | null
           task_id?: string
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -6742,6 +6751,50 @@ export type Database = {
           },
           {
             foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_time_logs: {
+        Row: {
+          created_at: string
+          hours: number
+          id: string
+          metadata: Json
+          note: string | null
+          source: string
+          started_at: string | null
+          task_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          hours: number
+          id?: string
+          metadata?: Json
+          note?: string | null
+          source?: string
+          started_at?: string | null
+          task_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          hours?: number
+          id?: string
+          metadata?: Json
+          note?: string | null
+          source?: string
+          started_at?: string | null
+          task_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_time_logs_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
@@ -6871,6 +6924,7 @@ export type Database = {
           stream_id: string | null
           title: string
           updated_at: string
+          work_type: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -6893,6 +6947,7 @@ export type Database = {
           stream_id?: string | null
           title: string
           updated_at?: string
+          work_type?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -6915,6 +6970,7 @@ export type Database = {
           stream_id?: string | null
           title?: string
           updated_at?: string
+          work_type?: string | null
         }
         Relationships: [
           {

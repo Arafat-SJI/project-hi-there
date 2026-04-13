@@ -55,6 +55,9 @@ interface ProjectsToolbarProps {
   onViewModeChange: (m: "list" | "grid") => void;
   onExport: () => void;
   onSync?: () => void;
+  /** Pull projects + issues from Jira (Edge functions; requires JIRA_* secrets). */
+  onSyncFromJira?: () => void;
+  syncFromJiraPending?: boolean;
   totalCount?: number;
   activeTab?: string;
   onAllClick?: () => void;
@@ -71,6 +74,8 @@ export function ProjectsToolbar({
   onViewModeChange,
   onExport,
   onSync,
+  onSyncFromJira,
+  syncFromJiraPending = false,
   totalCount = 0,
   activeTab,
   onAllClick,
@@ -383,9 +388,24 @@ export function ProjectsToolbar({
           </Button>
         )}
         {onSync && (
-          <Button variant="outline" size="sm" className="h-9" onClick={onSync}>
+          <Button variant="outline" size="sm" className="h-9" onClick={onSync} title="Refresh this list from the database">
             <RefreshCw className="h-4 w-4 mr-1" />
             Sync
+          </Button>
+        )}
+        {onSyncFromJira && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={onSyncFromJira}
+            disabled={syncFromJiraPending}
+            title="Run sync-projects-jira then sync-tasks-jira (set JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN in Supabase Edge secrets)"
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1 ${syncFromJiraPending ? "animate-spin" : ""}`}
+            />
+            Sync Jira
           </Button>
         )}
         <Button variant="outline" size="sm" className="h-9" onClick={onExport}>

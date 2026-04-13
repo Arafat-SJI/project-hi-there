@@ -22,7 +22,7 @@ import {
   useToggleService,
   useSetDefaultService,
 } from '@/hooks/useIntegrations';
-import { useSyncProjects } from '@/hooks/useIntegrationSync';
+import { useSyncProjects, useSyncTasks } from '@/hooks/useIntegrationSync';
 import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
 import { UsageStats } from '@/components/integrations/UsageStats';
@@ -40,7 +40,7 @@ export default function ProviderDetail() {
 
   // Fetch provider data
   const { data: provider, isLoading, error } = useIntegrationProvider(slug || '');
-  const { data: fields = [] } = useIntegrationFields(provider?.id || '');
+  const { data: fields = [], isLoading: fieldsLoading } = useIntegrationFields(provider?.id || '');
   const { data: orgIntegration } = useOrganizationIntegration(provider?.id || '');
   const { data: services = [] } = useIntegrationServices(provider?.id || '');
   const { data: usageStats, isLoading: statsLoading } = useProviderUsageStats(
@@ -55,6 +55,7 @@ export default function ProviderDetail() {
     categorySlug === 'project-management' &&
     (slug === 'activecollab' || slug === 'jira' || slug === 'clickup' || slug === 'workamajig');
   const syncProjects = useSyncProjects(slug || '');
+  const syncTasks = useSyncTasks(slug || '');
 
   useEffect(() => {
     const fetchCategory = async () => {
@@ -387,13 +388,16 @@ export default function ProviderDetail() {
         </Card>
       )}
 
-      {isOAuthProvider && fields.length === 0 && (
+      {!fieldsLoading && fields.length === 0 && (
         <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
           <CardHeader>
             <CardTitle className="text-base">Configuration fields missing</CardTitle>
             <CardDescription>
-              No credential fields are defined for this provider in the database. Apply the latest
-              Supabase migrations (including Zoho CRM integration fields), then refresh this page.
+              {slug === 'jira'
+                ? 'The database has no integration_fields rows for Jira (site URL, email, API token). Apply Supabase migrations through 20260413220000_jira_integration_fields_ensure.sql (or re-run db push), then refresh.'
+                : isOAuthProvider
+                  ? 'No credential fields are defined for this provider in the database. Apply the latest Supabase migrations (including provider integration_fields seeds), then refresh this page.'
+                  : 'No credential fields are defined for this provider in the database. Apply the latest Supabase migrations, then refresh this page.'}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -468,6 +472,35 @@ export default function ProviderDetail() {
                 updated).
               </p>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Jira: task/issue sync uses Edge secrets; admin form alone does not feed sync functions */}
+      {slug === 'jira' && orgIntegration?.connection_status === 'connected' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sync Jira issues</CardTitle>
+            <CardDescription>
+              Pull issues into Tasks (comments and worklogs included). Set{' '}
+              <code className="text-xs bg-muted px-1 rounded">JIRA_HOST</code>,{' '}
+              <code className="text-xs bg-muted px-1 rounded">JIRA_EMAIL</code>, and{' '}
+              <code className="text-xs bg-muted px-1 rounded">JIRA_API_TOKEN</code> in Supabase Edge
+              Function secrets to match the values above, or sync will fail.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => syncTasks.mutate()}
+              disabled={syncTasks.isPending || syncProjects.isPending}
+            >
+              {syncTasks.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Sync tasks
+            </Button>
           </CardContent>
         </Card>
       )}

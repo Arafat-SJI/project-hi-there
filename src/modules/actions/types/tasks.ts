@@ -28,6 +28,8 @@ export interface Task {
   client_id: string | null;
   meeting_id: string | null;
   position: number;
+  work_type?: string | null;
+  project_id?: string | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
@@ -67,7 +69,15 @@ export interface TaskFilters {
   dueDateTo?: string;
 }
 
-export type TaskView = "all" | "today" | "this_week" | "overdue" | "delegated" | "my_tasks" | "allMine";
+export type TaskView =
+  | "all"
+  | "today"
+  | "this_week"
+  | "overdue"
+  | "delegated"
+  | "my_tasks"
+  | "allMine"
+  | "jira";
 
 // ========================
 // Task Stream
@@ -103,12 +113,15 @@ export interface TaskStreamMember {
 export interface TaskComment {
   id: string;
   task_id: string;
-  user_id: string;
+  user_id: string | null;
   content: string;
   parent_comment_id: string | null;
   is_edited: boolean;
   created_at: string;
   updated_at: string;
+  jira_comment_id?: string | null;
+  jira_author_name?: string | null;
+  jira_author_email?: string | null;
   user?: { full_name: string; email: string; avatar_url: string | null };
   replies?: TaskComment[];
 }

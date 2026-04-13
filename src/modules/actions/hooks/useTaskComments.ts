@@ -33,7 +33,9 @@ export function useTaskComments(taskId: string | undefined) {
       const comments = (rows || []) as (TaskComment & { profiles?: unknown })[];
 
       // Fetch profiles for all comment authors (user_id matches profiles.id in this app)
-      const userIds = [...new Set(comments.map((c) => c.user_id).filter(Boolean))];
+      const userIds = [
+        ...new Set(comments.map((c) => c.user_id).filter((id): id is string => !!id)),
+      ];
       const profileMap: Record<string, { full_name: string | null; email: string | null; avatar_url: string | null }> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase

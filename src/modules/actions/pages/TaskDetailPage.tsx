@@ -136,6 +136,15 @@ export default function TaskDetailPage() {
     });
   };
 
+  const jiraMeta = task.metadata as Record<string, unknown> | null;
+  const isJiraTask = jiraMeta?.source === "jira" && typeof jiraMeta?.external_id === "string";
+  const jiraUrl =
+    isJiraTask && typeof jiraMeta?.jira_url === "string" ? (jiraMeta.jira_url as string) : null;
+  const jiraStatusName =
+    isJiraTask && typeof jiraMeta?.jira_status_name === "string"
+      ? (jiraMeta.jira_status_name as string)
+      : null;
+
   const clickupMeta =
     (task.metadata as any)?.clickup as
       | {
@@ -162,7 +171,9 @@ export default function TaskDetailPage() {
       ? "ClickUp"
       : integrationSource === "activecollab"
         ? "ActiveCollab"
-        : "External";
+        : integrationSource === "jira"
+          ? "Jira"
+          : "External";
   const integrationAttachmentsRaw = (task.metadata as any)?.attachments as ExternalAttachment[] | undefined;
   const integrationAttachments = Array.isArray(integrationAttachmentsRaw) ? integrationAttachmentsRaw : [];
 
@@ -559,6 +570,36 @@ export default function TaskDetailPage() {
                     <span className="font-medium text-foreground">Tags: </span>
                     <span>{clickupMeta.tags.join(", ")}</span>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {isJiraTask && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Jira</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs text-muted-foreground">
+                {jiraStatusName && (
+                  <div>
+                    <span className="font-medium text-foreground">Jira status: </span>
+                    <span>{jiraStatusName}</span>
+                  </div>
+                )}
+                {task.work_type && (
+                  <div>
+                    <span className="font-medium text-foreground">Issue type: </span>
+                    <span>{task.work_type}</span>
+                  </div>
+                )}
+                {jiraUrl && (
+                  <Button variant="outline" size="sm" className="h-8 mt-1" asChild>
+                    <a href={jiraUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Open in Jira
+                    </a>
+                  </Button>
                 )}
               </CardContent>
             </Card>

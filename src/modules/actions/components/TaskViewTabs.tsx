@@ -7,6 +7,7 @@ import {
   Users,
   ListTodo,
   LayoutGrid,
+  Ticket,
 } from "lucide-react";
 import type { TaskView, TaskStats } from "../types/tasks";
 
@@ -28,6 +29,7 @@ const views: {
   { value: "overdue", label: "Overdue", icon: AlertTriangle, statsKey: "overdue" },
   { value: "delegated", label: "Delegated", icon: Users, statsKey: "delegatedCount" },
   { value: "allMine", label: "All Tasks", icon: ListTodo, statsKey: "allMineCount" },
+  { value: "jira", label: "Jira", icon: Ticket },
   { value: "streams", label: "Streams", icon: LayoutGrid, isLink: true },
 ];
 

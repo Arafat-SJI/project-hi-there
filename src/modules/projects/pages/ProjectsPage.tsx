@@ -11,13 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, FolderKanban, Calendar, Loader2, Database } from "lucide-react";
+import { Plus, Search, FolderKanban, Calendar, Loader2, Database, RefreshCw } from "lucide-react";
 import { useProjects, useProjectStatuses } from "../hooks/useProjects";
 import { useClients } from "@/hooks/useClients";
 import { GlobalProjectsRestoreDialog } from "@/modules/projects/components/GlobalProjectsRestoreDialog";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
+import { useSyncProjects, useSyncTasks } from "@/hooks/useIntegrationSync";
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
@@ -25,6 +26,8 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const syncJiraProjects = useSyncProjects("jira");
+  const syncJiraTasks = useSyncTasks("jira");
 
   const { data: statuses = [] } = useProjectStatuses();
   const { data: projects = [], isLoading } = useProjects({
@@ -57,6 +60,20 @@ export default function ProjectsPage() {
     () => Object.fromEntries(ownerProfiles.map((p) => [p.id, p])),
     [ownerProfiles],
   );
+
+  const syncFromJira = useMutation({
+    mutationFn: async () => {
+      await syncJiraProjects.mutateAsync();
+      await syncJiraTasks.mutateAsync();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Jira sync failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const backupAll = useMutation({
     mutationFn: async () => {
@@ -96,6 +113,20 @@ export default function ProjectsPage() {
         </div>
         <div className="flex items-center gap-2">
           <GlobalProjectsRestoreDialog />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => syncFromJira.mutate()}
+            disabled={syncFromJira.isPending}
+            title="Runs Jira project sync, then Jira task sync (requires JIRA_* Edge secrets)"
+          >
+            {syncFromJira.isPending ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-1 h-4 w-4" />
+            )}
+            Sync from Jira
+          </Button>
           <Button
             variant="outline"
             size="sm"

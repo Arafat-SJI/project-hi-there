@@ -26,6 +26,22 @@ const PROJECT_MANAGEMENT_SYNC_FUNCTIONS: Record<string, string> = {
   workamajig: "sync-workamajig",
 };
 
+const TASK_SYNC_FUNCTIONS: Record<string, string> = {
+  jira: "sync-tasks-jira",
+};
+
+export interface SyncTasksChunkResponse {
+  success: boolean;
+  tasks_synced: number;
+  tasks_created: number;
+  tasks_updated: number;
+  comments_synced?: number;
+  worklogs_synced?: number;
+  errors: string[];
+  has_more?: boolean;
+  next_page_token?: string;
+}
+
 /**
  * Sync projects from a Project Management provider (ActiveCollab, Jira, etc.).
  */
@@ -75,6 +91,68 @@ export function useSyncProjects(providerSlug: string) {
     },
     onError: (err: Error) => {
       toast.error(err.message ?? "Failed to sync projects");
+    },
+  });
+}
+
+/**
+ * Sync tasks/issues from a PM provider (chunked pagination for Jira).
+ */
+export function useSyncTasks(providerSlug: string) {
+  const queryClient = useQueryClient();
+  const functionName = TASK_SYNC_FUNCTIONS[providerSlug];
+
+  return useMutation({
+    mutationFn: async (opts?: { project_key?: string }): Promise<SyncTasksChunkResponse> => {
+      if (!functionName) {
+        throw new Error(`No task sync function for provider: ${providerSlug}`);
+      }
+      let nextPageToken: string | undefined;
+      let aggregate: SyncTasksChunkResponse | undefined;
+
+      for (;;) {
+        const body: Record<string, unknown> = {
+          ...(opts?.project_key ? { project_key: opts.project_key } : {}),
+          ...(nextPageToken ? { next_page_token: nextPageToken } : {}),
+        };
+        const { data, error } = await supabase.functions.invoke(functionName, { body });
+        if (error) throw error;
+        const result = data as SyncTasksChunkResponse;
+        if (!result.success && result.errors?.length) {
+          throw new Error(result.errors[0] ?? "Task sync failed");
+        }
+        aggregate = {
+          success: result.success,
+          tasks_synced: (aggregate?.tasks_synced ?? 0) + result.tasks_synced,
+          tasks_created: (aggregate?.tasks_created ?? 0) + result.tasks_created,
+          tasks_updated: (aggregate?.tasks_updated ?? 0) + result.tasks_updated,
+          comments_synced: (aggregate?.comments_synced ?? 0) + (result.comments_synced ?? 0),
+          worklogs_synced: (aggregate?.worklogs_synced ?? 0) + (result.worklogs_synced ?? 0),
+          errors: [...(aggregate?.errors ?? []), ...(result.errors ?? [])],
+        };
+        invalidateKeys.tasks(queryClient);
+        if (!result.has_more) break;
+        nextPageToken = result.next_page_token;
+        if (!nextPageToken) break;
+      }
+
+      if (!aggregate) {
+        throw new Error("Task sync returned no data");
+      }
+      return aggregate;
+    },
+    onSuccess: (data) => {
+      const msg =
+        data.tasks_synced === 0
+          ? "No Jira issues synced in this run."
+          : `Synced ${data.tasks_synced} task${data.tasks_synced !== 1 ? "s" : ""} from Jira (${data.tasks_created} created, ${data.tasks_updated} updated).`;
+      toast.success(msg);
+      if (data.errors?.length) {
+        data.errors.forEach((e) => toast.warning(e));
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to sync tasks");
     },
   });
 }
