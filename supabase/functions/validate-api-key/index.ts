@@ -44,13 +44,6 @@ serve(async (req) => {
     // Handle frontend format with provider/credentials
     const provider = requestBody.provider as string | undefined;
     const credentials = requestBody.credentials as Record<string, string> | undefined;
-    
-    if (provider && credentials) {
-      service = provider;
-      // Extract API key from credentials - common field names
-      apiKey = credentials.api_key || credentials.apiKey || credentials.access_token || 
-               credentials.secret_key || credentials.token || Object.values(credentials)[0];
-    }
 
     // Health check / deployment test - no external calls (ping or empty body)
     if (ping === true || (requestBody && Object.keys(requestBody).length === 0)) {
@@ -58,6 +51,27 @@ serve(async (req) => {
         JSON.stringify({ valid: true, message: 'ok' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
+    }
+
+    // Jira: integration hub sends jira_host, jira_email, jira_api_token (not a single apiKey)
+    if (provider === 'jira' && credentials) {
+      const jiraHost = credentials.jira_host || credentials.jiraHost
+      const jiraEmail = credentials.jira_email || credentials.jiraEmail
+      const jiraToken = credentials.jira_api_token || credentials.jiraApiToken
+      if (jiraHost && jiraEmail && jiraToken) {
+        const jiraResult = await validateJiraFromFields(jiraHost, jiraEmail, jiraToken)
+        return new Response(
+          JSON.stringify(jiraResult),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        )
+      }
+    }
+    
+    if (provider && credentials) {
+      service = provider;
+      // Extract API key from credentials - common field names
+      apiKey = credentials.api_key || credentials.apiKey || credentials.access_token || 
+               credentials.secret_key || credentials.token || Object.values(credentials)[0];
     }
 
     if (!apiKey || !service) {
@@ -633,7 +647,57 @@ async function validateAmazonSES(credentials: string) {
   }
 }
 
-// Validate Jira credentials (expects email:api_token:domain format)
+// Validate Jira with site URL + email + API token (integration hub form)
+async function validateJiraFromFields(host: string, email: string, apiToken: string) {
+  try {
+    let base = host.trim().replace(/\/$/, '')
+    if (!/^https?:\/\//i.test(base)) {
+      base = `https://${base}`
+    }
+    const authString = btoa(`${email}:${apiToken}`)
+    const response = await fetch(`${base}/rest/api/3/myself`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${authString}`,
+        'Accept': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        valid: true,
+        message: 'Jira credentials are valid',
+        details: {
+          account_id: data.accountId,
+          display_name: data.displayName,
+        },
+      }
+    } else if (response.status === 401) {
+      return {
+        valid: false,
+        message: 'Invalid Jira credentials',
+        details: { status: response.status },
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      return {
+        valid: false,
+        message: errorData.errorMessages?.[0] || 'Invalid Jira credentials',
+        details: { status: response.status },
+      }
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Jira validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Validate Jira credentials (legacy: email:api_token:domain format)
 async function validateJira(credentials: string) {
   try {
     // Parse credentials - expects "email:api_token:domain" format

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { TaskComment } from "../../types/tasks";
+import { openJiraAttachment } from "../../lib/jiraAttachmentProxy";
 
 interface CommentThreadProps {
   taskId: string;
@@ -78,12 +79,24 @@ function CommentItem({ comment, taskId }: { comment: TaskComment; taskId: string
   const deleteComment = useDeleteComment();
   const addReply = useAddComment();
 
-  const isOwner = user?.id === comment.user_id;
-  const initials = comment.user?.full_name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase() || "?";
+  const isOwner = comment.user_id != null && user?.id === comment.user_id;
+  const displayName =
+    comment.jira_comment_id && (comment.jira_author_name || comment.jira_author_email)
+      ? comment.jira_author_name || comment.jira_author_email || "Jira user"
+      : comment.user?.full_name || comment.user?.email || "Unknown";
+  const initialsSource =
+    comment.jira_comment_id != null
+      ? comment.jira_author_name || comment.jira_author_email || "?"
+      : comment.user?.full_name || comment.user?.email || "?";
+  const initials =
+    initialsSource === "?"
+      ? "?"
+      : initialsSource
+          .split(/\s+/)
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 3);
 
   const handleSaveEdit = async () => {
     if (!editText.trim()) return;
@@ -105,8 +118,10 @@ function CommentItem({ comment, taskId }: { comment: TaskComment; taskId: string
   useEffect(() => {
     const el = bodyRef.current;
     if (!el) return;
-    const links = el.querySelectorAll<HTMLAnchorElement>("a[data-task-attachment-id]");
-    const handleClick = async (e: Event) => {
+    const taskLinks = el.querySelectorAll<HTMLAnchorElement>("a[data-task-attachment-id]");
+    const jiraLinks = el.querySelectorAll<HTMLAnchorElement>("a[data-jira-attachment-id]");
+
+    const handleTaskAtt = async (e: Event) => {
       const a = e.currentTarget as HTMLAnchorElement;
       const id = a.getAttribute("data-task-attachment-id");
       if (!id || a.getAttribute("href") !== "#") return;
@@ -132,8 +147,26 @@ function CommentItem({ comment, taskId }: { comment: TaskComment; taskId: string
         toast.error(err instanceof Error ? err.message : "Failed to open file");
       }
     };
-    links.forEach((link) => link.addEventListener("click", handleClick));
-    return () => links.forEach((link) => link.removeEventListener("click", handleClick));
+
+    const handleJiraAtt = async (e: Event) => {
+      const a = e.currentTarget as HTMLAnchorElement;
+      const id = a.getAttribute("data-jira-attachment-id");
+      if (!id || a.getAttribute("href") !== "#") return;
+      e.preventDefault();
+      try {
+        const name = a.getAttribute("data-jira-attachment-filename") || undefined;
+        await openJiraAttachment(id, name);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to open Jira attachment");
+      }
+    };
+
+    taskLinks.forEach((link) => link.addEventListener("click", handleTaskAtt));
+    jiraLinks.forEach((link) => link.addEventListener("click", handleJiraAtt));
+    return () => {
+      taskLinks.forEach((link) => link.removeEventListener("click", handleTaskAtt));
+      jiraLinks.forEach((link) => link.removeEventListener("click", handleJiraAtt));
+    };
   }, [comment.content]);
 
   return (
@@ -150,9 +183,7 @@ function CommentItem({ comment, taskId }: { comment: TaskComment; taskId: string
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-wrap items-baseline gap-2">
-              <span className="text-sm font-medium">
-                {comment.user?.full_name || comment.user?.email || "Unknown"}
-              </span>
+              <span className="text-sm font-medium">{displayName}</span>
               <span className="text-xs text-muted-foreground">
                 {format(new Date(comment.created_at), "MMM d, yyyy h:mm a")}
               </span>

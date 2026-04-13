@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, Plus, LayoutGrid, Search, Settings, CheckSquare } from "lucide-react";
+import { Loader2, Plus, LayoutGrid, Search, Settings, CheckSquare, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasksV2, useTaskStats, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
@@ -31,6 +31,7 @@ import { CreateTaskDialog } from "../components/CreateTaskDialog";
 import type { TaskView, TaskFilters, TaskStatus } from "../types/tasks";
 import type { Task } from "../types/tasks";
 import { cn } from "@/lib/utils";
+import { useSyncTasks } from "@/hooks/useIntegrationSync";
 
 const TAB_VIEW_MAP: Record<TaskDefaultView, TaskView | "streams"> = {
   today: "today",
@@ -74,6 +75,11 @@ const EMPTY_MESSAGES: Record<TaskView | "streams", { title: string; description:
     title: "No streams",
     description: "Create a stream to organize your tasks.",
   },
+  jira: {
+    title: "No Jira tasks yet",
+    description:
+      "Sync issues from Jira after configuring the integration (Admin → Integrations → Jira) and setting JIRA_HOST, JIRA_EMAIL, and JIRA_API_TOKEN in Edge secrets.",
+  },
 };
 
 export default function TasksPage() {
@@ -114,6 +120,7 @@ export default function TasksPage() {
   const { data: categories } = useTaskCategories();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const syncJiraTasks = useSyncTasks("jira");
 
   const handleViewChange = (v: TaskView | "streams") => {
     setView(v);
@@ -224,6 +231,19 @@ export default function TasksPage() {
           <Button variant="outline" onClick={() => navigate("/streams")}>
             <LayoutGrid className="mr-2 h-4 w-4" />
             Browse Streams
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => syncJiraTasks.mutate()}
+            disabled={syncJiraTasks.isPending}
+            title="Requires JIRA_* secrets on sync-tasks-jira"
+          >
+            {syncJiraTasks.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Sync Jira
           </Button>
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="mr-2 h-4 w-4" />

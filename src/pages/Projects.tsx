@@ -17,6 +17,7 @@ import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
+import { useSyncProjects, useSyncTasks } from "@/hooks/useIntegrationSync";
 import { generateProjectsCSV } from "@/lib/export-utils";
 import {
   ProjectsToolbar,
@@ -110,6 +111,8 @@ export default function Projects() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const syncJiraProjects = useSyncProjects("jira");
+  const syncJiraTasks = useSyncTasks("jira");
 
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -182,6 +185,19 @@ export default function Projects() {
 
   const clientById = useMemo(() => Object.fromEntries(clients.map((c) => [c.id, c])), [clients]);
   const ownerById = useMemo(() => Object.fromEntries(ownerProfiles.map((p) => [p.id, p])), [ownerProfiles]);
+
+  const syncFromJira = useMutation({
+    mutationFn: async () => {
+      await syncJiraProjects.mutateAsync();
+      await syncJiraTasks.mutateAsync();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Jira sync failed", description: e.message, variant: "destructive" });
+    },
+  });
 
   const backupAll = useMutation({
     mutationFn: async () => {
@@ -317,6 +333,8 @@ export default function Projects() {
           onViewModeChange={setViewMode}
           onExport={handleExport}
           onSync={() => queryClient.invalidateQueries({ queryKey: ["projects"] })}
+          onSyncFromJira={() => syncFromJira.mutate()}
+          syncFromJiraPending={syncFromJira.isPending}
           totalCount={allProjects.length}
           activeTab={activeTab}
           onAllClick={() => setActiveTab("all")}

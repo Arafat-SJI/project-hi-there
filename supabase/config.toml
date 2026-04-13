@@ -278,6 +278,12 @@ verify_jwt = false
 [functions.sync-projects-jira]
 verify_jwt = false
 
+[functions.sync-tasks-jira]
+verify_jwt = false
+
+[functions.jira-attachment-proxy]
+verify_jwt = true
+
 [functions.sync-clickup]
 verify_jwt = false
 

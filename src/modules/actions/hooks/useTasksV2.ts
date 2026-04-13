@@ -33,8 +33,9 @@ export function useTasksV2(filters?: TaskFilters) {
         .is("parent_id", null) // Only top-level tasks
         .order("created_at", { ascending: false });
 
-      // View-based filters
-      if (filters?.view && filters.view !== "all") {
+      if (filters?.view === "jira") {
+        query = query.eq("metadata->>source", "jira");
+      } else if (filters?.view && filters.view !== "all") {
         query = applyViewFilter(query, filters.view, user?.id, filters);
       }
 
