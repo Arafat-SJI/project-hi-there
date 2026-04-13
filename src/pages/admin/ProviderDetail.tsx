@@ -491,7 +491,7 @@ export default function ProviderDetail() {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Button
-              onClick={() => syncTasks.mutate()}
+              onClick={() => syncTasks.mutate(undefined)}
               disabled={syncTasks.isPending || syncProjects.isPending}
             >
               {syncTasks.isPending ? (

@@ -189,7 +189,7 @@ export default function Projects() {
   const syncFromJira = useMutation({
     mutationFn: async () => {
       await syncJiraProjects.mutateAsync();
-      await syncJiraTasks.mutateAsync();
+      await syncJiraTasks.mutateAsync(undefined);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });

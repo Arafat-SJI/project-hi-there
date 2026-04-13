@@ -64,7 +64,7 @@ export default function ProjectsPage() {
   const syncFromJira = useMutation({
     mutationFn: async () => {
       await syncJiraProjects.mutateAsync();
-      await syncJiraTasks.mutateAsync();
+      await syncJiraTasks.mutateAsync(undefined);
     },
     onError: (error: Error) => {
       toast({
