@@ -6758,50 +6758,6 @@ export type Database = {
           },
         ]
       }
-      task_time_logs: {
-        Row: {
-          created_at: string
-          hours: number
-          id: string
-          metadata: Json
-          note: string | null
-          source: string
-          started_at: string | null
-          task_id: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          hours: number
-          id?: string
-          metadata?: Json
-          note?: string | null
-          source?: string
-          started_at?: string | null
-          task_id: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          hours?: number
-          id?: string
-          metadata?: Json
-          note?: string | null
-          source?: string
-          started_at?: string | null
-          task_id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_time_logs_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       task_contributors: {
         Row: {
           added_at: string | null
