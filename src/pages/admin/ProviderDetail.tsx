@@ -4,9 +4,12 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Loader2, Save, AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,7 +24,9 @@ import {
   useDisconnectIntegration,
   useToggleService,
   useSetDefaultService,
+  useSendOutlookTestEmail,
 } from '@/hooks/useIntegrations';
+import { useConnectOAuth, useDisconnectOAuth, useUserOAuthToken } from '@/hooks/useUserIntegrations';
 import { useSyncProjects, useSyncTasks, useSyncFloatSchedule } from '@/hooks/useIntegrationSync';
 import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
@@ -37,6 +42,8 @@ import {
 export default function ProviderDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Fetch provider data
   const { data: provider, isLoading, error } = useIntegrationProvider(slug || '');
@@ -57,6 +64,23 @@ export default function ProviderDetail() {
   const syncProjects = useSyncProjects(slug || '');
   const syncTasks = useSyncTasks(slug || '');
   const syncFloatSchedule = useSyncFloatSchedule();
+
+  const outlookUserToken = useUserOAuthToken(slug === 'outlook' ? 'outlook' : '');
+  const connectOAuth = useConnectOAuth();
+  const disconnectOAuth = useDisconnectOAuth();
+  const sendOutlookTest = useSendOutlookTestEmail();
+  const [outlookTestRecipient, setOutlookTestRecipient] = useState('');
+
+  useEffect(() => {
+    if (slug !== 'outlook') return;
+    if (searchParams.get('connected') !== 'outlook') return;
+    queryClient.invalidateQueries({ queryKey: ['user-oauth-tokens'] });
+    queryClient.invalidateQueries({ queryKey: ['user-oauth-token'] });
+    toast.success('Microsoft Outlook connected successfully.');
+    const next = new URLSearchParams(searchParams);
+    next.delete('connected');
+    setSearchParams(next, { replace: true });
+  }, [slug, searchParams, setSearchParams, queryClient]);
 
   useEffect(() => {
     const fetchCategory = async () => {
@@ -373,7 +397,8 @@ export default function ProviderDetail() {
       )}
 
       {/* OAuth Connect — DB uses auth_type "oauth2"; was incorrectly gated on "oauth" only */}
-      {isOAuthProvider && orgIntegration?.connection_status !== 'connected' && (
+      {/* Outlook uses Integration Hub Edge flow (user-oauth-connect → user-oauth-callback), not client-side authorize URL */}
+      {isOAuthProvider && slug !== 'outlook' && orgIntegration?.connection_status !== 'connected' && (
         <Card>
           <CardHeader>
             <CardTitle>Connect with OAuth</CardTitle>
@@ -385,6 +410,87 @@ export default function ProviderDetail() {
             <Button onClick={handleOAuthConnect}>
               Connect {provider.name}
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {slug === 'outlook' && orgIntegration?.connection_status === 'connected' && !outlookUserToken.data && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Connect your mailbox</CardTitle>
+            <CardDescription>
+              After saving the Entra application credentials above, sign in with Microsoft to grant mail
+              and calendar access. In Entra, add redirect URI{' '}
+              <code className="text-xs bg-muted px-1 rounded break-all">
+                {'{SUPABASE_URL}'}/functions/v1/user-oauth-callback
+              </code>{' '}
+              (your project URL). This path is separate from MSAL on the Teams admin page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() =>
+                connectOAuth.mutate({
+                  provider: 'outlook',
+                  redirect_uri: `${window.location.origin}/admin/integrations/outlook`,
+                })
+              }
+              disabled={connectOAuth.isPending}
+            >
+              {connectOAuth.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Connect Microsoft Outlook
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {slug === 'outlook' && outlookUserToken.data && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Outlook connection</CardTitle>
+            <CardDescription>
+              Connected as{' '}
+              {outlookUserToken.data.account_email ||
+                outlookUserToken.data.account_name ||
+                'your Microsoft account'}
+              . Send a test message to verify Mail.Send.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              variant="outline"
+              onClick={() => disconnectOAuth.mutate({ provider: 'outlook' })}
+              disabled={disconnectOAuth.isPending}
+            >
+              Disconnect mailbox
+            </Button>
+            <div className="max-w-md space-y-2">
+              <Label htmlFor="outlook-test-recipient">Test recipient (optional)</Label>
+              <Input
+                id="outlook-test-recipient"
+                type="email"
+                placeholder="Defaults to your connected mailbox"
+                value={outlookTestRecipient}
+                onChange={(e) => setOutlookTestRecipient(e.target.value)}
+              />
+              <Button
+                onClick={async () => {
+                  try {
+                    const to = outlookTestRecipient.trim();
+                    await sendOutlookTest.mutateAsync(to.length > 0 ? to : undefined);
+                    toast.success('Test email sent.');
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : 'Failed to send test email');
+                  }
+                }}
+                disabled={sendOutlookTest.isPending}
+              >
+                {sendOutlookTest.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Send test email
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

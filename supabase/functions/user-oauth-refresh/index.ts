@@ -23,10 +23,25 @@ interface TokenResponse {
 const getTokenEndpoint = (provider: string): string => {
   const endpoints: Record<string, string> = {
     google: "https://oauth2.googleapis.com/token",
+    "google-meet": "https://oauth2.googleapis.com/token",
+    "google-drive": "https://oauth2.googleapis.com/token",
     zoom: "https://zoom.us/oauth/token",
     microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+    outlook: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+    clickup: "https://api.clickup.com/api/v2/oauth/token",
   };
   return endpoints[provider] || "";
+};
+
+const getOutlookTokenEndpoint = (config: Record<string, unknown>): string => {
+  const tenant =
+    (config.tenant_id as string) ||
+    (config.directory_id as string) ||
+    (config.microsoft_tenant_id as string) ||
+    (config.outlook_tenant_id as string);
+  const t = tenant?.trim();
+  if (t) return `https://login.microsoftonline.com/${t}/oauth2/v2.0/token`;
+  return "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 };
 
 serve(async (req) => {
@@ -94,12 +109,13 @@ serve(async (req) => {
       );
     }
 
-    // Get organization integration for client credentials
+    // Per-user organization_integrations row (client_id / client_secret in config JSONB)
     const { data: orgIntegration, error: orgError } = await supabase
       .from("organization_integrations")
       .select("*, integration_providers!inner(*)")
       .eq("integration_providers.slug", provider)
-      .eq("is_enabled", true)
+      .eq("user_id", user.id)
+      .eq("enabled", true)
       .single();
 
     if (orgError || !orgIntegration) {
@@ -109,7 +125,8 @@ serve(async (req) => {
       );
     }
 
-    const { client_id, client_secret } = orgIntegration.credentials || {};
+    const rawConfig = (orgIntegration.config || orgIntegration.credentials || {}) as Record<string, string>;
+    const { client_id, client_secret } = rawConfig;
 
     if (!client_id || !client_secret) {
       return new Response(
@@ -118,8 +135,9 @@ serve(async (req) => {
       );
     }
 
-    // Refresh the token
-    const tokenEndpoint = getTokenEndpoint(provider);
+    const tokenEndpoint = provider === "outlook"
+      ? getOutlookTokenEndpoint(rawConfig as unknown as Record<string, unknown>)
+      : getTokenEndpoint(provider);
     const refreshParams = new URLSearchParams({
       client_id,
       client_secret,

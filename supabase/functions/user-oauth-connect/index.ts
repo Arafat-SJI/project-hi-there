@@ -92,11 +92,18 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
         response_mode: "query",
       },
     },
+    /** Integration Hub Outlook / Microsoft Graph (mail + calendar); distinct from Teams MSAL flow */
     outlook: {
       authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
       scopes: [
-        "openid", "profile", "email", "offline_access",
-        "User.Read", "Mail.Read", "Mail.Send", "Calendars.ReadWrite",
+        "openid",
+        "email",
+        "profile",
+        "offline_access",
+        "User.Read",
+        "Mail.Read",
+        "Mail.Send",
+        "Calendars.ReadWrite",
       ],
       additionalParams: {
         response_mode: "query",
@@ -182,11 +189,12 @@ serve(async (req) => {
       });
     }
 
-    // Check if organization has this provider enabled
+    // Per-user org integration row (this project stores user_id on organization_integrations)
     const { data: orgIntegration, error: orgError } = await supabase
       .from("organization_integrations")
       .select("*")
       .eq("provider_id", providerData.id)
+      .eq("user_id", user.id)
       .eq("enabled", true)
       .eq("connection_status", "connected")
       .single();
@@ -230,6 +238,22 @@ serve(async (req) => {
       scopes.push(...additional_scopes);
     }
 
+    let authorizeBaseUrl = providerConfig.authUrl;
+    if (provider === "outlook") {
+      const cfg = (orgIntegration.config || {}) as Record<string, string | undefined>;
+      const tenant =
+        cfg.tenant_id ||
+        cfg.directory_id ||
+        cfg.microsoft_tenant_id ||
+        cfg.outlook_tenant_id ||
+        Deno.env.get("AZURE_AD_TENANT_ID") ||
+        Deno.env.get("MICROSOFT_DIRECTORY_ID");
+      const t = tenant?.trim();
+      if (t) {
+        authorizeBaseUrl = `https://login.microsoftonline.com/${t}/oauth2/v2.0/authorize`;
+      }
+    }
+
     // Build the authorization URL
     const params = new URLSearchParams({
       client_id: clientId,
@@ -240,7 +264,7 @@ serve(async (req) => {
       ...providerConfig.additionalParams,
     });
 
-    const authorizationUrl = `${providerConfig.authUrl}?${params.toString()}`;
+    const authorizationUrl = `${authorizeBaseUrl}?${params.toString()}`;
 
     return new Response(
       JSON.stringify({

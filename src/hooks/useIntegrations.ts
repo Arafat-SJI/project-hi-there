@@ -496,6 +496,23 @@ interface GroupedProviders {
 /**
  * Get all providers grouped by category with connection status
  */
+/**
+ * Send a test email via Microsoft Graph (Integration Hub Outlook user_oauth_tokens).
+ */
+export function useSendOutlookTestEmail() {
+  return useMutation({
+    mutationFn: async (recipient_email?: string) => {
+      const { data, error } = await supabase.functions.invoke('outlook-send-test-email', {
+        body: recipient_email ? { recipient_email } : {},
+      });
+      if (error) throw error;
+      const payload = data as { error?: string; success?: boolean; to?: string };
+      if (payload?.error) throw new Error(payload.error);
+      return payload;
+    },
+  });
+}
+
 export function useProvidersGroupedByCategory() {
   const categoriesQuery = useIntegrationCategories();
   const providersQuery = useIntegrationProviders();

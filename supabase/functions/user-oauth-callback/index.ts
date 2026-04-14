@@ -33,9 +33,22 @@ const getTokenEndpoint = (provider: string): string => {
     "google-drive": "https://oauth2.googleapis.com/token",
     zoom: "https://zoom.us/oauth/token",
     microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+    outlook: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
     clickup: "https://api.clickup.com/api/v2/oauth/token",
   };
   return endpoints[provider] || "";
+};
+
+/** Outlook: single-tenant token URL when tenant* is stored in org config */
+const getOutlookTokenEndpoint = (config: Record<string, unknown>): string => {
+  const tenant =
+    (config.tenant_id as string) ||
+    (config.directory_id as string) ||
+    (config.microsoft_tenant_id as string) ||
+    (config.outlook_tenant_id as string);
+  const t = tenant?.trim();
+  if (t) return `https://login.microsoftonline.com/${t}/oauth2/v2.0/token`;
+  return "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 };
 
 const getUserInfo = async (provider: string, accessToken: string): Promise<UserInfo> => {
@@ -54,6 +67,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
       url = "https://api.zoom.us/v2/users/me";
       break;
     case "microsoft":
+    case "outlook":
       url = "https://graph.microsoft.com/v1.0/me";
       break;
     case "clickup":
@@ -89,6 +103,7 @@ const getUserInfo = async (provider: string, accessToken: string): Promise<UserI
           picture: data.pic_url,
         };
       case "microsoft":
+      case "outlook":
         return {
           email: data.mail || data.userPrincipalName,
           name: data.displayName,
@@ -159,12 +174,14 @@ serve(async (req) => {
 
     const { user_id, provider, redirect_uri } = stateData;
 
-    // Get organization integration for client credentials
+    // Organization integration for this user (organization_integrations.user_id)
     const { data: orgIntegration, error: orgError } = await supabase
       .from("organization_integrations")
       .select("*, integration_providers!inner(*)")
       .eq("integration_providers.slug", provider)
+      .eq("user_id", user_id)
       .eq("enabled", true)
+      .eq("connection_status", "connected")
       .single();
 
     if (orgError || !orgIntegration) {
@@ -182,7 +199,8 @@ serve(async (req) => {
     }
 
     // Exchange code for tokens
-    const tokenEndpoint = getTokenEndpoint(provider);
+    const tokenCfg = config as Record<string, unknown>;
+    const tokenEndpoint = provider === "outlook" ? getOutlookTokenEndpoint(tokenCfg) : getTokenEndpoint(provider);
 
     const tokenParams = new URLSearchParams({
       code,
@@ -267,6 +285,8 @@ serve(async (req) => {
       finalRedirect = `${appUrl}/admin/integrations/google-meet`;
     } else if (provider === "google-drive") {
       finalRedirect = `${appUrl}/admin/integrations/google-drive`;
+    } else if (provider === "outlook") {
+      finalRedirect = `${appUrl}/admin/integrations/outlook`;
     } else {
       // For ClickUp and any other providers without a dedicated admin page,
       // send users back to the main Settings page where Connected Services lives.
