@@ -23,7 +23,7 @@ function readConfigString(config: Record<string, unknown>, keys: string[]): stri
 }
 
 async function resolveFellowCredentials(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
 ): Promise<{ subdomain: string; apiKey: string } | null> {
   const { data: provider } = await supabase
