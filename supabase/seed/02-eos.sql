@@ -13,6 +13,10 @@ DECLARE
   okr1 UUID;
   okr2 UUID;
   okr3 UUID;
+  okr4 UUID;
+  okr5 UUID;
+  okr6 UUID;
+  okr7 UUID;
   kr1 UUID;
   kr2 UUID;
   sc1 UUID;
