@@ -50,7 +50,7 @@ export function useTasksV2(filters?: TaskFilters) {
         query = query.eq("assigned_to", filters.assigned_to);
       }
       if (filters?.stream_id) {
-        query = query.eq("stream_id", filters.stream_id);
+        query = query.or(`stream_id.eq.${filters.stream_id},category_id.eq.${filters.stream_id}`);
       }
       if (filters?.category_id) {
         query = query.eq("category_id", filters.category_id);

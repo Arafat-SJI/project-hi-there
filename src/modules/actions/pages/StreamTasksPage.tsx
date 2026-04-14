@@ -4,7 +4,7 @@
  * Shows tasks filtered to a specific stream (by slug or id in URL).
  */
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, ArrowLeft, Users } from "lucide-react";
 import { useTasksV2, useUpdateTask, useDeleteTask } from "../hooks/useTasksV2";
@@ -16,17 +16,20 @@ import { StreamPeopleModal } from "../components/StreamPeopleModal";
 import type { TaskFilters, TaskStatus } from "../types/tasks";
 
 export default function StreamTasksPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, streamId } = useParams<{ slug?: string; streamId?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith("/admin");
+  const slugOrId = streamId || slug;
   const [filters, setFilters] = useState<TaskFilters>({});
   const [showCreate, setShowCreate] = useState(false);
   const [showPeople, setShowPeople] = useState(false);
 
-  const { data: stream, isLoading: streamLoading } = useTaskStreamBySlug(slug);
-  const streamId = stream?.id;
+  const { data: stream, isLoading: streamLoading } = useTaskStreamBySlug(slugOrId);
+  const currentStreamId = stream?.id;
   const { data: tasks, isLoading: tasksLoading } = useTasksV2({
     ...filters,
-    stream_id: streamId,
+    stream_id: currentStreamId,
   });
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -37,7 +40,11 @@ export default function StreamTasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/streams")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(isAdmin ? "/admin/tasks/streams" : "/streams")}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -87,7 +94,7 @@ export default function StreamTasksPage() {
       <CreateTaskDialog
         open={showCreate}
         onOpenChange={setShowCreate}
-        defaultStreamId={streamId}
+        defaultStreamId={currentStreamId}
       />
       {stream && (
         <StreamPeopleModal
