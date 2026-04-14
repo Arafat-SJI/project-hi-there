@@ -92,6 +92,16 @@ const getProviderConfig = (provider: string): OAuthConfig | null => {
         response_mode: "query",
       },
     },
+    outlook: {
+      authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+      scopes: [
+        "openid", "profile", "email", "offline_access",
+        "User.Read", "Mail.Read", "Mail.Send", "Calendars.ReadWrite",
+      ],
+      additionalParams: {
+        response_mode: "query",
+      },
+    },
   };
 
   return configs[provider] || null;
