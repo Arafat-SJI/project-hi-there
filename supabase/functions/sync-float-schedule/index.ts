@@ -73,14 +73,14 @@ async function resolveFloatCredentials(
   supabase: ReturnType<typeof createClient>,
   userId: string,
 ): Promise<FloatCredentials | null> {
-  const { data: provider } = await supabase
+  const { data: provider } = await (supabase as any)
     .from("integration_providers")
     .select("id")
     .eq("slug", "float")
     .maybeSingle();
 
   if (provider?.id) {
-    const { data: orgIntegration } = await supabase
+    const { data: orgIntegration } = await (supabase as any)
       .from("organization_integrations")
       .select("config")
       .eq("provider_id", provider.id)
