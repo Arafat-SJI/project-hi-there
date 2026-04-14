@@ -5,8 +5,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1"
 import { getCorsHeaders, handleCorsPreflight } from "../../cors.ts"
 import { resolveZohoAuth, ZohoAuthError, zohoDealIdFromExternalId } from "./zoho.ts"
 
+// deno-lint-ignore no-explicit-any
 export interface ZohoDealSyncContext {
-  supabase: ReturnType<typeof createClient>
+  supabase: any
   userId: string
   dealId: string
   zohoDealId: string
