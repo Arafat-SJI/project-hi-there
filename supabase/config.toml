@@ -293,6 +293,10 @@ verify_jwt = false
 [functions.sync-float-schedule]
 verify_jwt = false
 
+# Fellow.ai proxy (JWT validated in-function; loads org integration via service role)
+[functions.fellow-api]
+verify_jwt = false
+
 [functions.user-integration-clear-data]
 verify_jwt = false
 

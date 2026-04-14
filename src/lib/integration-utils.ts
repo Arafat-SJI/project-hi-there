@@ -9,6 +9,7 @@ import {
   Cloud,
   Zap,
   Video,
+  Mic2,
   Mail,
   Users,
   Kanban,
@@ -169,6 +170,7 @@ export function getProviderIcon(slug: string): LucideIcon {
 
     // Meeting Providers
     zoom: Video,
+    fellow: Mic2,
     'microsoft-teams': Users,
     'google-meet': Video,
     webex: Video,

@@ -30,6 +30,7 @@ import { useProjectTasks } from "@/modules/projects/hooks/useProjectTasks";
 import { useProjectIntegrations } from "@/modules/projects/hooks/useProjectIntegrations";
 import { useEnabledProjectModules } from "@/hooks/useProjectModuleSettings";
 import { useProjectMeetings } from "@/modules/meetings/hooks/useCrossModuleMeetings";
+import { MeetingTranscriptsCard } from "@/modules/projects/components/MeetingTranscriptsCard";
 import { useClients } from "@/hooks/useClients";
 import { OverviewTab } from "@/modules/projects/components/OverviewTab";
 import { TasksTab } from "@/modules/projects/components/TasksTab";
@@ -297,9 +298,10 @@ export default function ProjectDetail() {
         )}
 
         {visibleTabs.includes("meetings") && (
-          <TabsContent value="meetings" className="mt-4">
+          <TabsContent value="meetings" className="mt-4 space-y-6">
+            <MeetingTranscriptsCard projectId={project.id} />
             {linkedMeetings.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No meetings linked to this project.</p>
+              <p className="text-sm text-muted-foreground py-4 text-center">No meetings linked to this project yet.</p>
             ) : (
               <div className="space-y-2">
                 {linkedMeetings.map((item) =>

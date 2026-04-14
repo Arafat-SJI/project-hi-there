@@ -62,6 +62,12 @@ export const queryKeys = {
     entityMeetings: (entityType: string, entityId: string) => ["meetings", "entity", entityType, entityId] as const,
     // Knowledge base integration
     knowledgeMeetings: (filters?: Record<string, any>) => ["meetings", "knowledge", filters] as const,
+    /** Fellow.ai proxy (Edge Function fellow-api) */
+    fellow: {
+      recordings: (limit: number) => ["meetings", "fellow", "recordings", limit] as const,
+      notes: (limit: number) => ["meetings", "fellow", "notes", limit] as const,
+      actionItems: (limit: number) => ["meetings", "fellow", "action-items", limit] as const,
+    },
   },
 
   // Knowledge Base
