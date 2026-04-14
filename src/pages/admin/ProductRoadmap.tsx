@@ -613,12 +613,6 @@ export default function ProductRoadmap() {
             Product vision, live delivery status, and feature roadmap for SJ Control Tower
           </p>
         </div>
-        <Link to="/admin/roadmap/seed">
-          <Button variant="outline" size="sm">
-            <Database className="h-4 w-4 mr-2" />
-            Seed Data
-          </Button>
-        </Link>
       </div>
 
       <Tabs defaultValue="vision" className="space-y-6">
