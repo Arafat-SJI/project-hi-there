@@ -59,6 +59,7 @@ import { CreateGoogleMeetMeetingDialog } from "@/components/meetings/CreateGoogl
 import { useToast } from "@/hooks/use-toast";
 import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
 import { AIAgentPresenceIndicator } from "@/components/ai/AIAgentPresenceIndicator";
+import { FellowRecordingsStrip } from "../components/FellowRecordingsStrip";
 
 const VIEW_MODE_KEY = "meetings-view-mode";
 type ViewMode = "list" | "calendar";
@@ -300,6 +301,8 @@ export default function MeetingsSchedulePage() {
           </CardContent>
         </Card>
       </div>
+
+      <FellowRecordingsStrip />
 
       {/* Search and filters: search (icon inside) + button + All Types + My meetings only */}
       <div className="flex flex-wrap items-center gap-3">

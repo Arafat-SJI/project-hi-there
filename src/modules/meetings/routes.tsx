@@ -18,6 +18,7 @@ import MeetingAiMatchResultsPage from "./pages/MeetingAiMatchResultsPage";
 import MeetingPendingAssignmentsPage from "./pages/MeetingPendingAssignmentsPage";
 import MeetingIdRedirectPage from "./pages/MeetingIdRedirectPage";
 import KnowledgeMeetingsPage from "./pages/KnowledgeMeetingsPage";
+import FellowActionItemsPage from "./pages/FellowActionItemsPage";
 
 // Legacy pages (still used for create/edit forms)
 import MeetingForm from "@/pages/MeetingForm";
@@ -29,6 +30,7 @@ export const meetingsRoutes = (
 
     {/* All Meetings (Schedule) */}
     <Route path="/meetings/schedule" element={<MeetingsSchedulePage />} />
+    <Route path="/meetings/fellow-action-items" element={<FellowActionItemsPage />} />
     <Route path="/meetings/schedule/:idOrSlug" element={<MeetingDetailV2Page />} />
 
     {/* Transcripts */}

@@ -1,4 +1,4 @@
-// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float
+// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float, fellow
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -84,6 +84,16 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
       }
+    }
+
+    if (provider === 'fellow' && credentials) {
+      const rawSub = String(credentials.subdomain || credentials.fellow_subdomain || credentials.fellowSubdomain || '').trim()
+      const fellowKey = String(credentials.api_key || credentials.apiKey || credentials.fellow_api_key || credentials.fellowApiKey || '').trim()
+      const fellowResult = await validateFellow(rawSub, fellowKey)
+      return new Response(
+        JSON.stringify(fellowResult),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
     }
 
     if (provider && credentials) {
@@ -938,6 +948,63 @@ async function validateClickUp(apiKey: string) {
 }
 
 // Validate Float API key
+function cleanFellowSubdomain(raw: string): string {
+  let s = raw.trim()
+  s = s.replace(/^https?:\/\//i, '')
+  s = (s.split('/')[0] ?? '').trim()
+  s = s.replace(/\.fellow\.app$/i, '')
+  return s.replace(/[^\w.-]/g, '').replace(/^\.+|\.+$/g, '')
+}
+
+async function validateFellow(subdomainRaw: string, apiKey: string) {
+  const subdomain = cleanFellowSubdomain(subdomainRaw)
+  if (!subdomain || !apiKey) {
+    return {
+      valid: false,
+      message: 'Fellow requires workspace subdomain and API key',
+      details: {},
+    }
+  }
+  try {
+    const url = `https://${subdomain}.fellow.app/api/v1/recordings`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': apiKey,
+      },
+      body: JSON.stringify({ limit: 1 }),
+    })
+    if (response.ok) {
+      return {
+        valid: true,
+        message: 'Fellow API key and subdomain are valid',
+        details: { subdomain },
+      }
+    }
+    if (response.status === 401 || response.status === 403) {
+      return {
+        valid: false,
+        message: 'Invalid Fellow API key or you do not have access to this workspace',
+        details: { status: response.status },
+      }
+    }
+    const text = await response.text()
+    return {
+      valid: false,
+      message: `Fellow validation failed (${response.status})`,
+      details: { status: response.status, body: text.slice(0, 160) },
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Fellow validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
 async function validateFloat(apiKey: string, credentials?: Record<string, string>) {
   try {
     const baseUrl = (credentials?.float_base_url || credentials?.floatBaseUrl || 'https://api.float.com/v3')
