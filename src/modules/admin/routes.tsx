@@ -58,7 +58,6 @@ import CommonKnowledgeManagement from "@/pages/admin/CommonKnowledgeManagement";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
 import DashboardWidgets from "@/pages/admin/DashboardWidgets";
 import AgencyRoles from "@/pages/admin/AgencyRoles";
-import SeedRunner from "@/pages/admin/SeedRunner";
 import GeminiRAGConfig from "@/pages/admin/GeminiRAGConfig";
 import MemoryAnalytics from "@/pages/admin/MemoryAnalytics";
 import EmbeddingsExplorer from "@/pages/admin/EmbeddingsExplorer";
@@ -200,6 +199,5 @@ export const adminRoutes = (
     <Route path="/admin/api-keys" element={<ApiKeys />} />
     <Route path="/admin/meeting-analytics" element={<MeetingAnalytics />} />
     <Route path="/admin/roadmap" element={<ProductRoadmap />} />
-    <Route path="/admin/roadmap/seed" element={<SeedRunner />} />
   </>
 );
