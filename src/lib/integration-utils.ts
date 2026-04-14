@@ -177,6 +177,7 @@ export function getProviderIcon(slug: string): LucideIcon {
     gotomeeting: Video,
 
     // Email Providers
+    outlook: Mail,
     sendgrid: Mail,
     mailgun: Mail,
     postmark: Mail,

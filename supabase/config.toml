@@ -142,6 +142,9 @@ verify_jwt = false
 [functions.user-oauth-disconnect]
 verify_jwt = false
 
+[functions.outlook-send-test-email]
+verify_jwt = false
+
 # Admin: user memory stats (auth + admin check in-code)
 [functions.user-memory-stats]
 verify_jwt = false
