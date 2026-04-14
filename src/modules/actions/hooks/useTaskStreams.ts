@@ -6,7 +6,6 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { TaskStream } from "../types/tasks";
 
@@ -20,10 +19,10 @@ export function useTaskStreams() {
     queryKey: [STREAMS_KEY],
     queryFn: async (): Promise<TaskStream[]> => {
       const { data, error } = await supabase
-        .from("task_streams")
+        .from("task_categories")
         .select("*")
-        .eq("is_archived", false)
-        .order("created_at", { ascending: false });
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
 
       if (error) throw error;
 
@@ -33,30 +32,24 @@ export function useTaskStreams() {
 
       const { data: taskCounts } = await supabase
         .from("tasks")
-        .select("stream_id")
-        .in("stream_id", streamIds)
+        .select("category_id")
+        .in("category_id", streamIds)
         .is("parent_id", null);
 
-      const { data: memberCounts } = await supabase
-        .from("task_stream_members")
-        .select("stream_id")
-        .in("stream_id", streamIds);
-
       const taskCountMap: Record<string, number> = {};
-      const memberCountMap: Record<string, number> = {};
 
       (taskCounts || []).forEach((t) => {
-        if (t.stream_id) taskCountMap[t.stream_id] = (taskCountMap[t.stream_id] || 0) + 1;
-      });
-
-      (memberCounts || []).forEach((m) => {
-        if (m.stream_id) memberCountMap[m.stream_id] = (memberCountMap[m.stream_id] || 0) + 1;
+        if (t.category_id) taskCountMap[t.category_id] = (taskCountMap[t.category_id] || 0) + 1;
       });
 
       return (data || []).map((s) => ({
         ...s,
+        description: s.description ?? null,
+        is_archived: !(s.is_active ?? true),
+        created_by: null,
+        updated_at: s.created_at,
         task_count: taskCountMap[s.id] || 0,
-        member_count: memberCountMap[s.id] || 0,
+        member_count: 0,
       }));
     },
   });
@@ -71,12 +64,18 @@ export function useTaskStream(id: string | undefined) {
     queryFn: async () => {
       if (!id) return null;
       const { data, error } = await supabase
-        .from("task_streams")
+        .from("task_categories")
         .select("*")
         .eq("id", id)
         .single();
       if (error) throw error;
-      return data as TaskStream;
+      return {
+        ...data,
+        description: data.description ?? null,
+        is_archived: !(data.is_active ?? true),
+        created_by: null,
+        updated_at: data.created_at,
+      } as TaskStream;
     },
     enabled: !!id,
   });
@@ -93,12 +92,18 @@ export function useTaskStreamBySlug(slugOrId: string | undefined) {
     queryFn: async () => {
       if (!slugOrId) return null;
       const { data, error } = await supabase
-        .from("task_streams")
+        .from("task_categories")
         .select("*")
         .eq(isUuid ? "id" : "slug", slugOrId)
         .single();
       if (error) throw error;
-      return data as TaskStream;
+      return {
+        ...data,
+        description: data.description ?? null,
+        is_archived: !(data.is_active ?? true),
+        created_by: null,
+        updated_at: data.created_at,
+      } as TaskStream;
     },
     enabled: !!slugOrId,
   });
@@ -109,7 +114,6 @@ export function useTaskStreamBySlug(slugOrId: string | undefined) {
  */
 export function useCreateStream() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (data: { name: string; description?: string; color?: string }) => {
@@ -119,25 +123,19 @@ export function useCreateStream() {
         .replace(/^-|-$/g, "");
 
       const { data: stream, error } = await supabase
-        .from("task_streams")
+        .from("task_categories")
         .insert({
           name: data.name,
           slug,
           description: data.description || null,
           color: data.color || "#6366f1",
-          created_by: user!.id,
+          icon: "layers",
+          is_active: true,
         })
         .select()
         .single();
 
       if (error) throw error;
-
-      // Add creator as owner
-      await supabase.from("task_stream_members").insert({
-        stream_id: stream.id,
-        user_id: user!.id,
-        role: "owner",
-      });
 
       return stream;
     },
@@ -160,8 +158,19 @@ export function useUpdateStream() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Pick<TaskStream, "name" | "description" | "color" | "is_archived">> }) => {
       const { error } = await supabase
-        .from("task_streams")
-        .update({ ...data, updated_at: new Date().toISOString() })
+        .from("task_categories")
+        .update({
+          ...data,
+          ...(data.is_archived !== undefined ? { is_active: !data.is_archived } : {}),
+          ...(data.name
+            ? {
+                slug: data.name
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .replace(/^-|-$/g, ""),
+              }
+            : {}),
+        } as never)
         .eq("id", id);
       if (error) throw error;
     },
@@ -184,8 +193,8 @@ export function useArchiveStream() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("task_streams")
-        .update({ is_archived: true, updated_at: new Date().toISOString() })
+        .from("task_categories")
+        .update({ is_active: false } as never)
         .eq("id", id);
       if (error) throw error;
     },

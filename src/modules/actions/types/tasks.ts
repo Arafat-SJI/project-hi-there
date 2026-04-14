@@ -134,9 +134,22 @@ export interface TaskCategory {
   id: string;
   name: string;
   slug: string | null;
-  color: string;
-  sort_order: number;
-  created_at: string;
+  color: string | null;
+  sort_order: number | null;
+  created_at: string | null;
+  description?: string | null;
+  icon?: string | null;
+  is_active?: boolean | null;
+  parent_id?: string | null;
+}
+
+export interface TaskCategoryAccessRule {
+  id: string;
+  category_id: string;
+  role: string;
+  role_id: string | null;
+  access_level: "full" | "read_only";
+  created_at: string | null;
 }
 
 // ========================

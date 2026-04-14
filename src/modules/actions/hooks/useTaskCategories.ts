@@ -11,15 +11,38 @@ import type { TaskCategory } from "../types/tasks";
 
 const CATEGORIES_KEY = "task-categories";
 
-export function useTaskCategories() {
+interface UseTaskCategoriesOptions {
+  includeInactive?: boolean;
+}
+
+interface UpsertTaskCategoryInput {
+  name: string;
+  color: string;
+  description?: string;
+  icon?: string;
+  parent_id?: string;
+}
+
+const slugify = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+export function useTaskCategories(options?: UseTaskCategoriesOptions) {
   return useQuery({
-    queryKey: [CATEGORIES_KEY],
+    queryKey: [CATEGORIES_KEY, options?.includeInactive ? "all" : "active"],
     queryFn: async (): Promise<TaskCategory[]> => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("task_categories")
         .select("*")
         .order("sort_order", { ascending: true });
 
+      if (!options?.includeInactive) {
+        query = query.eq("is_active", true);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
@@ -29,11 +52,8 @@ export function useTaskCategories() {
 export function useCreateTaskCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { name: string; color: string }) => {
-      const slug = data.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
+    mutationFn: async (data: UpsertTaskCategoryInput) => {
+      const slug = slugify(data.name);
 
       // Get next sort_order
       const { data: existing } = await supabase
@@ -46,7 +66,16 @@ export function useCreateTaskCategory() {
 
       const { data: category, error } = await supabase
         .from("task_categories")
-        .insert({ name: data.name, color: data.color, slug, sort_order: nextOrder })
+        .insert({
+          name: data.name,
+          color: data.color,
+          slug,
+          sort_order: nextOrder,
+          description: data.description ?? null,
+          icon: data.icon ?? "layers",
+          parent_id: data.parent_id ?? null,
+          is_active: true,
+        } as never)
         .select()
         .single();
 
@@ -64,8 +93,29 @@ export function useCreateTaskCategory() {
 export function useUpdateTaskCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { name?: string; color?: string; sort_order?: number } }) => {
-      const { error } = await supabase.from("task_categories").update(data).eq("id", id);
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        name?: string;
+        color?: string;
+        sort_order?: number;
+        description?: string;
+        icon?: string;
+        parent_id?: string | null;
+      };
+    }) => {
+      const payload = {
+        ...data,
+        ...(data.name ? { slug: slugify(data.name) } : {}),
+      };
+
+      const { error } = await supabase
+        .from("task_categories")
+        .update(payload as never)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -73,6 +123,25 @@ export function useUpdateTaskCategory() {
       toast.success("Category updated");
     },
     onError: (error: Error) => toast.error("Failed to update category", { description: error.message }),
+  });
+}
+
+export function useToggleTaskCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase
+        .from("task_categories")
+        .update({ is_active } as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CATEGORIES_KEY] });
+      toast.success("Stream status updated");
+    },
+    onError: (error: Error) =>
+      toast.error("Failed to update stream status", { description: error.message }),
   });
 }
 
