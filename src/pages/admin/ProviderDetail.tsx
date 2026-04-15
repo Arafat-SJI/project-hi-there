@@ -27,7 +27,12 @@ import {
   useSendOutlookTestEmail,
 } from '@/hooks/useIntegrations';
 import { useConnectOAuth, useDisconnectOAuth, useUserOAuthToken } from '@/hooks/useUserIntegrations';
-import { useSyncProjects, useSyncTasks, useSyncFloatSchedule } from '@/hooks/useIntegrationSync';
+import {
+  useSyncProjects,
+  useSyncTasks,
+  useSyncFloatSchedule,
+  useSyncConfluenceKnowledge,
+} from '@/hooks/useIntegrationSync';
 import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
 import { UsageStats } from '@/components/integrations/UsageStats';
@@ -64,6 +69,7 @@ export default function ProviderDetail() {
   const syncProjects = useSyncProjects(slug || '');
   const syncTasks = useSyncTasks(slug || '');
   const syncFloatSchedule = useSyncFloatSchedule();
+  const syncConfluenceKnowledge = useSyncConfluenceKnowledge();
 
   const outlookUserToken = useUserOAuthToken(slug === 'outlook' ? 'outlook' : '');
   const connectOAuth = useConnectOAuth();
@@ -630,6 +636,54 @@ export default function ProviderDetail() {
               )}
               Sync schedule
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {slug === 'confluence' && orgIntegration?.connection_status === 'connected' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sync Confluence into Knowledge</CardTitle>
+            <CardDescription>
+              Import Confluence pages into the knowledge base. Sync prefers credentials saved above;
+              if any required field is missing, it falls back to Edge secrets{' '}
+              <code className="text-xs bg-muted px-1 rounded">CONFLUENCE_EMAIL</code>,{' '}
+              <code className="text-xs bg-muted px-1 rounded">CONFLUENCE_API_TOKEN</code>,{' '}
+              <code className="text-xs bg-muted px-1 rounded">CONFLUENCE_DOMAIN</code>, and optional{' '}
+              <code className="text-xs bg-muted px-1 rounded">CONFLUENCE_SPACE_KEY</code>. Optional space
+              key in the form is stored with your integration and limits sync when those credentials are
+              complete.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => syncConfluenceKnowledge.mutate()}
+              disabled={syncConfluenceKnowledge.isPending}
+            >
+              {syncConfluenceKnowledge.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Sync from Confluence
+            </Button>
+            {syncConfluenceKnowledge.data && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Last run: {syncConfluenceKnowledge.data.pages_synced} page
+                {syncConfluenceKnowledge.data.pages_synced !== 1 ? 's' : ''} synced (
+                {syncConfluenceKnowledge.data.pages_created} created,{' '}
+                {syncConfluenceKnowledge.data.pages_updated} updated).
+                {syncConfluenceKnowledge.data.credential_source && (
+                  <>
+                    {' '}
+                    Credentials: {syncConfluenceKnowledge.data.credential_source === 'env'
+                      ? 'function secrets'
+                      : 'saved integration'}
+                    .
+                  </>
+                )}
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
