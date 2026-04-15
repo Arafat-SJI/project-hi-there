@@ -4,6 +4,8 @@ import {
   useKnowledgeEntries,
   useKnowledgeCategories,
 } from "../hooks/useKnowledge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSyncConfluenceKnowledge } from "@/hooks/useIntegrationSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +27,7 @@ import {
   FolderTree,
   Sparkles,
   BookOpen,
+  RefreshCw,
 } from "lucide-react";
 import { formatDate, truncateText } from "@/lib/utils";
 
@@ -51,6 +54,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function Knowledge() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { profile } = useAuth();
+  const syncConfluence = useSyncConfluenceKnowledge();
+  const canAdminSync =
+    profile?.role === "admin" || profile?.role === "moderator";
 
   const { data: categories = [] } = useKnowledgeCategories();
   const { data: allEntries = [], isLoading } = useKnowledgeEntries({});
@@ -139,6 +146,22 @@ export default function Knowledge() {
                 Upload File
               </Link>
             </Button>
+            {canAdminSync && (
+              <Button
+                variant="outline"
+                size="lg"
+                type="button"
+                onClick={() => syncConfluence.mutate()}
+                disabled={syncConfluence.isPending}
+              >
+                {syncConfluence.isPending ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Sync from Confluence
+              </Button>
+            )}
           </div>
         </div>
       </div>

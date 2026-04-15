@@ -30,6 +30,21 @@ const TASK_SYNC_FUNCTIONS: Record<string, string> = {
   jira: "sync-tasks-jira",
 };
 
+/** Knowledge / wiki providers → Edge Function names */
+export const KNOWLEDGE_SYNC_FUNCTIONS: Record<string, string> = {
+  confluence: "sync-confluence-knowledge",
+};
+
+export interface KnowledgeSyncResponse {
+  success: boolean;
+  pages_synced: number;
+  pages_created: number;
+  pages_updated: number;
+  total_fetched?: number;
+  errors: string[];
+  credential_source?: "integration_config" | "env";
+}
+
 export interface SyncTasksChunkResponse {
   success: boolean;
   tasks_synced: number;
@@ -261,6 +276,47 @@ export function useSyncZohoCrmRecord() {
     },
     onError: (e: Error) => {
       toast.error(e.message || "Zoho sync failed");
+    },
+  });
+}
+
+/**
+ * Pull Confluence Cloud pages into knowledge_entries (service role writes; JWT identifies author).
+ * Credentials: saved Admin → Integrations (confluence) first, else CONFLUENCE_* function secrets.
+ */
+export function useSyncConfluenceKnowledge() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (): Promise<KnowledgeSyncResponse> => {
+      const name = KNOWLEDGE_SYNC_FUNCTIONS.confluence;
+      if (!name) throw new Error("Confluence sync is not configured");
+      if (!user?.id) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke(name, {
+        body: { user_id: user.id },
+      });
+      if (error) throw error;
+      const result = data as KnowledgeSyncResponse;
+      if (!result.success && result.errors?.length) {
+        throw new Error(result.errors[0] ?? "Confluence sync failed");
+      }
+      return result;
+    },
+    onSuccess: (data) => {
+      invalidateKeys.knowledge(queryClient);
+      const msg =
+        data.pages_synced === 0
+          ? "No Confluence pages synced in this run."
+          : `Synced ${data.pages_synced} page${data.pages_synced !== 1 ? "s" : ""} (${data.pages_created} created, ${data.pages_updated} updated).`;
+      toast.success(msg);
+      if (data.errors?.length) {
+        data.errors.forEach((e) => toast.warning(e));
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Failed to sync Confluence");
     },
   });
 }

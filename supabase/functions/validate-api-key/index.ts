@@ -1,4 +1,4 @@
-// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float, fellow
+// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float, fellow, confluence
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -96,11 +96,19 @@ serve(async (req) => {
       )
     }
 
+    if (provider === 'confluence' && credentials) {
+      const confluenceResult = await validateConfluence(credentials as Record<string, string>)
+      return new Response(
+        JSON.stringify(confluenceResult),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
     if (provider && credentials) {
       service = provider;
       // Extract API key from credentials - common field names
-      // Skip first-value fallback for Jira so jira_host URL is never passed to legacy validateJira
-      if (provider !== 'jira') {
+      // Skip first-value fallback for Jira / Confluence (multi-field basic auth)
+      if (provider !== 'jira' && provider !== 'confluence') {
         apiKey = credentials.float_api_key || credentials.floatApiKey ||
           credentials.api_key || credentials.apiKey || credentials.access_token ||
           credentials.secret_key || credentials.token || Object.values(credentials)[0];
@@ -171,6 +179,9 @@ serve(async (req) => {
         break
       case 'workamajig':
         validationResult = await validateWorkamajig(apiKey, credentials)
+        break
+      case 'confluence':
+        validationResult = await validateConfluence((credentials || { api_key: apiKey }) as Record<string, string>)
         break
       default:
         return new Response(
@@ -681,6 +692,63 @@ async function validateAmazonSES(credentials: string) {
     return {
       valid: false,
       message: `Amazon SES validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Confluence Cloud: email + API token + domain (integration hub or legacy credentials object)
+async function validateConfluence(credentials: Record<string, string>) {
+  try {
+    const email = String(credentials.confluence_email || credentials.email || '').trim()
+    const apiToken = String(
+      credentials.confluence_api_token || credentials.api_token || credentials.api_key || credentials.apiKey || ''
+    ).trim()
+    let domain = String(credentials.confluence_domain || credentials.domain || '').trim()
+    domain = domain.replace(/^https?:\/\//i, '').replace(/\/.*$/, '')
+
+    if (!email || !apiToken || !domain) {
+      return {
+        valid: false,
+        message: 'Confluence requires Atlassian email, API token, and domain (e.g. yourcompany.atlassian.net)',
+        details: {},
+      }
+    }
+
+    const authString = btoa(`${email}:${apiToken}`)
+    const response = await fetch(`https://${domain}/wiki/api/v2/spaces?limit=1`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${authString}`,
+        'Accept': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      return {
+        valid: true,
+        message: 'Confluence credentials are valid',
+        details: { domain },
+      }
+    }
+    if (response.status === 401 || response.status === 403) {
+      return {
+        valid: false,
+        message: 'Invalid Confluence credentials or insufficient access',
+        details: { status: response.status },
+      }
+    }
+    const errorText = await response.text().catch(() => '')
+    return {
+      valid: false,
+      message: `Confluence validation failed (${response.status})`,
+      details: { status: response.status, body: errorText.slice(0, 200) },
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Confluence validation error: ${message}`,
       details: {},
     }
   }
