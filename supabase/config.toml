@@ -299,6 +299,9 @@ verify_jwt = false
 [functions.sync-confluence-knowledge]
 verify_jwt = false
 
+[functions.sync-sharepoint-knowledge]
+verify_jwt = false
+
 # Fellow.ai proxy (JWT validated in-function; loads org integration via service role)
 [functions.fellow-api]
 verify_jwt = false

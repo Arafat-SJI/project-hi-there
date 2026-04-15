@@ -32,6 +32,7 @@ import {
   useSyncTasks,
   useSyncFloatSchedule,
   useSyncConfluenceKnowledge,
+  useSyncSharePointKnowledge,
 } from '@/hooks/useIntegrationSync';
 import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
@@ -70,6 +71,7 @@ export default function ProviderDetail() {
   const syncTasks = useSyncTasks(slug || '');
   const syncFloatSchedule = useSyncFloatSchedule();
   const syncConfluenceKnowledge = useSyncConfluenceKnowledge();
+  const syncSharePointKnowledge = useSyncSharePointKnowledge();
 
   const outlookUserToken = useUserOAuthToken(slug === 'outlook' ? 'outlook' : '');
   const connectOAuth = useConnectOAuth();
@@ -677,6 +679,54 @@ export default function ProviderDetail() {
                   <>
                     {' '}
                     Credentials: {syncConfluenceKnowledge.data.credential_source === 'env'
+                      ? 'function secrets'
+                      : 'saved integration'}
+                    .
+                  </>
+                )}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {slug === 'sharepoint' && orgIntegration?.connection_status === 'connected' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sync SharePoint into Knowledge</CardTitle>
+            <CardDescription>
+              Import text-like files from the default document library into the knowledge base via
+              Microsoft Graph (application permissions). Sync prefers credentials saved above; otherwise
+              set Edge secrets{' '}
+              <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_TENANT_ID</code>,{' '}
+              <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_CLIENT_ID</code>,{' '}
+              <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_CLIENT_SECRET</code>,{' '}
+              <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_HOSTNAME</code>, and{' '}
+              <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_SITE_PATH</code>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => syncSharePointKnowledge.mutate()}
+              disabled={syncSharePointKnowledge.isPending}
+            >
+              {syncSharePointKnowledge.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Sync from SharePoint
+            </Button>
+            {syncSharePointKnowledge.data && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Last run: {syncSharePointKnowledge.data.pages_synced} file
+                {syncSharePointKnowledge.data.pages_synced !== 1 ? 's' : ''} synced (
+                {syncSharePointKnowledge.data.pages_created} created,{' '}
+                {syncSharePointKnowledge.data.pages_updated} updated).
+                {syncSharePointKnowledge.data.credential_source && (
+                  <>
+                    {' '}
+                    Credentials: {syncSharePointKnowledge.data.credential_source === 'env'
                       ? 'function secrets'
                       : 'saved integration'}
                     .
