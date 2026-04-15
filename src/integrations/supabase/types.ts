@@ -6804,28 +6804,90 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string | null
+          description: string | null
+          icon: string | null
           id: string
+          is_active: boolean | null
           name: string
+          parent_id: string | null
           slug: string | null
           sort_order: number | null
         }
         Insert: {
           color?: string | null
           created_at?: string | null
+          description?: string | null
+          icon?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
+          parent_id?: string | null
           slug?: string | null
           sort_order?: number | null
         }
         Update: {
           color?: string | null
           created_at?: string | null
+          description?: string | null
+          icon?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
+          parent_id?: string | null
           slug?: string | null
           sort_order?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "task_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "task_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_category_roles: {
+        Row: {
+          access_level: string
+          category_id: string
+          created_at: string | null
+          id: string
+          role: string
+          role_id: string | null
+        }
+        Insert: {
+          access_level?: string
+          category_id: string
+          created_at?: string | null
+          id?: string
+          role: string
+          role_id?: string | null
+        }
+        Update: {
+          access_level?: string
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+          role_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_category_roles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "task_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_category_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_comments: {
         Row: {
