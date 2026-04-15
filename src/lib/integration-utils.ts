@@ -202,6 +202,8 @@ export function getProviderIcon(slug: string): LucideIcon {
     // Storage & Productivity
     'google-workspace': Cloud,
     'microsoft-365': Cloud,
+    sharepoint: Cloud,
+    confluence: Cloud,
 
     // Authentication
     'google-login': Shield,

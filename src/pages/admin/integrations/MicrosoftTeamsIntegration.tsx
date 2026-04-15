@@ -1093,6 +1093,27 @@ export default function MicrosoftTeamsIntegration() {
           </Card>
         )}
 
+        {/* SharePoint → Knowledge (separate hub provider; same Microsoft ecosystem) */}
+        <Card className="border-2 shadow-md">
+          <CardHeader className="bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 pb-4">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-sky-500/10 dark:bg-sky-400/10">
+                <Share2 className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+              </div>
+              SharePoint knowledge sync
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Sync document library files into the Knowledge Base using an Azure AD app registration
+              (application permissions). Configure credentials and run sync on the SharePoint integration page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <Button variant="outline" asChild>
+              <Link to="/admin/integrations/sharepoint">Open SharePoint integration</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Features Card */}
         <Card className="border-2 shadow-md">
           <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 pb-4">

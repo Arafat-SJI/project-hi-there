@@ -5,7 +5,10 @@ import {
   useKnowledgeCategories,
 } from "../hooks/useKnowledge";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSyncConfluenceKnowledge } from "@/hooks/useIntegrationSync";
+import {
+  useSyncConfluenceKnowledge,
+  useSyncSharePointKnowledge,
+} from "@/hooks/useIntegrationSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +59,7 @@ export default function Knowledge() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { profile } = useAuth();
   const syncConfluence = useSyncConfluenceKnowledge();
+  const syncSharePoint = useSyncSharePointKnowledge();
   const canAdminSync =
     profile?.role === "admin" || profile?.role === "moderator";
 
@@ -147,20 +151,36 @@ export default function Knowledge() {
               </Link>
             </Button>
             {canAdminSync && (
-              <Button
-                variant="outline"
-                size="lg"
-                type="button"
-                onClick={() => syncConfluence.mutate()}
-                disabled={syncConfluence.isPending}
-              >
-                {syncConfluence.isPending ? (
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Sync from Confluence
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  type="button"
+                  onClick={() => syncConfluence.mutate()}
+                  disabled={syncConfluence.isPending}
+                >
+                  {syncConfluence.isPending ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Sync from Confluence
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  type="button"
+                  onClick={() => syncSharePoint.mutate()}
+                  disabled={syncSharePoint.isPending}
+                >
+                  {syncSharePoint.isPending ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Sync from SharePoint
+                </Button>
+              </>
             )}
           </div>
         </div>

@@ -1,4 +1,4 @@
-// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float, fellow, confluence
+// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float, fellow, confluence, sharepoint
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -104,11 +104,19 @@ serve(async (req) => {
       )
     }
 
+    if (provider === 'sharepoint' && credentials) {
+      const sharepointResult = await validateSharePoint(credentials as Record<string, string>)
+      return new Response(
+        JSON.stringify(sharepointResult),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
     if (provider && credentials) {
       service = provider;
       // Extract API key from credentials - common field names
-      // Skip first-value fallback for Jira / Confluence (multi-field basic auth)
-      if (provider !== 'jira' && provider !== 'confluence') {
+      // Skip first-value fallback for Jira / Confluence / SharePoint (multi-field auth)
+      if (provider !== 'jira' && provider !== 'confluence' && provider !== 'sharepoint') {
         apiKey = credentials.float_api_key || credentials.floatApiKey ||
           credentials.api_key || credentials.apiKey || credentials.access_token ||
           credentials.secret_key || credentials.token || Object.values(credentials)[0];
@@ -182,6 +190,9 @@ serve(async (req) => {
         break
       case 'confluence':
         validationResult = await validateConfluence((credentials || { api_key: apiKey }) as Record<string, string>)
+        break
+      case 'sharepoint':
+        validationResult = await validateSharePoint((credentials || {}) as Record<string, string>)
         break
       default:
         return new Response(
@@ -692,6 +703,117 @@ async function validateAmazonSES(credentials: string) {
     return {
       valid: false,
       message: `Amazon SES validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// SharePoint / Microsoft Graph: app registration (client credentials) + site path
+async function validateSharePoint(credentials: Record<string, string>) {
+  try {
+    const tenantId = String(credentials.tenant_id || credentials.tenantId || '').trim()
+    const clientId = String(credentials.client_id || credentials.clientId || '').trim()
+    const clientSecret = String(credentials.client_secret || credentials.clientSecret || '').trim()
+    let hostname = String(credentials.sharepoint_hostname || credentials.sharepointHostname || '').trim()
+    hostname = hostname.replace(/^https?:\/\//i, '').split('/')[0] ?? ''
+    const sitePathRaw = String(
+      credentials.sharepoint_site_path || credentials.sharepointSitePath || ''
+    ).trim()
+
+    if (!tenantId || !clientId || !clientSecret || !hostname) {
+      return {
+        valid: false,
+        message:
+          'SharePoint requires Tenant ID, Client ID, Client Secret, and SharePoint hostname. Site path is required (use / for root site).',
+        details: {},
+      }
+    }
+    if (sitePathRaw.length === 0) {
+      return {
+        valid: false,
+        message: 'SharePoint site path is required (e.g. /sites/YourSite or / for root).',
+        details: {},
+      }
+    }
+
+    const tokenUrl =
+      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`
+    const body = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      scope: 'https://graph.microsoft.com/.default',
+      grant_type: 'client_credentials',
+    })
+    const tokenRes = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    })
+    const tokenJson = await tokenRes.json().catch(() => ({}))
+    if (!tokenRes.ok) {
+      const msg =
+        (tokenJson as { error_description?: string }).error_description ||
+        (tokenJson as { error?: string }).error ||
+        `Token request failed (${tokenRes.status})`
+      return {
+        valid: false,
+        message: `Microsoft authentication failed: ${msg}`,
+        details: { status: tokenRes.status },
+      }
+    }
+    const accessToken = (tokenJson as { access_token?: string }).access_token
+    if (!accessToken) {
+      return {
+        valid: false,
+        message: 'Microsoft token response missing access_token',
+        details: {},
+      }
+    }
+
+    let siteSegment = sitePathRaw
+    if (!siteSegment || siteSegment === '/') {
+      siteSegment = `${hostname}:/`
+    } else {
+      const path = siteSegment.startsWith('/') ? siteSegment : `/${siteSegment}`
+      siteSegment = `${hostname}:${path}`
+    }
+    const siteKey = encodeURIComponent(siteSegment)
+    const siteRes = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteKey}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    )
+
+    if (siteRes.ok) {
+      return {
+        valid: true,
+        message: 'SharePoint credentials are valid and the site is reachable via Microsoft Graph',
+        details: { hostname },
+      }
+    }
+    const errText = await siteRes.text().catch(() => '')
+    if (siteRes.status === 401 || siteRes.status === 403) {
+      return {
+        valid: false,
+        message:
+          'Microsoft Graph denied access to the site. Ensure application permissions Sites.Read.All and Files.Read.All are granted with admin consent.',
+        details: { status: siteRes.status },
+      }
+    }
+    return {
+      valid: false,
+      message: `SharePoint site lookup failed (${siteRes.status}). Check hostname and site path.`,
+      details: { status: siteRes.status, body: errText.slice(0, 200) },
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `SharePoint validation error: ${message}`,
       details: {},
     }
   }
