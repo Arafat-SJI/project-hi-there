@@ -1,4 +1,4 @@
-// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float, fellow, confluence, sharepoint
+// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float, fellow, confluence, sharepoint, outlook
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -112,11 +112,19 @@ serve(async (req) => {
       )
     }
 
+    if (provider === 'outlook' && credentials) {
+      const outlookResult = await validateOutlook(credentials as Record<string, string>)
+      return new Response(
+        JSON.stringify(outlookResult),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
     if (provider && credentials) {
       service = provider;
       // Extract API key from credentials - common field names
-      // Skip first-value fallback for Jira / Confluence / SharePoint (multi-field auth)
-      if (provider !== 'jira' && provider !== 'confluence' && provider !== 'sharepoint') {
+      // Skip first-value fallback for Jira / Confluence / SharePoint / Outlook (multi-field auth)
+      if (provider !== 'jira' && provider !== 'confluence' && provider !== 'sharepoint' && provider !== 'outlook') {
         apiKey = credentials.float_api_key || credentials.floatApiKey ||
           credentials.api_key || credentials.apiKey || credentials.access_token ||
           credentials.secret_key || credentials.token || Object.values(credentials)[0];
@@ -703,6 +711,94 @@ async function validateAmazonSES(credentials: string) {
     return {
       valid: false,
       message: `Amazon SES validation error: ${message}`,
+      details: {},
+    }
+  }
+}
+
+// Microsoft Outlook (Integration Hub): Entra app ID + secret (+ optional tenant; default common).
+// User mail uses delegated OAuth; this check validates the confidential app and optional Graph app permissions.
+async function validateOutlook(credentials: Record<string, string>) {
+  const rawTenant = String(credentials.tenant_id || credentials.tenantId || '').trim()
+  const tenantId = rawTenant || 'common'
+  const clientId = String(credentials.client_id || credentials.clientId || '').trim()
+  const clientSecret = String(credentials.client_secret || credentials.clientSecret || '').trim()
+
+  if (!clientId || !clientSecret) {
+    return {
+      valid: false,
+      message: 'Microsoft Outlook requires Application (client) ID and client secret',
+      details: {},
+    }
+  }
+
+  const tokenUrl =
+    `https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    scope: 'https://graph.microsoft.com/.default',
+    grant_type: 'client_credentials',
+  })
+
+  try {
+    const tokenRes = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    })
+    const tokenJson = (await tokenRes.json().catch(() => ({}))) as {
+      error?: string
+      error_description?: string
+      access_token?: string
+    }
+
+    if (tokenRes.ok && tokenJson.access_token) {
+      return {
+        valid: true,
+        message:
+          'Microsoft app registration is valid. Graph accepted client credentials (application permissions in Entra, if any).',
+        details: {},
+      }
+    }
+
+    const err = tokenJson.error || ''
+    const errDesc = (tokenJson.error_description || '').trim()
+    if (err === 'invalid_client' || /invalid_client|AADSTS7000215|7000215/i.test(errDesc)) {
+      return {
+        valid: false,
+        message: `Invalid Application ID or client secret. ${errDesc}`.replace(/\s+/g, ' ').trim(),
+        details: { status: tokenRes.status },
+      }
+    }
+
+    if (
+      err === 'unauthorized_client' ||
+      /7000218|AADSTS70011|AADSTS70005|not (allowed|permitted) for use with|consent|grant_type/i.test(
+        errDesc
+      )
+    ) {
+      return {
+        valid: true,
+        message:
+          'Azure AD did not issue an app-only Graph token; this is normal for apps with only delegated (user) API permissions. ' +
+          'If the Application ID and secret are correct, use "Connect Microsoft Outlook" to test sign-in.',
+        details: { azure_error: errDesc || err, status: tokenRes.status },
+      }
+    }
+
+    return {
+      valid: false,
+      message: errDesc
+        ? `Microsoft token request failed: ${errDesc}`
+        : `Microsoft token request failed (${tokenRes.status})`,
+      details: { error: err, status: tokenRes.status },
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      valid: false,
+      message: `Outlook validation error: ${message}`,
       details: {},
     }
   }
