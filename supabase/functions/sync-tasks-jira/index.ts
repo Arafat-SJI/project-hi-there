@@ -1,17 +1,52 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  jiraPriorityNameToInternal,
-  jiraStatusNameToInternal,
-} from "./jira-workflow-status.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const PAGE_SIZE = 50;
+
+type TaskStatusInternal = "todo" | "in_progress" | "completed" | "cancelled";
+
+function jiraStatusNameToInternal(
+  name: string | undefined | null,
+): TaskStatusInternal {
+  if (!name) return "todo";
+  const n = name.toLowerCase().trim();
+
+  if (
+    /\b(done|closed|resolved|complete|finished)\b/.test(n) ||
+    n === "done" ||
+    n === "closed"
+  ) {
+    return "completed";
+  }
+  if (/\b(cancel|wont|declined|duplicate)\b/.test(n)) {
+    return "cancelled";
+  }
+  if (
+    /\b(progress|review|testing|qa|blocked|hold|staging|selected for development)\b/.test(n) ||
+    n === "in progress"
+  ) {
+    return "in_progress";
+  }
+  return "todo";
+}
+
+function jiraPriorityNameToInternal(
+  name: string | undefined | null,
+): "low" | "medium" | "high" | "urgent" {
+  if (!name) return "medium";
+  const n = name.toLowerCase();
+  if (n.includes("highest") || n.includes("critical")) return "urgent";
+  if (n.includes("high")) return "high";
+  if (n.includes("low") || n.includes("lowest") || n.includes("minor")) return "low";
+  return "medium";
+}
 
 interface JiraIssue {
   id: string;
@@ -137,7 +172,7 @@ async function resolveJiraCredentials(
     .maybeSingle();
 
   if (provider?.id) {
-    const { data: orgIntegration } = await supabase
+    const { data: userIntegration } = await supabase
       .from("organization_integrations")
       .select("config")
       .eq("provider_id", provider.id)
@@ -146,24 +181,39 @@ async function resolveJiraCredentials(
       .in("connection_status", ["connected", "testing", "error", "disconnected"])
       .maybeSingle();
 
-    const config = (orgIntegration?.config ?? {}) as Record<string, unknown>;
-    const host = readConfigString(config, ["jira_host", "jiraHost", "host"]);
-    const email = readConfigString(config, ["jira_email", "jiraEmail", "email"]);
-    const apiToken = readConfigString(config, [
-      "jira_api_token",
-      "jiraApiToken",
-      "api_token",
-      "apiToken",
-      "token",
-    ]);
+    const integrationCandidates = [userIntegration];
+    if (!userIntegration) {
+      const { data: orgWideIntegration } = await supabase
+        .from("organization_integrations")
+        .select("config")
+        .eq("provider_id", provider.id)
+        .is("user_id", null)
+        .eq("enabled", true)
+        .in("connection_status", ["connected", "testing", "error", "disconnected"])
+        .maybeSingle();
+      integrationCandidates.push(orgWideIntegration);
+    }
 
-    if (host && email && apiToken) {
-      return {
-        host,
-        email,
-        apiToken,
-        source: "integration_config",
-      };
+    for (const integration of integrationCandidates) {
+      const config = (integration?.config ?? {}) as Record<string, unknown>;
+      const host = readConfigString(config, ["jira_host", "jiraHost", "host"]);
+      const email = readConfigString(config, ["jira_email", "jiraEmail", "email"]);
+      const apiToken = readConfigString(config, [
+        "jira_api_token",
+        "jiraApiToken",
+        "api_token",
+        "apiToken",
+        "token",
+      ]);
+
+      if (host && email && apiToken) {
+        return {
+          host,
+          email,
+          apiToken,
+          source: "integration_config",
+        };
+      }
     }
   }
 
@@ -184,7 +234,7 @@ async function resolveJiraCredentials(
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -277,7 +327,7 @@ serve(async (req) => {
     const fields =
       "summary,description,status,assignee,issuetype,project,updated,priority,duedate,comment,components";
     const searchUrl =
-      `${baseUrl}/rest/api/3/search?jql=${
+      `${baseUrl}/rest/api/3/search/jql?jql=${
         encodeURIComponent(jql)
       }&startAt=${startAt}&maxResults=${PAGE_SIZE}&fields=${fields}`;
 

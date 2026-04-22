@@ -3,7 +3,7 @@
  * Dynamic provider configuration with form fields, services, and stats
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -120,22 +120,31 @@ export default function ProviderDetail() {
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const normalizedFields = useMemo(
+    () =>
+      fields.map((field) =>
+        slug === 'sharepoint' && field.field_key === 'sharepoint_site_path'
+          ? { ...field, is_required: false }
+          : field
+      ),
+    [fields, slug]
+  );
 
   // Initialize form values from org integration config
   useEffect(() => {
     if (orgIntegration?.config) {
       setFormValues(orgIntegration.config as Record<string, string>);
-    } else if (fields && fields.length > 0) {
+    } else if (normalizedFields && normalizedFields.length > 0) {
       // Set default values
       const defaults: Record<string, string> = {};
-      fields.forEach((field) => {
+      normalizedFields.forEach((field) => {
         if (field.default_value) {
           defaults[field.field_key] = field.default_value;
         }
       });
       setFormValues(defaults);
     }
-  }, [orgIntegration, fields]);
+  }, [orgIntegration, normalizedFields]);
 
   // Handle field change
   const handleFieldChange = (fieldKey: string, value: string) => {
@@ -148,7 +157,7 @@ export default function ProviderDetail() {
     if (!provider) return;
 
     // Validate required fields
-    if (!areRequiredFieldsFilled(fields, formValues)) {
+    if (!areRequiredFieldsFilled(normalizedFields, formValues)) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -354,7 +363,7 @@ export default function ProviderDetail() {
       </Card>
 
       {/* Configuration Form */}
-      {fields.length > 0 && (
+      {normalizedFields.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Configuration</CardTitle>
@@ -363,7 +372,7 @@ export default function ProviderDetail() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {fields.map((field) => (
+            {normalizedFields.map((field) => (
               <DynamicFormField
                 key={field.id}
                 field={field}
@@ -701,8 +710,9 @@ export default function ProviderDetail() {
               <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_TENANT_ID</code>,{' '}
               <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_CLIENT_ID</code>,{' '}
               <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_CLIENT_SECRET</code>,{' '}
-              <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_HOSTNAME</code>, and{' '}
-              <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_SITE_PATH</code>.
+              <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_HOSTNAME</code>, and optional{' '}
+              <code className="text-xs bg-muted px-1 rounded">SHAREPOINT_SITE_PATH</code> (defaults to{' '}
+              <code className="text-xs bg-muted px-1 rounded">/</code>).
             </CardDescription>
           </CardHeader>
           <CardContent>
