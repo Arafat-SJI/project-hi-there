@@ -3,7 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface JiraProject {
@@ -62,7 +64,7 @@ async function resolveJiraCredentials(
     .maybeSingle();
 
   if (provider?.id) {
-    const { data: orgIntegration } = await supabase
+    const { data: userIntegration } = await supabase
       .from("organization_integrations")
       .select("config")
       .eq("provider_id", provider.id)
@@ -71,24 +73,39 @@ async function resolveJiraCredentials(
       .in("connection_status", ["connected", "testing", "error", "disconnected"])
       .maybeSingle();
 
-    const config = (orgIntegration?.config ?? {}) as Record<string, unknown>;
-    const host = readConfigString(config, ["jira_host", "jiraHost", "host"]);
-    const email = readConfigString(config, ["jira_email", "jiraEmail", "email"]);
-    const apiToken = readConfigString(config, [
-      "jira_api_token",
-      "jiraApiToken",
-      "api_token",
-      "apiToken",
-      "token",
-    ]);
+    const integrationCandidates = [userIntegration];
+    if (!userIntegration) {
+      const { data: orgWideIntegration } = await supabase
+        .from("organization_integrations")
+        .select("config")
+        .eq("provider_id", provider.id)
+        .is("user_id", null)
+        .eq("enabled", true)
+        .in("connection_status", ["connected", "testing", "error", "disconnected"])
+        .maybeSingle();
+      integrationCandidates.push(orgWideIntegration);
+    }
 
-    if (host && email && apiToken) {
-      return {
-        host,
-        email,
-        apiToken,
-        source: "integration_config",
-      };
+    for (const integration of integrationCandidates) {
+      const config = (integration?.config ?? {}) as Record<string, unknown>;
+      const host = readConfigString(config, ["jira_host", "jiraHost", "host"]);
+      const email = readConfigString(config, ["jira_email", "jiraEmail", "email"]);
+      const apiToken = readConfigString(config, [
+        "jira_api_token",
+        "jiraApiToken",
+        "api_token",
+        "apiToken",
+        "token",
+      ]);
+
+      if (host && email && apiToken) {
+        return {
+          host,
+          email,
+          apiToken,
+          source: "integration_config",
+        };
+      }
     }
   }
 
@@ -109,7 +126,7 @@ async function resolveJiraCredentials(
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {

@@ -154,9 +154,9 @@ async function resolveSharePointCredentials(
     const sitePath = readConfigString(config, [
       "sharepoint_site_path",
       "sharepointSitePath",
-    ]);
+    ]) || "/";
 
-    if (tenantId && clientId && clientSecret && hostname && sitePath) {
+    if (tenantId && clientId && clientSecret && hostname) {
       return {
         tenantId,
         clientId,
@@ -172,9 +172,9 @@ async function resolveSharePointCredentials(
   const clientId = Deno.env.get("SHAREPOINT_CLIENT_ID")?.trim() ?? "";
   const clientSecret = Deno.env.get("SHAREPOINT_CLIENT_SECRET")?.trim() ?? "";
   const hostname = Deno.env.get("SHAREPOINT_HOSTNAME")?.trim() ?? "";
-  const sitePath = Deno.env.get("SHAREPOINT_SITE_PATH")?.trim() ?? "";
+  const sitePath = Deno.env.get("SHAREPOINT_SITE_PATH")?.trim() ?? "/";
 
-  if (tenantId && clientId && clientSecret && hostname && sitePath) {
+  if (tenantId && clientId && clientSecret && hostname) {
     return {
       tenantId,
       clientId,
@@ -270,7 +270,7 @@ serve(async (req) => {
     if (!creds) {
       return emptyError(
         [
-          "SharePoint credentials not configured. Save tenant_id, client_id, client_secret, sharepoint_hostname, and sharepoint_site_path in Admin → Integrations (SharePoint), or set SHAREPOINT_TENANT_ID, SHAREPOINT_CLIENT_ID, SHAREPOINT_CLIENT_SECRET, SHAREPOINT_HOSTNAME, and SHAREPOINT_SITE_PATH secrets.",
+          "SharePoint credentials not configured. Save tenant_id, client_id, client_secret, and sharepoint_hostname in Admin → Integrations (SharePoint), or set SHAREPOINT_TENANT_ID, SHAREPOINT_CLIENT_ID, SHAREPOINT_CLIENT_SECRET, and SHAREPOINT_HOSTNAME secrets. Optional site path defaults to '/'.",
         ],
         400,
       );

@@ -9,9 +9,17 @@ const corsHeaders = {
 function cleanSubdomain(raw: string): string {
   let s = raw.trim();
   s = s.replace(/^https?:\/\//i, "");
-  s = s.split("/")[0] ?? "";
+  s = (s.split("/")[0] ?? "").trim();
+  s = s.replace(/:\d+$/, "");
   s = s.replace(/\.fellow\.app$/i, "");
-  return s.replace(/[^\w.-]/g, "").replace(/^\.+|\.+$/g, "");
+  s = s.replace(/[^\w.-]/g, "").replace(/^\.+|\.+$/g, "");
+
+  // Fellow workspace slug should be the first label only.
+  if (s.includes(".")) {
+    s = s.split(".")[0] ?? "";
+  }
+
+  return s;
 }
 
 function readConfigString(config: Record<string, unknown>, keys: string[]): string {

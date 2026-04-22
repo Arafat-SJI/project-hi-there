@@ -1,4 +1,4 @@
-// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float, fellow, confluence, sharepoint, outlook
+// validate-api-key — supports: openai, sendgrid, zoom, anthropic, google_ai, perplexity, salesforce, hubspot, mailgun, postmark, amazon_ses, jira, asana, monday, clickup, workamajig, float, fellow, confluence, sharepoint, outlook, zoho-crm
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -120,6 +120,14 @@ serve(async (req) => {
       )
     }
 
+    if (provider === 'zoho-crm' && credentials) {
+      const zohoResult = await validateZohoCrm(credentials as Record<string, string>)
+      return new Response(
+        JSON.stringify(zohoResult),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
     if (provider && credentials) {
       service = provider;
       // Extract API key from credentials - common field names
@@ -201,6 +209,9 @@ serve(async (req) => {
         break
       case 'sharepoint':
         validationResult = await validateSharePoint((credentials || {}) as Record<string, string>)
+        break
+      case 'zoho-crm':
+        validationResult = await validateZohoCrm((credentials || {}) as Record<string, string>)
         break
       default:
         return new Response(
@@ -804,7 +815,7 @@ async function validateOutlook(credentials: Record<string, string>) {
   }
 }
 
-// SharePoint / Microsoft Graph: app registration (client credentials) + site path
+// SharePoint / Microsoft Graph: app registration (client credentials), optional site path
 async function validateSharePoint(credentials: Record<string, string>) {
   try {
     const tenantId = String(credentials.tenant_id || credentials.tenantId || '').trim()
@@ -820,14 +831,7 @@ async function validateSharePoint(credentials: Record<string, string>) {
       return {
         valid: false,
         message:
-          'SharePoint requires Tenant ID, Client ID, Client Secret, and SharePoint hostname. Site path is required (use / for root site).',
-        details: {},
-      }
-    }
-    if (sitePathRaw.length === 0) {
-      return {
-        valid: false,
-        message: 'SharePoint site path is required (e.g. /sites/YourSite or / for root).',
+          'SharePoint requires Tenant ID, Client ID, Client Secret, and SharePoint hostname.',
         details: {},
       }
     }
@@ -1238,8 +1242,16 @@ function cleanFellowSubdomain(raw: string): string {
   let s = raw.trim()
   s = s.replace(/^https?:\/\//i, '')
   s = (s.split('/')[0] ?? '').trim()
+  s = s.replace(/:\d+$/, '')
   s = s.replace(/\.fellow\.app$/i, '')
-  return s.replace(/[^\w.-]/g, '').replace(/^\.+|\.+$/g, '')
+  s = s.replace(/[^\w.-]/g, '').replace(/^\.+|\.+$/g, '')
+
+  // Fellow workspace slug should be the first label only.
+  if (s.includes('.')) {
+    s = s.split('.')[0] ?? ''
+  }
+
+  return s
 }
 
 async function validateFellow(subdomainRaw: string, apiKey: string) {
@@ -1252,34 +1264,61 @@ async function validateFellow(subdomainRaw: string, apiKey: string) {
     }
   }
   try {
-    const url = `https://${subdomain}.fellow.app/api/v1/recordings`
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': apiKey,
-      },
-      body: JSON.stringify({ limit: 1 }),
-    })
-    if (response.ok) {
-      return {
-        valid: true,
-        message: 'Fellow API key and subdomain are valid',
-        details: { subdomain },
+    const baseUrl = `https://${subdomain}.fellow.app/api/v1`
+    const probePaths = ['/recordings', '/notes']
+    let lastStatus = 0
+    let lastBody = ''
+
+    for (const path of probePaths) {
+      const response = await fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': apiKey,
+        },
+        body: JSON.stringify({ limit: 1 }),
+      })
+
+      if (response.ok) {
+        return {
+          valid: true,
+          message: 'Fellow API key and subdomain are valid',
+          details: { subdomain, endpoint: path },
+        }
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        return {
+          valid: false,
+          message: 'Invalid Fellow API key or you do not have access to this workspace',
+          details: { status: response.status, endpoint: path },
+        }
+      }
+
+      lastStatus = response.status
+      lastBody = await response.text()
+
+      // Keep probing on 404 in case the workspace supports a different list endpoint.
+      if (response.status !== 404) {
+        break
       }
     }
-    if (response.status === 401 || response.status === 403) {
+
+    if (lastStatus === 404) {
+      const looksLikeHtml = /<!doctype html>/i.test(lastBody)
       return {
         valid: false,
-        message: 'Invalid Fellow API key or you do not have access to this workspace',
-        details: { status: response.status },
+        message: looksLikeHtml
+          ? 'Fellow workspace subdomain appears invalid. Use only the Fellow workspace slug (e.g. "acme" from https://acme.fellow.app).'
+          : 'Fellow API endpoint not found for this workspace',
+        details: { status: 404, subdomain },
       }
     }
-    const text = await response.text()
+
     return {
       valid: false,
-      message: `Fellow validation failed (${response.status})`,
-      details: { status: response.status, body: text.slice(0, 160) },
+      message: `Fellow validation failed (${lastStatus})`,
+      details: { status: lastStatus, body: lastBody.slice(0, 160) },
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
@@ -1330,6 +1369,37 @@ async function validateFloat(apiKey: string, credentials?: Record<string, string
       message: `Float validation error: ${message}`,
       details: {},
     }
+  }
+}
+
+async function validateZohoCrm(credentials: Record<string, string>) {
+  const clientId = String(credentials.zoho_client_id || credentials.client_id || '').trim()
+  const clientSecret = String(credentials.zoho_client_secret || credentials.client_secret || '').trim()
+  const accountsUrlRaw = String(credentials.zoho_accounts_url || credentials.accounts_url || 'https://accounts.zoho.com').trim()
+  const accountsUrl = accountsUrlRaw.replace(/\/$/, '')
+
+  if (!clientId || !clientSecret) {
+    return {
+      valid: false,
+      message: 'Zoho CRM requires client ID and client secret',
+      details: {},
+    }
+  }
+
+  if (!/^https:\/\/accounts\.zoho\.[a-z.]+$/i.test(accountsUrl)) {
+    return {
+      valid: false,
+      message: 'Invalid Zoho accounts domain. Example: https://accounts.zoho.com',
+      details: { accounts_url: accountsUrl },
+    }
+  }
+
+  // Zoho CRM uses OAuth authorization code flow, so client credentials
+  // are validated at connect time. Here we validate required config shape.
+  return {
+    valid: true,
+    message: 'Zoho CRM credentials look valid. Complete OAuth connect to finish verification.',
+    details: { accounts_url: accountsUrl },
   }
 }
 
