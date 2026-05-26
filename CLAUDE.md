@@ -597,3 +597,46 @@ Additional standalone guides in `docs/` root:
 - `GUARDRAILS_GUIDE.md` — AI guardrails setup
 - `HITL_SETUP_GUIDE.md` — Human-in-the-loop configuration
 - `MULTI_AGENT_TUTORIAL.md` — Multi-agent orchestration tutorial
+
+
+# AI Context System
+
+Before starting implementation, read:
+
+- ai-context/project-overview.md
+- ai-context/architecture.md
+- ai-context/patterns.md
+- ai-context/decisions.md
+- ai-context/bugs-fixed.md
+
+Follow existing architecture and coding patterns.
+
+After completing work:
+- update bugs-fixed.md if bug resolved
+- update decisions.md if architecture changed
+## gstack (REQUIRED — global install)
+
+**Before doing ANY work, verify gstack is installed:**
+
+```bash
+test -d ~/.claude/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
+```
+
+If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
+
+> gstack is required for all AI-assisted work in this repo.
+> Install it:
+> ```bash
+> git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+> cd ~/.claude/skills/gstack && ./setup --team
+> ```
+> For **Cursor**, also run `bun run gen:skill-docs --host cursor` in that directory and copy
+> `~/.claude/skills/gstack/.cursor/skills/*` to `~/.cursor/skills/`. See
+> `docs/03-development/GSTACK-TEAM-INSTALL.md`.
+> Then restart your AI coding tool.
+
+Do not skip skills, ignore gstack errors, or work around missing gstack.
+
+Using gstack skills: After install, skills like /qa, /ship, /review, /investigate,
+and /browse are available. Use /browse for all web browsing.
+Use ~/.claude/skills/gstack/... for gstack file paths (the global path).
