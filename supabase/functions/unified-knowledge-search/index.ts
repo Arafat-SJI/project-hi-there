@@ -12,19 +12,33 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const anonClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '', { global: { headers: { Authorization: authHeader } } })
+    const { data: userData, error: userErr } = await anonClient.auth.getUser(authHeader.replace('Bearer ', ''))
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const authedUserId = userData.user.id
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const { query, user_id, include_user_knowledge = true, use_semantic = true } = await req.json()
+    const { query: rawQuery, include_user_knowledge = true, use_semantic = true } = await req.json()
+    const user_id = authedUserId
 
-    if (!query) {
+    if (!rawQuery || typeof rawQuery !== 'string') {
       return new Response(
         JSON.stringify({ error: 'query is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
+    // Sanitize ILIKE pattern characters and cap length
+    const query = rawQuery.replace(/[%_\\]/g, '\\$&').slice(0, 200)
 
     const baseUrl = Deno.env.get('SUPABASE_URL')
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
