@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,8 @@ interface AuthContextType {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
+  /** True while fetchProfile (including role resolution) is in flight. */
+  profileLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -39,7 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const { toast } = useToast();
+
+  // Prevents two concurrent fetchProfile calls from racing against each other.
+  // The second caller waits for the first to finish rather than starting a
+  // parallel query that can return role: undefined and briefly show Access Denied.
+  const isFetchingProfileRef = useRef(false);
 
   // Fetch user role from user_roles table (picks highest-privilege role)
   const fetchUserRole = async (userId: string): Promise<string | undefined> => {
@@ -92,8 +100,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fetch or create user profile
+  // Fetch or create user profile.
+  // Guards against concurrent calls: if a fetch is already in flight for any
+  // user, the second caller returns immediately. This prevents the race where
+  // two simultaneous fetches (one from onAuthStateChange, one from getSession)
+  // can produce a profile with role: undefined on the first call, briefly
+  // satisfying (profile !== null) while failing the isAdmin check.
   const fetchProfile = async (userId: string) => {
+    if (isFetchingProfileRef.current) return;
+    isFetchingProfileRef.current = true;
+    setProfileLoading(true);
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -134,36 +150,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+    } finally {
+      isFetchingProfileRef.current = false;
+      setProfileLoading(false);
     }
   };
 
   // Initialize auth state
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // Set up auth state listener FIRST.
+    // IMPORTANT: setLoading(false) must NOT be called synchronously here when a
+    // user session exists. If we call it before fetchProfile resolves, the
+    // AdminRoute briefly sees (loading=false, user≠null, profile≠null but
+    // role=undefined) and flashes "Access Denied".  Instead we await fetchProfile
+    // inside the deferred setTimeout callback before clearing the loading flag.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Only synchronous state updates here
+      // Only synchronous state updates here to avoid Supabase client deadlock
       setSession(session);
       setUser(session?.user ?? null);
-      
-      // Defer Supabase calls with setTimeout to prevent deadlock
+
       if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
+        // Defer Supabase calls with setTimeout to prevent deadlock.
+        // setLoading(false) is intentionally moved INSIDE this async callback so
+        // it fires only after fetchProfile (and thus role resolution) completes.
+        setTimeout(async () => {
+          await fetchProfile(session.user.id);
+          setLoading(false);
         }, 0);
       } else {
         setProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Belt-and-suspenders: also check getSession() in case the INITIAL_SESSION
+    // event from onAuthStateChange has not yet fired (rare edge-case).
+    // fetchProfile is deduplicated by isFetchingProfileRef so it will only run
+    // once regardless of how many times it is called.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
       }
       setLoading(false);
     });
@@ -447,6 +477,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile,
     session,
     loading,
+    profileLoading,
     signIn,
     signUp,
     signInWithGoogle,

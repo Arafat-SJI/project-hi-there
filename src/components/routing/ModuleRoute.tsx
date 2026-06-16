@@ -23,7 +23,7 @@ export function ModuleRoute({
   requiresFeatureFlag,
   children,
 }: ModuleRouteProps) {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
   const { isFeatureEnabled, isLoading: flagsLoading } = useFeatureFlags();
   const toastShownRef = useRef(false);
 
@@ -42,7 +42,10 @@ export function ModuleRoute({
     }
   }, [flagsLoading, requiresFeatureFlag, isFeatureEnabled]);
 
-  if (loading || flagsLoading) {
+  // Wait for auth, profile/role, and feature flags before evaluating access.
+  // profileLoading must be included when a role check is required so we never
+  // flash "Access Denied" while role data is still being resolved.
+  if (loading || flagsLoading || (requiredRole && profileLoading)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
