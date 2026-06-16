@@ -125,7 +125,7 @@ export default function DeploymentChecklist() {
                      envStatus.overallStatus === 'warning' ? 'warning' : 'incomplete',
               action: {
                 label: 'Validate',
-                href: '/admin/environment-validator',
+                href: '/admin/settings',
               },
               icon: FileCheck,
             },
@@ -219,7 +219,7 @@ export default function DeploymentChecklist() {
               ) ? 'incomplete' : 'complete',
               action: {
                 label: 'View Status',
-                href: '/admin/environment-validator',
+                href: '/admin/settings',
               },
               icon: Database,
             },
@@ -452,10 +452,7 @@ export default function DeploymentChecklist() {
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>Resources for setting up your deployment:</p>
           <div className="flex flex-wrap gap-2 mt-2">
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/environment-validator')}>
-              Environment Validator
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/system-settings')}>
+            <Button variant="outline" size="sm" onClick={() => navigate('/admin/settings')}>
               System Settings
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/integrations')}>

@@ -486,9 +486,9 @@ export default function SeedRunner() {
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/admin/roadmap" className="hover:text-foreground transition-colors">
+            <Link to="/admin" className="hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4 inline mr-1" />
-              Vision & Roadmap
+              Admin Dashboard
             </Link>
           </div>
           <h1 className="text-2xl font-bold flex items-center gap-3">
