@@ -73,6 +73,13 @@ export {
   integrationKeys,
 } from './useIntegrations';
 export {
+  useIntegrationSettings,
+  useSaveIntegrationSettings,
+  useIntegrationPreferenceOptions,
+  knowledgeRefsToKeys,
+  knowledgeKeysToRefs,
+} from './useIntegrationSettings';
+export {
   useUserOAuthTokens,
   useUserOAuthToken,
   useAvailableUserProviders,

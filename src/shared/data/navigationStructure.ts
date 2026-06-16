@@ -315,9 +315,9 @@ export const adminNavigation: NavGroup[] = [
         icon: "LayoutDashboard",
       },
       {
-        title: "Employee Management",
-        href: "/admin/team/employees",
-        icon: "Users",
+        title: "POD Management",
+        href: "/admin/pods",
+        icon: "Layers",
       },
       {
         title: "Task Configuration",
@@ -360,29 +360,6 @@ export const adminNavigation: NavGroup[] = [
             title: "V/TO Settings",
             href: "/admin/eos/vto",
             icon: "FileText",
-          },
-        ],
-      },
-      {
-        title: "Teams & PODs",
-        href: "/admin/team/pods",
-        icon: "Layers",
-        headerOnly: true,
-        children: [
-          {
-            title: "POD Management",
-            href: "/admin/team/pods",
-            icon: "Users",
-          },
-          {
-            title: "Skill Management",
-            href: "/admin/skillmanagement",
-            icon: "Zap",
-          },
-          {
-            title: "RP Settings",
-            href: "/admin/team/employee_projection",
-            icon: "Settings",
           },
         ],
       },
@@ -445,18 +422,13 @@ export const adminNavigation: NavGroup[] = [
       },
       {
         title: "Knowledge Base",
-        href: "/admin/knowledge/common",
+        href: "/admin/knowledge/dashboard",
         icon: "BookOpen",
         headerOnly: true,
         children: [
-          { title: "Common Knowledge", href: "/admin/knowledge/common", icon: "Globe" },
-          { title: "Processing Queue", href: "/admin/knowledge/analytics", icon: "ClipboardList" },
-          { title: "Sources", href: "/admin/knowledge/sources", icon: "Database" },
+          { title: "Dashboard", href: "/admin/knowledge/dashboard", icon: "LayoutDashboard" },
           { title: "Categories", href: "/admin/knowledge/categories", icon: "FolderOpen" },
-          { title: "Batch Upload", href: "/admin/knowledge/files", icon: "Upload" },
           { title: "Files", href: "/admin/knowledge/files", icon: "FileText" },
-          { title: "Sync Status", href: "/admin/knowledge/sync-status", icon: "RefreshCw" },
-          { title: "Gemini RAG", href: "/admin/knowledge/gemini", icon: "Sparkles" },
         ],
       },
     ],
@@ -477,6 +449,11 @@ export const adminNavigation: NavGroup[] = [
         icon: "Shield",
       },
       {
+        title: "Departments",
+        href: "/admin/department",
+        icon: "Building2",
+      },
+      {
         title: "Activity Logs",
         href: "/admin/logs",
         icon: "Activity",
@@ -488,16 +465,6 @@ export const adminNavigation: NavGroup[] = [
     title: "TEAM & RESOURCES",
     icon: "Building2",
     items: [
-      {
-        title: "Departments",
-        href: "/admin/team/departments",
-        icon: "Building2",
-      },
-      {
-        title: "Productivity Import",
-        href: "/admin/productivity-import",
-        icon: "Upload",
-      },
       {
         title: "Meeting Analytics",
         href: "/admin/meeting-analytics",

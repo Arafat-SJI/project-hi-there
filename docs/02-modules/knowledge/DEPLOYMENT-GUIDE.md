@@ -165,12 +165,13 @@ The following pages are now available in the admin panel:
 
 | Page | Route | Purpose |
 |------|-------|---------|
-| Knowledge Sources | `/admin/knowledge/sources` | Manage external knowledge sources (Google Drive, Confluence, etc.) |
-| Knowledge Files | `/admin/knowledge/files` | Bulk file management with search and filtering |
-| Sync Status | `/admin/knowledge/sync-status` | Monitor sync operations and health |
-| Common Knowledge | `/admin/knowledge/common` | Manage company-wide shared knowledge |
+| Knowledge Dashboard | `/admin/knowledge/dashboard` | Unified analytics, usage insights, sync status, source overview |
+| Knowledge Files | `/admin/knowledge/files` | File management with search, filtering, and reprocess |
+| Knowledge Categories | `/admin/knowledge/categories` | Category CRUD |
 
-**Navigation:** Admin > Knowledge > [Page Name]
+**Navigation:** Admin > Knowledge Base > Dashboard | Categories | Files
+
+**Removed from navigation (redirect to dashboard):** Sources, Common Knowledge, Analytics, Sync Status, Gemini RAG, Batch Upload. Source management is in Integrations.
 
 ---
 
@@ -390,10 +391,9 @@ curl -X POST "https://YOUR_PROJECT.supabase.co/functions/v1/embedding-retention-
   -d '{"dry_run": true}'
 
 # 4. Access admin pages
-# - Navigate to /admin/knowledge/sources
+# - Navigate to /admin/knowledge/dashboard
 # - Navigate to /admin/knowledge/files
-# - Navigate to /admin/knowledge/sync-status
-# - Navigate to /admin/knowledge/common
+# - Navigate to /admin/knowledge/categories
 
 # 5. Verify navigation items appear in admin sidebar
 ```

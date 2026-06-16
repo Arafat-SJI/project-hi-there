@@ -17,12 +17,11 @@ Dashboard:
 Users & Access:
 /admin/users                         → User invite, activation, role assignment
 /admin/roles                         → Role CRUD with permission matrix
+/admin/department                    → Department CRUD with user assignment
 /admin/logs                          → Activity audit trail with filters & export
 
-Team & Resources:
-/admin/team/employees                → Employee list with search/filter
-/admin/team/employee_projection      → Resource allocation, dept distribution, pods
-/admin/team/departments              → Department overview
+Pods:
+/admin/pods                          → POD management (create, edit, members, permissions)
 
 EOS Administration:
 /admin/eos                           → EOS admin hub (links to VTO, Scorecard, Accountability)
@@ -47,8 +46,9 @@ Integrations:
 /admin/integrations/:slug            → Generic integration detail page
 
 Knowledge Admin:
-/admin/knowledge/analytics           → Knowledge usage analytics
+/admin/knowledge/dashboard           → Unified KB command center (analytics, usage, sync, sources)
 /admin/knowledge/categories          → Knowledge category CRUD
+/admin/knowledge/files               → Knowledge file management
 /admin/knowledge/embeddings          → Embedding queue, coverage stats, search logs
 
 AI & Automation:
@@ -87,10 +87,11 @@ Core Admin:
 - `FeedbackManagement.tsx` — User feedback queue with severity/type filtering
 - `ProductRoadmap.tsx` — Vision statement, module status tabs, feature roadmap
 
-Team & Resources:
-- `EmployeeManagement.tsx` — Employee list, search, active/inactive stats
-- `DepartmentManagement.tsx` — Department overview
-- `EmployeeProjection.tsx` — Resource allocation, dept distribution, pods, roster
+Users & Access:
+- `DepartmentManagement.tsx` — Department CRUD with user assignment
+
+Pods:
+- `PodManagement.tsx` — POD management (create, edit, members, permissions)
 
 EOS Admin (`eos/` subdirectory):
 - `eos/AdminEOS.tsx` — EOS admin hub linking to VTO, Scorecard, Accountability
@@ -218,13 +219,17 @@ Legend:
 | RoleManagement | `/admin/roles` | useRoles hook | Yes | `roles`, `role_permissions` | Full CRUD |
 | ActivityLogs | `/admin/logs` | Supabase query | No | `activity_logs`, `profiles` | Read-only |
 
-#### Team & Resources
+#### Users & Access (continued)
 
 | Page | Route | Data | CRUD | Backend | Status |
 |------|-------|------|------|---------|--------|
-| EmployeeManagement | `/admin/team/employees` | useEmployeeProfiles | No | `employee_profiles` | Read-only |
-| EmployeeProjection | `/admin/team/employee_projection` | Supabase query | No | `employee_profiles`, `departments`, `pods` | Read-only |
-| DepartmentManagement | `/admin/team/departments` | useDepartments | No | `departments` | Read-only |
+| DepartmentManagement | `/admin/department` | useDepartments | Yes | `departments`, `department_users` | Full CRUD |
+
+#### Pods
+
+| Page | Route | Data | CRUD | Backend | Status |
+|------|-------|------|------|---------|--------|
+| PODManagement | `/admin/pods` | usePods | Yes | `pods`, `pod_employees`, `pod_permissions` | Full CRUD |
 
 #### EOS Administration
 
@@ -262,9 +267,14 @@ Legend:
 
 | Page | Route | Data | CRUD | Backend | Status |
 |------|-------|------|------|---------|--------|
-| KnowledgeAnalytics | `/admin/knowledge/analytics` | Knowledge hooks | No | `knowledge_entries`, `knowledge_embeddings` | Read-only |
+| KnowledgeDashboard | `/admin/knowledge/dashboard` | useKnowledgeDashboard + knowledge hooks | No | `knowledge_entries`, `knowledge_files`, `knowledge_sources`, `vector_search_logs`, `gemini_sync_logs` | Read-only |
 | KnowledgeCategories | `/admin/knowledge/categories` | useCategoryTree | Yes | `knowledge_categories` | Full CRUD |
+| KnowledgeFiles | `/admin/knowledge/files` | Supabase query + edge fn | Yes | `knowledge_files`, `user-knowledge-process` | Full CRUD |
 | EmbeddingsExplorer | `/admin/knowledge/embeddings` | useQuery + useMutation | Yes | `embedding_queue`, `knowledge_embeddings` + edge fn | Full CRUD |
+
+**Removed pages (redirect to dashboard):** `/admin/knowledge/analytics`, `/admin/knowledge/common`, `/admin/knowledge/sync-status`, `/admin/knowledge/sources`, `/admin/knowledge/gemini`
+
+**Sources migration:** Source OAuth and sync triggers live in Integrations (`/admin/integrations/google-drive`, `/admin/integrations/confluence`, `/admin/integrations/sharepoint`). The dashboard Source Overview section is read-only.
 
 #### AI & Automation
 

@@ -26,8 +26,9 @@ From `src/modules/knowledge/routes.tsx`:
 Admin routes (from `src/modules/admin/routes.tsx`):
 
 ```
-/admin/knowledge/analytics     → Knowledge analytics dashboard
+/admin/knowledge/dashboard     → Unified knowledge command center
 /admin/knowledge/categories    → Category management
+/admin/knowledge/files         → Knowledge file management
 /admin/knowledge/embeddings    → Embeddings explorer
 ```
 

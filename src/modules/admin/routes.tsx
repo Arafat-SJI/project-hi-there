@@ -43,30 +43,21 @@ import FeedbackManagement from "@/pages/admin/FeedbackManagement";
 import ProductRoadmap from "@/pages/admin/ProductRoadmap";
 import DeploymentStatus from "@/pages/DeploymentStatus";
 import MCPServers from "@/pages/MCPServers";
-import EmployeeManagement from "@/pages/admin/EmployeeManagement";
-import EmployeeProjection from "@/pages/admin/EmployeeProjection";
-import RPTeamSettings from "@/pages/admin/RPTeamSettings";
 import PODManagement from "@/pages/admin/PodManagement";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
-import SkillManagement from "@/pages/admin/SkillManagement";
-import KnowledgeAnalytics from "@/pages/admin/KnowledgeAnalytics";
+import KnowledgeDashboard from "@/pages/admin/KnowledgeDashboard";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
-import KnowledgeSources from "@/pages/admin/KnowledgeSources";
 import KnowledgeFiles from "@/pages/admin/KnowledgeFiles";
-import KnowledgeSyncStatus from "@/pages/admin/KnowledgeSyncStatus";
-import CommonKnowledgeManagement from "@/pages/admin/CommonKnowledgeManagement";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
 import DashboardWidgets from "@/pages/admin/DashboardWidgets";
 import AgencyRoles from "@/pages/admin/AgencyRoles";
-import GeminiRAGConfig from "@/pages/admin/GeminiRAGConfig";
-import MemoryAnalytics from "@/pages/admin/MemoryAnalytics";
 import EmbeddingsExplorer from "@/pages/admin/EmbeddingsExplorer";
+import MemoryAnalytics from "@/pages/admin/MemoryAnalytics";
 import AdminEOS from "@/pages/admin/eos/AdminEOS";
 import VTOAdmin from "@/pages/admin/eos/VTOAdmin";
 import ScorecardWorkspace from "@/pages/admin/eos/ScorecardWorkspace";
 import AdminEOSAccountability from "@/pages/admin/eos/AdminEOSAccountability";
 import OKRsWorkspace from "@/pages/admin/eos/OKRsWorkspace";
-import ProductivityImport from "@/pages/admin/ProductivityImport";
 import OAuthClients from "@/pages/admin/OAuthClients";
 import ApiKeys from "@/pages/admin/ApiKeys";
 import StreamsPage from "@/modules/actions/pages/StreamsPage";
@@ -117,6 +108,8 @@ export const adminRoutes = (
     {/* Users & Access */}
     <Route path="/admin/users" element={<UserManagement />} />
     <Route path="/admin/roles" element={<RoleManagement />} />
+    <Route path="/admin/department" element={<DepartmentManagement />} />
+    <Route path="/admin/team/departments" element={<Navigate to="/admin/department" replace />} />
     <Route path="/admin/logs" element={<ActivityLogs />} />
 
     {/* System */}
@@ -151,24 +144,21 @@ export const adminRoutes = (
     <Route path="/admin/tasks/streams" element={<StreamsPage />} />
     <Route path="/admin/tasks/streams/:streamId" element={<StreamTasksPage />} />
 
-    {/* Team & Resources */}
-    <Route path="/admin/team/employees" element={<EmployeeManagement />} />
-    <Route path="/admin/productivity-import" element={<ProductivityImport />} />
-    <Route path="/admin/team/pods" element={<PODManagement />} />
-    <Route path="/admin/team/employee_projection" element={<RPTeamSettings />} />
-    <Route path="/admin/team/departments" element={<DepartmentManagement />} />
-    <Route path="/admin/skillmanagement" element={<SkillManagement />} />
+    {/* Pods */}
+    <Route path="/admin/pods" element={<PODManagement />} />
+    <Route path="/admin/team/pods" element={<Navigate to="/admin/pods" replace />} />
 
     {/* Knowledge Admin */}
-    <Route path="/admin/knowledge/analytics" element={<KnowledgeAnalytics />} />
+    <Route path="/admin/knowledge/dashboard" element={<KnowledgeDashboard />} />
     <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
-    <Route path="/admin/knowledge/sources" element={<KnowledgeSources />} />
     <Route path="/admin/knowledge/files" element={<KnowledgeFiles />} />
-    <Route path="/admin/knowledge/sync-status" element={<KnowledgeSyncStatus />} />
-    <Route path="/admin/knowledge/common" element={<CommonKnowledgeManagement />} />
     <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />
-    <Route path="/admin/knowledge/gemini" element={<GeminiRAGConfig />} />
     <Route path="/admin/knowledge/memory-analytics" element={<MemoryAnalytics />} />
+    <Route path="/admin/knowledge/analytics" element={<Navigate to="/admin/knowledge/dashboard?tab=analytics" replace />} />
+    <Route path="/admin/knowledge/common" element={<Navigate to="/admin/knowledge/dashboard?tab=usage" replace />} />
+    <Route path="/admin/knowledge/sync-status" element={<Navigate to="/admin/knowledge/dashboard?tab=sync" replace />} />
+    <Route path="/admin/knowledge/sources" element={<Navigate to="/admin/knowledge/dashboard?tab=sources" replace />} />
+    <Route path="/admin/knowledge/gemini" element={<Navigate to="/admin/knowledge/dashboard?tab=analytics" replace />} />
 
     {/* EOS Admin */}
     <Route path="/admin/eos" element={<AdminEOS />} />

@@ -1,6 +1,6 @@
 /**
  * POD Management — Admin page for managing PODs (teams) and their members.
- * Route: /admin/team/pods
+ * Route: /admin/pods
  */
 
 import { useState } from 'react';

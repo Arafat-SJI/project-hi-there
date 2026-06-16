@@ -189,9 +189,6 @@ verify_jwt = true
 [functions.team-productivity-list]
 verify_jwt = true
 
-[functions.import-productivity-csv]
-verify_jwt = true
-
 # Auto-added functions - run scripts/sync-config-functions.sh to sync
 [functions.agent-chat-stream]
 verify_jwt = false
@@ -237,6 +234,9 @@ verify_jwt = false
 
 [functions.knowledge-base]
 verify_jwt = false
+
+[functions.integration-settings]
+verify_jwt = true
 
 [functions.log-activity]
 verify_jwt = false

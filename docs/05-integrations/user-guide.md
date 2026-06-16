@@ -40,6 +40,44 @@ You'll see a category-based view of all available integrations with their connec
 
 ---
 
+## Integration Preferences
+
+At the top of the Integration Hub, administrators can configure **Primary Integrations** and **Primary Knowledge Sources**. These settings define which connected systems the platform treats as defaults for future AI, search, knowledge, memory, and analytics features.
+
+### Primary Integrations
+
+Select one or more connected business systems:
+
+- **CRM** — Salesforce, HubSpot, Pipedrive, Zoho CRM, etc.
+- **Project Management** — Jira, Asana, ClickUp, ActiveCollab, etc.
+- **Communication** — Microsoft Teams, Zoom, Google Meet, etc.
+- **File Storage** — Google Drive, Google Workspace, Microsoft 365, etc.
+
+Only **connected and enabled** integrations can be selected. Disconnected selections are removed automatically on save with a warning.
+
+### Primary Knowledge Sources
+
+Select connected external knowledge integrations and active internal sources:
+
+- **External** — Confluence, SharePoint, Google Drive, etc. (must be connected)
+- **Internal** — Manual Uploads, Meeting Transcripts, and other active `knowledge_sources` rows
+
+### Permissions
+
+- **Administrators** can view and save preferences
+- **Moderators** can view preferences but cannot save changes
+
+### Saving
+
+1. Open **Admin → Integrations**
+2. Scroll to **Integration Preferences** (or use `#preferences` anchor)
+3. Use the searchable multi-select for each section
+4. Click **Save Settings**
+
+Success message: *Settings saved successfully.*
+
+---
+
 ## Integration Categories
 
 ### AI Providers

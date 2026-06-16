@@ -296,3 +296,28 @@ export const createGoogleMeetMeetingSchema = z.object({
 });
 
 export type CreateGoogleMeetMeetingInput = z.infer<typeof createGoogleMeetMeetingSchema>;
+
+export const departmentFormSchema = z.object({
+  name: z.string().min(1, "Department name is required").max(100),
+  description: z.string().max(500).optional(),
+});
+
+export type DepartmentFormData = z.infer<typeof departmentFormSchema>;
+
+export const integrationKnowledgeSourceRefSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('integration'),
+    slug: z.string().min(1, 'Integration slug is required'),
+  }),
+  z.object({
+    kind: z.literal('internal'),
+    source_type: z.string().min(1, 'Source type is required'),
+  }),
+]);
+
+export const integrationPreferencesSchema = z.object({
+  primary_integrations: z.array(z.string().min(1)),
+  primary_knowledge_sources: z.array(integrationKnowledgeSourceRefSchema),
+});
+
+export type IntegrationPreferencesFormData = z.infer<typeof integrationPreferencesSchema>;
