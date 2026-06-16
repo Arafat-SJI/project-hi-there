@@ -24,13 +24,9 @@ import { getInitials } from "@/lib/utils";
 import { useState } from "react";
 import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
 import { useSemanticSearch } from "@/hooks/useSemanticSearch";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
-interface TopNavProps {
-  sidebarOpen?: boolean;
-  onToggleSidebar?: () => void;
-}
-
-export function TopNav({ sidebarOpen = true, onToggleSidebar }: TopNavProps) {
+export function TopNav() {
   const { user, profile, signOut } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -76,12 +72,10 @@ export function TopNav({ sidebarOpen = true, onToggleSidebar }: TopNavProps) {
   };
 
   return (
-    <header
-      className={`fixed right-0 top-0 z-30 h-16 border-b border-border bg-background/95 backdrop-blur-sm transition-[left] duration-200 ${
-        sidebarOpen ? "left-64" : "left-16"
-      }`}
-    >
-      <div className="flex h-full items-center justify-between px-6">
+    <header className="sticky top-0 z-30 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
+      <div className="flex h-full items-center justify-between gap-3 px-4 lg:px-6">
+        <SidebarTrigger className="shrink-0" />
+
         {/* Search */}
         <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
