@@ -1,60 +1,46 @@
 ## Goal
 
-Generate a single, reusable Markdown document — `AI_FRAMEWORK_BLUEPRINT.md` — delivered as a downloadable artifact in `/mnt/documents/`. It documents the generic AI-first admin/platform framework derived from this Control Tower codebase, scoped to the **Core baseline** (Auth/Admin/AI Agentic Layer/Knowledge Base/Integrations Hub) plus an **edtech adaptation appendix**. No app code changes.
+Replace the current hand-rolled fixed-width sidebars (user `AppSidebar` + `AdminSidebar`) with the **shadcn `Sidebar` primitive UI pattern** used in the ePhysician Control Tower project. Keep this project's existing navigation data, routes, modules, feature flags, and role logic untouched — only the **look, structure, and collapse behavior** are imported.
 
-## Approach
+## What changes (UI only)
 
-Read-only synthesis from the existing codebase + memory files into one self-contained spec. Stack written as **React + TypeScript + Supabase (Postgres + RLS + Edge Functions + pgvector) as the reference implementation**, with patterns described generically so they port to other stacks.
+- Both sidebars become shadcn `Sidebar collapsible="icon"` shells with `SidebarHeader`, `SidebarContent`, `SidebarGroup`, `SidebarMenu`, `SidebarMenuButton`, `SidebarFooter`, `SidebarRail`.
+- Collapsing now mini-collapses to a 3rem icon strip (instead of a 4rem custom strip) with built-in tooltips on hover.
+- Layouts switch from `ml-64` fixed margin to `SidebarProvider` + flex shell (`AppSidebar` / `AdminSidebar` as flex siblings of the main column).
+- A `SidebarTrigger` button is added to `TopNav` so the user can collapse/expand from the header (replaces the current custom toggle).
+- Expandable nav groups use shadcn `Collapsible` + `SidebarMenuSub` / `SidebarMenuSubButton`, matching ePhysician's chevron-rotate pattern. Open/closed state is persisted in `localStorage` (`sidebar-menu-state`), same as ePhysician.
+- Active route highlighting via shadcn's `isActive` prop on `SidebarMenuButton` / `SidebarMenuSubButton`.
 
-## Document structure (target: 25–35 pages)
+## What does NOT change
 
-1. **Executive Summary** — what the framework is, who it's for, when to use it.
-2. **Architectural Principles** — AI-first, modular, RLS-by-default, admin-configurable, integration-pluggable.
-3. **Reference Stack** — React 18 + TS + Vite + Tailwind/shadcn + Supabase (Postgres, Auth, Storage, Edge Functions, pgvector); notes on swapping each layer.
-4. **High-Level Architecture Diagram** (ASCII) — frontend shell, module registry, admin panel, AI layer, KB, integrations hub, backend services.
-5. **Module 1 — Auth & Identity**
-   - Email/password + OAuth (Google, Microsoft/Azure AD)
-   - `profiles` table + auto-create trigger
-   - Separate `user_roles` table + `has_role()` SECURITY DEFINER
-   - RLS policy templates
-6. **Module 2 — Admin Panel**
-   - Layout pattern (sidebar + topnav, gated by `AdminRoute`)
-   - Domain areas: Users, Roles, System Settings, Feature Flags, Integrations, AI, Knowledge, Logs, Analytics
-   - `app_config` flat KV pattern + `useAppConfig` hook pattern
-   - Feature flag system (build-time `VITE_MODULE_*` + runtime `app_modules` + per-user `user_module_permissions`)
-   - Activity logging pattern
-7. **Module 3 — AI Agentic Layer**
-   - Configurable agents (`ai_agents`)
-   - Execution + history (`ai_agent_runs`, `ai_chat_history`)
-   - RAG pipeline (`embeddings` + pgvector + ingestion edge functions)
-   - Memory lifecycle (extract/retrieve/consolidate)
-   - Multi-agent orchestration, guardrails + HITL, MCP, streaming, multi-provider routing
-8. **Module 4 — Knowledge Base**
-   - Schema, ingestion, auto-embedding, semantic + unified search, personal vs org separation
-9. **Module 5 — Integrations Hub**
-   - Catalog model (`integration_categories`, `integration_providers`, `integration_fields`)
-   - Two-tier credential model (org vs user OAuth)
-   - Provider card UI pattern
-   - `validate-api-key` polymorphic pattern
-   - Background sync pattern + RAG sync integrity
-   - Reference provider list
-10. **Cross-Cutting Concerns** — DB conventions, migration policy, edge function conventions, type safety, caching, security
-11. **Folder Structure Template**
-12. **Environment Variables Reference**
-13. **Replication Checklist**
-14. **Appendix A — Edtech Adaptation** (Learners/Instructors/Courses, AI tutor agents, LMS integrations, suggested tables sketch)
-15. **Appendix B — Glossary**
-16. **Appendix C — Reference Edge Function Catalog**
+- `src/shared/data/navigationStructure.ts` — kept as the data source. Both sidebars still read `navigationGroups`, `dashboardItem`, and `adminNavigation` from it.
+- Module gating (`useModuleAccess`), feature flags (`useFeatureFlags`), agency-role gating (`useAgencyRole`), admin-only filtering — all logic preserved, just rendered through shadcn components.
+- All routes in `App.tsx`, `ProtectedRoute`, `AdminRoute`, `AuthContext`, branding.
+- `TopNav` content (notifications, profile, search) — only adds a `SidebarTrigger` on the left.
+- No nav items from the ePhysician project (Patients, Calendar, HIPAA, etc.) are imported — those are client-specific and don't belong in this framework.
 
-## Deliverables
+## Files to modify
 
-- `/mnt/documents/AI_FRAMEWORK_BLUEPRINT.md`
-- `<lov-artifact>` download link in the final reply
-- No changes to project source, DB, or migrations
+1. `src/components/layout/AppSidebar.tsx` — rewrite using shadcn `Sidebar` primitives; keep current data filtering helpers and nav item shape; render groups as collapsible sections matching ePhysician's `AppSidebar`.
+2. `src/components/layout/AdminSidebar.tsx` — same treatment using `adminNavigation` groups; "Back to Dashboard" entry at top like ePhysician's admin sidebar.
+3. `src/components/layout/DashboardLayout.tsx` — wrap with `SidebarProvider`; remove custom `sidebarOpen` state, `SIDEBAR_WIDTH_*` constants, and `ml-64` margin math; use flex shell.
+4. `src/components/layout/AdminLayout.tsx` — same `SidebarProvider` + flex shell treatment.
+5. `src/components/layout/TopNav.tsx` — drop the existing custom toggle; insert shadcn `SidebarTrigger` at the left of the header. Keep all other header content.
 
-## Out of scope
+## Technical notes
 
-- No code generation in the project repo
-- No new migrations or edge functions
-- No SQL beyond conceptual sketches in the edtech appendix
-- No images/screenshots (Markdown + ASCII only)
+- shadcn `Sidebar` (`src/components/ui/sidebar.tsx`) is already installed and used elsewhere in the codebase — no new dependencies.
+- `collapsible="icon"` keeps icons visible when collapsed (mini variant) and provides built-in tooltips via the `tooltip` prop on `SidebarMenuButton`, matching ePhysician's UX.
+- `SidebarRail` adds the thin draggable edge for quick collapse, same as the source.
+- Persisted sidebar open/closed state moves from our manual `localStorage("sidebar-open")` to shadcn's built-in cookie-based persistence on `SidebarProvider`. The old localStorage key is no longer read; this is acceptable — first visit will default to expanded.
+- No DB, edge function, or auth changes. Pure presentation refactor.
+
+## How to test
+
+1. Log in as a normal user → user sidebar matches ePhysician look: header with brand, grouped sections with collapsible chevrons, footer with profile, mini icon strip when collapsed, tooltips on hover.
+2. Click the trigger in the top nav → sidebar collapses to icon-only; click again → expands.
+3. Navigate between pages → no flicker, active item highlighted, expanded group of active route stays open.
+4. Visit `/admin/*` routes → admin sidebar uses the same shadcn shell, shows "Back to Dashboard" at top, groups for People & Performance, AI Agents, AI Hub, Knowledge Base, Users & Access, etc.
+5. Reload mid-session → sidebar collapsed/expanded state persists (via shadcn cookie).
+6. Resize to mobile width → sidebar becomes offcanvas sheet (shadcn default behavior).
+7. Module flags off (e.g. disable EOS) → corresponding nav group disappears, same as today.
