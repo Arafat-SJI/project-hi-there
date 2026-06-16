@@ -33,15 +33,11 @@ import IntegrationAnalytics from "@/pages/admin/IntegrationAnalytics";
 import ProjectReports from "@/pages/admin/ProjectReports";
 import ResourceUtilizationReports from "@/pages/admin/ResourceUtilizationReports";
 import AIModelManagement from "@/pages/admin/AIModelManagement";
-import AIUsageAnalytics from "@/pages/admin/AIUsageAnalytics";
-import EnvironmentValidator from "@/pages/admin/EnvironmentValidator";
 import OnboardingWizard from "@/pages/admin/OnboardingWizard";
 import DeploymentChecklist from "@/pages/admin/DeploymentChecklist";
 import SSOSettings from "@/pages/admin/SSOSettings";
 import MeetingAnalytics from "@/pages/admin/MeetingAnalytics";
 import FeedbackManagement from "@/pages/admin/FeedbackManagement";
-import ProductRoadmap from "@/pages/admin/ProductRoadmap";
-import DeploymentStatus from "@/pages/DeploymentStatus";
 import MCPServers from "@/pages/MCPServers";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement";
 import EmployeeProjection from "@/pages/admin/EmployeeProjection";
@@ -71,21 +67,15 @@ import OAuthClients from "@/pages/admin/OAuthClients";
 import ApiKeys from "@/pages/admin/ApiKeys";
 import StreamsPage from "@/modules/actions/pages/StreamsPage";
 import StreamTasksPage from "@/modules/actions/pages/StreamTasksPage";
-import AIDashboard from "@/pages/admin/ai/AIDashboard";
-import AgentAnalytics from "@/pages/admin/ai/AgentAnalytics";
 import PromptTemplateManagement from "@/pages/admin/ai/PromptTemplateManagement";
 import AIAgents from "@/pages/AIAgents";
 import AIChat from "@/pages/AIChat";
 import AgentCategories from "@/pages/admin/ai/AgentCategories";
 import EmailDraftingPerformance from "@/pages/admin/ai/EmailDraftingPerformance";
 import DealCoaching from "@/pages/admin/ai/DealCoaching";
-import AdminSemanticSearch from "@/pages/admin/ai/AdminSemanticSearch";
-import EmbeddingPipelineDashboard from "@/pages/admin/ai/EmbeddingPipelineDashboard";
-import LLMConfig from "@/pages/admin/ai/LLMConfig";
-import MemoryDashboard from "@/pages/admin/memory/MemoryDashboard";
-import UserMemoryStats from "@/pages/admin/memory/UserMemoryStats";
-import TeamLearningPatterns from "@/pages/admin/memory/TeamLearningPatterns";
-import SemanticSearchAnalytics from "@/pages/admin/memory/SemanticSearchAnalytics";
+import AIAnalytics from "@/pages/admin/ai/AIAnalytics";
+import KnowledgeSearch from "@/pages/admin/ai-hub/KnowledgeSearch";
+import Memory from "@/pages/admin/ai-hub/Memory";
 
 /**
  * Admin routes - require admin role
@@ -94,25 +84,23 @@ export const adminRoutes = (
   <>
     {/* Dashboard */}
     <Route path="/admin" element={<Admin />} />
-    <Route path="/admin/ai" element={<AIDashboard />} />
-    <Route path="/admin/ai/agent-analytics" element={<AgentAnalytics />} />
     <Route path="/admin/ai/agent-categories" element={<AgentCategories />} />
     <Route path="/admin/ai/agents" element={<AIAgents />} />
     <Route path="/admin/ai/chat" element={<AIChat />} />
     <Route path="/admin/ai/prompt-templates" element={<PromptTemplateManagement />} />
     <Route path="/admin/ai/email-drafting" element={<EmailDraftingPerformance />} />
     <Route path="/admin/ai/deal-coaching" element={<DealCoaching />} />
-    <Route path="/admin/ai/semantic-search" element={<AdminSemanticSearch />} />
-    <Route path="/admin/ai/embeddings" element={<EmbeddingPipelineDashboard />} />
-    <Route path="/admin/ai/llm-config" element={<LLMConfig />} />
+    <Route path="/admin/ai/analytics" element={<AIAnalytics />} />
+    <Route path="/admin/ai-hub/knowledge-search" element={<KnowledgeSearch />} />
+    <Route path="/admin/ai-hub/memory" element={<Memory />} />
     <Route path="/admin/implementation-status" element={<ImplementationStatus />} />
 
-    {/* Memory Dashboard – admin only, data from Supabase only */}
-    <Route path="/admin/memory" element={<Navigate to="/admin/memory/dashboard" replace />} />
-    <Route path="/admin/memory/dashboard" element={<MemoryDashboard />} />
-    <Route path="/admin/memory/team-learning-patterns" element={<TeamLearningPatterns />} />
-    <Route path="/admin/memory/user-stats" element={<UserMemoryStats />} />
-    <Route path="/admin/memory/search" element={<SemanticSearchAnalytics />} />
+    {/* Memory – redirects from old paths to unified page */}
+    <Route path="/admin/memory" element={<Navigate to="/admin/ai-hub/memory" replace />} />
+    <Route path="/admin/memory/dashboard" element={<Navigate to="/admin/ai-hub/memory" replace />} />
+    <Route path="/admin/memory/user-stats" element={<Navigate to="/admin/ai-hub/memory" replace />} />
+    <Route path="/admin/memory/search" element={<Navigate to="/admin/ai-hub/memory" replace />} />
+    <Route path="/admin/memory/team-learning-patterns" element={<Navigate to="/admin/ai-hub/memory" replace />} />
 
     {/* Users & Access */}
     <Route path="/admin/users" element={<UserManagement />} />
@@ -144,7 +132,10 @@ export const adminRoutes = (
 
     {/* AI & Automation */}
     <Route path="/admin/ai-models" element={<AIModelManagement />} />
-    <Route path="/admin/ai-usage" element={<AIUsageAnalytics />} />
+    <Route path="/admin/ai-usage" element={<Navigate to="/admin/ai/analytics" replace />} />
+    <Route path="/admin/ai/agent-analytics" element={<Navigate to="/admin/ai/analytics" replace />} />
+    <Route path="/admin/ai/semantic-search" element={<Navigate to="/admin/ai-hub/knowledge-search" replace />} />
+    <Route path="/admin/ai/embeddings" element={<Navigate to="/admin/ai-hub/knowledge-search" replace />} />
     <Route path="/admin/mcp-servers" element={<MCPServers />} />
 
     {/* Task Streams (Admin) */}
@@ -188,8 +179,6 @@ export const adminRoutes = (
     />
 
     {/* Deployment & Config */}
-    <Route path="/admin/deployment" element={<DeploymentStatus />} />
-    <Route path="/admin/environment" element={<EnvironmentValidator />} />
     <Route path="/admin/onboarding" element={<OnboardingWizard />} />
     <Route path="/admin/checklist" element={<DeploymentChecklist />} />
     <Route path="/admin/sso-settings" element={<SSOSettings />} />
@@ -198,6 +187,5 @@ export const adminRoutes = (
     <Route path="/admin/oauth-clients" element={<OAuthClients />} />
     <Route path="/admin/api-keys" element={<ApiKeys />} />
     <Route path="/admin/meeting-analytics" element={<MeetingAnalytics />} />
-    <Route path="/admin/roadmap" element={<ProductRoadmap />} />
   </>
 );

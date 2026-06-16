@@ -182,15 +182,6 @@ export default function Admin() {
                 <Link to="/admin/integrations">Configure</Link>
               </Button>
             </div>
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <p className="font-medium">Deployment Status</p>
-                <p className="text-sm text-muted-foreground">Monitor edge functions</p>
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/admin/deployment">View Status</Link>
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>

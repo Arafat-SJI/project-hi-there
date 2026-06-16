@@ -7,7 +7,10 @@ import { AlertCircle } from "lucide-react";
 export function AdminRoute() {
   const { user, profile, loading } = useAuth();
 
-  if (loading) {
+  // Show loader while auth initializes OR while user is authenticated but profile
+  // hasn't been fetched yet. Without this check the component briefly renders
+  // "Access Denied" because loading becomes false before fetchProfile resolves.
+  if (loading || (user && !profile)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
