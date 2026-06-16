@@ -8,25 +8,6 @@ import type { EmployeeProfile, ProductivityRecord } from "../types";
 
 const EMPLOYEES_KEY = "employees";
 
-export function useEmployeeProfiles(search?: string) {
-  return useQuery({
-    queryKey: [EMPLOYEES_KEY, search],
-    queryFn: async (): Promise<EmployeeProfile[]> => {
-      let query = supabase
-        .from("employee_profiles")
-        .select("*, department:department_id(name)")
-        .eq("is_active", true)
-        .order("full_name");
-
-      if (search) query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as EmployeeProfile[];
-    },
-  });
-}
-
 export function useEmployeeByEmail(email: string) {
   return useQuery({
     queryKey: [EMPLOYEES_KEY, email],

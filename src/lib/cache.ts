@@ -85,6 +85,12 @@ export const queryKeys = {
     semanticSearch: (query: string, opts?: Record<string, any>) => ["knowledge", "semanticSearch", query, opts] as const,
     userKnowledgeStats: (userId: string) => ["knowledge", "userStats", userId] as const,
     agentPersonalizations: (userId: string) => ["knowledge", "agentPersonalizations", userId] as const,
+    dashboard: ["knowledge", "dashboard"] as const,
+    dashboardFiles: ["knowledge", "dashboard", "files"] as const,
+    dashboardSources: ["knowledge", "dashboard", "sources"] as const,
+    dashboardSyncLogs: ["knowledge", "dashboard", "syncLogs"] as const,
+    dashboardSearchLogs: ["knowledge", "dashboard", "searchLogs"] as const,
+    dashboardCommonCount: ["knowledge", "dashboard", "commonCount"] as const,
   },
 
   // Zoho CRM (deal-scoped cache)
@@ -170,11 +176,26 @@ export const queryKeys = {
     searchAnalytics: ["admin", "searchAnalytics"] as const,
   },
 
+  // Departments
+  departments: {
+    all: ["departments"] as const,
+    list: (filters?: Record<string, unknown>) => ["departments", "list", filters] as const,
+    detail: (id: string) => ["departments", "detail", id] as const,
+    users: (id: string) => ["departments", "users", id] as const,
+  },
+
   // SendGrid
   sendgrid: {
     config: ["sendgrid", "config"] as const,
     integration: ["sendgrid", "integration"] as const,
     trackingEvents: (days?: number) => ["sendgrid", "trackingEvents", days] as const,
+  },
+
+  // Integration preferences (primary integrations / knowledge sources)
+  integrationSettings: {
+    all: ["integration-settings"] as const,
+    preferences: () => ["integration-settings", "preferences"] as const,
+    options: () => ["integration-settings", "options"] as const,
   },
 
   // Notifications
@@ -283,6 +304,9 @@ export const invalidateKeys = {
   roles: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.admin.roles });
   },
+  departments: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.departments.all });
+  },
   ai: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agents });
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agentCategories });
@@ -306,6 +330,9 @@ export const invalidateKeys = {
     queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.config });
     queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.integration });
     queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.trackingEvents() });
+  },
+  integrationSettings: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.integrationSettings.all });
   },
   zohoDeal: (queryClient: any, dealId: string) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.zoho.attachments(dealId) });

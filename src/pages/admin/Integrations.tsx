@@ -19,6 +19,7 @@ import { Loader2, Search, BarChart3, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useProvidersGroupedByCategory } from '@/hooks/useIntegrations';
 import { ProviderCard } from '@/components/integrations/ProviderCard';
+import { IntegrationPreferencesSection } from '@/components/integrations/IntegrationPreferencesSection';
 import {
   getCategoryIcon,
   filterProvidersByQuery,
@@ -96,6 +97,8 @@ export default function Integrations() {
           View Analytics
         </Button>
       </div>
+
+      <IntegrationPreferencesSection />
 
       {/* Search & Filter */}
       <div className="flex gap-4">

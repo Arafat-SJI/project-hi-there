@@ -8,7 +8,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { ProductivityRecord, ProductivityFilters, ProductivitySummary, Department, AIProductivityInsight } from "../types";
+import type { ProductivityRecord, ProductivityFilters, ProductivitySummary, AIProductivityInsight } from "../types";
+import { useDepartments as useDepartmentsList } from "@/hooks/useDepartments";
+
+export { useDepartmentsList as useDepartments };
 
 const PRODUCTIVITY_KEY = "productivity";
 
@@ -84,21 +87,6 @@ export function useProductivitySummary(weekStart?: string) {
           employee_count: val.count,
         })),
       };
-    },
-  });
-}
-
-export function useDepartments() {
-  return useQuery({
-    queryKey: [PRODUCTIVITY_KEY, "departments"],
-    queryFn: async (): Promise<Department[]> => {
-      const { data, error } = await supabase
-        .from("departments")
-        .select("*")
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return (data || []) as unknown as Department[];
     },
   });
 }
