@@ -9,8 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save, ArrowLeft } from "lucide-react";
 import { PermissionDenied } from "@/components/auth/PermissionDenied";
 
+import { useAuth } from "@/contexts/AuthContext";
+
 export default function PermissionMatrix() {
-  const { hasPermission, isLoading: permLoading } = usePermissions();
+  const { profile } = useAuth();
+  const { hasPermission, isLoading: permLoading, isSuccess: permLoaded } = usePermissions();
+  const isAdminRole = profile?.role === "admin" || profile?.role === "moderator";
   const { data: roles, isLoading: rolesLoading } = useRoles();
   const { data: permissions, isLoading: catalogLoading } = usePermissionCatalog();
   const updatePermissions = useUpdateRolePermissions();
@@ -75,7 +79,7 @@ export default function PermissionMatrix() {
     setDirty(false);
   };
 
-  if (permLoading) {
+  if (permLoading || !permLoaded) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -83,7 +87,7 @@ export default function PermissionMatrix() {
     );
   }
 
-  if (!hasPermission("settings.admin") && !hasPermission("users.admin")) {
+  if (!isAdminRole && !hasPermission("settings.admin") && !hasPermission("users.admin")) {
     return (
       <PermissionDenied message="You do not have permission to manage the permission matrix." />
     );

@@ -9,6 +9,7 @@ import { useRoles } from "@/hooks/useRoles";
 import { useDepartments } from "@/hooks/useDepartments";
 import { usePodsWithMembers } from "@/hooks/usePods";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/contexts/AuthContext";
 import { PermissionDenied } from "@/components/auth/PermissionDenied";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +51,9 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 };
 
 export default function UserInvitations() {
-  const { hasPermission, isLoading: permLoading } = usePermissions();
+  const { profile } = useAuth();
+  const { hasPermission, isLoading: permLoading, isSuccess: permLoaded } = usePermissions();
+  const isAdminRole = profile?.role === "admin" || profile?.role === "moderator";
   const { data: invites, isLoading, isError } = useUserInvites();
   const { data: roles } = useRoles();
   const { data: departments } = useDepartments();
@@ -81,7 +84,7 @@ export default function UserInvitations() {
     setForm({ email: "", role_id: "", department_id: "", pod_id: "", welcome_message: "" });
   };
 
-  if (permLoading) {
+  if (permLoading || !permLoaded) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -89,7 +92,7 @@ export default function UserInvitations() {
     );
   }
 
-  if (!hasPermission("users.create")) {
+  if (!isAdminRole && !hasPermission("users.create")) {
     return (
       <PermissionDenied message="You do not have permission to manage user invitations." />
     );
