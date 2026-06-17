@@ -72,8 +72,8 @@ export function useUpsertKbSourceConfig() {
       reranker_enabled?: boolean;
       reranker_override_global?: boolean;
     }) => {
-      const { data, error } = await supabase
-        .from("kb_source_config")
+      const { data, error } = await (supabase
+        .from("kb_source_config") as any)
         .upsert(input, { onConflict: "source_id" })
         .select()
         .single();

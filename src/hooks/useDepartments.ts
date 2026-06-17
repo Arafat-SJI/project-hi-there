@@ -89,7 +89,7 @@ export function useDepartments(filters?: DepartmentListFilters) {
   const activeOnly = filters?.activeOnly ?? true;
 
   return useQuery({
-    queryKey: queryKeys.departments.list(filters),
+    queryKey: queryKeys.departments.list(filters as Record<string, unknown> | undefined),
     queryFn: async (): Promise<DepartmentWithStats[]> => {
       let query = supabase.from("departments").select("*").order("name");
 

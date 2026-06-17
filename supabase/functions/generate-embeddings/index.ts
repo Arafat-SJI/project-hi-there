@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { generateEmbedding, getModel, logUsage, calculateCost } from '@shared/ai-provider-routing.ts'
-import { chunkText } from '@shared/chunking/index.ts'
-import { loadSourceConfig } from '@shared/kb-source-config.ts'
+import { generateEmbedding, getModel, logUsage, calculateCost } from '../_shared/ai-provider-routing.ts'
+import { chunkText } from '../_shared/chunking/index.ts'
+import { loadSourceConfig } from '../_shared/kb-source-config.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

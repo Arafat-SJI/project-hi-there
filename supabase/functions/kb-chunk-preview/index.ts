@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { chunkText, estimateEmbeddingCost } from '@shared/chunking/index.ts'
-import { requireAdmin } from '@shared/admin-auth.ts'
+import { chunkText, estimateEmbeddingCost } from '../_shared/chunking/index.ts'
+import { requireAdmin } from '../_shared/admin-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
