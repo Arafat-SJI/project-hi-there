@@ -226,7 +226,7 @@ export function useUpdateAgent() {
 
       const { data: agent, error } = await supabase
         .from("ai_agents")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", id)
         .select()
         .single();

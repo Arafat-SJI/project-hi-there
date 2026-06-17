@@ -107,7 +107,7 @@ export function useUpdateSendGridConfig() {
       }
       const { data, error } = await supabase
         .from("sendgrid_config")
-        .update(updatePayload)
+        .update(updatePayload as any)
         .eq("id", config.id)
         .select()
         .single();

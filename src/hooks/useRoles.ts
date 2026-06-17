@@ -63,7 +63,7 @@ export function useCreateRole() {
           name: data.name,
           description: data.description || null,
           permissions: data.permissions,
-        })
+        } as any)
         .select()
         .single();
 
@@ -93,7 +93,7 @@ export function useUpdateRole() {
           name: data.name,
           description: data.description || null,
           permissions: data.permissions,
-        })
+        } as any)
         .eq("id", id)
         .select()
         .single();
