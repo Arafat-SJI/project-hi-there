@@ -366,37 +366,28 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
-    id: "ai-agents",
-    title: "AI AGENTS",
-    icon: "Bot",
-    isAI: true,
-    items: [
-      {
-        title: "Agents",
-        href: "/admin/ai/agents",
-        icon: "Bot",
-        headerOnly: true,
-        children: [
-          { title: "Manage Agents", href: "/admin/ai/agents", icon: "Bot" },
-          { title: "Agent Categories", href: "/admin/ai/agent-categories", icon: "FolderOpen" },
-          { title: "Prompt Templates", href: "/admin/ai/prompt-templates", icon: "FileText" },
-        ],
-      },
-      { title: "Deal Coaching", href: "/admin/ai/deal-coaching", icon: "Target" },
-      { title: "Email Drafting", href: "/admin/ai/email-drafting", icon: "MessageSquare" },
-      { title: "Analytics", href: "/admin/ai/analytics", icon: "BarChart3" },
-    ],
-  },
-  {
-    id: "ai-hub",
-    title: "AI HUB",
+    id: "intelligence-ai",
+    title: "INTELLIGENCE & AI",
     icon: "Brain",
     isAI: true,
     items: [
-      { title: "AI Models", href: "/admin/ai-models", icon: "Cpu" },
-      { title: "Knowledge Search", href: "/admin/ai-hub/knowledge-search", icon: "Search" },
-      { title: "Memory", href: "/admin/ai-hub/memory", icon: "Database" },
-      { title: "Memory Admin", href: "/admin/memory/admin", icon: "Shield" },
+      { title: "AI Agents", href: "/admin/ai/agents", icon: "Bot" },
+      { title: "Agent Categories", href: "/admin/ai/agent-categories", icon: "FolderOpen" },
+      { title: "Prompt Templates", href: "/admin/ai/prompt-templates", icon: "FileText" },
+      { title: "AI Analytics", href: "/admin/ai/analytics", icon: "BarChart3" },
+      { title: "Deal Coaching", href: "/admin/ai/deal-coaching", icon: "Target" },
+      { title: "Email Drafting", href: "/admin/ai/email-drafting", icon: "MessageSquare" },
+      {
+        title: "AI Hub",
+        href: "/admin/ai-hub/knowledge-search",
+        icon: "Brain",
+        headerOnly: true,
+        children: [
+          { title: "Knowledge Search", href: "/admin/ai-hub/knowledge-search", icon: "Search" },
+          { title: "Memory", href: "/admin/ai-hub/memory", icon: "Database" },
+          { title: "AI Models", href: "/admin/ai-models", icon: "Cpu" },
+        ],
+      },
     ],
   },
   {
@@ -411,7 +402,6 @@ export const adminNavigation: NavGroup[] = [
         headerOnly: true,
         children: [
           { title: "Dashboard", href: "/admin/knowledge/dashboard", icon: "LayoutDashboard" },
-          { title: "Source Config", href: "/admin/knowledge/source-config", icon: "Settings" },
           { title: "Playground", href: "/admin/knowledge/playground", icon: "FlaskConical" },
           { title: "Permissions", href: "/admin/knowledge/permissions", icon: "Shield" },
           { title: "Categories", href: "/admin/knowledge/categories", icon: "FolderOpen" },
@@ -444,18 +434,6 @@ export const adminNavigation: NavGroup[] = [
         title: "Activity Logs",
         href: "/admin/logs",
         icon: "Activity",
-      },
-    ],
-  },
-  {
-    id: "team-resources",
-    title: "TEAM & RESOURCES",
-    icon: "Building2",
-    items: [
-      {
-        title: "Departments",
-        href: "/admin/team/departments",
-        icon: "Building2",
       },
     ],
   },

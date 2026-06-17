@@ -3612,6 +3612,7 @@ export type Database = {
           created_at: string
           id: string
           organization_id: string | null
+          primary_by_category: Json
           primary_integrations: Json
           primary_knowledge_sources: Json
           updated_at: string
@@ -3621,6 +3622,7 @@ export type Database = {
           created_at?: string
           id?: string
           organization_id?: string | null
+          primary_by_category?: Json
           primary_integrations?: Json
           primary_knowledge_sources?: Json
           updated_at?: string
@@ -3630,6 +3632,7 @@ export type Database = {
           created_at?: string
           id?: string
           organization_id?: string | null
+          primary_by_category?: Json
           primary_integrations?: Json
           primary_knowledge_sources?: Json
           updated_at?: string

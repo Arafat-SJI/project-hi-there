@@ -43,7 +43,6 @@ import ProjectReports from "@/pages/admin/ProjectReports";
 import ResourceUtilizationReports from "@/pages/admin/ResourceUtilizationReports";
 import AIModelManagement from "@/pages/admin/AIModelManagement";
 import OnboardingWizard from "@/pages/admin/OnboardingWizard";
-import DeploymentChecklist from "@/pages/admin/DeploymentChecklist";
 import SSOSettings from "@/pages/admin/SSOSettings";
 import MeetingAnalytics from "@/pages/admin/MeetingAnalytics";
 import FeedbackManagement from "@/pages/admin/FeedbackManagement";
@@ -51,7 +50,6 @@ import MCPServers from "@/pages/MCPServers";
 import PODManagement from "@/pages/admin/PodManagement";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeDashboard from "@/pages/admin/KnowledgeDashboard";
-import KnowledgeSourceConfig from "@/pages/admin/KnowledgeSourceConfig";
 import KnowledgePlayground from "@/pages/admin/KnowledgePlayground";
 import KnowledgePermissions from "@/pages/admin/KnowledgePermissions";
 import MemoryAdministration from "@/pages/admin/MemoryAdministration";
@@ -166,7 +164,7 @@ export const adminRoutes = (
 
     {/* Knowledge Admin */}
     <Route path="/admin/knowledge/dashboard" element={<KnowledgeDashboard />} />
-    <Route path="/admin/knowledge/source-config" element={<KnowledgeSourceConfig />} />
+    <Route path="/admin/knowledge/source-config" element={<Navigate to="/admin/integrations" replace />} />
     <Route path="/admin/knowledge/playground" element={<KnowledgePlayground />} />
     <Route path="/admin/knowledge/permissions" element={<KnowledgePermissions />} />
     <Route path="/admin/memory/admin" element={<MemoryAdministration />} />
@@ -174,11 +172,11 @@ export const adminRoutes = (
     <Route path="/admin/knowledge/files" element={<KnowledgeFiles />} />
     <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />
     <Route path="/admin/knowledge/memory-analytics" element={<MemoryAnalytics />} />
-    <Route path="/admin/knowledge/analytics" element={<Navigate to="/admin/knowledge/dashboard?tab=analytics" replace />} />
-    <Route path="/admin/knowledge/common" element={<Navigate to="/admin/knowledge/dashboard?tab=usage" replace />} />
-    <Route path="/admin/knowledge/sync-status" element={<Navigate to="/admin/knowledge/dashboard?tab=sync" replace />} />
-    <Route path="/admin/knowledge/sources" element={<Navigate to="/admin/knowledge/dashboard?tab=sources" replace />} />
-    <Route path="/admin/knowledge/gemini" element={<Navigate to="/admin/knowledge/dashboard?tab=analytics" replace />} />
+    <Route path="/admin/knowledge/analytics" element={<Navigate to="/admin/knowledge/dashboard" replace />} />
+    <Route path="/admin/knowledge/common" element={<Navigate to="/admin/knowledge/dashboard" replace />} />
+    <Route path="/admin/knowledge/sync-status" element={<Navigate to="/admin/knowledge/dashboard" replace />} />
+    <Route path="/admin/knowledge/sources" element={<Navigate to="/admin/knowledge/dashboard" replace />} />
+    <Route path="/admin/knowledge/gemini" element={<Navigate to="/admin/knowledge/dashboard" replace />} />
 
     {/* EOS Admin */}
     <Route path="/admin/eos" element={<AdminEOS />} />
@@ -199,7 +197,6 @@ export const adminRoutes = (
 
     {/* Deployment & Config */}
     <Route path="/admin/onboarding" element={<OnboardingWizard />} />
-    <Route path="/admin/checklist" element={<DeploymentChecklist />} />
 
     {/* OAuth & API Access */}
     <Route path="/admin/oauth-clients" element={<OAuthClients />} />

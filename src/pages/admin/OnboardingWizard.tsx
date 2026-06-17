@@ -460,7 +460,7 @@ export default function OnboardingWizard() {
             <p className="text-sm text-muted-foreground">
               Configure knowledge sources and categories.
             </p>
-            <Button variant="outline" onClick={() => navigate('/admin/knowledge/source-config')}>
+            <Button variant="outline" onClick={() => navigate('/admin/integrations')}>
               Knowledge Sources
             </Button>
           </div>
