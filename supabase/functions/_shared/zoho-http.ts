@@ -2,7 +2,7 @@
  * Shared HTTP entry for Zoho deal-scoped sync functions (JWT + CORS).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1"
-import { getCorsHeaders, handleCorsPreflight } from "../../cors.ts"
+import { getCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts"
 import { resolveZohoAuth, ZohoAuthError, zohoDealIdFromExternalId } from "./zoho.ts"
 
 // deno-lint-ignore no-explicit-any
