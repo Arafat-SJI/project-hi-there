@@ -14,7 +14,7 @@ const untypedFrom = (table: string) =>
 
 export interface SSOProvider {
   id: string;
-  provider_type: 'google_workspace' | 'azure_ad' | 'saml' | 'oidc';
+  provider_type: 'google_workspace' | 'azure_ad' | 'saml' | 'oidc' | 'okta';
   display_name: string;
   is_primary: boolean;
   is_enabled: boolean;

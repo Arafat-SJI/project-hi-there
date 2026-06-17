@@ -54,7 +54,7 @@ export function useRoles() {
         }>).map((s) => [s.role_id, s])
       );
 
-      return ((roles ?? []) as Role[]).map((role) => ({
+      return ((roles ?? []) as unknown as Role[]).map((role) => ({
         ...role,
         permission_count: statsMap.get(role.id)?.permission_count ?? 0,
         assigned_user_count: statsMap.get(role.id)?.assigned_user_count ?? 0,
@@ -74,7 +74,7 @@ export function useRole(id: string) {
         .single();
 
       if (error) throw error;
-      return data as Role;
+      return data as unknown as Role;
     },
     enabled: !!id,
   });
