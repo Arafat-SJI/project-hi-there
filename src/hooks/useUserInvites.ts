@@ -1,161 +1,120 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { invokeEdgeFunction } from "@/lib/edge-functions";
 
 export interface UserInvite {
   id: string;
   email: string;
   role: string;
+  role_id: string | null;
+  department_id: string | null;
+  pod_id: string | null;
+  welcome_message: string | null;
+  status: "pending" | "accepted" | "expired" | "cancelled";
   invited_by: string | null;
   token: string;
   expires_at: string;
   used_at: string | null;
   created_at: string;
+  roles?: { name: string; slug: string } | null;
 }
 
-// Fetch all pending invites
-export function useUserInvites() {
+export interface CreateInviteParams {
+  email: string;
+  role_id?: string;
+  role?: string;
+  department_id?: string;
+  pod_id?: string;
+  welcome_message?: string;
+}
+
+export function useUserInvites(status?: UserInvite["status"]) {
   return useQuery({
-    queryKey: ["user_invites"],
+    queryKey: ["user_invites", status ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = (supabase as any)
         .from("user_invites")
-        .select("*")
-        .is("used_at", null)
-        .gte("expires_at", new Date().toISOString())
+        .select("*, roles(name, slug)")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (status) {
+        query = query.eq("status", status);
+      }
 
-      return (data || []) as UserInvite[];
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []) as UserInvite[];
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 2,
   });
 }
 
-// Create a new invite
 export function useCreateUserInvite() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: { email: string; role: string }) => {
-      const { data: currentUser } = await supabase.auth.getUser();
-
-      if (!currentUser.user) {
-        throw new Error("Not authenticated");
-      }
-
-      // Check if email is already registered
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", params.email)
-        .single();
-
-      if (existingProfile) {
-        throw new Error("User with this email already exists");
-      }
-
-      // Check if there's already a pending invite
-      const { data: existingInvite } = await supabase
-        .from("user_invites")
-        .select("id")
-        .eq("email", params.email)
-        .is("used_at", null)
-        .gte("expires_at", new Date().toISOString())
-        .single();
-
-      if (existingInvite) {
-        throw new Error("An active invitation for this email already exists");
-      }
-
-      // Create the invite
-      const { data, error } = await supabase
-        .from("user_invites")
-        .insert([
-          {
-            email: params.email,
-            role: params.role,
-            invited_by: currentUser.user.id,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return data as UserInvite;
+    mutationFn: async (params: CreateInviteParams) => {
+      const result = await invokeEdgeFunction<{ invite: UserInvite; email_sent: boolean }>(
+        "send-user-invite",
+        params
+      );
+      return result;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["user_invites"] });
-      toast.success(`Invitation sent to ${data.email}`);
+      if (data.email_sent) {
+        toast.success(`Invitation sent to ${data.invite.email}`);
+      } else {
+        toast.warning(`Invite created for ${data.invite.email} but email could not be sent`);
+      }
     },
-    onError: (error: any) => {
-      console.error("Error creating invite:", error);
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to send invitation");
     },
   });
 }
 
-// Delete an invite
-export function useDeleteUserInvite() {
+export function useCancelUserInvite() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (inviteId: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("user_invites")
-        .delete()
+        .update({
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+        })
         .eq("id", inviteId);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user_invites"] });
-      toast.success("Invitation revoked");
+      toast.success("Invitation cancelled");
     },
-    onError: (error: any) => {
-      console.error("Error deleting invite:", error);
-      toast.error("Failed to revoke invitation");
-    },
+    onError: () => toast.error("Failed to cancel invitation"),
   });
 }
 
-// Resend an invite (creates a new token with extended expiry)
+/** @deprecated Use useCancelUserInvite */
+export const useDeleteUserInvite = useCancelUserInvite;
+
 export function useResendUserInvite() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (inviteId: string) => {
-      // Get the current invite
-      const { data: invite, error: fetchError } = await supabase
-        .from("user_invites")
-        .select("*")
-        .eq("id", inviteId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Update with new expiry and token
-      const { error: updateError } = await supabase
-        .from("user_invites")
-        .update({
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          token: crypto.randomUUID(), // Generate new token
-        })
-        .eq("id", inviteId);
-
-      if (updateError) throw updateError;
-
-      return invite;
+      return invokeEdgeFunction("send-user-invite", {
+        invite_id: inviteId,
+        resend: true,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user_invites"] });
       toast.success("Invitation resent");
     },
-    onError: (error: any) => {
-      console.error("Error resending invite:", error);
-      toast.error("Failed to resend invitation");
-    },
+    onError: () => toast.error("Failed to resend invitation"),
   });
 }

@@ -13,7 +13,8 @@ export { useFeatureFlags } from './useFeatureFlags';
 export { useAuthConfig } from './useAuthConfig';
 export { usePreferences } from './usePreferences';
 export { useDashboardStats, useRecentActivity, getTimeAgo } from './useDashboard';
-export { useOnboarding } from './useOnboarding';
+export { useOnboarding, useOnboardingRedirect } from './useOnboarding';
+export { usePermissions, usePermissionCatalog, useRolePermissions } from './usePermissions';
 export { useRoles } from './useRoles';
 
 // ============================================

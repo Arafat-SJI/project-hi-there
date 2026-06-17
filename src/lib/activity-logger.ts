@@ -1,23 +1,36 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
-export type ActivityAction = 
-  | "login" 
-  | "logout" 
-  | "create" 
-  | "update" 
-  | "delete" 
-  | "view" 
-  | "access";
+export type ActivityAction =
+  | "login"
+  | "logout"
+  | "create"
+  | "update"
+  | "delete"
+  | "view"
+  | "access"
+  | "role.created"
+  | "role.updated"
+  | "role.deleted"
+  | "permission.changed"
+  | "invite.sent"
+  | "invite.resent"
+  | "invite.accepted"
+  | "invite.cancelled"
+  | "user.role_assigned"
+  | "user.department_changed"
+  | "onboarding.completed";
 
-export type ResourceType = 
-  | "client" 
-  | "meeting" 
-  | "knowledge" 
-  | "task" 
-  | "user" 
-  | "ai_chat" 
+export type ResourceType =
+  | "client"
+  | "meeting"
+  | "knowledge"
+  | "task"
+  | "user"
+  | "ai_chat"
   | "settings"
+  | "role"
+  | "user_invite"
   | null;
 
 interface LogActivityParams {
@@ -91,6 +104,21 @@ export function logCrud(
   resourceType: ResourceType,
   resourceId: string,
   details?: Record<string, Json>
+): void {
+  logActivity({
+    action,
+    resourceType,
+    resourceId,
+    details,
+  });
+}
+
+/** Log RBAC and onboarding audit events */
+export function logRbacEvent(
+  action: ActivityAction,
+  details?: Record<string, Json>,
+  resourceType: ResourceType = null,
+  resourceId?: string
 ): void {
   logActivity({
     action,
