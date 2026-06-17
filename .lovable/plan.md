@@ -1,46 +1,26 @@
-## Goal
+# Deploy Latest Edge Functions
 
-Replace the current hand-rolled fixed-width sidebars (user `AppSidebar` + `AdminSidebar`) with the **shadcn `Sidebar` primitive UI pattern** used in the ePhysician Control Tower project. Keep this project's existing navigation data, routes, modules, feature flags, and role logic untouched — only the **look, structure, and collapse behavior** are imported.
+Deploy the 11 edge functions modified in recent commits using `supabase--deploy_edge_functions`. All functions that depend on the updated `_shared/` helpers are already in this set, so no extra deploys are needed.
 
-## What changes (UI only)
+## Functions to deploy
+1. admin-memory-actions
+2. gemini-rag-query
+3. generate-embeddings
+4. import-productivity-csv
+5. integration-settings
+6. kb-bulk-reembed
+7. kb-chunk-preview
+8. kb-rag-playground
+9. kb-sync-action
+10. process-embedding-queue
+11. semantic-search
 
-- Both sidebars become shadcn `Sidebar collapsible="icon"` shells with `SidebarHeader`, `SidebarContent`, `SidebarGroup`, `SidebarMenu`, `SidebarMenuButton`, `SidebarFooter`, `SidebarRail`.
-- Collapsing now mini-collapses to a 3rem icon strip (instead of a 4rem custom strip) with built-in tooltips on hover.
-- Layouts switch from `ml-64` fixed margin to `SidebarProvider` + flex shell (`AppSidebar` / `AdminSidebar` as flex siblings of the main column).
-- A `SidebarTrigger` button is added to `TopNav` so the user can collapse/expand from the header (replaces the current custom toggle).
-- Expandable nav groups use shadcn `Collapsible` + `SidebarMenuSub` / `SidebarMenuSubButton`, matching ePhysician's chevron-rotate pattern. Open/closed state is persisted in `localStorage` (`sidebar-menu-state`), same as ePhysician.
-- Active route highlighting via shadcn's `isActive` prop on `SidebarMenuButton` / `SidebarMenuSubButton`.
+## Steps
+1. Call `supabase--deploy_edge_functions` with all 11 function names in a single call.
+2. Report deployment results back to the user (success/failure per function).
+3. If any function fails, fetch its logs via `supabase--edge_function_logs` to diagnose.
 
-## What does NOT change
-
-- `src/shared/data/navigationStructure.ts` — kept as the data source. Both sidebars still read `navigationGroups`, `dashboardItem`, and `adminNavigation` from it.
-- Module gating (`useModuleAccess`), feature flags (`useFeatureFlags`), agency-role gating (`useAgencyRole`), admin-only filtering — all logic preserved, just rendered through shadcn components.
-- All routes in `App.tsx`, `ProtectedRoute`, `AdminRoute`, `AuthContext`, branding.
-- `TopNav` content (notifications, profile, search) — only adds a `SidebarTrigger` on the left.
-- No nav items from the ePhysician project (Patients, Calendar, HIPAA, etc.) are imported — those are client-specific and don't belong in this framework.
-
-## Files to modify
-
-1. `src/components/layout/AppSidebar.tsx` — rewrite using shadcn `Sidebar` primitives; keep current data filtering helpers and nav item shape; render groups as collapsible sections matching ePhysician's `AppSidebar`.
-2. `src/components/layout/AdminSidebar.tsx` — same treatment using `adminNavigation` groups; "Back to Dashboard" entry at top like ePhysician's admin sidebar.
-3. `src/components/layout/DashboardLayout.tsx` — wrap with `SidebarProvider`; remove custom `sidebarOpen` state, `SIDEBAR_WIDTH_*` constants, and `ml-64` margin math; use flex shell.
-4. `src/components/layout/AdminLayout.tsx` — same `SidebarProvider` + flex shell treatment.
-5. `src/components/layout/TopNav.tsx` — drop the existing custom toggle; insert shadcn `SidebarTrigger` at the left of the header. Keep all other header content.
-
-## Technical notes
-
-- shadcn `Sidebar` (`src/components/ui/sidebar.tsx`) is already installed and used elsewhere in the codebase — no new dependencies.
-- `collapsible="icon"` keeps icons visible when collapsed (mini variant) and provides built-in tooltips via the `tooltip` prop on `SidebarMenuButton`, matching ePhysician's UX.
-- `SidebarRail` adds the thin draggable edge for quick collapse, same as the source.
-- Persisted sidebar open/closed state moves from our manual `localStorage("sidebar-open")` to shadcn's built-in cookie-based persistence on `SidebarProvider`. The old localStorage key is no longer read; this is acceptable — first visit will default to expanded.
-- No DB, edge function, or auth changes. Pure presentation refactor.
-
-## How to test
-
-1. Log in as a normal user → user sidebar matches ePhysician look: header with brand, grouped sections with collapsible chevrons, footer with profile, mini icon strip when collapsed, tooltips on hover.
-2. Click the trigger in the top nav → sidebar collapses to icon-only; click again → expands.
-3. Navigate between pages → no flicker, active item highlighted, expanded group of active route stays open.
-4. Visit `/admin/*` routes → admin sidebar uses the same shadcn shell, shows "Back to Dashboard" at top, groups for People & Performance, AI Agents, AI Hub, Knowledge Base, Users & Access, etc.
-5. Reload mid-session → sidebar collapsed/expanded state persists (via shadcn cookie).
-6. Resize to mobile width → sidebar becomes offcanvas sheet (shadcn default behavior).
-7. Module flags off (e.g. disable EOS) → corresponding nav group disappears, same as today.
+## Out of scope
+- No code changes to any function.
+- No DB migrations (recent KB RAG migration already applied via standard flow).
+- No redeploy of unchanged functions.
