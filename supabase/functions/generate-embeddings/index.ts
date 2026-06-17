@@ -1,22 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { generateEmbedding, getModel, logUsage, calculateCost } from '../_shared/ai-provider-routing.ts'
+import { generateEmbedding, getModel, logUsage, calculateCost } from '@shared/ai-provider-routing.ts'
+import { chunkText } from '@shared/chunking/index.ts'
+import { loadSourceConfig } from '@shared/kb-source-config.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function chunkText(text: string, chunkSize = 800): string[] {
-  const chunks = []
-  let start = 0
-
-  while (start < text.length) {
-    chunks.push(text.slice(start, start + chunkSize))
-    start += chunkSize
-  }
-
-  return chunks
 }
 
 serve(async (req) => {
@@ -37,8 +27,13 @@ serve(async (req) => {
       metadata = {},
       user_id,
       model_id,
-      chunk_size = 800,
+      chunk_size,
+      chunk_overlap,
+      chunk_strategy,
+      strategy_config,
+      source_id,
       unified_document_id,
+      skip_delete = false,
     } = await req.json()
 
     if (!entity_type || !entity_id || !content) {
@@ -48,44 +43,52 @@ serve(async (req) => {
       )
     }
 
-    // Get the embedding model
+    const sourceConfig = await loadSourceConfig(supabaseClient, source_id)
+    const chunkingConfig = {
+      chunk_size: chunk_size ?? sourceConfig.chunk_size,
+      chunk_overlap: chunk_overlap ?? sourceConfig.chunk_overlap,
+      chunk_strategy: chunk_strategy ?? sourceConfig.chunk_strategy,
+      strategy_config: strategy_config ?? sourceConfig.strategy_config,
+    }
+
     const model = await getModel(supabaseClient, model_id, 'embedding')
     if (!model) {
       throw new Error('No valid embedding model found')
     }
 
-    // Chunk the content
-    const chunks = chunkText(content, chunk_size)
+    if (!skip_delete) {
+      await supabaseClient
+        .from('embeddings')
+        .delete()
+        .eq('entity_type', entity_type)
+        .eq('entity_id', entity_id)
+    }
+
+    const chunks = chunkText(content, chunkingConfig)
     const embeddings = []
     let totalTokens = 0
-    let totalCost = 0
 
-    // Generate embeddings for each chunk
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]
-      const response = await generateEmbedding(supabaseClient, chunk, model_id)
+      const response = await generateEmbedding(supabaseClient, chunk.content, model_id)
 
       embeddings.push({
         entity_type,
         entity_id,
         user_id: user_id || null,
         unified_document_id: unified_document_id || null,
-        content: chunk,
-        chunk_index: i,
-        metadata,
+        content: chunk.content,
+        chunk_index: chunk.chunk_index ?? i,
+        metadata: { ...metadata, ...(chunk.metadata ?? {}) },
         embedding: response.embedding,
       })
 
       totalTokens += response.tokens
-
-      // Small delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 100))
     }
 
-    // Calculate total cost
-    totalCost = calculateCost(model, 0, 0, totalTokens)
+    const totalCost = calculateCost(model, 0, 0, totalTokens)
 
-    // Log usage
     await logUsage(
       supabaseClient,
       user_id,
@@ -97,7 +100,6 @@ serve(async (req) => {
       totalCost
     )
 
-    // Insert embeddings into database
     const { data, error } = await supabaseClient
       .from('embeddings')
       .insert(embeddings)
@@ -113,6 +115,7 @@ serve(async (req) => {
         total_tokens: totalTokens,
         estimated_cost: totalCost,
         model_used: model.name,
+        chunk_strategy: chunkingConfig.chunk_strategy,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )

@@ -35,22 +35,11 @@ export interface SearchAnalyticsData {
   queryMetrics: QueryMetrics;
 }
 
-// Placeholder query metrics until we have real tracking (e.g. vector_search_logs or similar).
-// Replace with real data from your query-metrics table or Edge Function when available.
-const SIMULATED_QUERY_METRICS: QueryMetrics = {
-  avgLatencyMs: 142,
-  p95LatencyMs: 285,
-  truePositiveRatePct: 87,
-  successfulSearches: 1247,
-  failedSearches: 31,
-  successRatePct: 97.5,
-  avgResultsPerQuery: 4.2,
-};
-
 async function fetchSearchAnalytics(): Promise<SearchAnalyticsData> {
-  const [embeddingsRes, memoriesRes] = await Promise.all([
+  const [embeddingsRes, memoriesRes, searchLogsRes] = await Promise.all([
     supabase.from("embeddings").select("id, entity_type"),
     supabase.from("agent_memories").select("id, importance_score, access_count").eq("is_active", true),
+    supabase.from("vector_search_logs").select("duration_ms, result_count").order("created_at", { ascending: false }).limit(500),
   ]);
 
   if (embeddingsRes.error) throw embeddingsRes.error;
@@ -58,6 +47,7 @@ async function fetchSearchAnalytics(): Promise<SearchAnalyticsData> {
 
   const embeddingRows = embeddingsRes.data ?? [];
   const memoryRows = memoriesRes.data ?? [];
+  const searchLogs = searchLogsRes.data ?? [];
 
   const totalEmbeddings = embeddingRows.length;
   const totalMemories = memoryRows.length;
@@ -88,6 +78,32 @@ async function fetchSearchAnalytics(): Promise<SearchAnalyticsData> {
     0
   );
 
+  const latencies = searchLogs.map((l) => l.duration_ms ?? 0).filter((n) => n > 0).sort((a, b) => a - b);
+  const successfulSearches = searchLogs.filter((l) => (l.result_count ?? 0) > 0).length;
+  const failedSearches = searchLogs.length - successfulSearches;
+  const queryMetrics: QueryMetrics = searchLogs.length > 0
+    ? {
+        avgLatencyMs: Math.round(latencies.reduce((s, n) => s + n, 0) / Math.max(latencies.length, 1)),
+        p95LatencyMs: latencies[Math.floor(latencies.length * 0.95)] ?? 0,
+        truePositiveRatePct: Math.round((successfulSearches / searchLogs.length) * 1000) / 10,
+        successfulSearches,
+        failedSearches,
+        successRatePct: Math.round((successfulSearches / searchLogs.length) * 1000) / 10,
+        avgResultsPerQuery:
+          Math.round(
+            (searchLogs.reduce((s, l) => s + (l.result_count ?? 0), 0) / searchLogs.length) * 10
+          ) / 10,
+      }
+    : {
+        avgLatencyMs: 0,
+        p95LatencyMs: 0,
+        truePositiveRatePct: 0,
+        successfulSearches: 0,
+        failedSearches: 0,
+        successRatePct: 0,
+        avgResultsPerQuery: 0,
+      };
+
   return {
     totalEmbeddings,
     totalMemories,
@@ -95,7 +111,7 @@ async function fetchSearchAnalytics(): Promise<SearchAnalyticsData> {
     embeddingsByType,
     avgRelevancePct,
     totalAccesses,
-    queryMetrics: SIMULATED_QUERY_METRICS,
+    queryMetrics,
   };
 }
 

@@ -456,6 +456,8 @@ export type Database = {
           consolidated: boolean | null
           content: string
           created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           embedding: string | null
           id: string
           importance_score: number | null
@@ -479,6 +481,8 @@ export type Database = {
           consolidated?: boolean | null
           content: string
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           embedding?: string | null
           id?: string
           importance_score?: number | null
@@ -502,6 +506,8 @@ export type Database = {
           consolidated?: boolean | null
           content?: string
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           embedding?: string | null
           id?: string
           importance_score?: number | null
@@ -3545,6 +3551,287 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      kb_source_config: {
+        Row: {
+          id: string
+          source_id: string
+          chunk_size: number
+          chunk_overlap: number
+          chunk_strategy: string
+          strategy_config: Json
+          reranker_provider: string | null
+          reranker_threshold: number | null
+          reranker_max_results: number | null
+          reranker_enabled: boolean | null
+          reranker_override_global: boolean | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          source_id: string
+          chunk_size?: number
+          chunk_overlap?: number
+          chunk_strategy?: string
+          strategy_config?: Json
+          reranker_provider?: string | null
+          reranker_threshold?: number | null
+          reranker_max_results?: number | null
+          reranker_enabled?: boolean | null
+          reranker_override_global?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          source_id?: string
+          chunk_size?: number
+          chunk_overlap?: number
+          chunk_strategy?: string
+          strategy_config?: Json
+          reranker_provider?: string | null
+          reranker_threshold?: number | null
+          reranker_max_results?: number | null
+          reranker_enabled?: boolean | null
+          reranker_override_global?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_source_config_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: true
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_eval_runs: {
+        Row: {
+          id: string
+          query: string
+          answer: string | null
+          retrieval_latency_ms: number | null
+          rerank_latency_ms: number | null
+          generation_latency_ms: number | null
+          latency_ms: number | null
+          cost: number | null
+          source_id: string | null
+          metadata: Json | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          query: string
+          answer?: string | null
+          retrieval_latency_ms?: number | null
+          rerank_latency_ms?: number | null
+          generation_latency_ms?: number | null
+          latency_ms?: number | null
+          cost?: number | null
+          source_id?: string | null
+          metadata?: Json | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          query?: string
+          answer?: string | null
+          retrieval_latency_ms?: number | null
+          rerank_latency_ms?: number | null
+          generation_latency_ms?: number | null
+          latency_ms?: number | null
+          cost?: number | null
+          source_id?: string | null
+          metadata?: Json | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      kb_eval_results: {
+        Row: {
+          id: string
+          run_id: string
+          chunk_id: string | null
+          chunk_preview: string | null
+          similarity_score: number | null
+          rerank_score: number | null
+          source_name: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          run_id: string
+          chunk_id?: string | null
+          chunk_preview?: string | null
+          similarity_score?: number | null
+          rerank_score?: number | null
+          source_name?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          run_id?: string
+          chunk_id?: string | null
+          chunk_preview?: string | null
+          similarity_score?: number | null
+          rerank_score?: number | null
+          source_name?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      kb_eval_test_cases: {
+        Row: {
+          id: string
+          question: string
+          expected_answer: string | null
+          run_id: string | null
+          tags: string[] | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          question: string
+          expected_answer?: string | null
+          run_id?: string | null
+          tags?: string[] | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          question?: string
+          expected_answer?: string | null
+          run_id?: string | null
+          tags?: string[] | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      kb_reembed_jobs: {
+        Row: {
+          id: string
+          source_id: string
+          status: string
+          total_documents: number | null
+          processed_documents: number | null
+          failed_documents: number | null
+          error: string | null
+          started_at: string | null
+          completed_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          source_id: string
+          status?: string
+          total_documents?: number | null
+          processed_documents?: number | null
+          failed_documents?: number | null
+          error?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          source_id?: string
+          status?: string
+          total_documents?: number | null
+          processed_documents?: number | null
+          failed_documents?: number | null
+          error?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      kb_reembed_job_items: {
+        Row: {
+          id: string
+          job_id: string
+          entity_type: string
+          entity_id: string
+          status: string
+          error: string | null
+          processed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          job_id: string
+          entity_type: string
+          entity_id: string
+          status?: string
+          error?: string | null
+          processed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          job_id?: string
+          entity_type?: string
+          entity_id?: string
+          status?: string
+          error?: string | null
+          processed_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      kb_source_permissions: {
+        Row: {
+          id: string
+          source_id: string
+          app_role: Database["public"]["Enums"]["app_role"] | null
+          role_id: string | null
+          pod_id: string | null
+          department_id: string | null
+          permissions: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          source_id: string
+          app_role?: Database["public"]["Enums"]["app_role"] | null
+          role_id?: string | null
+          pod_id?: string | null
+          department_id?: string | null
+          permissions?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          source_id?: string
+          app_role?: Database["public"]["Enums"]["app_role"] | null
+          role_id?: string | null
+          pod_id?: string | null
+          department_id?: string | null
+          permissions?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       knowledge_embeddings: {
         Row: {

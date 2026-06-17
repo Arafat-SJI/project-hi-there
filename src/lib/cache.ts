@@ -91,6 +91,14 @@ export const queryKeys = {
     dashboardSyncLogs: ["knowledge", "dashboard", "syncLogs"] as const,
     dashboardSearchLogs: ["knowledge", "dashboard", "searchLogs"] as const,
     dashboardCommonCount: ["knowledge", "dashboard", "commonCount"] as const,
+    sourceConfig: ["knowledge", "sourceConfig"] as const,
+    globalReranker: ["knowledge", "globalReranker"] as const,
+    ragPlayground: ["knowledge", "ragPlayground"] as const,
+    bulkReembed: (jobId: string) => ["knowledge", "bulkReembed", jobId] as const,
+    permissions: ["knowledge", "permissions"] as const,
+    health: ["knowledge", "health"] as const,
+    memoryAdmin: (action: string, ...args: (string | undefined)[]) =>
+      ["knowledge", "memoryAdmin", action, ...args.filter(Boolean)] as const,
   },
 
   // Zoho CRM (deal-scoped cache)

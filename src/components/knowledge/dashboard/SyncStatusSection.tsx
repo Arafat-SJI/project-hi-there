@@ -1,6 +1,10 @@
-import { useKnowledgeSyncLogs } from "@/modules/knowledge/hooks/useKnowledgeDashboard";
+import { useState } from "react";
+import { useKnowledgeSyncLogs, useKnowledgeFileStats } from "@/modules/knowledge/hooks/useKnowledgeDashboard";
+import { useKbSyncAction } from "@/hooks/useKbSyncAction";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   Table,
@@ -18,6 +22,7 @@ import {
   Clock,
   TrendingUp,
   Activity,
+  RotateCw,
 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
@@ -49,7 +54,7 @@ function StatusBadge({ status }: { status: string | null }) {
       ? "default"
       : status === "failed"
         ? "destructive"
-        : status === "running" || status === "pending"
+        : status === "running" || status === "processing" || status === "pending"
           ? "secondary"
           : "outline";
   return <Badge variant={variant}>{status ?? "unknown"}</Badge>;
@@ -57,11 +62,35 @@ function StatusBadge({ status }: { status: string | null }) {
 
 export function SyncStatusSection() {
   const { data, isLoading } = useKnowledgeSyncLogs();
+  const { data: fileData, isLoading: filesLoading } = useKnowledgeFileStats();
+  const syncAction = useKbSyncAction();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
   const logs = data?.logs ?? [];
   const health = data?.health;
   const failedLogs = logs.filter((l) => l.status === "failed");
+  const files = fileData?.files ?? [];
 
-  if (isLoading) {
+  const toggle = (id: string, checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const runAction = (action: "retry" | "requeue", ids?: string[]) => {
+    const targetIds = ids ?? Array.from(selected);
+    if (targetIds.length === 0) return;
+    syncAction.mutate({
+      action,
+      items: targetIds.map((id) => ({ entity_type: "knowledge_file" as const, entity_id: id })),
+    });
+    setSelected(new Set());
+  };
+
+  if (isLoading || filesLoading) {
     return (
       <div className="flex h-48 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -74,7 +103,7 @@ export function SyncStatusSection() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">Sync Status</h2>
-          <p className="text-sm text-muted-foreground">Read-only sync health and job history</p>
+          <p className="text-sm text-muted-foreground">Sync health, document status, and retry actions</p>
         </div>
         {health && <HealthBadge status={health.status} label={health.label} />}
       </div>
@@ -146,9 +175,59 @@ export function SyncStatusSection() {
       </div>
 
       <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Document Sync</CardTitle>
+            <CardDescription>Per-document retry and requeue</CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={selected.size === 0 || syncAction.isPending} onClick={() => runAction("retry")}>
+              Retry Selected
+            </Button>
+            <Button size="sm" variant="outline" disabled={selected.size === 0 || syncAction.isPending} onClick={() => runAction("requeue")}>
+              Requeue Selected
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10" />
+                <TableHead>Document</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {files.slice(0, 25).map((f) => (
+                <TableRow key={f.id}>
+                  <TableCell>
+                    <Checkbox checked={selected.has(f.id)} onCheckedChange={(c) => toggle(f.id, !!c)} />
+                  </TableCell>
+                  <TableCell>{f.title || f.file_name}</TableCell>
+                  <TableCell><StatusBadge status={f.processing_status} /></TableCell>
+                  <TableCell>{f.updated_at ? formatDateTime(f.updated_at) : "—"}</TableCell>
+                  <TableCell className="space-x-1">
+                    <Button size="sm" variant="ghost" onClick={() => runAction("retry", [f.id])} disabled={syncAction.isPending}>
+                      <RotateCw className="h-3 w-3 mr-1" /> Retry
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => runAction("requeue", [f.id])} disabled={syncAction.isPending}>
+                      Requeue
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle>Recent Sync History</CardTitle>
-          <CardDescription>Detailed synchronization logs (read-only)</CardDescription>
+          <CardDescription>Integration sync job logs</CardDescription>
         </CardHeader>
         <CardContent>
           {logs.length === 0 ? (
@@ -205,9 +284,6 @@ export function SyncStatusSection() {
               <AlertCircle className="h-5 w-5" />
               Failed Syncs Requiring Attention
             </CardTitle>
-            <CardDescription>
-              Manage sync operations in Integrations
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
