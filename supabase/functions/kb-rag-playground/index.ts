@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { performRetrieval, logVectorSearch } from '@shared/rag-retrieval.ts'
-import { chatCompletion, logUsage } from '@shared/ai-provider-routing.ts'
-import { requireAdmin } from '@shared/admin-auth.ts'
+import { performRetrieval, logVectorSearch } from '../_shared/rag-retrieval.ts'
+import { chatCompletion, logUsage } from '../_shared/ai-provider-routing.ts'
+import { requireAdmin } from '../_shared/admin-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
