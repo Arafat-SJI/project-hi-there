@@ -41,7 +41,7 @@ export function useSaveIntegrationSettings() {
         throw new Error(parsed.error.errors[0]?.message ?? 'Invalid preferences');
       }
 
-      return saveIntegrationPreferences(parsed.data);
+      return saveIntegrationPreferences(parsed.data as IntegrationPreferencesInput);
     },
     onSuccess: (data) => {
       invalidateKeys.integrationSettings(queryClient);

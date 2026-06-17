@@ -225,7 +225,7 @@ async function fetchGlobalSettingsRow(): Promise<IntegrationSettingsRow | null> 
 export async function getPrimaryIntegrations(): Promise<string[]> {
   const row = await fetchGlobalSettingsRow();
   return normalizeIntegrationPreferences(
-    row as IntegrationPreferencesInput | null
+    row as unknown as IntegrationPreferencesInput | null
   ).primary_integrations;
 }
 
@@ -233,13 +233,13 @@ export async function getPrimaryIntegrations(): Promise<string[]> {
 export async function getPrimaryKnowledgeSources(): Promise<PrimaryKnowledgeSourceRef[]> {
   const row = await fetchGlobalSettingsRow();
   return normalizeIntegrationPreferences(
-    row as IntegrationPreferencesInput | null
+    row as unknown as IntegrationPreferencesInput | null
   ).primary_knowledge_sources;
 }
 
 export async function getIntegrationPreferences(): Promise<IntegrationPreferencesInput> {
   const row = await fetchGlobalSettingsRow();
-  return normalizeIntegrationPreferences(row as IntegrationPreferencesInput | null);
+  return normalizeIntegrationPreferences(row as unknown as IntegrationPreferencesInput | null);
 }
 
 /** Build validation context from live integration and knowledge source data */
