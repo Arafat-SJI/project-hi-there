@@ -61,6 +61,8 @@ import {
   Globe,
   RefreshCw,
   Sparkles,
+  Palette,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 
@@ -96,6 +98,8 @@ const iconMap: Record<string, LucideIcon> = {
   Globe,
   RefreshCw,
   Sparkles,
+  Palette,
+  Mail,
 };
 
 function resolveIcon(name: string): LucideIcon {

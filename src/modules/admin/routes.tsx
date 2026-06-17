@@ -15,6 +15,13 @@ import SystemSettings from "@/pages/admin/SystemSettings";
 import ProjectStatusSettings from "@/pages/admin/ProjectStatusSettings";
 import ProjectModules from "@/pages/admin/ProjectModules";
 
+// Settings sub-pages
+import BrandingSettings from "@/pages/admin/settings/BrandingSettings";
+import WorkspaceHub from "@/pages/admin/settings/WorkspaceHub";
+import NotificationSettings from "@/pages/admin/settings/NotificationSettings";
+import AdvancedSettings from "@/pages/admin/settings/AdvancedSettings";
+import SecuritySettings from "@/pages/admin/settings/SecuritySettings";
+
 import Integrations from "@/pages/admin/Integrations";
 import SendGrid from "@/pages/admin/integrations/SendGrid";
 import ProviderDetail from "@/pages/admin/ProviderDetail";
@@ -100,13 +107,22 @@ export const adminRoutes = (
     <Route path="/admin/team/departments" element={<Navigate to="/admin/department" replace />} />
     <Route path="/admin/logs" element={<ActivityLogs />} />
 
-    {/* System */}
+    {/* System — Settings hub routes */}
+    {/* /admin/settings (root) → legacy SystemSettings → redirects to /admin/settings/branding */}
     <Route path="/admin/settings" element={<SystemSettings />} />
+    <Route path="/admin/settings/branding" element={<BrandingSettings />} />
+    <Route path="/admin/settings/workspace" element={<WorkspaceHub />} />
+    <Route path="/admin/settings/notifications" element={<NotificationSettings />} />
+    <Route path="/admin/settings/advanced" element={<AdvancedSettings />} />
+    <Route path="/admin/settings/security" element={<SecuritySettings />} />
+    {/* Workspace sub-pages (preserved, linked from WorkspaceHub) */}
     <Route path="/admin/settings/project-statuses" element={<ProjectStatusSettings />} />
     <Route path="/admin/settings/project-modules" element={<ProjectModules />} />
     <Route path="/admin/settings/dashboard-widgets" element={<DashboardWidgets />} />
     <Route path="/admin/settings/agency-roles" element={<AgencyRoles />} />
-    
+    {/* Backward compatibility — old SSO route redirects to security settings */}
+    <Route path="/admin/sso-settings" element={<Navigate to="/admin/settings/security" replace />} />
+
     <Route path="/admin/integrations" element={<Integrations />} />
     <Route path="/admin/integrations/oauth/callback" element={<OAuthCallback />} />
     <Route path="/admin/integrations/analytics" element={<IntegrationAnalytics />} />
@@ -171,7 +187,6 @@ export const adminRoutes = (
     {/* Deployment & Config */}
     <Route path="/admin/onboarding" element={<OnboardingWizard />} />
     <Route path="/admin/checklist" element={<DeploymentChecklist />} />
-    <Route path="/admin/sso-settings" element={<SSOSettings />} />
 
     {/* OAuth & API Access */}
     <Route path="/admin/oauth-clients" element={<OAuthClients />} />
