@@ -9,8 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save, ArrowLeft } from "lucide-react";
 import { PermissionDenied } from "@/components/auth/PermissionDenied";
 
+import { useAuth } from "@/contexts/AuthContext";
+
 export default function PermissionMatrix() {
-  const { hasPermission, isLoading: permLoading } = usePermissions();
+  const { profile } = useAuth();
+  const { hasPermission, isLoading: permLoading, isSuccess: permLoaded } = usePermissions();
+  const isAdminRole = profile?.role === "admin" || profile?.role === "moderator";
   const { data: roles, isLoading: rolesLoading } = useRoles();
   const { data: permissions, isLoading: catalogLoading } = usePermissionCatalog();
   const updatePermissions = useUpdateRolePermissions();
