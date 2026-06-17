@@ -4,6 +4,7 @@ import { KnowledgeAnalyticsSection } from "@/components/knowledge/dashboard/Know
 import { UsageInsightsSection } from "@/components/knowledge/dashboard/UsageInsightsSection";
 import { SyncStatusSection } from "@/components/knowledge/dashboard/SyncStatusSection";
 import { SourceOverviewSection } from "@/components/knowledge/dashboard/SourceOverviewSection";
+import { ParserDashboardSection } from "@/components/knowledge/dashboard/ParserDashboardSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LayoutDashboard,
@@ -11,6 +12,7 @@ import {
   Search,
   RefreshCw,
   Database,
+  FileSearch,
 } from "lucide-react";
 
 const TABS = [
@@ -19,6 +21,7 @@ const TABS = [
   { value: "usage", label: "Usage Insights", icon: Search },
   { value: "sync", label: "Sync Status", icon: RefreshCw },
   { value: "sources", label: "Sources", icon: Database },
+  { value: "parser", label: "Parser", icon: FileSearch },
 ] as const;
 
 const TAB_VALUES = new Set(TABS.map((t) => t.value));
@@ -71,6 +74,9 @@ export default function KnowledgeDashboard() {
         </TabsContent>
         <TabsContent value="sources" className="mt-6">
           <SourceOverviewSection />
+        </TabsContent>
+        <TabsContent value="parser" className="mt-6">
+          <ParserDashboardSection />
         </TabsContent>
       </Tabs>
     </div>

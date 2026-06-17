@@ -505,3 +505,10 @@ verify_jwt = false
 
 [functions.admin-memory-actions]
 verify_jwt = false
+
+# Document parsing pipeline
+[functions.kb-document-parser]
+verify_jwt = false
+
+[functions.kb-reprocess]
+verify_jwt = false

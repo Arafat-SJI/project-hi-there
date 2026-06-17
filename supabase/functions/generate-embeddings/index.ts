@@ -34,6 +34,9 @@ serve(async (req) => {
       source_id,
       unified_document_id,
       skip_delete = false,
+      // Citation metadata from kb-document-parser
+      // Array aligned with chunk positions: citations[i] applies to chunk i
+      page_citations,
     } = await req.json()
 
     if (!entity_type || !entity_id || !content) {
@@ -72,6 +75,15 @@ serve(async (req) => {
       const chunk = chunks[i]
       const response = await generateEmbedding(supabaseClient, chunk.content, model_id)
 
+      // Attach per-chunk citation when page_citations array is provided
+      const citationMeta = Array.isArray(page_citations) && page_citations[i]
+        ? {
+            citation_page: page_citations[i].page ?? null,
+            citation_heading: page_citations[i].heading ?? null,
+            citation_section: page_citations[i].section ?? null,
+          }
+        : {}
+
       embeddings.push({
         entity_type,
         entity_id,
@@ -79,7 +91,7 @@ serve(async (req) => {
         unified_document_id: unified_document_id || null,
         content: chunk.content,
         chunk_index: chunk.chunk_index ?? i,
-        metadata: { ...metadata, ...(chunk.metadata ?? {}) },
+        metadata: { ...metadata, ...(chunk.metadata ?? {}), ...citationMeta },
         embedding: response.embedding,
       })
 
