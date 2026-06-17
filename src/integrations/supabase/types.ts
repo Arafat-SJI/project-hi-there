@@ -2061,6 +2061,129 @@ export type Database = {
         }
         Relationships: []
       }
+      document_images: {
+        Row: {
+          caption: string | null
+          created_at: string
+          description: string | null
+          document_id: string
+          id: string
+          image_index: number
+          metadata: Json | null
+          ocr_text: string | null
+          page_number: number | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          description?: string | null
+          document_id: string
+          id?: string
+          image_index?: number
+          metadata?: Json | null
+          ocr_text?: string | null
+          page_number?: number | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          description?: string | null
+          document_id?: string
+          id?: string
+          image_index?: number
+          metadata?: Json | null
+          ocr_text?: string | null
+          page_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_images_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "parsed_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_pages: {
+        Row: {
+          content: string
+          created_at: string
+          document_id: string
+          id: string
+          metadata: Json | null
+          page_number: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          document_id: string
+          id?: string
+          metadata?: Json | null
+          page_number: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          metadata?: Json | null
+          page_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_pages_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "parsed_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_tables: {
+        Row: {
+          created_at: string
+          document_id: string
+          headers: string[] | null
+          id: string
+          markdown_repr: string | null
+          metadata: Json | null
+          page_number: number | null
+          rows: Json | null
+          table_index: number
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          headers?: string[] | null
+          id?: string
+          markdown_repr?: string | null
+          metadata?: Json | null
+          page_number?: number | null
+          rows?: Json | null
+          table_index?: number
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          headers?: string[] | null
+          id?: string
+          markdown_repr?: string | null
+          metadata?: Json | null
+          page_number?: number | null
+          rows?: Json | null
+          table_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_tables_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "parsed_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           bcc: string | null
@@ -4138,6 +4261,7 @@ export type Database = {
           id: string
           last_sync_attempt_at: string | null
           metadata: Json | null
+          parse_version: string | null
           processed_at: string | null
           processing_error: string | null
           processing_status: string | null
@@ -4158,6 +4282,7 @@ export type Database = {
           id?: string
           last_sync_attempt_at?: string | null
           metadata?: Json | null
+          parse_version?: string | null
           processed_at?: string | null
           processing_error?: string | null
           processing_status?: string | null
@@ -4178,6 +4303,7 @@ export type Database = {
           id?: string
           last_sync_attempt_at?: string | null
           metadata?: Json | null
+          parse_version?: string | null
           processed_at?: string | null
           processing_error?: string | null
           processing_status?: string | null
@@ -5775,6 +5901,36 @@ export type Database = {
           },
         ]
       }
+      onboarding_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_step: number
+          id: string
+          steps_completed: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          steps_completed?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          steps_completed?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organization_integrations: {
         Row: {
           config: Json | null
@@ -5834,6 +5990,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      parsed_documents: {
+        Row: {
+          created_at: string
+          file_name: string | null
+          id: string
+          image_count: number | null
+          mime_type: string | null
+          page_count: number | null
+          parse_errors: Json | null
+          parse_status: string
+          parse_version: string
+          processed_at: string | null
+          source_id: string
+          source_type: string
+          table_count: number | null
+          updated_at: string
+          word_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          image_count?: number | null
+          mime_type?: string | null
+          page_count?: number | null
+          parse_errors?: Json | null
+          parse_status?: string
+          parse_version?: string
+          processed_at?: string | null
+          source_id: string
+          source_type: string
+          table_count?: number | null
+          updated_at?: string
+          word_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          image_count?: number | null
+          mime_type?: string | null
+          page_count?: number | null
+          parse_errors?: Json | null
+          parse_status?: string
+          parse_version?: string
+          processed_at?: string | null
+          source_id?: string
+          source_type?: string
+          table_count?: number | null
+          updated_at?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
+      permissions: {
+        Row: {
+          action: string
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          name: string
+          resource: string
+        }
+        Insert: {
+          action: string
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          name: string
+          resource: string
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          name?: string
+          resource?: string
+        }
+        Relationships: []
       }
       pod_employees: {
         Row: {
@@ -7088,26 +7331,89 @@ export type Database = {
         }
         Relationships: []
       }
-      roles: {
+      role_permissions: {
         Row: {
           created_at: string
-          description: string | null
-          id: string
-          name: string
+          permission_id: string
+          role_id: string
         }
         Insert: {
           created_at?: string
-          description?: string | null
-          id?: string
-          name: string
+          permission_id: string
+          role_id: string
         }
         Update: {
           created_at?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          cloned_from_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          slug: string | null
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cloned_from_id?: string | null
+          created_at?: string
           description?: string | null
           id?: string
-          name?: string
+          is_system?: boolean
+          name: string
+          slug?: string | null
+          tenant_id?: string | null
+          updated_at?: string
         }
-        Relationships: []
+        Update: {
+          cloned_from_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          slug?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roles_cloned_from_id_fkey"
+            columns: ["cloned_from_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scheduled_emails: {
         Row: {
@@ -7213,6 +7519,136 @@ export type Database = {
           webhook_url?: string | null
         }
         Relationships: []
+      }
+      sso_configurations: {
+        Row: {
+          auto_create_users: boolean | null
+          auto_provision_role: string | null
+          client_id: string | null
+          created_at: string | null
+          display_name: string
+          domain_restrictions: string[] | null
+          id: string
+          is_enabled: boolean | null
+          is_primary: boolean | null
+          metadata: Json | null
+          okta_domain: string | null
+          org_tenant_id: string | null
+          provider_type: string
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_create_users?: boolean | null
+          auto_provision_role?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          display_name: string
+          domain_restrictions?: string[] | null
+          id?: string
+          is_enabled?: boolean | null
+          is_primary?: boolean | null
+          metadata?: Json | null
+          okta_domain?: string | null
+          org_tenant_id?: string | null
+          provider_type: string
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_create_users?: boolean | null
+          auto_provision_role?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          display_name?: string
+          domain_restrictions?: string[] | null
+          id?: string
+          is_enabled?: boolean | null
+          is_primary?: boolean | null
+          metadata?: Json | null
+          okta_domain?: string | null
+          org_tenant_id?: string | null
+          provider_type?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_configurations_org_tenant_id_fkey"
+            columns: ["org_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_group_mappings: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          external_group_id: string
+          external_group_name: string
+          id: string
+          is_active: boolean
+          role_id: string
+          sso_config_id: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          external_group_id: string
+          external_group_name: string
+          id?: string
+          is_active?: boolean
+          role_id: string
+          sso_config_id: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          external_group_id?: string
+          external_group_name?: string
+          id?: string
+          is_active?: boolean
+          role_id?: string
+          sso_config_id?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_group_mappings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sso_group_mappings_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sso_group_mappings_sso_config_id_fkey"
+            columns: ["sso_config_id"]
+            isOneToOne: false
+            referencedRelation: "sso_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sso_group_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {
@@ -7697,6 +8133,30 @@ export type Database = {
           },
         ]
       }
+      tenants: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       unified_documents: {
         Row: {
           chunk_count: number | null
@@ -7710,6 +8170,7 @@ export type Database = {
           metadata: Json | null
           owner_id: string
           owner_type: string
+          parse_version: string | null
           processing_error: string | null
           processing_status: string | null
           source_id: string | null
@@ -7729,6 +8190,7 @@ export type Database = {
           metadata?: Json | null
           owner_id: string
           owner_type: string
+          parse_version?: string | null
           processing_error?: string | null
           processing_status?: string | null
           source_id?: string | null
@@ -7748,6 +8210,7 @@ export type Database = {
           metadata?: Json | null
           owner_id?: string
           owner_type?: string
+          parse_version?: string | null
           processing_error?: string | null
           processing_status?: string | null
           source_id?: string | null
@@ -7759,41 +8222,97 @@ export type Database = {
       }
       user_invites: {
         Row: {
+          cancelled_at: string | null
           created_at: string | null
+          department_id: string | null
           email: string
           expires_at: string
           id: string
           invited_by: string | null
+          pod_id: string | null
           role: string | null
+          role_id: string | null
+          status: string
+          tenant_id: string | null
           token: string
           used_at: string | null
+          welcome_message: string | null
         }
         Insert: {
+          cancelled_at?: string | null
           created_at?: string | null
+          department_id?: string | null
           email: string
           expires_at?: string
           id?: string
           invited_by?: string | null
+          pod_id?: string | null
           role?: string | null
+          role_id?: string | null
+          status?: string
+          tenant_id?: string | null
           token?: string
           used_at?: string | null
+          welcome_message?: string | null
         }
         Update: {
+          cancelled_at?: string | null
           created_at?: string | null
+          department_id?: string | null
           email?: string
           expires_at?: string
           id?: string
           invited_by?: string | null
+          pod_id?: string | null
           role?: string | null
+          role_id?: string | null
+          status?: string
+          tenant_id?: string | null
           token?: string
           used_at?: string | null
+          welcome_message?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "user_invites_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_invites_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invites_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invites_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invites_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -8165,21 +8684,32 @@ export type Database = {
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          role_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           role: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vector_search_logs: {
         Row: {
@@ -8796,6 +9326,14 @@ export type Database = {
           similarity: number
         }[]
       }
+      get_role_stats: {
+        Args: never
+        Returns: {
+          assigned_user_count: number
+          permission_count: number
+          role_id: string
+        }[]
+      }
       get_user_modules: {
         Args: never
         Returns: {
@@ -8804,6 +9342,11 @@ export type Database = {
           name: string
           slug: string
         }[]
+      }
+      get_user_permissions: { Args: { _user_id: string }; Returns: string[] }
+      has_permission: {
+        Args: { _permission_key: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
@@ -8911,9 +9454,14 @@ export type Database = {
           pod_id: string
         }[]
       }
+      sync_user_app_role: { Args: { _user_id: string }; Returns: undefined }
       update_plan_status_if_all_steps_done: {
         Args: { p_plan_id: string }
         Returns: undefined
+      }
+      user_in_department: {
+        Args: { _department_id: string; _user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
