@@ -42,6 +42,10 @@ import MCPServers from "@/pages/MCPServers";
 import PODManagement from "@/pages/admin/PodManagement";
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeDashboard from "@/pages/admin/KnowledgeDashboard";
+import KnowledgeSourceConfig from "@/pages/admin/KnowledgeSourceConfig";
+import KnowledgePlayground from "@/pages/admin/KnowledgePlayground";
+import KnowledgePermissions from "@/pages/admin/KnowledgePermissions";
+import MemoryAdministration from "@/pages/admin/MemoryAdministration";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 import KnowledgeFiles from "@/pages/admin/KnowledgeFiles";
 import ImplementationStatus from "@/pages/admin/ImplementationStatus";
@@ -141,6 +145,10 @@ export const adminRoutes = (
 
     {/* Knowledge Admin */}
     <Route path="/admin/knowledge/dashboard" element={<KnowledgeDashboard />} />
+    <Route path="/admin/knowledge/source-config" element={<KnowledgeSourceConfig />} />
+    <Route path="/admin/knowledge/playground" element={<KnowledgePlayground />} />
+    <Route path="/admin/knowledge/permissions" element={<KnowledgePermissions />} />
+    <Route path="/admin/memory/admin" element={<MemoryAdministration />} />
     <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
     <Route path="/admin/knowledge/files" element={<KnowledgeFiles />} />
     <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />

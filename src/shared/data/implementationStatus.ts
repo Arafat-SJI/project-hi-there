@@ -492,9 +492,9 @@ export const implementationStatus: ModuleStatus[] = [
       { description: "Trigger batch embedding from embeddings explorer", tested: false },
     ],
     nextSteps: [
-      "Deploy auto-embed edge function to Supabase (need OPENAI_API_KEY in secrets)",
-      "Google Drive sync for personal knowledge sources",
-      "Gemini RAG integration",
+      "RAG Enhancement complete — see docs/06-ai-features/RAG-ENHANCEMENT-REPORT.md",
+      "Deploy kb-* edge functions and run migration 20260617120000_kb_rag_enhancement.sql",
+      "Set COHERE_API_KEY / VOYAGE_API_KEY for reranking",
     ],
   },
 

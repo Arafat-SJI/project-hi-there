@@ -1,4 +1,5 @@
 import { useSearchParams } from "react-router-dom";
+import { KnowledgeHealthSection } from "@/components/knowledge/dashboard/KnowledgeHealthSection";
 import { KnowledgeAnalyticsSection } from "@/components/knowledge/dashboard/KnowledgeAnalyticsSection";
 import { UsageInsightsSection } from "@/components/knowledge/dashboard/UsageInsightsSection";
 import { SyncStatusSection } from "@/components/knowledge/dashboard/SyncStatusSection";
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 
 const TABS = [
+  { value: "health", label: "Health", icon: LayoutDashboard },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "usage", label: "Usage Insights", icon: Search },
   { value: "sync", label: "Sync Status", icon: RefreshCw },
@@ -20,7 +22,7 @@ const TABS = [
 ] as const;
 
 const TAB_VALUES = new Set(TABS.map((t) => t.value));
-const DEFAULT_TAB = "analytics";
+const DEFAULT_TAB = "health";
 
 export default function KnowledgeDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,6 +57,9 @@ export default function KnowledgeDashboard() {
           ))}
         </TabsList>
 
+        <TabsContent value="health" className="mt-6">
+          <KnowledgeHealthSection />
+        </TabsContent>
         <TabsContent value="analytics" className="mt-6">
           <KnowledgeAnalyticsSection />
         </TabsContent>

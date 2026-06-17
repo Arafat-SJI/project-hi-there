@@ -396,6 +396,7 @@ export const adminNavigation: NavGroup[] = [
       { title: "AI Models", href: "/admin/ai-models", icon: "Cpu" },
       { title: "Knowledge Search", href: "/admin/ai-hub/knowledge-search", icon: "Search" },
       { title: "Memory", href: "/admin/ai-hub/memory", icon: "Database" },
+      { title: "Memory Admin", href: "/admin/memory/admin", icon: "Shield" },
     ],
   },
   {
@@ -410,6 +411,9 @@ export const adminNavigation: NavGroup[] = [
         headerOnly: true,
         children: [
           { title: "Dashboard", href: "/admin/knowledge/dashboard", icon: "LayoutDashboard" },
+          { title: "Source Config", href: "/admin/knowledge/source-config", icon: "Settings" },
+          { title: "Playground", href: "/admin/knowledge/playground", icon: "FlaskConical" },
+          { title: "Permissions", href: "/admin/knowledge/permissions", icon: "Shield" },
           { title: "Categories", href: "/admin/knowledge/categories", icon: "FolderOpen" },
           { title: "Files", href: "/admin/knowledge/files", icon: "FileText" },
         ],

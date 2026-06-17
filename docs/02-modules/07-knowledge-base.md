@@ -26,10 +26,14 @@ From `src/modules/knowledge/routes.tsx`:
 Admin routes (from `src/modules/admin/routes.tsx`):
 
 ```
-/admin/knowledge/dashboard     → Unified knowledge command center
+/admin/knowledge/dashboard     → Unified knowledge command center (Health tab)
+/admin/knowledge/source-config → Per-source chunking & reranker config
+/admin/knowledge/playground    → RAG evaluation playground
+/admin/knowledge/permissions   → Source permissions matrix
 /admin/knowledge/categories    → Category management
 /admin/knowledge/files         → Knowledge file management
 /admin/knowledge/embeddings    → Embeddings explorer
+/admin/memory/admin            → GDPR memory administration
 ```
 
 ---

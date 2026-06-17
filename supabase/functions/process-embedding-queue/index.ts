@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveEntityContent } from "@shared/entity-content-resolver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,18 +25,14 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    const { batch_size = 10 } = await req.json();
-
-    // Validate batch size
+    const { batch_size = 10 } = await req.json().catch(() => ({ batch_size: 10 }));
     const validBatchSize = Math.min(Math.max(1, batch_size), 50);
 
-    console.log(`Processing embedding queue with batch size: ${validBatchSize}`);
-
-    // Fetch pending items from embedding_queue table
     const { data: queueItems, error: fetchError } = await supabase
       .from("embedding_queue")
       .select("*")
@@ -44,91 +41,59 @@ serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(validBatchSize);
 
-    if (fetchError) {
-      console.error("Error fetching queue items:", fetchError);
-      throw fetchError;
-    }
+    if (fetchError) throw fetchError;
 
     if (!queueItems || queueItems.length === 0) {
       return new Response(
-        JSON.stringify({
-          success: true,
-          message: "No pending items in queue",
-          processed: 0,
-        }),
+        JSON.stringify({ success: true, message: "No pending items", processed: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Found ${queueItems.length} items to process`);
+    const results = { processed: 0, succeeded: 0, failed: 0, errors: [] as string[] };
 
-    const results = {
-      processed: 0,
-      succeeded: 0,
-      failed: 0,
-      errors: [] as string[],
-    };
-
-    // Process each item
     for (const item of queueItems as EmbeddingQueueItem[]) {
       try {
-        // Mark as processing
-        await supabase
-          .from("embedding_queue")
-          .update({
-            status: "processing",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        await supabase.from("embedding_queue").update({ status: "processing", updated_at: new Date().toISOString() }).eq("id", item.id);
 
-        // Call generate-embeddings function for this entity
-        const { data: embeddingResult, error: embeddingError } = await supabase.functions.invoke(
-          "generate-embeddings",
-          {
-            body: {
-              entity_type: item.entity_type,
-              entity_id: item.entity_id,
-            },
-          }
-        );
-
-        if (embeddingError) {
-          throw embeddingError;
+        const resolved = await resolveEntityContent(supabase, item.entity_type, item.entity_id);
+        if (!resolved?.content) {
+          throw new Error(`Could not resolve content for ${item.entity_type}:${item.entity_id}`);
         }
 
-        // Mark as completed
-        await supabase
-          .from("embedding_queue")
-          .update({
-            status: "completed",
-            updated_at: new Date().toISOString(),
-            error_message: null,
-          })
-          .eq("id", item.id);
+        const { error: embeddingError } = await supabase.functions.invoke("generate-embeddings", {
+          body: {
+            entity_type: item.entity_type,
+            entity_id: item.entity_id,
+            content: resolved.content,
+            metadata: resolved.metadata,
+            user_id: resolved.user_id,
+            source_id: resolved.source_id,
+            unified_document_id: resolved.unified_document_id,
+          },
+        });
+
+        if (embeddingError) throw embeddingError;
+
+        await supabase.from("embedding_queue").update({
+          status: "completed",
+          updated_at: new Date().toISOString(),
+          error_message: null,
+        }).eq("id", item.id);
 
         results.processed++;
         results.succeeded++;
-
-        console.log(`Successfully processed ${item.entity_type}:${item.entity_id}`);
       } catch (error) {
-        console.error(`Error processing ${item.entity_type}:${item.entity_id}:`, error);
-
         const errorMessage = error instanceof Error ? error.message : String(error);
         const newRetryCount = item.retry_count + 1;
-        const maxRetries = 3;
+        const newStatus = newRetryCount >= 3 ? "failed" : "pending";
 
-        // Mark as failed if max retries reached, otherwise reset to pending
-        const newStatus = newRetryCount >= maxRetries ? "failed" : "pending";
-
-        await supabase
-          .from("embedding_queue")
-          .update({
-            status: newStatus,
-            retry_count: newRetryCount,
-            error_message: errorMessage,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id);
+        await supabase.from("embedding_queue").update({
+          status: newStatus,
+          retry_count: newRetryCount,
+          error_message: errorMessage,
+          updated_at: new Date().toISOString(),
+        }).eq("id", item.id);
 
         results.processed++;
         results.failed++;
@@ -137,24 +102,13 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Processed ${results.processed} items`,
-        results,
-      }),
+      JSON.stringify({ success: true, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in process-embedding-queue:", error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
