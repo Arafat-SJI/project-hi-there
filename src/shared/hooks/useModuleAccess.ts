@@ -42,7 +42,10 @@ export function useModuleAccess(): ModuleAccessResult {
         console.debug("get_user_modules unavailable:", error.message);
         return null;
       }
-      return (data ?? []) as Array<{ slug: string; is_active: boolean }>;
+      return ((data ?? []) as unknown as Array<{ slug: string }>).map((m) => ({
+        slug: m.slug,
+        is_active: true,
+      }));
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5,
