@@ -54,9 +54,10 @@ import {
   useUpdateAuthConfig,
   SSOProvider,
 } from '@/hooks/useAuthConfig';
+import { SSOGroupMappingsPanel } from '@/components/admin/SSOGroupMappingsPanel';
 
 interface ProviderConfig {
-  type: 'google_workspace' | 'azure_ad' | 'saml' | 'oidc';
+  type: 'google_workspace' | 'azure_ad' | 'saml' | 'oidc' | 'okta';
   name: string;
   description: string;
   icon: string;
@@ -93,12 +94,25 @@ const PROVIDER_CONFIGS: ProviderConfig[] = [
     ],
   },
   {
-    type: 'saml',
-    name: 'SAML 2.0',
-    description: 'Enterprise SAML identity provider (requires Supabase Pro)',
-    icon: '🔐',
+    type: 'oidc',
+    name: 'Generic OIDC',
+    description: 'OpenID Connect provider',
+    icon: '🔑',
     setupUrl: '',
-    fields: [],
+    fields: [
+      { key: 'client_id', label: 'Client ID', placeholder: 'client-id', required: true },
+    ],
+  },
+  {
+    type: 'okta',
+    name: 'Okta',
+    description: 'Sign in with Okta workforce identity',
+    icon: '🔵',
+    setupUrl: 'https://developer.okta.com/',
+    fields: [
+      { key: 'client_id', label: 'Client ID', placeholder: 'Okta client ID', required: true },
+      { key: 'okta_domain', label: 'Okta Domain', placeholder: 'your-org.okta.com', required: true },
+    ],
   },
 ];
 
@@ -203,6 +217,7 @@ export default function SSOSettings() {
       <Tabs defaultValue="providers" className="space-y-6">
         <TabsList>
           <TabsTrigger value="providers">SSO Providers</TabsTrigger>
+          <TabsTrigger value="groups">Group Mapping</TabsTrigger>
           <TabsTrigger value="settings">Auth Settings</TabsTrigger>
         </TabsList>
 
@@ -414,6 +429,10 @@ export default function SSOSettings() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="groups">
+          <SSOGroupMappingsPanel />
         </TabsContent>
       </Tabs>
 

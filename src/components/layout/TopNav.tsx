@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function TopNav() {
   const { user, profile, signOut } = useAuth();
+  const { hasPermission } = usePermissions();
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Use React Query hooks for notifications
@@ -277,7 +279,9 @@ export function TopNav() {
                   Settings
                 </Link>
               </DropdownMenuItem>
-              {profile?.role === "admin" && (
+              {(hasPermission("settings.admin") ||
+                profile?.role === "admin" ||
+                profile?.role === "moderator") && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>

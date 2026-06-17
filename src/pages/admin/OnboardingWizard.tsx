@@ -24,6 +24,7 @@ import {
   Settings,
   Sparkles,
   Rocket,
+  Users,
   ShieldCheck,
   AlertCircle,
 } from 'lucide-react';
@@ -40,7 +41,7 @@ interface WizardStep {
 const WIZARD_STEPS: WizardStep[] = [
   {
     id: 'organization',
-    title: 'Organization Details',
+    title: 'Company Information',
     description: 'Configure your organization name and basic settings',
     icon: Building2,
   },
@@ -51,26 +52,38 @@ const WIZARD_STEPS: WizardStep[] = [
     icon: Palette,
   },
   {
-    id: 'features',
-    title: 'Features',
-    description: 'Enable or disable platform features',
+    id: 'invitations',
+    title: 'User Invitations',
+    description: 'Invite your team members',
+    icon: Users,
+  },
+  {
+    id: 'departments',
+    title: 'Department Setup',
+    description: 'Organize teams and departments',
+    icon: Building2,
+  },
+  {
+    id: 'integrations',
+    title: 'Integrations',
+    description: 'Connect external systems',
     icon: Settings,
   },
   {
-    id: 'data',
-    title: 'Seed Data',
-    description: 'Set up initial templates and categories',
+    id: 'knowledge',
+    title: 'Knowledge Sources',
+    description: 'Configure knowledge base sources',
     icon: Sparkles,
   },
   {
-    id: 'admin-check',
-    title: 'Admin User Setup',
-    description: 'Verify admin users are configured',
-    icon: ShieldCheck,
+    id: 'ai-setup',
+    title: 'AI Setup',
+    description: 'Enable AI features and agents',
+    icon: Sparkles,
   },
   {
     id: 'complete',
-    title: 'Complete',
+    title: 'Go Live',
     description: 'Review and finish setup',
     icon: Rocket,
   },
@@ -296,8 +309,15 @@ export default function OnboardingWizard() {
       setCompletedSteps((prev) => [...prev, currentStepId]);
     }
 
+    const percent = Math.round(((currentStep + 1) / WIZARD_STEPS.length) * 100);
+    supabase.from('app_config').upsert({
+      key: 'tenant.onboarding_progress',
+      value: { steps: completedSteps, currentStep: currentStepId, percent },
+      category: 'system',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'key' });
+
     if (currentStep === WIZARD_STEPS.length - 2) {
-      // Save before going to complete step
       saveConfig.mutate();
     }
 
@@ -395,6 +415,78 @@ export default function OnboardingWizard() {
                 onChange={(e) => updateData({ logoUrl: e.target.value })}
               />
             </div>
+          </div>
+        );
+
+      case 'invitations':
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Invite team members with roles and department assignments.
+            </p>
+            <Button variant="outline" onClick={() => navigate('/admin/users/invitations')}>
+              Open Invitations
+            </Button>
+          </div>
+        );
+
+      case 'departments':
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Set up departments and assign users to teams.
+            </p>
+            <Button variant="outline" onClick={() => navigate('/admin/department')}>
+              Manage Departments
+            </Button>
+          </div>
+        );
+
+      case 'integrations':
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Connect CRM, calendar, and collaboration tools.
+            </p>
+            <Button variant="outline" onClick={() => navigate('/admin/integrations')}>
+              Configure Integrations
+            </Button>
+          </div>
+        );
+
+      case 'knowledge':
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Configure knowledge sources and categories.
+            </p>
+            <Button variant="outline" onClick={() => navigate('/admin/knowledge/source-config')}>
+              Knowledge Sources
+            </Button>
+          </div>
+        );
+
+      case 'ai-setup':
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Enable AI features for your organization.
+            </p>
+            {[
+              { key: 'enableAIChat', label: 'AI Chat Assistant' },
+              { key: 'enableAIAgents', label: 'AI Agents' },
+              { key: 'enableKnowledgeBase', label: 'Knowledge Base' },
+            ].map((feature) => (
+              <div key={feature.key} className="flex items-center justify-between p-4 border rounded-lg">
+                <p className="font-medium">{feature.label}</p>
+                <Switch
+                  checked={data[feature.key as keyof OnboardingData] as boolean}
+                  onCheckedChange={(checked) =>
+                    updateData({ [feature.key]: checked } as Partial<OnboardingData>)
+                  }
+                />
+              </div>
+            ))}
           </div>
         );
 

@@ -505,3 +505,15 @@ verify_jwt = false
 
 [functions.admin-memory-actions]
 verify_jwt = false
+
+[functions.rbac-manage]
+verify_jwt = false
+
+[functions.send-user-invite]
+verify_jwt = false
+
+[functions.validate-user-invite]
+verify_jwt = false
+
+[functions.accept-user-invite]
+verify_jwt = false

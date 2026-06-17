@@ -9,7 +9,9 @@ import { Route, Navigate } from "react-router-dom";
 // Admin pages
 import Admin from "@/pages/Admin";
 import UserManagement from "@/pages/admin/UserManagement";
+import UserInvitations from "@/pages/admin/UserInvitations";
 import RoleManagement from "@/pages/admin/RoleManagement";
+import PermissionMatrix from "@/pages/admin/PermissionMatrix";
 import ActivityLogs from "@/pages/admin/ActivityLogs";
 import SystemSettings from "@/pages/admin/SystemSettings";
 import ProjectStatusSettings from "@/pages/admin/ProjectStatusSettings";
@@ -106,10 +108,13 @@ export const adminRoutes = (
 
     {/* Users & Access */}
     <Route path="/admin/users" element={<UserManagement />} />
+    <Route path="/admin/users/invitations" element={<UserInvitations />} />
     <Route path="/admin/roles" element={<RoleManagement />} />
+    <Route path="/admin/roles/permissions" element={<PermissionMatrix />} />
     <Route path="/admin/department" element={<DepartmentManagement />} />
     <Route path="/admin/team/departments" element={<Navigate to="/admin/department" replace />} />
     <Route path="/admin/logs" element={<ActivityLogs />} />
+    <Route path="/admin/audit-logs" element={<ActivityLogs />} />
 
     {/* System — Settings hub routes */}
     {/* /admin/settings (root) → legacy SystemSettings → redirects to /admin/settings/branding */}

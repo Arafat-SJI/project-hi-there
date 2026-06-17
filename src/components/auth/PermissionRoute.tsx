@@ -4,9 +4,14 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { Loader2 } from "lucide-react";
 import { PermissionDenied } from "@/components/auth/PermissionDenied";
 
-export function AdminRoute() {
-  const { user, profile, loading, profileLoading } = useAuth();
-  const { hasPermission, hasAnyPermission, isLoading: permissionsLoading } = usePermissions();
+interface PermissionRouteProps {
+  permission: string;
+  fallbackPermission?: string;
+}
+
+export function PermissionRoute({ permission, fallbackPermission }: PermissionRouteProps) {
+  const { user, loading, profileLoading, profile } = useAuth();
+  const { hasPermission, isLoading: permissionsLoading } = usePermissions();
 
   if (loading || profileLoading || permissionsLoading || (user && !profile)) {
     return (
@@ -20,16 +25,12 @@ export function AdminRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  const canAccessAdmin =
-    hasPermission("settings.admin") ||
-    hasAnyPermission(["users.admin", "settings.admin"]) ||
-    profile?.role === "admin" ||
-    profile?.role === "moderator";
+  const allowed =
+    hasPermission(permission) ||
+    (fallbackPermission ? hasPermission(fallbackPermission) : false);
 
-  if (!canAccessAdmin) {
-    return (
-      <PermissionDenied message="You do not have permission to access the admin panel." />
-    );
+  if (!allowed) {
+    return <PermissionDenied message={`You do not have permission: ${permission}`} />;
   }
 
   return <Outlet />;
