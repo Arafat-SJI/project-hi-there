@@ -603,7 +603,7 @@ function useUpdateResponsibility() {
     mutationFn: async ({ id, data }: { id: string; data: Partial<AccountabilityResponsibility> }) => {
       const { error } = await supabase
         .from("accountability_responsibilities")
-        .update({ ...data, updated_at: new Date().toISOString() })
+        .update({ ...data, updated_at: new Date().toISOString() } as any)
         .eq("id", id);
 
       if (error) throw error;
