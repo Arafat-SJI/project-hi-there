@@ -9,6 +9,13 @@ export interface AppConfig {
     tagline: string;
     supportEmail: string;
     logoUrl?: string;
+    faviconUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    emailFromName?: string;
+    replyToEmail?: string;
+    loginMessage?: string;
+    loginBackgroundUrl?: string;
   };
   // Features
   features: {
@@ -58,7 +65,14 @@ function transformConfig(rows: ConfigRow[]): AppConfig {
       companyName: '',
       tagline: '',
       supportEmail: '',
-      logoUrl: '', // Default empty string for optional field
+      logoUrl: '',
+      faviconUrl: '',
+      primaryColor: '#6366f1',
+      secondaryColor: '',
+      emailFromName: '',
+      replyToEmail: '',
+      loginMessage: '',
+      loginBackgroundUrl: '',
     },
     features: {},
     email: {},
@@ -165,6 +179,14 @@ export function useResetAppConfig() {
           companyName: "CollabAi",
           tagline: "AI-Powered Collaboration Platform",
           supportEmail: "support@collabai.software",
+          logoUrl: "",
+          faviconUrl: "",
+          primaryColor: "#6366f1",
+          secondaryColor: "",
+          emailFromName: "CollabAi",
+          replyToEmail: "",
+          loginMessage: "Welcome to Control Tower",
+          loginBackgroundUrl: "",
         },
         features: {
           enableAIChat: true,

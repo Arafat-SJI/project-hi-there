@@ -457,11 +457,6 @@ export const adminNavigation: NavGroup[] = [
         href: "/admin/team/departments",
         icon: "Building2",
       },
-      {
-        title: "Productivity Import",
-        href: "/admin/productivity-import",
-        icon: "Upload",
-      },
     ],
   },
   {
@@ -487,9 +482,37 @@ export const adminNavigation: NavGroup[] = [
     icon: "Settings",
     items: [
       {
-        title: "System Settings",
-        href: "/admin/settings",
+        title: "Settings",
+        href: "/admin/settings/branding",
         icon: "Settings",
+        headerOnly: true,
+        children: [
+          {
+            title: "Branding",
+            href: "/admin/settings/branding",
+            icon: "Palette",
+          },
+          {
+            title: "Workspace",
+            href: "/admin/settings/workspace",
+            icon: "Layers",
+          },
+          {
+            title: "Security",
+            href: "/admin/settings/security",
+            icon: "Shield",
+          },
+          {
+            title: "Notifications",
+            href: "/admin/settings/notifications",
+            icon: "Mail",
+          },
+          {
+            title: "Advanced",
+            href: "/admin/settings/advanced",
+            icon: "Zap",
+          },
+        ],
       },
       {
         title: "Integrations",
