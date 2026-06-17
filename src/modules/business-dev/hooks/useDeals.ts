@@ -412,7 +412,7 @@ export function useUpdateDeal() {
         }
       }
 
-      const { data: deal, error } = await supabase.from("deals").update(updates).eq("id", id).select().single();
+      const { data: deal, error } = await supabase.from("deals").update(updates as any).eq("id", id).select().single();
       if (error) throw error;
       return deal;
     },
@@ -440,7 +440,7 @@ export function useUpdateDealStage() {
     mutationFn: async ({ id, stage, fromStage }: { id: string; stage: DealStage; fromStage?: string }) => {
       const updates: Record<string, unknown> = { stage };
       if (stage === "won" || stage === "lost") updates.closed_at = new Date().toISOString();
-      const { error } = await supabase.from("deals").update(updates).eq("id", id);
+      const { error } = await supabase.from("deals").update(updates as any).eq("id", id);
       if (error) throw error;
 
       // Activity logging is best-effort (client cannot run a single transaction across deals + deal_activities).

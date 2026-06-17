@@ -126,7 +126,7 @@ export function useUpdateSeries() {
 
       const { data: series, error } = await supabase
         .from("meeting_series")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", id)
         .select()
         .single();

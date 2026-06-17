@@ -130,7 +130,7 @@ export default function FeedbackDetail() {
     try {
       const { error } = await supabase
         .from("feedback")
-        .update({ [field]: value })
+        .update({ [field]: value } as any)
         .eq("id", feedback.id);
       if (error) throw error;
       setFeedback((prev) => prev ? { ...prev, [field]: value } : prev);

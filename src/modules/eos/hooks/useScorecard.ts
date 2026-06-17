@@ -105,7 +105,7 @@ export function useCreateScorecard() {
           created_by: user!.id,
           pod_id: data.pod_id || null,
           is_active: data.is_active ?? true,
-        })
+        } as any)
         .select()
         .single();
 
@@ -175,7 +175,7 @@ export function useUpdateMetric() {
     mutationFn: async ({ id, data }: { id: string; data: Partial<EOSScorecardMetric> }) => {
       const { data: metric, error } = await supabase
         .from("eos_scorecard_metrics")
-        .update({ ...data, updated_at: new Date().toISOString() })
+        .update({ ...data, updated_at: new Date().toISOString() } as any)
         .eq("id", id)
         .select()
         .single();

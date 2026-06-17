@@ -131,7 +131,7 @@ export function useUpdateTemplate() {
         updated_at: new Date().toISOString(),
       };
       if (typeof data.is_active === "boolean") payload.is_active = data.is_active;
-      const { error } = await supabase.from("eos_scorecards").update(payload).eq("id", id);
+      const { error } = await supabase.from("eos_scorecards").update(payload as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -214,7 +214,7 @@ export function useCreateMetric() {
       };
       const { data: metric, error } = await supabase
         .from("eos_scorecard_metrics")
-        .insert(payload)
+        .insert(payload as any)
         .select()
         .single();
       if (error) throw error;
@@ -250,7 +250,7 @@ export function useUpdateMetricAdmin() {
       if (status != null) payload.status = status;
       const { error } = await supabase
         .from("eos_scorecard_metrics")
-        .update(payload)
+        .update(payload as any)
         .eq("id", data.id);
       if (error) throw error;
     },

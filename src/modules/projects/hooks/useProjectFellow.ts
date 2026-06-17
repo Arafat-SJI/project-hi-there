@@ -96,7 +96,7 @@ export function useLinkFellowRecordingToProject(projectId: string | undefined) {
         if (scheduledAt) patch.scheduled_at = scheduledAt;
         if (transcriptText != null) patch.transcript_text = transcriptText;
 
-        const { error } = await supabase.from("meetings").update(patch).eq("id", meetingId);
+        const { error } = await supabase.from("meetings").update(patch as any).eq("id", meetingId);
         if (error) throw error;
       } else {
         const { data: inserted, error } = await supabase

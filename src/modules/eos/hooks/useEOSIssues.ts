@@ -163,7 +163,7 @@ export function useUpdateIssue() {
 
       const { data: issue, error } = await supabase
         .from("eos_issues")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", id)
         .select()
         .single();
