@@ -15,9 +15,12 @@ import {
   knowledgeSourceRefKey,
   keysToKnowledgeSourceRefs,
   saveIntegrationPreferences,
+  getPrimaryByCategorySettings,
+  savePrimaryByCategory,
   type IntegrationPreferenceOption,
   type IntegrationPreferencesInput,
   type PrimaryKnowledgeSourceRef,
+  type PrimaryByCategory,
 } from '@/lib/integration-preferences';
 import { integrationPreferencesSchema } from '@/lib/validation';
 
@@ -194,6 +197,89 @@ export function useIntegrationPreferenceOptions() {
       };
     },
     staleTime: cacheConfig.staleTime.short,
+  });
+}
+
+export function usePrimaryByCategorySettings() {
+  return useQuery({
+    queryKey: queryKeys.integrationSettings.primaryByCategory(),
+    queryFn: getPrimaryByCategorySettings,
+    staleTime: cacheConfig.staleTime.medium,
+  });
+}
+
+export interface CategoryIntegrationOption {
+  slug: string;
+  name: string;
+  connected: boolean;
+}
+
+export interface CategoryWithOptions {
+  slug: (typeof PRIMARY_INTEGRATION_CATEGORY_SLUGS)[number];
+  name: string;
+  options: CategoryIntegrationOption[];
+}
+
+/** Connected providers grouped by primary-eligible category, for the per-category cards */
+export function useCategoryIntegrationOptions() {
+  return useQuery({
+    queryKey: queryKeys.integrationSettings.categoryOptions(),
+    queryFn: async (): Promise<CategoryWithOptions[]> => {
+      const { data: categories, error: catError } = await supabase
+        .from('integration_categories')
+        .select('id, name, slug')
+        .in('slug', [...PRIMARY_INTEGRATION_CATEGORY_SLUGS]);
+      if (catError) throw catError;
+
+      const { data: providers, error: provError } = await supabase
+        .from('integration_providers')
+        .select('id, name, slug, is_available, category_id')
+        .eq('is_available', true)
+        .order('display_order', { ascending: true });
+      if (provError) throw provError;
+
+      const { data: orgIntegrations, error: orgError } = await supabase
+        .from('organization_integrations')
+        .select('connection_status, enabled, provider:integration_providers(slug)');
+      if (orgError) throw orgError;
+
+      const connectedSlugs = new Set<string>();
+      for (const row of orgIntegrations ?? []) {
+        const slug = (row.provider as { slug?: string } | null)?.slug;
+        if (slug && row.connection_status === 'connected' && row.enabled === true) {
+          connectedSlugs.add(slug);
+        }
+      }
+
+      return (categories ?? []).map((category) => ({
+        slug: category.slug as CategoryWithOptions['slug'],
+        name: category.name,
+        options: (providers ?? [])
+          .filter((p) => p.category_id === category.id)
+          .map((p) => ({
+            slug: p.slug,
+            name: p.name,
+            connected: connectedSlugs.has(p.slug),
+          })),
+      }));
+    },
+    staleTime: cacheConfig.staleTime.short,
+  });
+}
+
+export function useSavePrimaryByCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: Partial<PrimaryByCategory>) => savePrimaryByCategory(input),
+    onSuccess: (data) => {
+      invalidateKeys.integrationSettings(queryClient);
+      toast.success('Integration preferences saved.');
+      data.warnings.forEach((warning) => toast.warning(warning));
+    },
+    onError: (err: Error) => {
+      toast.error('Failed to save integration preferences', { description: err.message });
+    },
   });
 }
 

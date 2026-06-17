@@ -6,9 +6,19 @@ import { PermissionDenied } from "@/components/auth/PermissionDenied";
 
 export function AdminRoute() {
   const { user, profile, loading, profileLoading } = useAuth();
-  const { hasPermission, hasAnyPermission, isLoading: permissionsLoading } = usePermissions();
+  const {
+    hasPermission,
+    hasAnyPermission,
+    isLoading: permissionsLoading,
+    isSuccess: permissionsLoaded,
+  } = usePermissions();
 
-  if (loading || profileLoading || permissionsLoading || (user && !profile)) {
+  if (
+    loading ||
+    profileLoading ||
+    (user && !profile) ||
+    (permissionsLoading && !permissionsLoaded)
+  ) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -26,7 +36,7 @@ export function AdminRoute() {
     profile?.role === "admin" ||
     profile?.role === "moderator";
 
-  if (!canAccessAdmin) {
+  if (permissionsLoaded && !canAccessAdmin) {
     return (
       <PermissionDenied message="You do not have permission to access the admin panel." />
     );

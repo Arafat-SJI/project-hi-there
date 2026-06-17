@@ -204,6 +204,8 @@ export const queryKeys = {
     all: ["integration-settings"] as const,
     preferences: () => ["integration-settings", "preferences"] as const,
     options: () => ["integration-settings", "options"] as const,
+    primaryByCategory: () => ["integration-settings", "primary-by-category"] as const,
+    categoryOptions: () => ["integration-settings", "category-options"] as const,
   },
 
   // Notifications

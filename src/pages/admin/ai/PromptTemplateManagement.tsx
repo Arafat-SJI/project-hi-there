@@ -202,7 +202,7 @@ export default function PromptTemplateManagement() {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to="/admin/ai">Ai</Link>
+              <Link to="/admin/ai/agents">Ai</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

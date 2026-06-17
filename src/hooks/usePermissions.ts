@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { queryKeys } from "@/lib/cache";
@@ -27,6 +27,7 @@ export function usePermissions() {
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5,
+    placeholderData: keepPreviousData,
   });
 
   const hasPermission = (key: string) => {
@@ -43,6 +44,7 @@ export function usePermissions() {
     hasPermission,
     hasAnyPermission,
     isLoading: query.isLoading,
+    isSuccess: query.isSuccess,
     refetch: query.refetch,
   };
 }

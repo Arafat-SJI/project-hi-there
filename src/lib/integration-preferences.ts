@@ -300,6 +300,143 @@ export async function buildValidationContext(): Promise<ValidationContext> {
   };
 }
 
+/** Per-category primary integration + multi-source preferences */
+export interface CategoryIntegrationPreference {
+  primary_slug: string | null;
+  active_slugs: string[];
+}
+
+export type PrimaryByCategory = Record<
+  PrimaryIntegrationCategorySlug,
+  CategoryIntegrationPreference
+>;
+
+function emptyCategoryPreference(): CategoryIntegrationPreference {
+  return { primary_slug: null, active_slugs: [] };
+}
+
+export function normalizePrimaryByCategory(
+  raw: unknown
+): Partial<PrimaryByCategory> {
+  const result: Partial<PrimaryByCategory> = {};
+  if (!raw || typeof raw !== 'object') return result;
+
+  for (const category of PRIMARY_INTEGRATION_CATEGORY_SLUGS) {
+    const entry = (raw as Record<string, unknown>)[category];
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as Record<string, unknown>;
+    const active_slugs = Array.isArray(e.active_slugs)
+      ? e.active_slugs.filter((s): s is string => typeof s === 'string' && s.length > 0)
+      : [];
+    const primary_slug =
+      typeof e.primary_slug === 'string' && e.primary_slug.length > 0
+        ? e.primary_slug
+        : null;
+    result[category] = { primary_slug, active_slugs };
+  }
+
+  return result;
+}
+
+function sanitizePrimaryByCategory(
+  input: Partial<PrimaryByCategory>,
+  context: ValidationContext
+): { value: PrimaryByCategory; warnings: string[] } {
+  const warnings: string[] = [];
+  const value = {} as PrimaryByCategory;
+
+  for (const category of PRIMARY_INTEGRATION_CATEGORY_SLUGS) {
+    const entry = input[category] ?? emptyCategoryPreference();
+
+    const active_slugs = entry.active_slugs.filter((slug) => {
+      if (!context.availableProviderSlugs.has(slug)) {
+        warnings.push(`"${slug}" is not a valid integration.`);
+        return false;
+      }
+      if (!context.connectedProviderSlugs.has(slug)) {
+        warnings.push(`Selected integration "${slug}" is no longer connected.`);
+        return false;
+      }
+      return true;
+    });
+
+    let primary_slug = entry.primary_slug;
+    if (primary_slug && !active_slugs.includes(primary_slug)) {
+      warnings.push(
+        `Primary integration "${primary_slug}" for ${category} must also be an active source.`
+      );
+      primary_slug = active_slugs[0] ?? null;
+    }
+
+    value[category] = { primary_slug, active_slugs };
+  }
+
+  return { value, warnings };
+}
+
+export async function getPrimaryByCategorySettings(): Promise<Partial<PrimaryByCategory>> {
+  const row = await fetchGlobalSettingsRow();
+  return normalizePrimaryByCategory(row?.primary_by_category);
+}
+
+/** Reusable getter for downstream consumers (Contacts, Deals, etc.) */
+export async function getPrimaryFor(
+  category: PrimaryIntegrationCategorySlug
+): Promise<string | null> {
+  const row = await fetchGlobalSettingsRow();
+  const byCategory = normalizePrimaryByCategory(row?.primary_by_category);
+  return byCategory[category]?.primary_slug ?? null;
+}
+
+/** Reusable getter for downstream consumers (Contacts, Deals, etc.) */
+export async function getActiveSourcesFor(
+  category: PrimaryIntegrationCategorySlug
+): Promise<string[]> {
+  const row = await fetchGlobalSettingsRow();
+  const byCategory = normalizePrimaryByCategory(row?.primary_by_category);
+  return byCategory[category]?.active_slugs ?? [];
+}
+
+/** Persist per-category integration preferences via Supabase (RLS-enforced) */
+export async function savePrimaryByCategory(
+  input: Partial<PrimaryByCategory>
+): Promise<{ primary_by_category: PrimaryByCategory; warnings: string[] }> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const context = await buildValidationContext();
+  const { value, warnings } = sanitizePrimaryByCategory(input, context);
+
+  const { data: existing, error: fetchError } = await supabase
+    .from('integration_settings')
+    .select('id')
+    .is('organization_id', null)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+
+  const payload = {
+    organization_id: null,
+    primary_by_category: value as unknown as IntegrationSettingsRow['primary_by_category'],
+    updated_by: user.id,
+  };
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('integration_settings')
+      .update(payload)
+      .eq('id', existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('integration_settings').insert(payload);
+    if (error) throw error;
+  }
+
+  return { primary_by_category: value, warnings };
+}
+
 export interface SaveIntegrationPreferencesResult extends SanitizedPreferencesResult {
   settings: IntegrationSettingsRow;
 }
