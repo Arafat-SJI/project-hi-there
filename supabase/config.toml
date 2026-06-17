@@ -47,7 +47,6 @@ verify_jwt = false
 
 [functions.semantic-search]
 verify_jwt = false
-import_map = "./functions/semantic-search/deno.json"
 
 [functions.ai-chat-assistant]
 verify_jwt = false
@@ -63,7 +62,6 @@ verify_jwt = false
 
 [functions.generate-embeddings]
 verify_jwt = false
-import_map = "./functions/generate-embeddings/deno.json"
 
 [functions.generate-meeting-summary]
 verify_jwt = false
@@ -233,7 +231,6 @@ verify_jwt = false
 
 [functions.gemini-rag-query]
 verify_jwt = false
-import_map = "./functions/gemini-rag-query/deno.json"
 
 [functions.knowledge-base]
 verify_jwt = false
@@ -436,7 +433,6 @@ verify_jwt = false
 
 [functions.process-embedding-queue]
 verify_jwt = false
-import_map = "./functions/process-embedding-queue/deno.json"
 
 [functions.process-scheduled-emails]
 verify_jwt = false
@@ -497,20 +493,15 @@ verify_jwt = false
 # RAG Enhancement
 [functions.kb-chunk-preview]
 verify_jwt = false
-import_map = "./functions/kb-chunk-preview/deno.json"
 
 [functions.kb-rag-playground]
 verify_jwt = false
-import_map = "./functions/kb-rag-playground/deno.json"
 
 [functions.kb-bulk-reembed]
 verify_jwt = false
-import_map = "./functions/kb-bulk-reembed/deno.json"
 
 [functions.kb-sync-action]
 verify_jwt = false
-import_map = "./functions/kb-sync-action/deno.json"
 
 [functions.admin-memory-actions]
 verify_jwt = false
-import_map = "./functions/admin-memory-actions/deno.json"
