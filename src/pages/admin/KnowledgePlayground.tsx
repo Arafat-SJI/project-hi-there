@@ -50,10 +50,10 @@ export default function KnowledgePlayground() {
             </div>
             <div className="space-y-2">
               <Label>Source (optional)</Label>
-              <Select value={sourceId} onValueChange={setSourceId}>
+              <Select value={sourceId || "__all__"} onValueChange={(v) => setSourceId(v === "__all__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="All sources" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All sources</SelectItem>
+                  <SelectItem value="__all__">All sources</SelectItem>
                   {(sources ?? []).map(({ source }) => (
                     <SelectItem key={source.id} value={source.id}>{source.name}</SelectItem>
                   ))}
