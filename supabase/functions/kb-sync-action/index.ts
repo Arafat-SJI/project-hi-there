@@ -1,3 +1,13 @@
+/**
+ * kb-sync-action
+ *
+ * Admin action endpoint for knowledge sync operations.
+ * Actions:
+ *   retry    — reset processing_status to pending
+ *   requeue  — reset + insert into embedding_queue
+ *   parse    — invoke kb-document-parser directly for immediate reprocessing
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAdmin } from '../_shared/admin-auth.ts'
@@ -45,6 +55,46 @@ async function applySyncAction(
         last_sync_attempt_at: now,
       })
       .eq('id', item.entity_id)
+
+    if (action === 'requeue') {
+      await supabase.from('embedding_queue').insert({
+        entity_type: 'unified_document',
+        entity_id: item.entity_id,
+        status: 'pending',
+        priority: 5,
+      })
+    }
+  }
+}
+
+async function applyParseAction(
+  supabase: ReturnType<typeof createClient>,
+  item: SyncItem,
+  supabaseUrl: string,
+  serviceKey: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/kb-document-parser`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        source_type: item.entity_type,
+        source_id: item.entity_id,
+        force_reparse: true,
+      }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: response.statusText }))
+      return { success: false, error: err.error ?? 'Parser returned non-200' }
+    }
+
+    return { success: true }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
 }
 
@@ -63,7 +113,7 @@ serve(async (req) => {
     if (adminCheck instanceof Response) return adminCheck
     const { userId } = adminCheck
 
-    const { action, items } = await req.json() as { action: 'retry' | 'requeue'; items: SyncItem[] }
+    const { action, items } = await req.json() as { action: 'retry' | 'requeue' | 'parse'; items: SyncItem[] }
 
     if (!action || !Array.isArray(items) || items.length === 0) {
       return new Response(JSON.stringify({ error: 'action and items[] required' }), {
@@ -71,8 +121,19 @@ serve(async (req) => {
       })
     }
 
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+    const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
+    const results: Array<{ entity_id: string; success: boolean; error?: string }> = []
+
     for (const item of items) {
-      await applySyncAction(supabase, item, action)
+      if (action === 'parse') {
+        const result = await applyParseAction(supabase, item, SUPABASE_URL, SERVICE_KEY)
+        results.push({ entity_id: item.entity_id, ...result })
+      } else {
+        await applySyncAction(supabase, item, action)
+        results.push({ entity_id: item.entity_id, success: true })
+      }
     }
 
     await supabase.from('activity_logs').insert({
@@ -82,7 +143,15 @@ serve(async (req) => {
       details: { count: items.length, items },
     })
 
-    return new Response(JSON.stringify({ success: true, processed: items.length }), {
+    const successCount = results.filter((r) => r.success).length
+
+    return new Response(JSON.stringify({
+      success: true,
+      processed: items.length,
+      succeeded: successCount,
+      failed: items.length - successCount,
+      results,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error: unknown) {

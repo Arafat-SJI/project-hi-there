@@ -1,3 +1,16 @@
+/**
+ * auto-embed-knowledge-files
+ *
+ * Org-level knowledge file processor. Routes each file through
+ * kb-document-parser (which handles type detection, OCR, structured
+ * extraction, and embedding generation) instead of raw Blob.text().
+ *
+ * Fixes from original:
+ * - Column name: file_path → storage_path
+ * - Column names: is_indexed, indexed_at, embedding_count, error_message
+ *                 → processing_status, processed_at, chunk_count, processing_error
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -17,6 +30,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
+    // Respect pipeline kill switch
     const { data: setting } = await supabaseClient
       .from('system_settings')
       .select('value')
@@ -31,18 +45,13 @@ serve(async (req) => {
       )
     }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured')
-    }
-
     const body = await req.json().catch(() => ({}))
     const batchSize = Math.min(Math.max(1, Number(body?.batch_size) || 10), 50)
     const retryFailed = Boolean(body?.retry_failed)
 
     let query = supabaseClient
       .from('knowledge_files')
-      .select('*')
+      .select('id, file_name, storage_path, source_id, file_type, processing_status')
       .limit(batchSize)
 
     if (retryFailed) {
@@ -60,67 +69,55 @@ serve(async (req) => {
       )
     }
 
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+    const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     let processedCount = 0
 
     for (const file of files) {
       try {
-        // Download file and extract text
-        // This is simplified - would need file type handling
+        if (!file.storage_path) {
+          await supabaseClient
+            .from('knowledge_files')
+            .update({ processing_status: 'failed', processing_error: 'No storage_path' })
+            .eq('id', file.id)
+          continue
+        }
 
-        const { data: fileData } = await supabaseClient.storage
-          .from('knowledge-files')
-          .download(file.file_path)
-
-        if (!fileData) continue
-
-        const text = await fileData.text()
-
-        // Generate embeddings
-        const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-embeddings`, {
+        // Route through kb-document-parser
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/kb-document-parser`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'Authorization': `Bearer ${SERVICE_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            entity_type: 'knowledge_file',
-            entity_id: file.id,
-            content: text,
-            metadata: {
-              file_name: file.file_name,
-              source_id: file.source_id,
-            },
+            source_type: 'knowledge_file',
+            source_id: file.id,
           }),
         })
 
         if (response.ok) {
-          const result = await response.json()
-
+          processedCount++
+        } else {
+          const errBody = await response.json().catch(() => ({ error: response.statusText }))
           await supabaseClient
             .from('knowledge_files')
             .update({
-              is_indexed: true,
-              indexed_at: new Date().toISOString(),
-              embedding_count: result.embeddings_created,
-              processing_status: 'completed',
+              processing_status: 'failed',
+              processing_error: errBody.error ?? 'Parser returned non-200',
             })
             .eq('id', file.id)
-
-          processedCount++
         }
       } catch (error: unknown) {
-        console.error(`Error processing file ${file.id}:`, error)
+        console.error(`Error processing knowledge_file ${file.id}:`, error)
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
         await supabaseClient
           .from('knowledge_files')
-          .update({
-            processing_status: 'failed',
-            error_message: errorMessage,
-          })
+          .update({ processing_status: 'failed', processing_error: errorMessage })
           .eq('id', file.id)
       }
 
+      // Rate limit: 1 request per second
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
 
