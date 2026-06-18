@@ -51,8 +51,8 @@ import MCPServers from "@/pages/MCPServers";
 
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeDashboard from "@/pages/admin/KnowledgeDashboard";
-import KnowledgePlayground from "@/pages/admin/KnowledgePlayground";
-import KnowledgePermissions from "@/pages/admin/KnowledgePermissions";
+import KnowledgeContent from "@/pages/admin/KnowledgeContent";
+import KnowledgeAccess from "@/pages/admin/KnowledgeAccess";
 import MemoryAdministration from "@/pages/admin/MemoryAdministration";
 import KnowledgeCategories from "@/pages/admin/KnowledgeCategories";
 import KnowledgeFiles from "@/pages/admin/KnowledgeFiles";
@@ -167,12 +167,14 @@ export const adminRoutes = (
 
     {/* Knowledge Admin */}
     <Route path="/admin/knowledge/dashboard" element={<KnowledgeDashboard />} />
+    <Route path="/admin/knowledge/content" element={<KnowledgeContent />} />
+    <Route path="/admin/knowledge/access" element={<KnowledgeAccess />} />
     <Route path="/admin/knowledge/source-config" element={<Navigate to="/admin/integrations" replace />} />
-    <Route path="/admin/knowledge/playground" element={<KnowledgePlayground />} />
-    <Route path="/admin/knowledge/permissions" element={<KnowledgePermissions />} />
+    <Route path="/admin/knowledge/playground" element={<Navigate to="/admin/knowledge/access?tab=playground" replace />} />
+    <Route path="/admin/knowledge/permissions" element={<Navigate to="/admin/knowledge/access?tab=permissions" replace />} />
     <Route path="/admin/memory/admin" element={<MemoryAdministration />} />
-    <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
-    <Route path="/admin/knowledge/files" element={<KnowledgeFiles />} />
+    <Route path="/admin/knowledge/categories" element={<Navigate to="/admin/knowledge/content?tab=categories" replace />} />
+    <Route path="/admin/knowledge/files" element={<Navigate to="/admin/knowledge/content?tab=files" replace />} />
     <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />
     <Route path="/admin/knowledge/memory-analytics" element={<MemoryAnalytics />} />
     <Route path="/admin/knowledge/analytics" element={<Navigate to="/admin/knowledge/dashboard" replace />} />
