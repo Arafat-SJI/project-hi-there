@@ -140,7 +140,9 @@ export function AdminSidebar() {
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const isActive = (path: string) =>
-    location.pathname === path || location.pathname.startsWith(path + "/");
+    path === "/admin"
+      ? location.pathname === "/admin"
+      : location.pathname === path || location.pathname.startsWith(path + "/");
 
   return (
     <Sidebar collapsible="icon">
