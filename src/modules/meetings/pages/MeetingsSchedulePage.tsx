@@ -229,7 +229,22 @@ export default function MeetingsSchedulePage() {
     meetings.length === 0 &&
     (view !== "calendar" || calendarMeetingsList.length === 0);
 
+  const outerView = searchParams.get("view") === "series" ? "series" : "meetings";
+  const setOuterView = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "meetings") next.delete("view");
+    else next.set("view", v);
+    setSearchParams(next, { replace: true });
+  };
+
   return (
+    <Tabs value={outerView} onValueChange={setOuterView} className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="meetings">All Meetings</TabsTrigger>
+        <TabsTrigger value="series">Series</TabsTrigger>
+      </TabsList>
+      <TabsContent value="series" className="mt-4"><MeetingSeriesPage /></TabsContent>
+      <TabsContent value="meetings" className="mt-4">
     <div className="space-y-6">
       <AgentTeamBanner team="meetings" />
       <div className="flex flex-wrap gap-2">
