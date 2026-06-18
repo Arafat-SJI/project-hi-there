@@ -375,3 +375,33 @@ function RoleCatalog() {
     </div>
   );
 }
+
+export default function RoleManagement() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") === "agency" ? "agency" : "permissions";
+
+  return (
+    <div className="space-y-4">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          const next = new URLSearchParams(searchParams);
+          if (value === "permissions") next.delete("tab");
+          else next.set("tab", value);
+          setSearchParams(next, { replace: true });
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="permissions">Permissions & Role Catalog</TabsTrigger>
+          <TabsTrigger value="agency">Agency Role & Dashboard</TabsTrigger>
+        </TabsList>
+        <TabsContent value="permissions" className="mt-4">
+          <RoleCatalog />
+        </TabsContent>
+        <TabsContent value="agency" className="mt-4">
+          <AgencyRoles />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
