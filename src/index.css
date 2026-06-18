@@ -440,4 +440,43 @@
       linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px);
     background-size: 60px 60px;
   }
+
+  /* Modern overlay scrollbar - hidden until scroll/hover */
+  .scrollbar-modern {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 150ms ease;
+  }
+
+  .scrollbar-modern:hover,
+  .scrollbar-modern:active,
+  .scrollbar-modern:focus-within {
+    scrollbar-color: hsl(var(--sidebar-foreground) / 0.18) transparent;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-foreground) / 0.18);
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity 150ms ease, background-color 150ms ease;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-foreground) / 0.35);
+  }
+
+  .scrollbar-modern:hover::-webkit-scrollbar-thumb,
+  .scrollbar-modern:active::-webkit-scrollbar-thumb,
+  .scrollbar-modern:focus-within::-webkit-scrollbar-thumb {
+    opacity: 1;
+  }
 }
