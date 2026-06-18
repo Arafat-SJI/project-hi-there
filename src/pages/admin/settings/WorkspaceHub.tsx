@@ -7,13 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  LayoutDashboard,
-  ListChecks,
-  Layers,
-  Users,
-  ChevronRight,
-} from "lucide-react";
+import { LayoutDashboard, ChevronRight } from "lucide-react";
 
 interface WorkspaceCardProps {
   icon: React.ReactNode;
@@ -53,32 +47,11 @@ function WorkspaceCard({ icon, title, description, href }: WorkspaceCardProps) {
 export default function WorkspaceHub() {
   const cards: WorkspaceCardProps[] = [
     {
-      icon: <ListChecks className="h-5 w-5" />,
-      title: "Project Statuses",
-      description:
-        "Create, rename, reorder, and delete custom project status stages used across the project lifecycle.",
-      href: "/admin/settings/project-statuses",
-    },
-    {
-      icon: <Layers className="h-5 w-5" />,
-      title: "Project Modules",
-      description:
-        "Enable or disable the individual tab sections shown inside each project detail view.",
-      href: "/admin/settings/project-modules",
-    },
-    {
       icon: <LayoutDashboard className="h-5 w-5" />,
       title: "Dashboard Widgets",
       description:
         "Configure which dashboard widgets are visible for each agency role (Owner, PM, BD, IC).",
       href: "/admin/settings/dashboard-widgets",
-    },
-    {
-      icon: <Users className="h-5 w-5" />,
-      title: "Agency Roles",
-      description:
-        "Assign agency roles (Owner, PM, BD, IC) to team members and configure their EOS dashboard access.",
-      href: "/admin/settings/agency-roles",
     },
   ];
 
@@ -87,7 +60,9 @@ export default function WorkspaceHub() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Workspace</h1>
         <p className="text-muted-foreground">
-          Configure how the platform is organized for your team
+          Configure how the platform is organized for your team. Project Statuses, Project
+          Modules, and Task Streams now live under <strong>Project Settings</strong>. Agency
+          role assignment has moved to the <strong>Roles</strong> page.
         </p>
       </div>
 
