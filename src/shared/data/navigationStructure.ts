@@ -63,6 +63,26 @@ export const dashboardItem: NavItem = {
  */
 export const navigationGroups: NavGroup[] = [
   {
+    id: "ai-browse",
+    title: "AI Agents",
+    icon: "Sparkles",
+    isAI: true,
+    items: [
+      {
+        title: "Browse Agents",
+        href: "/agents",
+        icon: "Bot",
+        featureFlag: "enableAIAgents",
+      },
+      {
+        title: "My AI Chat",
+        href: "/ai-agents",
+        icon: "MessageSquare",
+        featureFlag: "enableAIAgents",
+      },
+    ],
+  },
+  {
     id: "business-dev",
     title: "Sales Hub",
     icon: "Briefcase",
@@ -142,48 +162,6 @@ export const navigationGroups: NavGroup[] = [
         module: "meetings",
         featureFlag: "enableMeetings",
       },
-      {
-        title: "Series",
-        href: "/meetings/series",
-        icon: "Repeat",
-        module: "meetings",
-        featureFlag: "enableMeetings",
-      },
-      {
-        title: "Pending Assignments",
-        href: "/meetings/pending-assignments",
-        icon: "ClipboardCheck",
-        module: "meetings",
-        featureFlag: "enableMeetings",
-      },
-      {
-        title: "AI Match",
-        href: "/meetings/transcripts/ai-match",
-        icon: "Sparkles",
-        module: "meetings",
-        featureFlag: "enableMeetings",
-        agencyRoles: ["owner"],
-      },
-    ],
-  },
-  {
-    id: "ai-browse",
-    title: "AI Agents",
-    icon: "Sparkles",
-    isAI: true,
-    items: [
-      {
-        title: "Browse Agents",
-        href: "/agents",
-        icon: "Bot",
-        featureFlag: "enableAIAgents",
-      },
-      {
-        title: "My AI Chat",
-        href: "/ai-agents",
-        icon: "MessageSquare",
-        featureFlag: "enableAIAgents",
-      },
     ],
   },
   {
@@ -196,13 +174,6 @@ export const navigationGroups: NavGroup[] = [
         title: "Knowledge Base",
         href: "/knowledge",
         icon: "BookOpen",
-        module: "knowledge",
-        featureFlag: "enableKnowledgeBase",
-      },
-      {
-        title: "Semantic Search",
-        href: "/knowledge/search",
-        icon: "Sparkles",
         module: "knowledge",
         featureFlag: "enableKnowledgeBase",
       },
