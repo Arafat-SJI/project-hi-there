@@ -189,12 +189,6 @@ function TranscriptsContent({
   setPreviewTranscript: (t: TranscriptRow | null) => void;
   navigate: (path: string) => void;
 }) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   const total = (transcripts || []).length;
   const totalTurns = (transcripts || []).reduce((sum, t) => sum + t.turn_count, 0);
