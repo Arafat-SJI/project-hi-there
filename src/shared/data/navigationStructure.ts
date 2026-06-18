@@ -315,19 +315,6 @@ export const adminNavigation: NavGroup[] = [
         icon: "LayoutDashboard",
       },
       {
-        title: "Task Configuration",
-        href: "/admin/tasks/streams",
-        icon: "Settings",
-        headerOnly: true,
-        children: [
-          {
-            title: "Task Streams",
-            href: "/admin/tasks/streams",
-            icon: "GitBranch",
-          },
-        ],
-      },
-      {
         title: "OKR & Scorecards",
         href: "/admin/eos/scorecards",
         icon: "Target",
@@ -357,6 +344,28 @@ export const adminNavigation: NavGroup[] = [
             icon: "FileText",
           },
         ],
+      },
+    ],
+  },
+  {
+    id: "project-settings",
+    title: "PROJECT SETTINGS",
+    icon: "FolderKanban",
+    items: [
+      {
+        title: "Project Statuses",
+        href: "/admin/settings/project-statuses",
+        icon: "ListChecks",
+      },
+      {
+        title: "Project Modules",
+        href: "/admin/settings/project-modules",
+        icon: "Layers",
+      },
+      {
+        title: "Task Streams",
+        href: "/admin/tasks/streams",
+        icon: "GitBranch",
       },
     ],
   },
@@ -479,6 +488,11 @@ export const adminNavigation: NavGroup[] = [
             title: "Notifications",
             href: "/admin/settings/notifications",
             icon: "Mail",
+          },
+          {
+            title: "Template Seeding",
+            href: "/admin/settings/seeding",
+            icon: "Database",
           },
           {
             title: "Advanced",

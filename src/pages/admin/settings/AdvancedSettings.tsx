@@ -8,61 +8,26 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Zap, Save, Shield, Database, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Zap, Save, Shield, Loader2 } from "lucide-react";
 
 export default function AdvancedSettings() {
   const { data: config, isLoading } = useAppConfig();
   const updateConfig = useUpdateAppConfig();
 
   const [settings, setSettings] = useState<AppConfig | null>(null);
-  const [seedOptions, setSeedOptions] = useState({
-    seedAIAgents: true,
-    seedKnowledgeCategories: true,
-    seedSampleData: false,
-  });
-  const [isSeeding, setIsSeeding] = useState(false);
 
   useEffect(() => {
     if (config) setSettings(config);
   }, [config]);
 
   const isSaving = updateConfig.isPending;
-  const isBusy = isSaving || isSeeding;
 
   async function handleSave() {
     if (!settings) return;
     await updateConfig.mutateAsync(settings);
-  }
-
-  async function handleSeedData() {
-    setIsSeeding(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("seed-template-data", {
-        body: { options: seedOptions },
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast.success(`Successfully seeded: ${data.seeded.join(", ")}`);
-        if (data.errors?.length > 0) {
-          toast.warning(`Errors: ${data.errors.join(", ")}`);
-        }
-      } else {
-        toast.error("Failed to seed template data");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to seed template data");
-    } finally {
-      setIsSeeding(false);
-    }
   }
 
   if (isLoading || !settings) {
@@ -79,10 +44,10 @@ export default function AdvancedSettings() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Advanced</h1>
           <p className="text-muted-foreground">
-            Feature flags, system configuration, and data seeding
+            Feature flags and platform-wide operational toggles
           </p>
         </div>
-        <Button onClick={handleSave} disabled={isBusy}>
+        <Button onClick={handleSave} disabled={isSaving}>
           {isSaving ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -92,7 +57,6 @@ export default function AdvancedSettings() {
         </Button>
       </div>
 
-      {/* Feature Flags */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -133,7 +97,7 @@ export default function AdvancedSettings() {
                       features: { ...settings.features, [key]: checked },
                     })
                   }
-                  disabled={isBusy}
+                  disabled={isSaving}
                 />
               </div>
             </div>
@@ -141,14 +105,15 @@ export default function AdvancedSettings() {
         </CardContent>
       </Card>
 
-      {/* System Configuration */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            <CardTitle>System Configuration</CardTitle>
+            <CardTitle>Platform Operations</CardTitle>
           </div>
-          <CardDescription>General system settings and security</CardDescription>
+          <CardDescription>
+            Operational toggles. Authentication-related controls have moved to Security settings.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
@@ -166,7 +131,7 @@ export default function AdvancedSettings() {
                   system: { ...settings.system, maintenanceMode: checked },
                 })
               }
-              disabled={isBusy}
+              disabled={isSaving}
             />
           </div>
 
@@ -187,137 +152,12 @@ export default function AdvancedSettings() {
                   system: { ...settings.system, allowSignups: checked },
                 })
               }
-              disabled={isBusy}
+              disabled={isSaving}
             />
           </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Require Email Verification</Label>
-              <p className="text-sm text-muted-foreground">
-                Require users to verify their email before signing in
-              </p>
-            </div>
-            <Switch
-              checked={settings.system.requireEmailVerification}
-              onCheckedChange={(checked) =>
-                setSettings({
-                  ...settings,
-                  system: { ...settings.system, requireEmailVerification: checked },
-                })
-              }
-              disabled={isBusy}
-            />
-          </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label htmlFor="sessionTimeout">Session Timeout (days)</Label>
-            <Input
-              id="sessionTimeout"
-              type="number"
-              min="1"
-              max="30"
-              value={settings.system.sessionTimeout}
-              onChange={(e) =>
-                setSettings({
-                  ...settings,
-                  system: {
-                    ...settings.system,
-                    sessionTimeout: parseInt(e.target.value) || 7,
-                  },
-                })
-              }
-              disabled={isBusy}
-              className="w-32"
-            />
-            <p className="text-sm text-muted-foreground">
-              Number of days before a user session expires.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Template Data Seeding */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            <CardTitle>Template Data Seeding</CardTitle>
-          </div>
-          <CardDescription>
-            Populate the platform with default templates and sample data
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="seedAIAgents"
-                checked={seedOptions.seedAIAgents}
-                onCheckedChange={(checked) =>
-                  setSeedOptions({ ...seedOptions, seedAIAgents: checked as boolean })
-                }
-              />
-              <label
-                htmlFor="seedAIAgents"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Seed Default AI Agents (Meeting Summarizer, Document Analyzer, etc.)
-              </label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="seedKnowledgeCategories"
-                checked={seedOptions.seedKnowledgeCategories}
-                onCheckedChange={(checked) =>
-                  setSeedOptions({ ...seedOptions, seedKnowledgeCategories: checked as boolean })
-                }
-              />
-              <label
-                htmlFor="seedKnowledgeCategories"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Seed Knowledge Base Categories
-              </label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="seedSampleData"
-                checked={seedOptions.seedSampleData}
-                onCheckedChange={(checked) =>
-                  setSeedOptions({ ...seedOptions, seedSampleData: checked as boolean })
-                }
-              />
-              <label
-                htmlFor="seedSampleData"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Seed Sample Data (demo clients, meetings, etc.)
-              </label>
-            </div>
-          </div>
-
-          <Button onClick={handleSeedData} disabled={isBusy} variant="outline" className="w-full">
-            {isSeeding ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Seeding Data...
-              </>
-            ) : (
-              <>
-                <Database className="mr-2 h-4 w-4" />
-                Seed Template Data
-              </>
-            )}
-          </Button>
         </CardContent>
       </Card>
     </div>
   );
 }
+

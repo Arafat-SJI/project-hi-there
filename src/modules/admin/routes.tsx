@@ -23,6 +23,7 @@ import WorkspaceHub from "@/pages/admin/settings/WorkspaceHub";
 import NotificationSettings from "@/pages/admin/settings/NotificationSettings";
 import AdvancedSettings from "@/pages/admin/settings/AdvancedSettings";
 import SecuritySettings from "@/pages/admin/settings/SecuritySettings";
+import TemplateSeeding from "@/pages/admin/settings/TemplateSeeding";
 
 import Integrations from "@/pages/admin/Integrations";
 import SendGrid from "@/pages/admin/integrations/SendGrid";
@@ -122,11 +123,12 @@ export const adminRoutes = (
     <Route path="/admin/settings/notifications" element={<NotificationSettings />} />
     <Route path="/admin/settings/advanced" element={<AdvancedSettings />} />
     <Route path="/admin/settings/security" element={<SecuritySettings />} />
+    <Route path="/admin/settings/seeding" element={<TemplateSeeding />} />
     {/* Workspace sub-pages (preserved, linked from WorkspaceHub) */}
     <Route path="/admin/settings/project-statuses" element={<ProjectStatusSettings />} />
     <Route path="/admin/settings/project-modules" element={<ProjectModules />} />
     <Route path="/admin/settings/dashboard-widgets" element={<DashboardWidgets />} />
-    <Route path="/admin/settings/agency-roles" element={<AgencyRoles />} />
+    <Route path="/admin/settings/agency-roles" element={<Navigate to="/admin/roles?tab=agency" replace />} />
     {/* Backward compatibility — old SSO route redirects to security settings */}
     <Route path="/admin/sso-settings" element={<Navigate to="/admin/settings/security" replace />} />
 

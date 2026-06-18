@@ -63,7 +63,11 @@ import {
 import { usePermissionCatalog } from "@/hooks/usePermissions";
 import { format } from "date-fns";
 
-export default function RoleManagement() {
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
+import AgencyRoles from "@/pages/admin/AgencyRoles";
+
+function RoleCatalog() {
   const { data: roles, isLoading, isError } = useRoles();
   const { data: permissions } = usePermissionCatalog();
   const createRole = useCreateRole();
@@ -368,6 +372,36 @@ export default function RoleManagement() {
           )}
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+export default function RoleManagement() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") === "agency" ? "agency" : "permissions";
+
+  return (
+    <div className="space-y-4">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          const next = new URLSearchParams(searchParams);
+          if (value === "permissions") next.delete("tab");
+          else next.set("tab", value);
+          setSearchParams(next, { replace: true });
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="permissions">Permissions & Role Catalog</TabsTrigger>
+          <TabsTrigger value="agency">Agency Role & Dashboard</TabsTrigger>
+        </TabsList>
+        <TabsContent value="permissions" className="mt-4">
+          <RoleCatalog />
+        </TabsContent>
+        <TabsContent value="agency" className="mt-4">
+          <AgencyRoles />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
