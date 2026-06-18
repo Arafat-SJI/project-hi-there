@@ -368,38 +368,6 @@ export const adminNavigation: NavGroup[] = [
         icon: "GitBranch",
       },
     ],
-      {
-        title: "OKR & Scorecards",
-        href: "/admin/eos/scorecards",
-        icon: "Target",
-        headerOnly: true,
-        children: [
-          {
-            title: "Scorecard Settings",
-            href: "/admin/eos/scorecards",
-            icon: "BarChart3",
-          },
-        ],
-      },
-      {
-        title: "Accountability",
-        href: "/admin/eos/accountability",
-        icon: "Shield",
-        headerOnly: true,
-        children: [
-          {
-            title: "Chart Management",
-            href: "/admin/eos/accountability",
-            icon: "Network",
-          },
-          {
-            title: "V/TO Settings",
-            href: "/admin/eos/vto",
-            icon: "FileText",
-          },
-        ],
-      },
-    ],
   },
   {
     id: "intelligence-ai",
