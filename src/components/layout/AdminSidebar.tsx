@@ -172,7 +172,7 @@ export function AdminSidebar() {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="scrollbar-modern">
         {/* Back to Dashboard */}
         <SidebarGroup>
           <SidebarMenu>
