@@ -63,7 +63,11 @@ import {
 import { usePermissionCatalog } from "@/hooks/usePermissions";
 import { format } from "date-fns";
 
-export default function RoleManagement() {
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
+import AgencyRoles from "@/pages/admin/AgencyRoles";
+
+function RoleCatalog() {
   const { data: roles, isLoading, isError } = useRoles();
   const { data: permissions } = usePermissionCatalog();
   const createRole = useCreateRole();
