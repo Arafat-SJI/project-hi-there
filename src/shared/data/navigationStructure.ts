@@ -476,11 +476,6 @@ export const adminNavigation: NavGroup[] = [
             icon: "Layers",
           },
           {
-            title: "Security",
-            href: "/admin/settings/security",
-            icon: "Shield",
-          },
-          {
             title: "Notifications",
             href: "/admin/settings/notifications",
             icon: "Mail",
