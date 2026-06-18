@@ -315,18 +315,59 @@ export const adminNavigation: NavGroup[] = [
         icon: "LayoutDashboard",
       },
       {
-        title: "Task Configuration",
-        href: "/admin/tasks/streams",
-        icon: "Settings",
+        title: "OKR & Scorecards",
+        href: "/admin/eos/scorecards",
+        icon: "Target",
         headerOnly: true,
         children: [
           {
-            title: "Task Streams",
-            href: "/admin/tasks/streams",
-            icon: "GitBranch",
+            title: "Scorecard Settings",
+            href: "/admin/eos/scorecards",
+            icon: "BarChart3",
           },
         ],
       },
+      {
+        title: "Accountability",
+        href: "/admin/eos/accountability",
+        icon: "Shield",
+        headerOnly: true,
+        children: [
+          {
+            title: "Chart Management",
+            href: "/admin/eos/accountability",
+            icon: "Network",
+          },
+          {
+            title: "V/TO Settings",
+            href: "/admin/eos/vto",
+            icon: "FileText",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "project-settings",
+    title: "PROJECT SETTINGS",
+    icon: "FolderKanban",
+    items: [
+      {
+        title: "Project Statuses",
+        href: "/admin/settings/project-statuses",
+        icon: "ListChecks",
+      },
+      {
+        title: "Project Modules",
+        href: "/admin/settings/project-modules",
+        icon: "Layers",
+      },
+      {
+        title: "Task Streams",
+        href: "/admin/tasks/streams",
+        icon: "GitBranch",
+      },
+    ],
       {
         title: "OKR & Scorecards",
         href: "/admin/eos/scorecards",
