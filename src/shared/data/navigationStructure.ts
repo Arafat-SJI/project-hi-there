@@ -426,6 +426,11 @@ export const adminNavigation: NavGroup[] = [
         icon: "Building2",
       },
       {
+        title: "Security",
+        href: "/admin/settings/security",
+        icon: "Shield",
+      },
+      {
         title: "Activity Logs",
         href: "/admin/logs",
         icon: "Activity",
