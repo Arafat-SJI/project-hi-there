@@ -315,11 +315,6 @@ export const adminNavigation: NavGroup[] = [
         icon: "LayoutDashboard",
       },
       {
-        title: "POD Management",
-        href: "/admin/pods",
-        icon: "Layers",
-      },
-      {
         title: "Task Configuration",
         href: "/admin/tasks/streams",
         icon: "Settings",
@@ -431,6 +426,11 @@ export const adminNavigation: NavGroup[] = [
         icon: "Building2",
       },
       {
+        title: "Security",
+        href: "/admin/settings/security",
+        icon: "Shield",
+      },
+      {
         title: "Activity Logs",
         href: "/admin/logs",
         icon: "Activity",
@@ -474,11 +474,6 @@ export const adminNavigation: NavGroup[] = [
             title: "Workspace",
             href: "/admin/settings/workspace",
             icon: "Layers",
-          },
-          {
-            title: "Security",
-            href: "/admin/settings/security",
-            icon: "Shield",
           },
           {
             title: "Notifications",

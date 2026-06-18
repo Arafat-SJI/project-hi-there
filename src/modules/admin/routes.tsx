@@ -47,7 +47,7 @@ import SSOSettings from "@/pages/admin/SSOSettings";
 import MeetingAnalytics from "@/pages/admin/MeetingAnalytics";
 import FeedbackManagement from "@/pages/admin/FeedbackManagement";
 import MCPServers from "@/pages/MCPServers";
-import PODManagement from "@/pages/admin/PodManagement";
+
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeDashboard from "@/pages/admin/KnowledgeDashboard";
 import KnowledgePlayground from "@/pages/admin/KnowledgePlayground";
@@ -158,9 +158,10 @@ export const adminRoutes = (
     <Route path="/admin/tasks/streams" element={<StreamsPage />} />
     <Route path="/admin/tasks/streams/:streamId" element={<StreamTasksPage />} />
 
-    {/* Pods */}
-    <Route path="/admin/pods" element={<PODManagement />} />
-    <Route path="/admin/team/pods" element={<Navigate to="/admin/pods" replace />} />
+    {/* Pods (removed) */}
+    <Route path="/admin/pods" element={<Navigate to="/admin" replace />} />
+    <Route path="/admin/team/pods" element={<Navigate to="/admin" replace />} />
+
 
     {/* Knowledge Admin */}
     <Route path="/admin/knowledge/dashboard" element={<KnowledgeDashboard />} />
