@@ -1,43 +1,73 @@
-## Status Review
+## Answers to your 6 questions + proposed actions
 
-After auditing the codebase, almost everything from the restructure spec is **already done**:
+### 1. Dashboard Widget Registry — what it is and where it belongs
+- **Page**: `src/pages/admin/DashboardWidgets.tsx` (route `/admin/settings/dashboard-widgets`).
+- **Currently lives under**: SYSTEM → Settings → **Workspace** hub (not Users & Access).
+- **Purpose**: Controls which widgets appear on each role-based dashboard (Owner, PM, BD, IC). Reads from the `dashboard_widgets` DB table; toggling `is_enabled` or changing `sort_order` instantly shows/hides cards on `OwnerDashboard`, `PMDashboard`, `BDDashboard`, `ICDashboard`.
+- **Connection**: Tied to **Agency Roles** (Owner/PM/BD/IC) — each widget row lists the roles it appears for. Not tied to DB auth roles (admin/moderator/user).
+- **Recommendation**: It is a UI/presentation config, not an access-control feature → keep it under **System → Settings → Workspace** (its current home), not under Users & Access. **No change unless you disagree.**
 
-✅ All pages physically removed (SkillManagement, EmployeeProjection, Employees, ProductivityImport, Environment, Deployment, Roadmap, LLMConfig, Gemini, BatchUpload)
-✅ DepartmentManagement page at `/admin/department` with redirect from `/admin/team/departments`
-✅ Sidebar has INTELLIGENCE & AI group with AI Hub subgroup; GENERAL group with Feedback + Meeting Analytics; SYSTEM group with MCP Servers
-✅ All redirects in place: `/admin/ai-usage` → `/admin/ai/analytics`, semantic-search/embeddings → AI Hub knowledge-search, memory pages → `/admin/ai-hub/memory`, knowledge analytics/common/sync-status/sources/gemini → `/admin/knowledge/dashboard`
-✅ KnowledgeDashboard already a **single unified scrolling page** (Health → Analytics → Usage → Sync → Sources → Parser)
-✅ Per-category Primary Integration UI already built (`CategoryPrimarySourceCard`, `usePrimaryByCategorySettings`, `savePrimaryByCategory`, `getPrimaryFor`, `getActiveSourcesFor`)
-✅ `integration_settings.primary_by_category` JSONB column exists
+### 2. Agency Role Assignment vs Role Management — are they duplicates?
+They look similar but are **two different concepts**:
+| Page | What it manages | Stored in |
+|---|---|---|
+| `/admin/roles` (Role Management) | DB auth roles + granular permissions (admin / moderator / user, plus permission matrix) | `user_roles`, `roles`, `role_permissions` |
+| `/admin/settings/agency-roles` (Agency Roles) | Product/dashboard persona (Owner / PM / BD / IC) + EOS flag | `user_role_preferences` (`agency_role`, `is_eos_user`) |
+- **Proposal**: Merge into one page **`/admin/roles`** with two tabs:
+  - **Tab 1 — Permissions Matrix** (current Role Management content)
+  - **Tab 2 — Agency Role & Dashboard** (current Agency Roles content)
+  Remove the standalone Agency Roles entry from Workspace hub. The single page becomes the home for "who can do what + which dashboard they see."
 
-## Remaining work — 2 items
+### 3. New "Project Settings" admin section
+- Add new sidebar group **PROJECT SETTINGS** with three items:
+  - Project Statuses → `/admin/settings/project-statuses`
+  - Project Modules → `/admin/settings/project-modules`
+  - Task Streams → `/admin/tasks/streams`
+- **Remove** the "Task Configuration" wrapper from PEOPLE & PERFORMANCE (it only contained Task Streams).
+- Also remove Project Statuses/Modules tiles from the **Workspace hub** so they aren't listed twice.
 
-### 1. Fix "Denied access" flash on admin navigation
+### 4. Advanced page — are all parts functional?
+`src/pages/admin/settings/AdvancedSettings.tsx` currently contains three cards — all wired and working:
+- **Feature Flags** — writes to `app_config.features`; read by `useFeatureFlags` and gates 12 modules/features across the app. ✅ Functional.
+- **System Configuration** — `maintenanceMode`, `allowSignups`, `requireEmailVerification`, `sessionTimeout`. Writes to `app_config.system`. ✅ Functional, but only `requireEmailVerification` and `sessionTimeout` overlap with Security; the others are platform-wide toggles, not auth/security.
+- **Template Data Seeding** — invokes the `seed-template-data` edge function. ✅ Functional.
+- **Proposal**:
+  - **Keep** Feature Flags on the Advanced page (no good home elsewhere).
+  - **Move** "Require Email Verification" + "Session Timeout" rows into **Security** (`/admin/settings/security`) where they belong.
+  - **Keep** Maintenance Mode + Allow Signups on Advanced (these are operational, not security).
+  - **Split out** Template Data Seeding (see #5).
 
-**Root cause** — pages `UserInvitations.tsx` and `PermissionMatrix.tsx` check granular permissions (`users.create`, `settings.admin`/`users.admin`) **without** the admin/moderator role fallback that `AdminRoute` uses. So admins who lack the explicit granular permission see PermissionDenied flash when landing on those pages.
+### 5. Template Data Seeding — separate page
+- Create **`/admin/settings/seeding`** (`TemplateSeeding.tsx`) containing the existing seeding UI, and remove that card from Advanced.
+- Add it under SYSTEM → Settings as a sibling of Branding / Workspace / Notifications / Advanced.
 
-**Fix:**
-- Update both pages to mirror AdminRoute's fallback: also allow `profile?.role === 'admin' || profile?.role === 'moderator'`
-- Update `usePermissions` hook to expose `isSuccess` consistently and have both pages gate render on `permLoading || !isSuccess` to avoid evaluating `hasPermission` before query resolves
+### 6. Sub-menu icon color inconsistency
+- **Root cause**: `src/components/ui/sidebar.tsx` line 599 forces sub-item icons to `text-sidebar-accent-foreground` (`[&>svg]:text-sidebar-accent-foreground`). On themes where `--sidebar-accent-foreground` is near-white, sub-menu icons disappear against the sidebar background.
+- **Fix**: Drop the forced `[&>svg]:text-sidebar-accent-foreground` rule so sub-item icons inherit `text-sidebar-foreground` like top-level items, and only switch to accent color on hover/active state (which the surrounding classes already do). Apply to both admin and main sidebars (they share the same primitive).
 
-Files:
-- `src/pages/admin/PermissionMatrix.tsx`
-- `src/pages/admin/UserInvitations.tsx`
+---
 
-### 2. DB cleanup — drop orphaned tables
+## Implementation plan (after approval)
 
-Migration with `DROP TABLE IF EXISTS ... CASCADE` for tables backing removed pages (only the ones that actually exist). I'll first grep to confirm no remaining frontend or edge-function references, then drop:
+**Files to edit**
+1. `src/components/ui/sidebar.tsx` — remove forced `[&>svg]:text-sidebar-accent-foreground` from `SidebarMenuSubButton` so sub-icons use consistent foreground color (fixes #6).
+2. `src/shared/data/navigationStructure.ts`:
+   - Add new `PROJECT SETTINGS` group with Project Statuses, Project Modules, Task Streams (#3).
+   - Remove `Task Configuration` wrapper (#3).
+   - Add `Template Seeding` entry under SYSTEM → Settings (#5).
+   - Remove standalone Agency Roles entry from Workspace hub once merged (#2).
+3. `src/pages/admin/RoleManagement.tsx` (or new wrapper) — add Tabs: "Permissions" + "Agency Role & Dashboard"; embed `<AgencyRoles />` into the second tab (#2).
+4. `src/pages/admin/settings/WorkspaceHub.tsx` — remove Project Statuses, Project Modules, Agency Roles, Dashboard Widgets stays (or move Dashboard Widgets there too — TBD per your call on #1).
+5. `src/pages/admin/settings/AdvancedSettings.tsx` — remove Template Data Seeding card; move email-verification + session-timeout fields out (#4).
+6. `src/pages/admin/settings/SecuritySettings.tsx` — add "Require Email Verification" and "Session Timeout" controls (#4).
+7. `src/pages/admin/settings/TemplateSeeding.tsx` — **new file** containing the seeding card (#5).
+8. `src/modules/admin/routes.tsx` — add route `/admin/settings/seeding`; keep `/admin/settings/agency-roles` as redirect to `/admin/roles?tab=agency`.
 
-- `skills`, `user_skills` (if present)
-- `productivity_alerts`, `productivity_records` (if no longer referenced anywhere; otherwise keep — the productivity module is still in use)
-- `roadmap_items` (if present)
+**No DB migrations required.** All changes are UI/navigation reorganization.
 
-I'll only drop tables that exist AND have zero remaining code references. Anything in active use (e.g., `productivity_records` still used by `/productivity` module) stays.
+---
 
-### 3. Verification
-
-- `npm run lint` + `npm run build:dev`
-- Click through `/admin/users/invitations`, `/admin/roles/permissions` as admin — confirm no PermissionDenied flash
-- Confirm `/admin/integrations` shows the per-category Primary Sources card
-
-Approve to switch to build mode and execute.
+## Open questions before I implement
+- **Q1 (item #1)**: Leave Dashboard Widget Registry under **Workspace** (recommended), or move it elsewhere?
+- **Q2 (item #2)**: Confirm merge into `/admin/roles` with two tabs — Permissions and Agency Role?
+- **Q4**: Confirm moving only `requireEmailVerification` + `sessionTimeout` into Security, leaving Maintenance Mode + Allow Signups on Advanced?
