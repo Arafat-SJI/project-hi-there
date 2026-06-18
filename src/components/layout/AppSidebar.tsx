@@ -235,7 +235,7 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="scrollbar-modern">
         {/* Dashboard - always visible at top */}
         <SidebarGroup>
           <SidebarMenu>
