@@ -576,5 +576,7 @@ export default function MeetingsSchedulePage() {
         onOpenChange={setGoogleMeetDialogOpen}
       />
     </div>
+      </TabsContent>
+    </Tabs>
   );
 }
