@@ -94,7 +94,7 @@ export const adminRoutes = (
     <Route path="/admin/ai/email-drafting" element={<EmailDraftingPerformance />} />
     <Route path="/admin/ai/deal-coaching" element={<DealCoaching />} />
     <Route path="/admin/ai/analytics" element={<AIAnalytics />} />
-    <Route path="/admin/ai-hub/knowledge-search" element={<KnowledgeSearch />} />
+    <Route path="/admin/ai-hub/knowledge-search" element={<Navigate to="/admin/knowledge/access?tab=search" replace />} />
     <Route path="/admin/ai-hub/memory" element={<Memory />} />
     <Route path="/admin/implementation-status" element={<ImplementationStatus />} />
 
@@ -152,8 +152,8 @@ export const adminRoutes = (
     <Route path="/admin/ai-models" element={<AIModelManagement />} />
     <Route path="/admin/ai-usage" element={<Navigate to="/admin/ai/analytics" replace />} />
     <Route path="/admin/ai/agent-analytics" element={<Navigate to="/admin/ai/analytics" replace />} />
-    <Route path="/admin/ai/semantic-search" element={<Navigate to="/admin/ai-hub/knowledge-search" replace />} />
-    <Route path="/admin/ai/embeddings" element={<Navigate to="/admin/ai-hub/knowledge-search" replace />} />
+    <Route path="/admin/ai/semantic-search" element={<Navigate to="/admin/knowledge/access?tab=search" replace />} />
+    <Route path="/admin/ai/embeddings" element={<Navigate to="/admin/knowledge/access?tab=search" replace />} />
     <Route path="/admin/mcp-servers" element={<MCPServers />} />
 
     {/* Task Streams (Admin) */}
