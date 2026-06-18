@@ -1,56 +1,45 @@
+## Changes
 
-## Goal
-Restructure the **INTELLIGENCE & AI** sidebar group for clearer grouping. Pure navigation/UI change — no business logic, no DB changes.
-
-## Current structure
-```
-INTELLIGENCE & AI
-├── AI Agents
-├── Agent Categories
-├── Prompt Templates
-├── AI Analytics
-├── Deal Coaching
-├── Email Drafting
-└── AI Hub (group)
-    ├── Knowledge Search
-    ├── Memory
-    └── AI Models
+### 1. Fix "Admin Dashboard" always highlighted
+In `src/components/layout/AdminSidebar.tsx`, the `isActive` helper treats `/admin` as a prefix and matches every admin route. Change to require exact match when `path === "/admin"`:
+```ts
+const isActive = (path: string) =>
+  path === "/admin"
+    ? location.pathname === "/admin"
+    : location.pathname === path || location.pathname.startsWith(path + "/");
 ```
 
-## Proposed structure
-```
-INTELLIGENCE & AI
-├── AI Analytics                          ← moved to top
-├── AI Agents (group)                     ← Deal Coaching + Email Drafting nested
-│   ├── All Agents          /admin/ai/agents
-│   ├── Deal Coaching       /admin/ai/deal-coaching
-│   └── Email Drafting      /admin/ai/email-drafting
-└── AI Configuration (group)              ← renamed from "AI Hub"
-    ├── Agent Categories    /admin/ai/agent-categories
-    ├── Prompt Templates    /admin/ai/prompt-templates
-    ├── Memory              /admin/ai-hub/memory
-    └── AI Models           /admin/ai-models
-```
+### 2. Remove standalone "Semantic Search" from user sidebar
+In `src/shared/data/navigationStructure.ts` `knowledge` group, remove the "Semantic Search" item. Semantic search remains available inside Knowledge Base and Personal Library pages (no route changes — `/knowledge/search` keeps working if linked from inside those pages).
 
-### Knowledge Search (Q1)
-`Knowledge Search` (`/admin/ai-hub/knowledge-search`) is essentially a semantic-search playground over the knowledge base — it belongs with Knowledge Base, not AI. Move it into the **KNOWLEDGE BASE → Access & Testing** page as a third tab alongside Permissions and Playground:
+### 3. Move "AI Agents" group above "Sales Hub"
+In `src/shared/data/navigationStructure.ts`, reorder `navigationGroups` so the `ai-browse` group is first, before `business-dev`.
 
-```
-KNOWLEDGE BASE
-└── Knowledge Base
-    ├── Dashboard
-    ├── Content (Categories | Files)
-    └── Access & Testing (Permissions | Playground | Knowledge Search)  ← new tab
-```
+### 4. Merge "Pending Assignments" & "AI Match Results" into Transcripts (tabs)
+- Refactor `src/modules/meetings/pages/MeetingTranscriptsPage.tsx` to wrap its content in shadcn `Tabs` with URL sync via `?tab=transcripts|pending|ai-match`:
+  - `transcripts` — current transcripts list (default)
+  - `pending` — render `<MeetingPendingAssignmentsPage />` body
+  - `ai-match` — render `<MeetingAiMatchResultsPage />` body
+- In `src/modules/meetings/routes.tsx`, change `/meetings/pending-assignments` and `/meetings/transcripts/ai-match` to `<Navigate>` redirects to `/meetings/transcripts?tab=pending` and `?tab=ai-match`.
+- In navigation, remove the standalone "Pending Assignments" and "AI Match" items from the `meetings` group.
 
-Old route `/admin/ai-hub/knowledge-search` redirects to `/admin/knowledge/access?tab=search`.
+### 5. Merge "Series" into "All Meetings" (tabs)
+- Refactor `src/modules/meetings/pages/MeetingsSchedulePage.tsx` to use tabs with `?tab=meetings|series`:
+  - `meetings` — current schedule list (default)
+  - `series` — render `<MeetingSeriesPage />` body
+- In `src/modules/meetings/routes.tsx`, redirect `/meetings/series` → `/meetings/schedule?tab=series`.
+- Remove standalone "Series" item from the `meetings` nav group.
 
-## Files to change
-1. **`src/shared/data/navigationStructure.ts`** — rewrite the `intelligence-ai` group per above; add `Knowledge Search` tab entry under Knowledge Base (or rely on tab-only, no sidebar entry).
-2. **`src/pages/admin/KnowledgeAccess.tsx`** — add third `<TabsTrigger value="search">` rendering the existing `<KnowledgeSearch />` page component.
-3. **`src/modules/admin/routes.tsx`** — replace `/admin/ai-hub/knowledge-search` element with `<Navigate to="/admin/knowledge/access?tab=search" replace />`.
+### Resulting Meetings nav group
+- All Meetings (tabs: Meetings | Series)
+- Transcripts (tabs: Transcripts | Pending Assignments | AI Match)
 
 ## Out of scope
-- No changes to page internals beyond the new tab wrapper.
-- No DB, RLS, or edge-function changes.
-- Underlying URLs for moved leaves (Deal Coaching, Email Drafting, Agent Categories, Prompt Templates, Memory, AI Models) stay the same — only the sidebar nesting changes.
+No DB, RLS, or edge function changes. Pure frontend nav/routing.
+
+## Files to change
+- `src/components/layout/AdminSidebar.tsx`
+- `src/shared/data/navigationStructure.ts`
+- `src/modules/meetings/routes.tsx`
+- `src/modules/meetings/pages/MeetingTranscriptsPage.tsx`
+- `src/modules/meetings/pages/MeetingsSchedulePage.tsx`

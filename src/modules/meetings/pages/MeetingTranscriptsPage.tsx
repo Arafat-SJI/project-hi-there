@@ -6,7 +6,10 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import MeetingPendingAssignmentsPage from "./MeetingPendingAssignmentsPage";
+import MeetingAiMatchResultsPage from "./MeetingAiMatchResultsPage";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -130,16 +133,62 @@ export default function MeetingTranscriptsPage() {
   const [search, setSearch] = useState("");
   const [previewTranscript, setPreviewTranscript] = useState<TranscriptRow | null>(null);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get("view") || "transcripts";
+
+  const setView = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "transcripts") next.delete("view");
+    else next.set("view", v);
+    setSearchParams(next, { replace: true });
+  };
 
   const { data: transcripts, isLoading } = useMeetingTranscripts(search);
 
-  if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  return (
+    <Tabs value={view} onValueChange={setView} className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="transcripts">Transcripts</TabsTrigger>
+        <TabsTrigger value="pending">Pending Assignments</TabsTrigger>
+        <TabsTrigger value="ai-match">AI Match Results</TabsTrigger>
+      </TabsList>
+      <TabsContent value="pending" className="mt-4"><MeetingPendingAssignmentsPage /></TabsContent>
+      <TabsContent value="ai-match" className="mt-4"><MeetingAiMatchResultsPage /></TabsContent>
+      <TabsContent value="transcripts" className="mt-4">
+        {isLoading ? (
+          <div className="flex h-96 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <TranscriptsContent
+            transcripts={transcripts}
+            search={search}
+            setSearch={setSearch}
+            previewTranscript={previewTranscript}
+            setPreviewTranscript={setPreviewTranscript}
+            navigate={navigate}
+          />
+        )}
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function TranscriptsContent({
+  transcripts,
+  search,
+  setSearch,
+  previewTranscript,
+  setPreviewTranscript,
+  navigate,
+}: {
+  transcripts: TranscriptRow[] | undefined;
+  search: string;
+  setSearch: (s: string) => void;
+  previewTranscript: TranscriptRow | null;
+  setPreviewTranscript: (t: TranscriptRow | null) => void;
+  navigate: (path: string) => void;
+}) {
 
   const total = (transcripts || []).length;
   const totalTurns = (transcripts || []).reduce((sum, t) => sum + t.turn_count, 0);
