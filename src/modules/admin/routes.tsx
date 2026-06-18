@@ -47,7 +47,7 @@ import SSOSettings from "@/pages/admin/SSOSettings";
 import MeetingAnalytics from "@/pages/admin/MeetingAnalytics";
 import FeedbackManagement from "@/pages/admin/FeedbackManagement";
 import MCPServers from "@/pages/MCPServers";
-import PODManagement from "@/pages/admin/PodManagement";
+
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
 import KnowledgeDashboard from "@/pages/admin/KnowledgeDashboard";
 import KnowledgePlayground from "@/pages/admin/KnowledgePlayground";
