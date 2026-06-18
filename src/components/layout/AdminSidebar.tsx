@@ -63,6 +63,8 @@ import {
   Sparkles,
   Palette,
   Mail,
+  FolderKanban,
+  ListChecks,
   type LucideIcon,
 } from "lucide-react";
 
