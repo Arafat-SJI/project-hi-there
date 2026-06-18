@@ -406,10 +406,8 @@ export const adminNavigation: NavGroup[] = [
         headerOnly: true,
         children: [
           { title: "Dashboard", href: "/admin/knowledge/dashboard", icon: "LayoutDashboard" },
-          { title: "Playground", href: "/admin/knowledge/playground", icon: "FlaskConical" },
-          { title: "Permissions", href: "/admin/knowledge/permissions", icon: "Shield" },
-          { title: "Categories", href: "/admin/knowledge/categories", icon: "FolderOpen" },
-          { title: "Files", href: "/admin/knowledge/files", icon: "FileText" },
+          { title: "Content", href: "/admin/knowledge/content", icon: "FolderOpen" },
+          { title: "Access & Testing", href: "/admin/knowledge/access", icon: "Shield" },
         ],
       },
     ],

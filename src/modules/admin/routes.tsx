@@ -173,8 +173,8 @@ export const adminRoutes = (
     <Route path="/admin/knowledge/playground" element={<Navigate to="/admin/knowledge/access?tab=playground" replace />} />
     <Route path="/admin/knowledge/permissions" element={<Navigate to="/admin/knowledge/access?tab=permissions" replace />} />
     <Route path="/admin/memory/admin" element={<MemoryAdministration />} />
-    <Route path="/admin/knowledge/categories" element={<KnowledgeCategories />} />
-    <Route path="/admin/knowledge/files" element={<KnowledgeFiles />} />
+    <Route path="/admin/knowledge/categories" element={<Navigate to="/admin/knowledge/content?tab=categories" replace />} />
+    <Route path="/admin/knowledge/files" element={<Navigate to="/admin/knowledge/content?tab=files" replace />} />
     <Route path="/admin/knowledge/embeddings" element={<EmbeddingsExplorer />} />
     <Route path="/admin/knowledge/memory-analytics" element={<MemoryAnalytics />} />
     <Route path="/admin/knowledge/analytics" element={<Navigate to="/admin/knowledge/dashboard" replace />} />
