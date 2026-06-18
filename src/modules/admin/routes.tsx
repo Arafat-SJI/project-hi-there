@@ -152,8 +152,8 @@ export const adminRoutes = (
     <Route path="/admin/ai-models" element={<AIModelManagement />} />
     <Route path="/admin/ai-usage" element={<Navigate to="/admin/ai/analytics" replace />} />
     <Route path="/admin/ai/agent-analytics" element={<Navigate to="/admin/ai/analytics" replace />} />
-    <Route path="/admin/ai/semantic-search" element={<Navigate to="/admin/ai-hub/knowledge-search" replace />} />
-    <Route path="/admin/ai/embeddings" element={<Navigate to="/admin/ai-hub/knowledge-search" replace />} />
+    <Route path="/admin/ai/semantic-search" element={<Navigate to="/admin/knowledge/access?tab=search" replace />} />
+    <Route path="/admin/ai/embeddings" element={<Navigate to="/admin/knowledge/access?tab=search" replace />} />
     <Route path="/admin/mcp-servers" element={<MCPServers />} />
 
     {/* Task Streams (Admin) */}
