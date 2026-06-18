@@ -37,10 +37,10 @@ export const meetingsRoutes = (
     <Route path="/meetings/transcripts" element={<MeetingTranscriptsPage />} />
     <Route path="/meetings/transcripts/:slug" element={<TranscriptDetailPage />} />
 
-    {/* Additional features */}
-    <Route path="/meetings/series" element={<MeetingSeriesPage />} />
-    <Route path="/meetings/transcripts/ai-match" element={<MeetingAiMatchResultsPage />} />
-    <Route path="/meetings/pending-assignments" element={<MeetingPendingAssignmentsPage />} />
+    {/* Additional features — redirected to tabs */}
+    <Route path="/meetings/series" element={<Navigate to="/meetings/schedule?view=series" replace />} />
+    <Route path="/meetings/transcripts/ai-match" element={<Navigate to="/meetings/transcripts?view=ai-match" replace />} />
+    <Route path="/meetings/pending-assignments" element={<Navigate to="/meetings/transcripts?view=pending" replace />} />
 
     {/* Knowledge base integration */}
     <Route path="/knowledge/meetings" element={<KnowledgeMeetingsPage />} />
