@@ -490,6 +490,11 @@ export const adminNavigation: NavGroup[] = [
             icon: "Mail",
           },
           {
+            title: "Template Seeding",
+            href: "/admin/settings/seeding",
+            icon: "Database",
+          },
+          {
             title: "Advanced",
             href: "/admin/settings/advanced",
             icon: "Zap",
