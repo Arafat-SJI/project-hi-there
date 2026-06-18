@@ -315,11 +315,6 @@ export const adminNavigation: NavGroup[] = [
         icon: "LayoutDashboard",
       },
       {
-        title: "POD Management",
-        href: "/admin/pods",
-        icon: "Layers",
-      },
-      {
         title: "Task Configuration",
         href: "/admin/tasks/streams",
         icon: "Settings",
