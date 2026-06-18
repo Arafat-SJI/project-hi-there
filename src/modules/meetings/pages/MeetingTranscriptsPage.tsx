@@ -6,7 +6,10 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import MeetingPendingAssignmentsPage from "./MeetingPendingAssignmentsPage";
+import MeetingAiMatchResultsPage from "./MeetingAiMatchResultsPage";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
