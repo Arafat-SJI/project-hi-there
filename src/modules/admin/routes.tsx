@@ -94,7 +94,7 @@ export const adminRoutes = (
     <Route path="/admin/ai/email-drafting" element={<EmailDraftingPerformance />} />
     <Route path="/admin/ai/deal-coaching" element={<DealCoaching />} />
     <Route path="/admin/ai/analytics" element={<AIAnalytics />} />
-    <Route path="/admin/ai-hub/knowledge-search" element={<KnowledgeSearch />} />
+    <Route path="/admin/ai-hub/knowledge-search" element={<Navigate to="/admin/knowledge/access?tab=search" replace />} />
     <Route path="/admin/ai-hub/memory" element={<Memory />} />
     <Route path="/admin/implementation-status" element={<ImplementationStatus />} />
 
