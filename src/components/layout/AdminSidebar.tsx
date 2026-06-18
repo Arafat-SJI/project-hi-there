@@ -102,6 +102,8 @@ const iconMap: Record<string, LucideIcon> = {
   Sparkles,
   Palette,
   Mail,
+  FolderKanban,
+  ListChecks,
 };
 
 function resolveIcon(name: string): LucideIcon {
