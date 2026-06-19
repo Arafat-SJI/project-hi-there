@@ -457,6 +457,24 @@ export const spaceNavigation: Record<SpaceId, SpaceNavGroup[]> = {
           icon: "Network",
           module: "eos",
         },
+        {
+          title: "People Analyzer",
+          href: "/eos/people-analyzer",
+          icon: "Users",
+          module: "eos",
+        },
+        {
+          title: "Todos",
+          href: "/eos/todos",
+          icon: "CheckSquare",
+          module: "eos",
+        },
+        {
+          title: "Analytics",
+          href: "/eos/analytics",
+          icon: "BarChart3",
+          module: "eos",
+        },
       ],
     },
     {

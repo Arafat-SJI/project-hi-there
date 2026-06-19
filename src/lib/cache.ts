@@ -102,6 +102,29 @@ export const queryKeys = {
   },
 
   // Zoho CRM (deal-scoped cache)
+  // EOS Module
+  eos: {
+    all: ["eos"] as const,
+    dashboard: (filters?: Record<string, unknown>) => ["eos", "dashboard", filters] as const,
+    vto: ["eos", "vto"] as const,
+    vtoVersions: (section: string) => ["eos", "vto", "versions", section] as const,
+    okrs: (filters?: Record<string, unknown>) => ["eos", "okrs", filters] as const,
+    issues: (filters?: Record<string, unknown>) => ["eos", "issues", filters] as const,
+    issue: (id: string) => ["eos", "issues", id] as const,
+    issueComments: (issueId: string) => ["eos", "issues", issueId, "comments"] as const,
+    issueInsights: (days: number) => ["eos", "issue-insights", days] as const,
+    scorecards: ["eos", "scorecards"] as const,
+    scorecard: (id: string) => ["eos", "scorecards", id] as const,
+    pods: ["eos", "pods"] as const,
+    accountability: ["eos", "accountability"] as const,
+    peopleReviews: (filters?: Record<string, unknown>) => ["eos", "people-reviews", filters] as const,
+    todos: (filters?: Record<string, unknown>) => ["eos", "todos", filters] as const,
+    l10Sections: (meetingId: string) => ["eos", "l10", meetingId] as const,
+    teamHealth: ["eos", "team-health"] as const,
+    analytics: (period: string) => ["eos", "analytics", period] as const,
+    notificationPrefs: (userId: string) => ["eos", "notification-prefs", userId] as const,
+  },
+
   zoho: {
     attachments: (dealId: string) => ["zoho", "attachments", dealId] as const,
     engagements: (dealId: string) => ["zoho", "engagements", dealId] as const,
@@ -347,6 +370,9 @@ export const invalidateKeys = {
   },
   integrationSettings: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.integrationSettings.all });
+  },
+  eos: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.eos.all });
   },
   zohoDeal: (queryClient: any, dealId: string) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.zoho.attachments(dealId) });

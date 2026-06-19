@@ -7,10 +7,32 @@
 import { Loader2 } from "lucide-react";
 import { useVTO, useUpdateVTO } from "../hooks/useVTO";
 import { VTOSection } from "../components/vto/VTOSection";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/cache";
 
 export default function VTOPage() {
   const { data: sections, isLoading } = useVTO();
   const updateVTO = useUpdateVTO();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("eos-vto-changes")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "eos_vto" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.eos.vto });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   return (
     <div className="space-y-6">

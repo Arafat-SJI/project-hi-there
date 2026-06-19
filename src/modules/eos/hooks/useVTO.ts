@@ -8,9 +8,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { queryKeys, invalidateKeys } from "@/lib/cache";
 import type { VTOSection } from "../types";
-
-const VTO_KEY = "eos-vto";
 
 /**
  * Fetch all VTO sections ordered by sort_order.
@@ -19,7 +18,7 @@ export function useVTO() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: [VTO_KEY],
+    queryKey: queryKeys.eos.vto,
     queryFn: async (): Promise<VTOSection[]> => {
       const { data, error } = await supabase
         .from("eos_vto")
@@ -59,7 +58,7 @@ export function useUpdateVTO() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [VTO_KEY] });
+      invalidateKeys.eos(queryClient);
       toast.success("VTO section updated");
     },
     onError: (error: Error) => {

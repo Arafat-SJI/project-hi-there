@@ -8,7 +8,12 @@ import { EOSIssuesCard } from "@/components/dashboards/EOSIssuesCard";
 import { EOSRocksCard } from "@/components/dashboards/EOSRocksCard";
 import { EOSScorecardCard } from "@/components/dashboards/EOSScorecardCard";
 import { AIDigestCard } from "@/components/dashboards/AIDigestCard";
-import { QuickActionsCard } from "@/components/dashboards/QuickActionsCard";
+import { VisionProgressCard } from "@/modules/eos/components/dashboard/VisionProgressCard";
+import { RocksSummaryCard } from "@/modules/eos/components/dashboard/RocksSummaryCard";
+import { TeamHealthCard } from "@/modules/eos/components/dashboard/TeamHealthCard";
+import { EOSTrendCharts } from "@/modules/eos/components/dashboard/EOSTrendCharts";
+import { EOSQuickActionsCard } from "@/modules/eos/components/dashboard/EOSQuickActionsCard";
+import { EOSMeetingsSummaryCard, EOSIDSSummaryCard } from "@/modules/eos/components/dashboard/EOSSummaryCards";
 import { AITeamsDashboardCard } from "@/components/dashboards/AITeamsDashboardCard";
 import { DashboardCustomizeModal } from "@/components/dashboards/DashboardCustomizeModal";
 import { DashboardFilterBar } from "@/components/dashboards/DashboardFilterBar";
@@ -52,6 +57,21 @@ const AVAILABLE_WIDGETS = [
     slug: "eos-rocks",
     label: "Quarterly Rocks",
     description: "Quarterly objectives and progress",
+  },
+  {
+    slug: "eos-vision",
+    label: "Vision Progress",
+    description: "Annual and quarterly goal progress",
+  },
+  {
+    slug: "eos-team-health",
+    label: "Team Health",
+    description: "Composite EOS health score",
+  },
+  {
+    slug: "eos-trends",
+    label: "Issue Trends",
+    description: "Weekly and quarterly issue trends",
   },
 ];
 
@@ -102,8 +122,14 @@ export default function OwnerDashboardWithEOS() {
 
       <DashboardFilterBar dashboardType="owner" />
 
-      {/* Row 1: Quick Actions */}
-      <QuickActionsCard />
+      {/* Row 1: EOS Quick Actions */}
+      <EOSQuickActionsCard />
+
+      {/* Row 1b: Vision + Team Health */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {isWidgetVisible("eos-vision") && <VisionProgressCard />}
+        {isWidgetVisible("eos-team-health") && <TeamHealthCard />}
+      </div>
 
       {/* AI Team showcase */}
       <AITeamsDashboardCard agencyRole="owner" />
@@ -122,11 +148,23 @@ export default function OwnerDashboardWithEOS() {
         {isWidgetVisible("meetings") && <MeetingsThisWeekCard />}
       </div>
 
-      {/* Row 5: EOS Scorecard + Issues + Rocks */}
+      {/* Row 5: EOS Scorecard + Issues + Rocks + Meetings + IDS */}
       <div className="grid gap-6 lg:grid-cols-3">
         {isWidgetVisible("eos-scorecard") && <EOSScorecardCard />}
         {isWidgetVisible("eos-issues") && <EOSIssuesCard />}
         {isWidgetVisible("eos-rocks") && <EOSRocksCard />}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {isWidgetVisible("meetings") && <EOSMeetingsSummaryCard />}
+        {isWidgetVisible("eos-issues") && <EOSIDSSummaryCard />}
+      </div>
+
+      {isWidgetVisible("eos-trends") && <EOSTrendCharts />}
+
+      {/* Legacy rocks summary widget row */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {isWidgetVisible("eos-rocks") && <RocksSummaryCard />}
       </div>
 
       <DashboardCustomizeModal
