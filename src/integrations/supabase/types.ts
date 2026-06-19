@@ -24,6 +24,7 @@ export type Database = {
           name: string
           published_at: string | null
           published_by: string | null
+          tenant_id: string
           updated_at: string | null
           version: number | null
         }
@@ -36,6 +37,7 @@ export type Database = {
           name: string
           published_at?: string | null
           published_by?: string | null
+          tenant_id?: string
           updated_at?: string | null
           version?: number | null
         }
@@ -48,21 +50,32 @@ export type Database = {
           name?: string
           published_at?: string | null
           published_by?: string | null
+          tenant_id?: string
           updated_at?: string | null
           version?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "accountability_charts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       accountability_responsibilities: {
         Row: {
           chart_id: string
           created_at: string | null
           department: string | null
+          department_id: string | null
           id: string
           reports_to: string | null
           responsibilities: Json | null
           role_title: string
           sort_order: number | null
+          tenant_id: string
           updated_at: string | null
           user_id: string | null
         }
@@ -70,11 +83,13 @@ export type Database = {
           chart_id: string
           created_at?: string | null
           department?: string | null
+          department_id?: string | null
           id?: string
           reports_to?: string | null
           responsibilities?: Json | null
           role_title: string
           sort_order?: number | null
+          tenant_id?: string
           updated_at?: string | null
           user_id?: string | null
         }
@@ -82,11 +97,13 @@ export type Database = {
           chart_id?: string
           created_at?: string | null
           department?: string | null
+          department_id?: string | null
           id?: string
           reports_to?: string | null
           responsibilities?: Json | null
           role_title?: string
           sort_order?: number | null
+          tenant_id?: string
           updated_at?: string | null
           user_id?: string | null
         }
@@ -99,10 +116,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "accountability_responsibilities_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "accountability_responsibilities_reports_to_fkey"
             columns: ["reports_to"]
             isOneToOne: false
             referencedRelation: "accountability_responsibilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accountability_responsibilities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -2555,6 +2586,51 @@ export type Database = {
           },
         ]
       }
+      eos_issue_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          issue_id: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          issue_id: string
+          tenant_id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          issue_id?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eos_issue_comments_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "eos_issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_issue_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       eos_issue_suggestions: {
         Row: {
           ai_model: string | null
@@ -2567,6 +2643,7 @@ export type Database = {
           reviewed_by: string | null
           status: string | null
           suggestion_type: string
+          tenant_id: string
         }
         Insert: {
           ai_model?: string | null
@@ -2579,6 +2656,7 @@ export type Database = {
           reviewed_by?: string | null
           status?: string | null
           suggestion_type: string
+          tenant_id?: string
         }
         Update: {
           ai_model?: string | null
@@ -2591,6 +2669,7 @@ export type Database = {
           reviewed_by?: string | null
           status?: string | null
           suggestion_type?: string
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -2598,6 +2677,13 @@ export type Database = {
             columns: ["issue_id"]
             isOneToOne: false
             referencedRelation: "eos_issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_issue_suggestions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -2615,9 +2701,12 @@ export type Database = {
           pod_id: string | null
           priority: string
           reported_by: string | null
+          resolution_history: Json | null
+          root_cause: Json | null
           solved_at: string | null
           source: string | null
           status: string
+          tenant_id: string
           title: string
           updated_at: string | null
         }
@@ -2633,9 +2722,12 @@ export type Database = {
           pod_id?: string | null
           priority?: string
           reported_by?: string | null
+          resolution_history?: Json | null
+          root_cause?: Json | null
           solved_at?: string | null
           source?: string | null
           status?: string
+          tenant_id?: string
           title: string
           updated_at?: string | null
         }
@@ -2651,18 +2743,194 @@ export type Database = {
           pod_id?: string | null
           priority?: string
           reported_by?: string | null
+          resolution_history?: Json | null
+          root_cause?: Json | null
           solved_at?: string | null
           source?: string | null
           status?: string
+          tenant_id?: string
           title?: string
           updated_at?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "eos_issues_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "eos_issues_pod_id_fkey"
             columns: ["pod_id"]
             isOneToOne: false
             referencedRelation: "eos_pods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_issues_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eos_l10_meeting_sections: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          meeting_id: string
+          notes: string | null
+          section_key: string
+          started_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          meeting_id: string
+          notes?: string | null
+          section_key: string
+          started_at?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          meeting_id?: string
+          notes?: string | null
+          section_key?: string
+          started_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eos_l10_meeting_sections_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_l10_meeting_sections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eos_notification_preferences: {
+        Row: {
+          created_at: string
+          email: boolean
+          event_type: string
+          id: string
+          in_app: boolean
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: boolean
+          event_type: string
+          id?: string
+          in_app?: boolean
+          tenant_id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: boolean
+          event_type?: string
+          id?: string
+          in_app?: boolean
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eos_notification_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eos_people_reviews: {
+        Row: {
+          core_values_scores: Json
+          created_at: string
+          gwc_gets_it: boolean | null
+          gwc_has_capacity: boolean | null
+          gwc_wants_it: boolean | null
+          id: string
+          notes: string | null
+          overall_score: string
+          review_period: string
+          reviewer_id: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          core_values_scores?: Json
+          created_at?: string
+          gwc_gets_it?: boolean | null
+          gwc_has_capacity?: boolean | null
+          gwc_wants_it?: boolean | null
+          id?: string
+          notes?: string | null
+          overall_score?: string
+          review_period: string
+          reviewer_id: string
+          tenant_id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          core_values_scores?: Json
+          created_at?: string
+          gwc_gets_it?: boolean | null
+          gwc_has_capacity?: boolean | null
+          gwc_wants_it?: boolean | null
+          id?: string
+          notes?: string | null
+          overall_score?: string
+          review_period?: string
+          reviewer_id?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eos_people_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_people_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_people_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2676,6 +2944,7 @@ export type Database = {
           is_active: boolean | null
           lead_id: string | null
           name: string
+          tenant_id: string
           updated_at: string | null
         }
         Insert: {
@@ -2686,6 +2955,7 @@ export type Database = {
           is_active?: boolean | null
           lead_id?: string | null
           name: string
+          tenant_id?: string
           updated_at?: string | null
         }
         Update: {
@@ -2696,9 +2966,151 @@ export type Database = {
           is_active?: boolean | null
           lead_id?: string | null
           name?: string
+          tenant_id?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "eos_pods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eos_rock_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_url: string
+          id: string
+          rock_id: string
+          tenant_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_url: string
+          id?: string
+          rock_id: string
+          tenant_id?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          rock_id?: string
+          tenant_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eos_rock_attachments_rock_id_fkey"
+            columns: ["rock_id"]
+            isOneToOne: false
+            referencedRelation: "okrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_rock_attachments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eos_rock_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          rock_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          rock_id: string
+          tenant_id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          rock_id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eos_rock_comments_rock_id_fkey"
+            columns: ["rock_id"]
+            isOneToOne: false
+            referencedRelation: "okrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_rock_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eos_rock_dependencies: {
+        Row: {
+          created_at: string
+          depends_on_rock_id: string
+          id: string
+          rock_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          depends_on_rock_id: string
+          id?: string
+          rock_id: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          depends_on_rock_id?: string
+          id?: string
+          rock_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eos_rock_dependencies_depends_on_rock_id_fkey"
+            columns: ["depends_on_rock_id"]
+            isOneToOne: false
+            referencedRelation: "okrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_rock_dependencies_rock_id_fkey"
+            columns: ["rock_id"]
+            isOneToOne: false
+            referencedRelation: "okrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_rock_dependencies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       eos_scorecard_metrics: {
         Row: {
@@ -2713,6 +3125,7 @@ export type Database = {
           sort_order: number | null
           status: string | null
           target_value: number | null
+          tenant_id: string
           unit: string | null
           updated_at: string | null
           week_of: string | null
@@ -2729,6 +3142,7 @@ export type Database = {
           sort_order?: number | null
           status?: string | null
           target_value?: number | null
+          tenant_id?: string
           unit?: string | null
           updated_at?: string | null
           week_of?: string | null
@@ -2745,6 +3159,7 @@ export type Database = {
           sort_order?: number | null
           status?: string | null
           target_value?: number | null
+          tenant_id?: string
           unit?: string | null
           updated_at?: string | null
           week_of?: string | null
@@ -2755,6 +3170,13 @@ export type Database = {
             columns: ["scorecard_id"]
             isOneToOne: false
             referencedRelation: "eos_scorecards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_scorecard_metrics_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -2769,6 +3191,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           owner_id: string | null
+          tenant_id: string
           updated_at: string | null
         }
         Insert: {
@@ -2780,6 +3203,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           owner_id?: string | null
+          tenant_id?: string
           updated_at?: string | null
         }
         Update: {
@@ -2791,9 +3215,66 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           owner_id?: string | null
+          tenant_id?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "eos_scorecards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eos_sla_targets: {
+        Row: {
+          approval_rate_pct: number
+          created_at: string | null
+          cycle_time_days: number
+          id: string
+          pod_id: string | null
+          role_name: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          approval_rate_pct?: number
+          created_at?: string | null
+          cycle_time_days?: number
+          id?: string
+          pod_id?: string | null
+          role_name?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          approval_rate_pct?: number
+          created_at?: string | null
+          cycle_time_days?: number
+          id?: string
+          pod_id?: string | null
+          role_name?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eos_sla_targets_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "eos_pods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_sla_targets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       eos_vto: {
         Row: {
@@ -2802,6 +3283,7 @@ export type Database = {
           id: string
           section: string
           sort_order: number | null
+          tenant_id: string
           title: string
           updated_at: string | null
           updated_by: string | null
@@ -2812,6 +3294,7 @@ export type Database = {
           id?: string
           section: string
           sort_order?: number | null
+          tenant_id?: string
           title: string
           updated_at?: string | null
           updated_by?: string | null
@@ -2822,11 +3305,68 @@ export type Database = {
           id?: string
           section?: string
           sort_order?: number | null
+          tenant_id?: string
           title?: string
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "eos_vto_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eos_vto_versions: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          section: string
+          tenant_id: string
+          updated_by: string | null
+          version: number
+          vto_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          section: string
+          tenant_id?: string
+          updated_by?: string | null
+          version?: number
+          vto_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          section?: string
+          tenant_id?: string
+          updated_by?: string | null
+          version?: number
+          vto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eos_vto_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eos_vto_versions_vto_id_fkey"
+            columns: ["vto_id"]
+            isOneToOne: false
+            referencedRelation: "eos_vto"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
@@ -3354,6 +3894,7 @@ export type Database = {
           id: string
           notes: string | null
           responsibility_id: string
+          tenant_id: string
           wants_it: boolean | null
         }
         Insert: {
@@ -3365,6 +3906,7 @@ export type Database = {
           id?: string
           notes?: string | null
           responsibility_id: string
+          tenant_id?: string
           wants_it?: boolean | null
         }
         Update: {
@@ -3376,6 +3918,7 @@ export type Database = {
           id?: string
           notes?: string | null
           responsibility_id?: string
+          tenant_id?: string
           wants_it?: boolean | null
         }
         Relationships: [
@@ -3384,6 +3927,13 @@ export type Database = {
             columns: ["responsibility_id"]
             isOneToOne: false
             referencedRelation: "accountability_responsibilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gwc_assessments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -4068,6 +4618,7 @@ export type Database = {
           new_value: number
           notes: string | null
           previous_value: number | null
+          tenant_id: string
           updated_at: string | null
           updated_by: string | null
         }
@@ -4077,6 +4628,7 @@ export type Database = {
           new_value: number
           notes?: string | null
           previous_value?: number | null
+          tenant_id?: string
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -4086,6 +4638,7 @@ export type Database = {
           new_value?: number
           notes?: string | null
           previous_value?: number | null
+          tenant_id?: string
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -4095,6 +4648,13 @@ export type Database = {
             columns: ["key_result_id"]
             isOneToOne: false
             referencedRelation: "okr_key_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_result_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -5455,6 +6015,7 @@ export type Database = {
           is_external: boolean | null
           is_recurring: boolean | null
           join_url: string | null
+          l10_timer_state: Json | null
           location: string | null
           meeting_type: string | null
           metadata: Json | null
@@ -5507,6 +6068,7 @@ export type Database = {
           is_external?: boolean | null
           is_recurring?: boolean | null
           join_url?: string | null
+          l10_timer_state?: Json | null
           location?: string | null
           meeting_type?: string | null
           metadata?: Json | null
@@ -5559,6 +6121,7 @@ export type Database = {
           is_external?: boolean | null
           is_recurring?: boolean | null
           join_url?: string | null
+          l10_timer_state?: Json | null
           location?: string | null
           meeting_type?: string | null
           metadata?: Json | null
@@ -5711,6 +6274,7 @@ export type Database = {
           notes: string | null
           okr_id: string
           previous_value: number | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
@@ -5722,6 +6286,7 @@ export type Database = {
           notes?: string | null
           okr_id: string
           previous_value?: number | null
+          tenant_id?: string
           user_id: string
         }
         Update: {
@@ -5733,6 +6298,7 @@ export type Database = {
           notes?: string | null
           okr_id?: string
           previous_value?: number | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
@@ -5748,6 +6314,13 @@ export type Database = {
             columns: ["okr_id"]
             isOneToOne: false
             referencedRelation: "okrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_check_ins_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -5769,6 +6342,7 @@ export type Database = {
           start_value: number | null
           status: string
           target_value: number
+          tenant_id: string
           title: string
           unit: string | null
           update_frequency: string | null
@@ -5790,6 +6364,7 @@ export type Database = {
           start_value?: number | null
           status?: string
           target_value?: number
+          tenant_id?: string
           title: string
           unit?: string | null
           update_frequency?: string | null
@@ -5811,6 +6386,7 @@ export type Database = {
           start_value?: number | null
           status?: string
           target_value?: number
+          tenant_id?: string
           title?: string
           unit?: string | null
           update_frequency?: string | null
@@ -5824,12 +6400,20 @@ export type Database = {
             referencedRelation: "okrs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "okr_key_results_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       okrs: {
         Row: {
           created_at: string | null
           created_by: string | null
+          department_id: string | null
           description: string | null
           end_date: string | null
           id: string
@@ -5839,9 +6423,12 @@ export type Database = {
           parent_okr_id: string | null
           pod_id: string | null
           progress: number | null
+          progress_pct: number | null
           quarter: string
+          rock_status: string | null
           start_date: string | null
           status: string
+          tenant_id: string
           title: string
           updated_at: string | null
           updated_by: string | null
@@ -5850,6 +6437,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          department_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -5859,9 +6447,12 @@ export type Database = {
           parent_okr_id?: string | null
           pod_id?: string | null
           progress?: number | null
+          progress_pct?: number | null
           quarter: string
+          rock_status?: string | null
           start_date?: string | null
           status?: string
+          tenant_id?: string
           title: string
           updated_at?: string | null
           updated_by?: string | null
@@ -5870,6 +6461,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           created_by?: string | null
+          department_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -5879,15 +6471,25 @@ export type Database = {
           parent_okr_id?: string | null
           pod_id?: string | null
           progress?: number | null
+          progress_pct?: number | null
           quarter?: string
+          rock_status?: string | null
           start_date?: string | null
           status?: string
+          tenant_id?: string
           title?: string
           updated_at?: string | null
           updated_by?: string | null
           year?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "okrs_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "okrs_parent_okr_id_fkey"
             columns: ["parent_okr_id"]
@@ -5900,6 +6502,13 @@ export type Database = {
             columns: ["pod_id"]
             isOneToOne: false
             referencedRelation: "eos_pods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okrs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -8024,6 +8633,8 @@ export type Database = {
           created_by: string
           description: string | null
           due_date: string | null
+          eos_source_id: string | null
+          eos_source_type: string | null
           id: string
           meeting_id: string | null
           metadata: Json | null
@@ -8047,6 +8658,8 @@ export type Database = {
           created_by: string
           description?: string | null
           due_date?: string | null
+          eos_source_id?: string | null
+          eos_source_type?: string | null
           id?: string
           meeting_id?: string | null
           metadata?: Json | null
@@ -8070,6 +8683,8 @@ export type Database = {
           created_by?: string
           description?: string | null
           due_date?: string | null
+          eos_source_id?: string | null
+          eos_source_type?: string | null
           id?: string
           meeting_id?: string | null
           metadata?: Json | null
@@ -8714,6 +9329,33 @@ export type Database = {
           },
         ]
       }
+      user_space_preferences: {
+        Row: {
+          default_space: string
+          favorites: Json
+          id: string
+          recent_pages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          default_space?: string
+          favorites?: Json
+          id?: string
+          recent_pages?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          default_space?: string
+          favorites?: Json
+          id?: string
+          recent_pages?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vector_search_logs: {
         Row: {
           created_at: string | null
@@ -9347,6 +9989,7 @@ export type Database = {
         }[]
       }
       get_user_permissions: { Args: { _user_id: string }; Returns: string[] }
+      get_user_tenant_id: { Args: never; Returns: string }
       has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean
