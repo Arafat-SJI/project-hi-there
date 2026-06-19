@@ -90,7 +90,7 @@ export function useScorecardMetrics(params: ScorecardMetricsParams) {
       if (search?.trim()) query = query.ilike("name", `%${search.trim()}%`);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as (EOSScorecardMetric & { notes?: string | null })[];
+      return (data || []) as unknown as (EOSScorecardMetric & { notes?: string | null })[];
     },
     enabled: !!user && !!scorecardId,
   });
