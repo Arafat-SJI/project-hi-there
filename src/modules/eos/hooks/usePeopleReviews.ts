@@ -19,7 +19,7 @@ export function usePeopleReviews(filters: PeopleReviewFilters = {}) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: queryKeys.eos.peopleReviews(filters),
+    queryKey: queryKeys.eos.peopleReviews(filters as unknown as Record<string, unknown>),
     queryFn: async (): Promise<EOSPeopleReview[]> => {
       let query = supabase
         .from("eos_people_reviews")

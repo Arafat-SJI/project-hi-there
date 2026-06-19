@@ -106,7 +106,7 @@ export function useSaveL10TimerState() {
     }) => {
       const { error } = await supabase
         .from("meetings")
-        .update({ l10_timer_state: timerState })
+        .update({ l10_timer_state: timerState as never })
         .eq("id", meetingId);
       if (error) throw error;
     },
@@ -130,7 +130,7 @@ export function useCreateL10Todo() {
           eos_source_id: input.meetingId,
           assigned_to: input.assigned_to,
           due_date: input.due_date,
-        })
+        } as never)
         .select()
         .single();
       if (error) throw error;

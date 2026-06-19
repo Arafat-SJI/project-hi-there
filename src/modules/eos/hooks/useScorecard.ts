@@ -58,7 +58,7 @@ export function useScorecardDetail(id: string | undefined) {
         .eq("scorecard_id", id)
         .order("sort_order", { ascending: true });
 
-      return { ...scorecard, metrics: (metrics || []) as unknown as EOSScorecardMetric[] } as EOSScorecard;
+      return { ...scorecard, metrics: (metrics || []) as unknown as EOSScorecardMetric[] } as unknown as EOSScorecard;
     },
     enabled: !!id,
   });
