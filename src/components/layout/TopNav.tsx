@@ -1,8 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { usePageIndex, searchPageIndex } from "@/hooks/usePageIndex";
+import { SpaceSwitcher } from "@/components/layout/SpaceSwitcher";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,10 +23,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Bell, LogOut, User, Settings, Search, ExternalLink, FileText, Users, Calendar, Loader2, Shield } from "lucide-react";
+import {
+  Bell,
+  LogOut,
+  User,
+  Settings,
+  Search,
+  ExternalLink,
+  FileText,
+  Users,
+  Calendar,
+  Loader2,
+  LayoutGrid,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/utils";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
 import { useSemanticSearch } from "@/hooks/useSemanticSearch";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -30,13 +46,16 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 export function TopNav() {
   const { user, profile, signOut } = useAuth();
   const { hasPermission } = usePermissions();
+  const { isFeatureEnabled } = useFeatureFlags();
+  const fourSpaces = isFeatureEnabled("enableFourSpaces");
+  const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTab, setSearchTab] = useState<"pages" | "content">("pages");
+  const pageIndex = usePageIndex();
 
-  // Use React Query hooks for notifications
   const { data: unreadCount } = useUnreadCount();
   const { data: recentNotifications, isLoading: loadingNotifications } = useNotifications("all");
 
-  // Use semantic search hook
   const {
     query: searchQuery,
     results: searchResults,
@@ -46,10 +65,17 @@ export function TopNav() {
     setQuery: setSearchQuery,
   } = useSemanticSearch();
 
+  const pageResults = useMemo(
+    () => searchPageIndex(pageIndex, searchQuery),
+    [pageIndex, searchQuery]
+  );
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    await search(searchQuery);
+    if (searchTab === "content") {
+      await search(searchQuery);
+    }
   };
 
   const getEntityIcon = (entityType: string) => {
@@ -73,104 +99,203 @@ export function TopNav() {
     }
   };
 
+  const openSearch = () => {
+    setSearchOpen(true);
+    setSearchTab(fourSpaces ? "pages" : "content");
+  };
+
   return (
     <header className="sticky top-0 z-30 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="flex h-full items-center justify-between gap-3 px-4 lg:px-6">
-        <SidebarTrigger className="shrink-0" />
+        <div className="flex items-center gap-3 min-w-0">
+          <SidebarTrigger className="shrink-0" />
+          {fourSpaces && <SpaceSwitcher />}
+        </div>
 
-        {/* Search */}
         <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search anything..."
-            onClick={() => setSearchOpen(true)}
+            placeholder={fourSpaces ? "Search pages and content…" : "Search anything..."}
+            onClick={openSearch}
             readOnly
             className="h-9 w-full max-w-sm border-transparent bg-muted/50 pl-9 text-sm placeholder:text-muted-foreground/70 focus:border-border focus:bg-background cursor-pointer"
           />
         </div>
 
-        {/* Search Dialog */}
-        <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <Dialog
+          open={searchOpen}
+          onOpenChange={(open) => {
+            setSearchOpen(open);
+            if (!open) clearResults();
+          }}
+        >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Search</DialogTitle>
               <DialogDescription>
-                Search across clients, meetings, knowledge base, and more
+                {fourSpaces
+                  ? "Find pages across spaces or search content"
+                  : "Search across clients, meetings, knowledge base, and more"}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSearch} className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="What are you looking for?"
-                  disabled={searching}
-                  autoFocus
-                />
-                <Button type="submit" disabled={searching || !searchQuery.trim()}>
-                  {searching ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </form>
 
-            {/* Search Results */}
-            <div className="mt-4 max-h-[400px] space-y-2 overflow-y-auto">
-              {searching ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            {fourSpaces ? (
+              <Tabs value={searchTab} onValueChange={(v) => setSearchTab(v as "pages" | "content")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="pages">Pages</TabsTrigger>
+                  <TabsTrigger value="content">Content</TabsTrigger>
+                </TabsList>
+                <div className="mt-4">
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="What are you looking for?"
+                    autoFocus
+                  />
                 </div>
-              ) : searchResults.length === 0 && searchQuery ? (
-                <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-                  <Search className="h-12 w-12 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    {searchQuery ? "No results found. Try a different query." : "Enter a search query to get started"}
-                  </p>
-                </div>
-              ) : (
-                searchResults.map((result) => (
-                  <div
-                    key={result.id}
-                    className="flex items-start gap-3 rounded-lg border p-3 hover:bg-accent cursor-pointer"
-                    onClick={() => {
-                      setSearchOpen(false);
-                      clearResults();
-                    }}
-                  >
-                    <div className="mt-0.5">{getEntityIcon(result.entity_type)}</div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {result.entity_type}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {Math.round(result.similarity * 100)}% match
-                        </Badge>
-                      </div>
-                      <p className="mt-1 text-sm line-clamp-2">{result.content}</p>
-                      {result.metadata && Object.keys(result.metadata).length > 0 && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {JSON.stringify(result.metadata)}
-                        </p>
+                <TabsContent value="pages" className="mt-4 max-h-[400px] overflow-y-auto space-y-1">
+                  {!searchQuery.trim() ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Type to search navigation pages
+                    </p>
+                  ) : pageResults.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">No pages found</p>
+                  ) : (
+                    pageResults.map((result) => (
+                      <button
+                        key={result.href}
+                        type="button"
+                        className="flex w-full items-start gap-3 rounded-lg border p-3 text-left hover:bg-accent"
+                        onClick={() => {
+                          navigate(result.href);
+                          setSearchOpen(false);
+                          setSearchQuery("");
+                        }}
+                      >
+                        <LayoutGrid className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">{result.title}</p>
+                          <p className="text-xs text-muted-foreground">{result.breadcrumb}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </TabsContent>
+                <TabsContent value="content" className="mt-4">
+                  <form onSubmit={handleSearch} className="mb-4 flex gap-2">
+                    <Button type="submit" disabled={searching || !searchQuery.trim()}>
+                      {searching ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
                       )}
-                    </div>
+                    </Button>
+                  </form>
+                  <div className="max-h-[360px] space-y-2 overflow-y-auto">
+                    {searching ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : searchResults.length === 0 && searchQuery ? (
+                      <p className="py-8 text-center text-sm text-muted-foreground">No results found</p>
+                    ) : (
+                      searchResults.map((result) => (
+                        <div
+                          key={result.id}
+                          className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-accent"
+                          onClick={() => {
+                            setSearchOpen(false);
+                            clearResults();
+                          }}
+                        >
+                          <div className="mt-0.5">{getEntityIcon(result.entity_type)}</div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {result.entity_type}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {Math.round(result.similarity * 100)}% match
+                              </Badge>
+                            </div>
+                            <p className="mt-1 line-clamp-2 text-sm">{result.content}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                ))
-              )}
-            </div>
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <>
+                <form onSubmit={handleSearch} className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="What are you looking for?"
+                      disabled={searching}
+                      autoFocus
+                    />
+                    <Button type="submit" disabled={searching || !searchQuery.trim()}>
+                      {searching ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </form>
+                <div className="mt-4 max-h-[400px] space-y-2 overflow-y-auto">
+                  {searching ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : searchResults.length === 0 && searchQuery ? (
+                    <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                      <Search className="h-12 w-12 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">No results found</p>
+                    </div>
+                  ) : (
+                    searchResults.map((result) => (
+                      <div
+                        key={result.id}
+                        className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-accent"
+                        onClick={() => {
+                          setSearchOpen(false);
+                          clearResults();
+                        }}
+                      >
+                        <div className="mt-0.5">{getEntityIcon(result.entity_type)}</div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {result.entity_type}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {Math.round(result.similarity * 100)}% match
+                            </Badge>
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-sm">{result.content}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
           </DialogContent>
         </Dialog>
 
-        {/* Right side */}
         <div className="flex items-center gap-1">
-          {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-9 w-9 text-muted-foreground hover:text-foreground"
+              >
                 <Bell className="h-[18px] w-[18px]" />
                 {(unreadCount || 0) > 0 && (
                   <Badge
@@ -194,34 +319,29 @@ export function TopNav() {
               <DropdownMenuSeparator />
               <div className="max-h-[400px] overflow-y-auto">
                 {loadingNotifications ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">
-                    Loading...
-                  </div>
+                  <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
                 ) : !recentNotifications || recentNotifications.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">
-                    No notifications
-                  </div>
+                  <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
                 ) : (
                   <>
                     {recentNotifications.slice(0, 5).map((notification) => (
                       <DropdownMenuItem key={notification.id} asChild>
                         <Link
-                          to={notification.link || "/notifications"}
+                          to={notification.link || (fourSpaces ? "/operations/notifications" : "/notifications")}
                           className="flex flex-col gap-1 p-3"
                         >
                           <div className="flex items-center gap-2">
-                            <span className={`text-sm font-medium ${!notification.is_read ? "text-primary" : ""}`}>
+                            <span
+                              className={`text-sm font-medium ${!notification.is_read ? "text-primary" : ""}`}
+                            >
                               {notification.title}
                             </span>
                             {!notification.is_read && (
                               <span className="h-2 w-2 rounded-full bg-primary" />
                             )}
                           </div>
-                          <span className="text-xs text-muted-foreground line-clamp-2">
+                          <span className="line-clamp-2 text-xs text-muted-foreground">
                             {notification.message}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(notification.created_at).toLocaleString()}
                           </span>
                         </Link>
                       </DropdownMenuItem>
@@ -229,7 +349,7 @@ export function TopNav() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link
-                        to="/notifications"
+                        to={fourSpaces ? "/operations/notifications" : "/notifications"}
                         className="flex items-center justify-center gap-2 p-2 text-sm font-medium"
                       >
                         View all notifications
@@ -242,7 +362,6 @@ export function TopNav() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-9 gap-2 pl-2 pr-3 hover:bg-muted">
@@ -279,22 +398,22 @@ export function TopNav() {
                   Settings
                 </Link>
               </DropdownMenuItem>
-              {(hasPermission("settings.admin") ||
-                profile?.role === "admin" ||
-                profile?.role === "moderator") && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin" className="flex items-center gap-2 text-orange-600 dark:text-orange-400 font-medium">
-                      <Shield className="h-4 w-4" />
-                      Admin Panel
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              )}
+              {!fourSpaces &&
+                (hasPermission("settings.admin") ||
+                  profile?.role === "admin" ||
+                  profile?.role === "moderator") && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="flex items-center gap-2 font-medium text-orange-600 dark:text-orange-400">
+                        Admin Panel
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={handleSignOut} 
+              <DropdownMenuItem
+                onClick={handleSignOut}
                 className="flex items-center gap-2 text-destructive focus:text-destructive"
               >
                 <LogOut className="h-4 w-4" />

@@ -1,38 +1,34 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useModuleAccess } from "@/shared/hooks/useModuleAccess";
 import { isModuleBundled, type ModuleId } from "@/shared/config/modules";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useEffect, useRef } from "react";
+import type { AppConfig } from "@/hooks/useAppConfig";
+
+type FeatureKey = keyof AppConfig["features"];
 
 interface ModuleRouteProps {
-  /** Module ID from the registry. Checks build-time bundling. */
   module?: ModuleId;
-  /** Required user role */
   requiredRole?: "admin" | "moderator" | "user";
-  /** Legacy feature flag check (runtime, from app_config) */
-  requiresFeatureFlag?: "enableMeetings" | "enableTasks" | "enableKnowledgeBase" | "enableAIChat" | "enableNotifications" | "enableClients" | "enableAIAgents" | "enableFeedback";
+  requiresFeatureFlag?: FeatureKey;
   children?: React.ReactNode;
 }
 
 export function ModuleRoute({
-  module,
+  module: moduleId,
   requiredRole,
   requiresFeatureFlag,
   children,
 }: ModuleRouteProps) {
   const { user, profile, loading, profileLoading } = useAuth();
   const { isFeatureEnabled, isLoading: flagsLoading } = useFeatureFlags();
+  const { hasModule, isLoading: moduleAccessLoading } = useModuleAccess();
   const toastShownRef = useRef(false);
 
-  // Build-time module check (synchronous, no loading needed)
-  if (module && !isModuleBundled(module)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // Show toast when feature is disabled (only once)
   useEffect(() => {
     if (!flagsLoading && requiresFeatureFlag && !isFeatureEnabled(requiresFeatureFlag) && !toastShownRef.current) {
       toastShownRef.current = true;
@@ -42,10 +38,11 @@ export function ModuleRoute({
     }
   }, [flagsLoading, requiresFeatureFlag, isFeatureEnabled]);
 
-  // Wait for auth, profile/role, and feature flags before evaluating access.
-  // profileLoading must be included when a role check is required so we never
-  // flash "Access Denied" while role data is still being resolved.
-  if (loading || flagsLoading || (requiredRole && profileLoading)) {
+  if (moduleId && !isModuleBundled(moduleId)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (loading || flagsLoading || moduleAccessLoading || (requiredRole && profileLoading)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -57,12 +54,14 @@ export function ModuleRoute({
     return <Navigate to="/login" replace />;
   }
 
-  // Check feature flag if required
+  if (moduleId && !hasModule(moduleId)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   if (requiresFeatureFlag && !isFeatureEnabled(requiresFeatureFlag)) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Check role if required
   if (requiredRole) {
     const hasRole = checkRole(profile?.role, requiredRole);
     if (!hasRole) {
@@ -72,7 +71,7 @@ export function ModuleRoute({
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Access Denied</AlertTitle>
             <AlertDescription>
-              You don't have the required permissions to access this module.
+              You don&apos;t have the required permissions to access this module.
               Required role: {requiredRole}
             </AlertDescription>
           </Alert>
@@ -84,7 +83,6 @@ export function ModuleRoute({
   return children ? <>{children}</> : <Outlet />;
 }
 
-// Helper function to check role hierarchy
 function checkRole(
   userRole: string | undefined,
   requiredRole: "admin" | "moderator" | "user"
@@ -97,8 +95,5 @@ function checkRole(
     admin: 3,
   };
 
-  const userRoleLevel = roleHierarchy[userRole] || 0;
-  const requiredRoleLevel = roleHierarchy[requiredRole] || 0;
-
-  return userRoleLevel >= requiredRoleLevel;
+  return (roleHierarchy[userRole] || 0) >= (roleHierarchy[requiredRole] || 0);
 }

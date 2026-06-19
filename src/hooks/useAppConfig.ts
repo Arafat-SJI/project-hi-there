@@ -32,6 +32,7 @@ export interface AppConfig {
     enableGoogleDrive: boolean;
     enableZoomSync: boolean;
     useGenericMeetings: boolean;
+    enableFourSpaces: boolean;
   };
   // Email
   email: {
@@ -202,6 +203,7 @@ export function useResetAppConfig() {
           enableGoogleDrive: false,
           enableZoomSync: false,
           useGenericMeetings: false,
+          enableFourSpaces: false,
         },
         email: {
           enableEmailNotifications: true,
