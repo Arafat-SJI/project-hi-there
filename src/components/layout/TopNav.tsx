@@ -96,6 +96,9 @@ export function TopNav() {
       await signOut();
     } catch (error) {
       console.error("Sign out error:", error);
+    } finally {
+      // Force navigation to login regardless of auth state propagation timing
+      window.location.href = "/login";
     }
   };
 
