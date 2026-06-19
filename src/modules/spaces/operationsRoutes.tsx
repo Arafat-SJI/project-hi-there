@@ -22,7 +22,7 @@ import ProjectDetail from "@/pages/projects/ProjectDetail";
 import ProjectKnowledge from "@/pages/projects/ProjectKnowledge";
 import ProjectIssuesAIAnalyzePage from "@/pages/ProjectIssuesAIAnalyzePage";
 import Performance from "@/pages/projects/Performance";
-import Notifications from "@/pages/Notifications";
+import { operationsNotificationRoutes } from "@/modules/notifications/routes";
 import Feedback from "@/pages/Feedback";
 import FeedbackDetail from "@/pages/FeedbackDetail";
 import FeedbackManagement from "@/pages/admin/FeedbackManagement";
@@ -50,7 +50,6 @@ import MCPServers from "@/pages/MCPServers";
 import SystemSettings from "@/pages/admin/SystemSettings";
 import BrandingSettings from "@/pages/admin/settings/BrandingSettings";
 import WorkspaceHub from "@/pages/admin/settings/WorkspaceHub";
-import NotificationSettings from "@/pages/admin/settings/NotificationSettings";
 import AdvancedSettings from "@/pages/admin/settings/AdvancedSettings";
 import SecuritySettings from "@/pages/admin/settings/SecuritySettings";
 import ProjectStatusSettings from "@/pages/admin/ProjectStatusSettings";
@@ -94,9 +93,7 @@ export const operationsSpaceRoutes = (
       <Route path="/operations/processes/:category/:slug/edit" element={<ProcessFormPage />} />
     </Route>
 
-    <Route element={<ModuleRoute requiresFeatureFlag="enableNotifications" />}>
-      <Route path="/operations/notifications" element={<Notifications />} />
-    </Route>
+    {operationsNotificationRoutes}
 
     <Route element={<ModuleRoute requiresFeatureFlag="enableFeedback" />}>
       <Route path="/operations/feedback" element={<Feedback />} />
@@ -132,7 +129,7 @@ export const operationsSpaceRoutes = (
       <Route path="/operations/settings" element={<SystemSettings />} />
       <Route path="/operations/settings/branding" element={<BrandingSettings />} />
       <Route path="/operations/settings/workspace" element={<WorkspaceHub />} />
-      <Route path="/operations/settings/notifications" element={<NotificationSettings />} />
+      <Route path="/operations/settings/notifications" element={<Navigate to="/admin/notifications?tab=email" replace />} />
       <Route path="/operations/settings/advanced" element={<AdvancedSettings />} />
       <Route path="/operations/settings/security" element={<SecuritySettings />} />
       <Route path="/operations/settings/project-statuses" element={<ProjectStatusSettings />} />

@@ -1,9 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { routeNotification } from "../_shared/notification-router-core.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const EVENT_MAP: Record<string, string> = {
+  rock_overdue: "rock.overdue",
+  meeting_reminder: "meeting.reminder",
+  scorecard_missed: "scorecard.missed",
 };
 
 serve(async (req) => {
@@ -20,7 +27,6 @@ serve(async (req) => {
     const { event_type, dry_run = false } = await req.json().catch(() => ({}));
     const results: Record<string, number> = {};
 
-    // Rock overdue notifications
     if (!event_type || event_type === "rock_overdue") {
       const today = new Date().toISOString().split("T")[0];
       const { data: overdueRocks } = await supabase
@@ -34,19 +40,21 @@ serve(async (req) => {
 
       if (!dry_run) {
         for (const rock of overdueRocks || []) {
-          await supabase.from("notifications").insert({
+          await routeNotification(supabase, {
+            event_key: EVENT_MAP.rock_overdue,
             user_id: rock.owner_id,
             title: "Rock Overdue",
             message: `"${rock.title}" is past its due date.`,
-            type: "warning",
+            severity: "warning",
+            entity_id: rock.id,
+            link: `/eos/okrs`,
             metadata: { module: "eos", entity_type: "rock", entity_id: rock.id },
-            is_read: false,
+            skip_auth: true,
           });
         }
       }
     }
 
-    // Meeting reminders (L10 in next 24h)
     if (!event_type || event_type === "meeting_reminder") {
       const now = new Date();
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -62,19 +70,20 @@ serve(async (req) => {
       if (!dry_run) {
         for (const m of meetings || []) {
           if (!m.created_by) continue;
-          await supabase.from("notifications").insert({
+          await routeNotification(supabase, {
+            event_key: EVENT_MAP.meeting_reminder,
             user_id: m.created_by,
             title: "L10 Meeting Reminder",
             message: `"${m.title}" is scheduled within 24 hours.`,
-            type: "info",
+            entity_id: m.id,
+            link: `/meetings/${m.id}`,
             metadata: { module: "eos", entity_type: "meeting", entity_id: m.id },
-            is_read: false,
+            skip_auth: true,
           });
         }
       }
     }
 
-    // Scorecard off-track
     if (!event_type || event_type === "scorecard_missed") {
       const { data: metrics } = await supabase
         .from("eos_scorecard_metrics")
@@ -90,13 +99,14 @@ serve(async (req) => {
           .eq("role", "admin");
 
         for (const admin of admins || []) {
-          await supabase.from("notifications").insert({
+          await routeNotification(supabase, {
+            event_key: EVENT_MAP.scorecard_missed,
             user_id: admin.user_id,
             title: "Scorecard Target Missed",
             message: `${metrics.length} metric(s) are off track this week.`,
-            type: "warning",
+            severity: "warning",
             metadata: { module: "eos", entity_type: "scorecard" },
-            is_read: false,
+            skip_auth: true,
           });
         }
       }

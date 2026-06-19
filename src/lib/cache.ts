@@ -240,6 +240,14 @@ export const queryKeys = {
     all: ["notifications"] as const,
     unread: ["notifications", "unread"] as const,
     count: ["notifications", "count"] as const,
+    list: (filters?: Record<string, unknown>) => ["notifications", "list", filters] as const,
+    preferences: (userId: string) => ["notifications", "preferences", userId] as const,
+    subscriptions: (userId: string) => ["notifications", "subscriptions", userId] as const,
+    events: ["notifications", "events"] as const,
+    rules: ["notifications", "rules"] as const,
+    logs: (filters?: Record<string, unknown>) => ["notifications", "logs", filters] as const,
+    adminMetrics: ["notifications", "adminMetrics"] as const,
+    templates: ["notifications", "templates"] as const,
   },
 
   // Dashboard (agency-first)
@@ -362,6 +370,20 @@ export const invalidateKeys = {
   },
   notifications: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    queryClient.invalidateQueries({ queryKey: queryKeys.notifications.count });
+    queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
+  },
+  notificationPreferences: (queryClient: any, userId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.notifications.preferences(userId) });
+  },
+  notificationSubscriptions: (queryClient: any, userId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.notifications.subscriptions(userId) });
+  },
+  notificationAdmin: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.notifications.rules });
+    queryClient.invalidateQueries({ queryKey: queryKeys.notifications.adminMetrics });
+    queryClient.invalidateQueries({ queryKey: queryKeys.notifications.templates });
+    queryClient.invalidateQueries({ queryKey: ["notifications", "logs"] });
   },
   sendgrid: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.config });

@@ -20,7 +20,6 @@ import ProjectModules from "@/pages/admin/ProjectModules";
 // Settings sub-pages
 import BrandingSettings from "@/pages/admin/settings/BrandingSettings";
 import WorkspaceHub from "@/pages/admin/settings/WorkspaceHub";
-import NotificationSettings from "@/pages/admin/settings/NotificationSettings";
 import AdvancedSettings from "@/pages/admin/settings/AdvancedSettings";
 import SecuritySettings from "@/pages/admin/settings/SecuritySettings";
 import TemplateSeeding from "@/pages/admin/settings/TemplateSeeding";
@@ -79,6 +78,7 @@ import DealCoaching from "@/pages/admin/ai/DealCoaching";
 import AIAnalytics from "@/pages/admin/ai/AIAnalytics";
 import KnowledgeSearch from "@/pages/admin/ai-hub/KnowledgeSearch";
 import Memory from "@/pages/admin/ai-hub/Memory";
+import { adminNotificationRoutes } from "@/modules/notifications/adminRoutes";
 
 /**
  * Admin routes - require admin role
@@ -115,12 +115,14 @@ export const adminRoutes = (
     <Route path="/admin/logs" element={<ActivityLogs />} />
     <Route path="/admin/audit-logs" element={<ActivityLogs />} />
 
+    {adminNotificationRoutes}
+
     {/* System — Settings hub routes */}
     {/* /admin/settings (root) → legacy SystemSettings → redirects to /admin/settings/branding */}
     <Route path="/admin/settings" element={<SystemSettings />} />
     <Route path="/admin/settings/branding" element={<BrandingSettings />} />
     <Route path="/admin/settings/workspace" element={<WorkspaceHub />} />
-    <Route path="/admin/settings/notifications" element={<NotificationSettings />} />
+    <Route path="/admin/settings/notifications" element={<Navigate to="/admin/notifications?tab=email" replace />} />
     <Route path="/admin/settings/advanced" element={<AdvancedSettings />} />
     <Route path="/admin/settings/security" element={<SecuritySettings />} />
     <Route path="/admin/settings/seeding" element={<TemplateSeeding />} />

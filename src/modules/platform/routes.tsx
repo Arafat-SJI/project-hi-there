@@ -7,6 +7,7 @@
  */
 import { Route } from "react-router-dom";
 import { ModuleRoute } from "@/components/routing/ModuleRoute";
+import { notificationRoutes } from "@/modules/notifications/routes";
 
 // Public pages
 import Index from "@/pages/Index";
@@ -26,8 +27,7 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Sessions from "@/pages/Sessions";
 import Help from "@/pages/Help";
-import Notifications from "@/pages/Notifications";
-import Feedback from "@/pages/Feedback";
+import FeedbackDetail from "@/pages/FeedbackDetail";
 import FeedbackDetail from "@/pages/FeedbackDetail";
 
 import AIAgents from "@/pages/AIAgents";
@@ -66,10 +66,7 @@ export const coreProtectedRoutes = (
     <Route path="/feedback" element={<Feedback />} />
     <Route path="/feedback/:id" element={<FeedbackDetail />} />
 
-    {/* Feature-flag gated but part of platform */}
-    <Route element={<ModuleRoute requiresFeatureFlag="enableNotifications" />}>
-      <Route path="/notifications" element={<Notifications />} />
-    </Route>
+    {notificationRoutes}
 
     {/* AI features */}
     <Route element={<ModuleRoute requiresFeatureFlag="enableAIAgents" />}>
