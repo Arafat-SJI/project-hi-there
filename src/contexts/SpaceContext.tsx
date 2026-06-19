@@ -101,3 +101,8 @@ export function useSpace() {
   }
   return ctx;
 }
+
+/** Safe variant for shared components (e.g. TopNav) that may render outside SpaceProvider */
+export function useSpaceOptional() {
+  return useContext(SpaceContext);
+}

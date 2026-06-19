@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useSpace } from "@/contexts/SpaceContext";
+import { useSpaceOptional } from "@/contexts/SpaceContext";
 import {
   Briefcase,
   BookOpen,
@@ -17,7 +17,10 @@ const SPACE_ICONS: Record<string, LucideIcon> = {
 };
 
 export function SpaceSwitcher() {
-  const { visibleSpaces, currentSpace, setCurrentSpace } = useSpace();
+  const spaceCtx = useSpaceOptional();
+  if (!spaceCtx) return null;
+
+  const { visibleSpaces, currentSpace, setCurrentSpace } = spaceCtx;
 
   if (visibleSpaces.length <= 1) return null;
 
@@ -52,7 +55,10 @@ export function SpaceSwitcher() {
 
 /** Mobile: compact space links in user area */
 export function SpaceSwitcherLinks() {
-  const { visibleSpaces, currentSpace } = useSpace();
+  const spaceCtx = useSpaceOptional();
+  if (!spaceCtx) return null;
+
+  const { visibleSpaces, currentSpace } = spaceCtx;
 
   return (
     <>

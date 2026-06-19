@@ -46,8 +46,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 export function TopNav() {
   const { user, profile, signOut } = useAuth();
   const { hasPermission } = usePermissions();
-  const { isFeatureEnabled } = useFeatureFlags();
-  const fourSpaces = isFeatureEnabled("enableFourSpaces");
+  const { features, isFeatureEnabled } = useFeatureFlags();
+  const fourSpaces = features?.enableFourSpaces === true;
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTab, setSearchTab] = useState<"pages" | "content">("pages");
