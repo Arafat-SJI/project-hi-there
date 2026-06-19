@@ -13,3 +13,16 @@ Reason:
 
 Status:
 Active architecture pattern
+
+## Four Spaces Information Architecture
+
+Decision:
+Reorganize navigation into four workspaces (Sales, Knowledge, Operations, EOS) with space-prefixed routes, unified `SpaceLayout`, and legacy redirects. Rollout gated by `features.enableFourSpaces` in `app_config`.
+
+Reason:
+- Reduce sidebar complexity and admin/app duplication
+- Role-focused discoverability
+- Backward-compatible migration via redirects
+
+Status:
+Implemented (feature flag off by default). See `docs/specs/four-spaces-ia.md`.

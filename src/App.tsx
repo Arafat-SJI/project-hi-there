@@ -8,25 +8,14 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { BrandingProvider } from "@/contexts/BrandingContext";
 import { ThemeSync } from "@/components/ThemeSync";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AdminRoute } from "@/components/auth/AdminRoute";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { AdminLayout } from "@/components/layout/AdminLayout";
+import { ProtectedAppRoutes } from "@/components/routing/AppRouteTree";
 
 // Module routes
-import { publicRoutes, coreProtectedRoutes, catchAllRoute } from "@/modules/platform";
-import { meetingsRoutes } from "@/modules/meetings";
-import { actionsRoutes } from "@/modules/actions";
-import { knowledgeRoutes } from "@/modules/knowledge";
-import { businessDevRoutes } from "@/modules/business-dev";
-import { eosRoutes } from "@/modules/eos";
-import { projectsRoutes } from "@/modules/projects";
-import { productivityRoutes } from "@/modules/productivity";
-import { adminRoutes } from "@/modules/admin";
+import { publicRoutes, catchAllRoute } from "@/modules/platform";
 
 // Client portal (public, no layout)
 import ClientPortalDashboard from "@/pages/client/ClientPortalDashboard";
 import ProjectDashboard from "@/pages/client/ProjectDashboard";
-
 
 const queryClient = new QueryClient();
 
@@ -40,52 +29,21 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-            <Routes>
-              {/* Public routes (login, signup, auth callbacks) */}
-              {publicRoutes}
-              
+              <Routes>
+                {publicRoutes}
 
-              {/* Client portal: token + password, no layout */}
-              <Route
-                path="/projects/:slug/client-portal/:token"
-                element={<ClientPortalDashboard />}
-              />
+                <Route
+                  path="/projects/:slug/client-portal/:token"
+                  element={<ClientPortalDashboard />}
+                />
+                <Route path="/client/project/:token" element={<ProjectDashboard />} />
 
-              {/* Legacy-style client project dashboard (optional) */}
-              <Route
-                path="/client/project/:token"
-                element={<ProjectDashboard />}
-              />
-
-              {/* Protected routes with dashboard layout */}
-              <Route element={<ProtectedRoute />}>
-                <Route element={<DashboardLayout />}>
-                  {/* Core platform routes (dashboard, profile, settings, etc.) */}
-                  {coreProtectedRoutes}
-
-                  {/* Feature module routes */}
-                  {businessDevRoutes}
-                  {meetingsRoutes}
-                  {actionsRoutes}
-                  {knowledgeRoutes}
-                  {eosRoutes}
-                  {projectsRoutes}
-                  {productivityRoutes}
+                <Route element={<ProtectedRoute />}>
+                  <ProtectedAppRoutes />
                 </Route>
-              </Route>
 
-              {/* Admin panel routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route element={<AdminRoute />}>
-                  <Route element={<AdminLayout />}>
-                    {adminRoutes}
-                  </Route>
-                </Route>
-              </Route>
-
-              {/* 404 catch-all */}
-              {catchAllRoute}
-            </Routes>
+                {catchAllRoute}
+              </Routes>
             </BrowserRouter>
           </TooltipProvider>
         </BrandingProvider>

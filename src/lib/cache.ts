@@ -173,6 +173,10 @@ export const queryKeys = {
   },
 
   // Admin
+  spaces: {
+    preferences: (userId: string) => ["spaces", "preferences", userId] as const,
+  },
+
   admin: {
     users: ["admin", "users"] as const,
     user: (id: string) => ["admin", "user", id] as const,
