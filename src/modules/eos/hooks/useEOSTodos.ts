@@ -21,7 +21,7 @@ export function useEOSTodos(filters: EOSTodoFilters = {}) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: queryKeys.eos.todos(filters),
+    queryKey: queryKeys.eos.todos(filters as unknown as Record<string, unknown>),
     queryFn: async (): Promise<EOSTodo[]> => {
       let query = supabase
         .from("tasks")
