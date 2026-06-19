@@ -98,7 +98,7 @@ export function useUpsertNotificationRule() {
 
   return useMutation({
     mutationFn: async (rule: Partial<NotificationRule> & { name: string }) => {
-      const { error } = await supabase.from("notification_rules").upsert(rule);
+      const { error } = await supabase.from("notification_rules").upsert(rule as never);
       if (error) throw error;
     },
     onSuccess: () => {

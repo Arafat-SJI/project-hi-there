@@ -27,7 +27,7 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Sessions from "@/pages/Sessions";
 import Help from "@/pages/Help";
-import FeedbackDetail from "@/pages/FeedbackDetail";
+import Feedback from "@/pages/Feedback";
 import FeedbackDetail from "@/pages/FeedbackDetail";
 
 import AIAgents from "@/pages/AIAgents";

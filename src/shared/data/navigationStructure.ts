@@ -464,7 +464,6 @@ export const adminNavigation: NavGroup[] = [
             title: "Notifications",
             href: "/admin/notifications",
             icon: "Mail",
-            requiredPermissions: ["notifications.admin", "settings.admin"],
           },
           {
             title: "Template Seeding",

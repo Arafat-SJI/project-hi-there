@@ -29,7 +29,7 @@ export default function NotificationLogsPage() {
       ...rows.map((log) =>
         headers
           .map((h) => {
-            const val = String((log as Record<string, unknown>)[h] ?? "");
+            const val = String((log as unknown as Record<string, unknown>)[h] ?? "");
             return `"${val.replace(/"/g, '""')}"`;
           })
           .join(",")
