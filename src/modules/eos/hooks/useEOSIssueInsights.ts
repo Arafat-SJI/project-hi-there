@@ -8,6 +8,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { queryKeys, cacheConfig } from "@/lib/cache";
 import type { IssueStatus, IssuePriority, IssueCategory } from "../types";
 
 export interface IssueInsights {
@@ -26,7 +27,7 @@ export function useEOSIssueInsights(days: number = 90) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["eos-issue-insights", days],
+    queryKey: queryKeys.eos.issueInsights(days),
     queryFn: async (): Promise<IssueInsights> => {
       const fromDate = new Date();
       fromDate.setDate(fromDate.getDate() - days);

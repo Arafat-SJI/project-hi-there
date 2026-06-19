@@ -5,6 +5,7 @@
  */
 
 import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,13 +27,18 @@ import {
   User,
 } from "lucide-react";
 import { useEOSIssue, useUpdateIssue } from "../hooks/useEOSIssues";
+import { useIssueComments, useAddIssueComment } from "../hooks/useIssueComments";
+import { ISSUE_STATUS_LABELS } from "../types";
+import { Textarea } from "@/components/ui/textarea";
 import type { IssueStatus, IssuePriority } from "../types";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  open: { label: "Open", className: "bg-blue-100 text-blue-800" },
-  in_progress: { label: "In Progress", className: "bg-yellow-100 text-yellow-800" },
-  solved: { label: "Solved", className: "bg-green-100 text-green-800" },
-  archived: { label: "Archived", className: "bg-gray-100 text-gray-600" },
+  open: { label: ISSUE_STATUS_LABELS.open, className: "bg-blue-100 text-blue-800" },
+  in_progress: { label: ISSUE_STATUS_LABELS.in_progress, className: "bg-yellow-100 text-yellow-800" },
+  in_discussion: { label: ISSUE_STATUS_LABELS.in_discussion, className: "bg-yellow-100 text-yellow-800" },
+  solved: { label: ISSUE_STATUS_LABELS.solved, className: "bg-green-100 text-green-800" },
+  closed: { label: ISSUE_STATUS_LABELS.closed, className: "bg-green-100 text-green-800" },
+  archived: { label: ISSUE_STATUS_LABELS.archived, className: "bg-gray-100 text-gray-600" },
 };
 
 const priorityConfig: Record<string, { icon: React.ReactNode; label: string }> = {
@@ -47,6 +53,9 @@ export default function IssueDetailPage() {
   const navigate = useNavigate();
   const { data: issue, isLoading } = useEOSIssue(issueId);
   const updateIssue = useUpdateIssue();
+  const { data: comments } = useIssueComments(issueId);
+  const addComment = useAddIssueComment();
+  const [commentText, setCommentText] = useState("");
 
   if (isLoading) {
     return (
@@ -112,6 +121,40 @@ export default function IssueDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Discussion</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(comments || []).map((c) => (
+                <div key={c.id} className="rounded border p-3 text-sm">
+                  <p className="font-medium text-xs text-muted-foreground mb-1">
+                    {c.user?.full_name ?? "User"} · {new Date(c.created_at).toLocaleString()}
+                  </p>
+                  <p>{c.content}</p>
+                </div>
+              ))}
+              <Textarea
+                placeholder="Add a comment..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                rows={2}
+              />
+              <Button
+                size="sm"
+                disabled={!commentText.trim() || addComment.isPending}
+                onClick={() => {
+                  addComment.mutate(
+                    { issueId: issueId!, content: commentText },
+                    { onSuccess: () => setCommentText("") }
+                  );
+                }}
+              >
+                Add Comment
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -131,10 +174,10 @@ export default function IssueDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="solved">Solved</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
+                    <SelectItem value="open">{ISSUE_STATUS_LABELS.open}</SelectItem>
+                    <SelectItem value="in_progress">{ISSUE_STATUS_LABELS.in_progress}</SelectItem>
+                    <SelectItem value="solved">{ISSUE_STATUS_LABELS.solved}</SelectItem>
+                    <SelectItem value="archived">{ISSUE_STATUS_LABELS.archived}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

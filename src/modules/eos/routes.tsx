@@ -24,6 +24,10 @@ import EOSIssuesAIAnalyzePage from "./pages/EOSIssuesAIAnalyzePage";
 import ScorecardPage from "./pages/ScorecardPage";
 import AccountabilityPage from "./pages/AccountabilityPage";
 import MyAccountabilityPage from "./pages/MyAccountabilityPage";
+import PeopleAnalyzerPage from "./pages/PeopleAnalyzerPage";
+import EOSTodosPage from "./pages/EOSTodosPage";
+import EOSAnalyticsPage from "./pages/EOSAnalyticsPage";
+import L10MeetingRunnerPage from "./pages/L10MeetingRunnerPage";
 
 export const eosRoutes = (
   <Route element={<ModuleRoute module="eos" />}>
@@ -41,6 +45,11 @@ export const eosRoutes = (
     <Route path="/eos/issues/:issueId" element={<IssueDetailPage />} />
     <Route path="/eos/scorecard" element={<ScorecardPage />} />
     <Route path="/eos/accountability" element={<AccountabilityPage />} />
+    <Route path="/eos/accountability-chart" element={<AccountabilityPage />} />
+    <Route path="/eos/people-analyzer" element={<PeopleAnalyzerPage />} />
+    <Route path="/eos/todos" element={<EOSTodosPage />} />
+    <Route path="/eos/analytics" element={<EOSAnalyticsPage />} />
+    <Route path="/eos/meetings/l10/:meetingId" element={<L10MeetingRunnerPage />} />
     <Route path="/eos/my-accountability" element={<MyAccountabilityPage />} />
     <Route path="/okrs" element={<OKRsPage />} />
   </Route>

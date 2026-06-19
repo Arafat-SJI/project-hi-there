@@ -60,6 +60,8 @@ export type OKRStatus =
 
 export type OKRType = "company" | "team" | "personal";
 
+export type RockStatus = "on_track" | "at_risk" | "off_track" | "completed";
+
 export interface OKR {
   id: string;
   title: string;
@@ -75,10 +77,14 @@ export interface OKR {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  okr_type?: OKRType;
+  okr_type?: OKRType | "rock";
   year?: number | null;
   is_archived?: boolean | null;
   updated_by?: string | null;
+  rock_status?: RockStatus | null;
+  progress_pct?: number | null;
+  department_id?: string | null;
+  tenant_id?: string | null;
   // Joined relations
   owner?: { full_name: string; email: string } | null;
   pod?: Pick<EOSPod, 'id' | 'name' | 'color' | 'is_active'> | EOSPod | null;
@@ -356,3 +362,121 @@ export interface EOSStats {
   issues: IssueStats;
   scorecard: { total_metrics: number; on_track: number; off_track: number };
 }
+
+// ========================
+// EOS Revamp types
+// ========================
+
+export type CoreValueRating = "+++" | "++" | "+" | "-" | "--";
+
+export type PeopleReviewOverall = "excellent" | "good" | "needs_attention";
+
+export interface EOSPeopleReview {
+  id: string;
+  user_id: string;
+  reviewer_id: string;
+  review_period: string;
+  core_values_scores: Record<string, CoreValueRating>;
+  gwc_gets_it: boolean | null;
+  gwc_wants_it: boolean | null;
+  gwc_has_capacity: boolean | null;
+  overall_score: PeopleReviewOverall;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: { full_name: string; email: string } | null;
+  reviewer?: { full_name: string; email: string } | null;
+}
+
+export interface EOSIssueComment {
+  id: string;
+  issue_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user?: { full_name: string; email: string } | null;
+}
+
+export interface EOSVTOVersion {
+  id: string;
+  vto_id: string;
+  section: string;
+  content: Record<string, unknown>;
+  version: number;
+  updated_by: string | null;
+  created_at: string;
+}
+
+export type L10SectionKey =
+  | "segue"
+  | "scorecard_review"
+  | "rock_review"
+  | "customer_headlines"
+  | "employee_headlines"
+  | "todo_review"
+  | "ids"
+  | "conclusion";
+
+export interface EOSL10Section {
+  id: string;
+  meeting_id: string;
+  section_key: L10SectionKey;
+  duration_minutes: number;
+  notes: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export type EOSTodoSourceType = "meeting" | "ids" | "rock";
+
+export interface EOSTodo {
+  id: string;
+  title: string;
+  status: string;
+  due_date: string | null;
+  priority: string | null;
+  assigned_to: string | null;
+  eos_source_type: EOSTodoSourceType | null;
+  eos_source_id: string | null;
+  created_at: string;
+  assignee?: { full_name: string; email: string } | null;
+}
+
+export interface EOSDashboardData {
+  visionProgress: { annual: number; quarterly: number };
+  rocksSummary: Record<RockStatus, number>;
+  scorecardSummary: { healthy: number; warning: number; off_track: number };
+  meetings: { upcoming: number; missed: number };
+  idsSummary: { open: number; resolved: number };
+  teamHealthScore: number;
+}
+
+export const L10_SECTION_LABELS: Record<L10SectionKey, string> = {
+  segue: "Segue",
+  scorecard_review: "Scorecard Review",
+  rock_review: "Rock Review",
+  customer_headlines: "Customer Headlines",
+  employee_headlines: "Employee Headlines",
+  todo_review: "Todo Review",
+  ids: "IDS",
+  conclusion: "Conclusion",
+};
+
+export const ROCK_STATUS_LABELS: Record<RockStatus, string> = {
+  on_track: "On Track",
+  at_risk: "At Risk",
+  off_track: "Off Track",
+  completed: "Completed",
+};
+
+/** UI label for issue status — maps in_progress to In Discussion */
+export const ISSUE_STATUS_LABELS: Record<string, string> = {
+  open: "Open",
+  in_progress: "In Discussion",
+  in_discussion: "In Discussion",
+  solved: "Solved",
+  closed: "Closed",
+  archived: "Archived",
+};

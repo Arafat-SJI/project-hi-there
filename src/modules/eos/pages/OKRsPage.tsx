@@ -7,7 +7,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -59,6 +59,9 @@ import { ClosedOKRsTable } from "../components/okr/ClosedOKRsTable";
 import { CloseOKRDialog } from "../components/okr/CloseOKRDialog";
 import { OKRDetailDialog } from "./OKRDetailDialog";
 import { AISuggestionsDialog } from "@/modules/eos/components/okr/AISuggestionsDialog";
+import { RocksBoardView } from "../components/okr/RocksBoardView";
+import { RocksTableView } from "../components/okr/RocksTableView";
+import { RocksDepartmentView } from "../components/okr/RocksDepartmentView";
 import {
   getCurrentQuarterString,
   getCurrentQuarter,
@@ -69,6 +72,8 @@ import type { OKR, OKRFilters, OKRStatus } from "../types";
 
 const TAB_VALUES = ["my", "team", "company", "okr-health", "key-results", "closed"] as const;
 type TabValue = (typeof TAB_VALUES)[number];
+const ROCKS_VIEWS = ["cards", "board", "table", "department"] as const;
+type RocksView = (typeof ROCKS_VIEWS)[number];
 
 const QUARTER_OPTIONS = (() => {
   const { year } = getCurrentQuarter();
@@ -109,8 +114,11 @@ function filterCompanyOKRs(okrs: OKR[]): OKR[] {
 }
 
 export default function OKRsPage() {
+  const location = useLocation();
+  const isRocksRoute = location.pathname.includes("/eos/rocks") || location.pathname === "/okrs";
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = (searchParams.get("tab") as TabValue) || "my";
+  const rocksView = (searchParams.get("view") as RocksView) || "cards";
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [quarterFilter, setQuarterFilter] = useState<string>("current");
   const [podFilter, setPodFilter] = useState<string>("all");
@@ -216,9 +224,11 @@ export default function OKRsPage() {
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">OKRs</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{isRocksRoute ? "Quarterly Rocks" : "OKRs"}</h1>
           <p className="text-muted-foreground">
-            Objectives and Key Results – Set ambitious goals and track measurable outcomes
+            {isRocksRoute
+              ? "90-day priorities — track status, progress, and ownership"
+              : "Objectives and Key Results – Set ambitious goals and track measurable outcomes"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -238,6 +248,27 @@ export default function OKRsPage() {
           </Button>
         </div>
       </div>
+
+      {isRocksRoute && (
+        <div className="flex gap-2 flex-wrap">
+          {ROCKS_VIEWS.map((v) => (
+            <Button
+              key={v}
+              size="sm"
+              variant={rocksView === v ? "default" : "outline"}
+              onClick={() =>
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.set("view", v);
+                  return next;
+                })
+              }
+            >
+              {v.charAt(0).toUpperCase() + v.slice(1)}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -368,6 +399,13 @@ export default function OKRsPage() {
           <>
             <TabsContent value="my" className="mt-6">
               {displayOkrs.length > 0 ? (
+                isRocksRoute && rocksView === "board" ? (
+                  <RocksBoardView okrs={displayOkrs} onSelect={setSelectedOKR} />
+                ) : isRocksRoute && rocksView === "table" ? (
+                  <RocksTableView okrs={displayOkrs} onSelect={setSelectedOKR} />
+                ) : isRocksRoute && rocksView === "department" ? (
+                  <RocksDepartmentView okrs={displayOkrs} onSelect={setSelectedOKR} />
+                ) : (
                 <div className="space-y-4">
                   {displayOkrs.map((okr) => (
                     <OKRCard
@@ -387,6 +425,7 @@ export default function OKRsPage() {
                     />
                   ))}
                 </div>
+                )
               ) : (
                 <EmptyState onCreateClick={() => setShowCreate(true)} />
               )}

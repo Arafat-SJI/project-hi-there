@@ -72,6 +72,9 @@ verify_jwt = false
 [functions.send-notification]
 verify_jwt = false
 
+[functions.eos-notification-dispatcher]
+verify_jwt = false
+
 [functions.send-email]
 verify_jwt = false
 

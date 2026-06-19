@@ -33,6 +33,10 @@ import MeetingPendingAssignmentsPage from "@/modules/meetings/pages/MeetingPendi
 import MeetingIdRedirectPage from "@/modules/meetings/pages/MeetingIdRedirectPage";
 import FellowActionItemsPage from "@/modules/meetings/pages/FellowActionItemsPage";
 import MeetingForm from "@/pages/MeetingForm";
+import PeopleAnalyzerPage from "@/modules/eos/pages/PeopleAnalyzerPage";
+import EOSTodosPage from "@/modules/eos/pages/EOSTodosPage";
+import EOSAnalyticsPage from "@/modules/eos/pages/EOSAnalyticsPage";
+import L10MeetingRunnerPage from "@/modules/eos/pages/L10MeetingRunnerPage";
 
 export const eosSpaceRoutes = (
   <>
@@ -51,6 +55,10 @@ export const eosSpaceRoutes = (
       <Route path="/eos/ids/pod-overview" element={<IssuesPodOverviewPage />} />
       <Route path="/eos/ids/pod/:podId" element={<IssuesByPodPage />} />
       <Route path="/eos/ids/:issueId" element={<IssueDetailPage />} />
+      <Route path="/eos/accountability-chart" element={<AccountabilityPage />} />
+      <Route path="/eos/people-analyzer" element={<PeopleAnalyzerPage />} />
+      <Route path="/eos/todos" element={<EOSTodosPage />} />
+      <Route path="/eos/analytics" element={<EOSAnalyticsPage />} />
       <Route path="/eos/accountability" element={<AccountabilityPage />} />
       <Route path="/eos/my-accountability" element={<MyAccountabilityPage />} />
       <Route path="/eos" element={<EOSHubPage />} />
@@ -61,6 +69,7 @@ export const eosSpaceRoutes = (
       <Route path="/eos/meetings/schedule" element={<MeetingsSchedulePage />} />
       <Route path="/eos/meetings/fellow-action-items" element={<FellowActionItemsPage />} />
       <Route path="/eos/meetings/schedule/:idOrSlug" element={<MeetingDetailV2Page />} />
+      <Route path="/eos/meetings/l10/:meetingId" element={<L10MeetingRunnerPage />} />
       <Route path="/eos/meetings/transcripts" element={<MeetingTranscriptsPage />} />
       <Route path="/eos/meetings/transcripts/:slug" element={<TranscriptDetailPage />} />
       <Route path="/eos/meetings/series" element={<MeetingSeriesPage />} />
