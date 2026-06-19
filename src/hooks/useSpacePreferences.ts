@@ -71,8 +71,8 @@ export function useSpacePreferences() {
         id: data.id,
         user_id: data.user_id,
         default_space: data.default_space as SpaceId,
-        favorites: (data.favorites as SpaceFavorite[]) ?? [],
-        recent_pages: (data.recent_pages as SpaceRecentPage[]) ?? [],
+        favorites: (data.favorites as unknown as SpaceFavorite[]) ?? [],
+        recent_pages: (data.recent_pages as unknown as SpaceRecentPage[]) ?? [],
         updated_at: data.updated_at,
       };
     },
