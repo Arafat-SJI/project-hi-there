@@ -106,7 +106,7 @@ export function useSaveL10TimerState() {
     }) => {
       const { error } = await supabase
         .from("meetings")
-        .update({ l10_timer_state: timerState })
+        .update({ l10_timer_state: timerState as never })
         .eq("id", meetingId);
       if (error) throw error;
     },
