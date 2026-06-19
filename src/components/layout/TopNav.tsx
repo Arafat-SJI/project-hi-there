@@ -24,12 +24,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Bell,
   LogOut,
   User,
   Settings,
   Search,
-  ExternalLink,
   FileText,
   Users,
   Calendar,
@@ -39,7 +37,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/utils";
 import { useMemo, useState } from "react";
-import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
+import { NotificationBell } from "@/modules/notifications/components/NotificationBell";
 import { useSemanticSearch } from "@/hooks/useSemanticSearch";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -52,9 +50,7 @@ export function TopNav() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTab, setSearchTab] = useState<"pages" | "content">("pages");
   const pageIndex = usePageIndex();
-
-  const { data: unreadCount } = useUnreadCount();
-  const { data: recentNotifications, isLoading: loadingNotifications } = useNotifications("all");
+  const notificationsPath = fourSpaces ? "/operations/notifications" : "/notifications";
 
   const {
     query: searchQuery,
@@ -292,78 +288,9 @@ export function TopNav() {
         </Dialog>
 
         <div className="flex items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-9 w-9 text-muted-foreground hover:text-foreground"
-              >
-                <Bell className="h-[18px] w-[18px]" />
-                {(unreadCount || 0) > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full p-0 text-xs"
-                  >
-                    {(unreadCount || 0) > 9 ? "9+" : unreadCount}
-                  </Badge>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel className="flex items-center justify-between">
-                Notifications
-                {(unreadCount || 0) > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {unreadCount} new
-                  </Badge>
-                )}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="max-h-[400px] overflow-y-auto">
-                {loadingNotifications ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
-                ) : !recentNotifications || recentNotifications.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
-                ) : (
-                  <>
-                    {recentNotifications.slice(0, 5).map((notification) => (
-                      <DropdownMenuItem key={notification.id} asChild>
-                        <Link
-                          to={notification.link || (fourSpaces ? "/operations/notifications" : "/notifications")}
-                          className="flex flex-col gap-1 p-3"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-sm font-medium ${!notification.is_read ? "text-primary" : ""}`}
-                            >
-                              {notification.title}
-                            </span>
-                            {!notification.is_read && (
-                              <span className="h-2 w-2 rounded-full bg-primary" />
-                            )}
-                          </div>
-                          <span className="line-clamp-2 text-xs text-muted-foreground">
-                            {notification.message}
-                          </span>
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link
-                        to={fourSpaces ? "/operations/notifications" : "/notifications"}
-                        className="flex items-center justify-center gap-2 p-2 text-sm font-medium"
-                      >
-                        View all notifications
-                        <ExternalLink className="h-3 w-3" />
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {isFeatureEnabled("enableNotifications") && hasPermission("notifications.view") && (
+            <NotificationBell notificationsPath={notificationsPath} />
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

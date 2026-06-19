@@ -370,6 +370,7 @@ export const spaceNavigation: Record<SpaceId, SpaceNavGroup[]> = {
           href: "/operations/notifications",
           icon: "Bell",
           featureFlag: "enableNotifications",
+          requiredPermissions: ["notifications.view"],
         },
         {
           title: "Integrations",
@@ -399,7 +400,7 @@ export const spaceNavigation: Record<SpaceId, SpaceNavGroup[]> = {
             { title: "Branding", href: "/operations/settings/branding", icon: "Palette", requiredPermissions: ["settings.admin"] },
             { title: "Workspace", href: "/operations/settings/workspace", icon: "Layers", requiredPermissions: ["settings.admin"] },
             { title: "Security", href: "/operations/settings/security", icon: "Shield", requiredPermissions: ["settings.admin"] },
-            { title: "Notifications", href: "/operations/settings/notifications", icon: "Mail", requiredPermissions: ["settings.admin"] },
+            { title: "Notifications", href: "/admin/notifications", icon: "Mail", requiredPermissions: ["notifications.admin", "settings.admin"] },
             { title: "Advanced", href: "/operations/settings/advanced", icon: "Zap", requiredPermissions: ["settings.admin"] },
           ],
         },

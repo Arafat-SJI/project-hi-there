@@ -65,6 +65,8 @@ export const API = {
   // Notifications
   NOTIFICATIONS: {
     SEND: "send-notification",
+    ROUTER: "notification-router",
+    DIGEST: "notification-digest",
     SEND_EMAIL: "send-email",
     SEND_FEEDBACK: "send-feedback-notification",
   },
