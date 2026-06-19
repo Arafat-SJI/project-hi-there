@@ -15,7 +15,11 @@ export function useFeatureFlags() {
    * @returns boolean indicating if the feature is enabled
    */
   const isFeatureEnabled = (featureName: FeatureKey): boolean => {
-    if (!config?.features) return true; // Default to true if config not loaded
+    // Four Spaces is opt-in — default off when config is missing or unset
+    if (featureName === "enableFourSpaces") {
+      return config?.features?.enableFourSpaces === true;
+    }
+    if (!config?.features) return true;
     return config.features[featureName] ?? true;
   };
 
