@@ -170,7 +170,7 @@ export async function createNotification(data: {
     link: data.link || null,
     metadata: data.metadata || {},
     is_read: false,
-  });
+  } as never);
   if (error) throw error;
 }
 
