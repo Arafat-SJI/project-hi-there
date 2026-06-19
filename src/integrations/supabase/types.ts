@@ -3431,6 +3431,7 @@ export type Database = {
           s3_key: string | null
           shared_with: Json
           size: number
+          storage_path: string | null
           storage_type: string
           type: string
           updated_at: string
@@ -3454,6 +3455,7 @@ export type Database = {
           s3_key?: string | null
           shared_with?: Json
           size?: number
+          storage_path?: string | null
           storage_type?: string
           type: string
           updated_at?: string
@@ -3477,6 +3479,7 @@ export type Database = {
           s3_key?: string | null
           shared_with?: Json
           size?: number
+          storage_path?: string | null
           storage_type?: string
           type?: string
           updated_at?: string
@@ -8739,6 +8742,48 @@ export type Database = {
           },
         ]
       }
+      storage_config: {
+        Row: {
+          aws_access_key_id: string | null
+          aws_region: string
+          aws_secret_access_key: string | null
+          created_at: string
+          id: string
+          s3_bucket_name: string | null
+          storage_type: string
+          supabase_storage_bucket: string
+          supabase_storage_public: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          aws_access_key_id?: string | null
+          aws_region?: string
+          aws_secret_access_key?: string | null
+          created_at?: string
+          id?: string
+          s3_bucket_name?: string | null
+          storage_type?: string
+          supabase_storage_bucket?: string
+          supabase_storage_public?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          aws_access_key_id?: string | null
+          aws_region?: string
+          aws_secret_access_key?: string | null
+          created_at?: string
+          id?: string
+          s3_bucket_name?: string | null
+          storage_type?: string
+          supabase_storage_bucket?: string
+          supabase_storage_public?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           category: string
@@ -10352,6 +10397,16 @@ export type Database = {
         }
         Relationships: []
       }
+      storage_config_public: {
+        Row: {
+          aws_region: string | null
+          storage_type: string | null
+          supabase_storage_bucket: string | null
+          supabase_storage_public: boolean | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       user_preference_coverage: {
         Row: {
           avg_confidence: number | null
@@ -10464,6 +10519,28 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "sendgrid_config"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_or_create_storage_config: {
+        Args: never
+        Returns: {
+          aws_access_key_id: string | null
+          aws_region: string
+          aws_secret_access_key: string | null
+          created_at: string
+          id: string
+          s3_bucket_name: string | null
+          storage_type: string
+          supabase_storage_bucket: string
+          supabase_storage_public: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "storage_config"
           isOneToOne: true
           isSetofReturn: false
         }
