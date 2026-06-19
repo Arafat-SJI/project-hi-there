@@ -130,7 +130,7 @@ export function useCreateL10Todo() {
           eos_source_id: input.meetingId,
           assigned_to: input.assigned_to,
           due_date: input.due_date,
-        })
+        } as never)
         .select()
         .single();
       if (error) throw error;
