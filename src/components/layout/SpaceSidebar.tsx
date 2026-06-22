@@ -144,7 +144,7 @@ export function SpaceSidebar() {
   const { open } = useSidebar();
   const { companyName } = useBranding();
   const { currentSpace } = useSpace();
-  const { isNavItemVisible, isNavGroupVisible } = useSpaceAccess();
+  const { isNavItemVisible, isNavGroupVisible } = useSpaceAccess({ context: "space" });
   const { favorites, recentPages, toggleFavorite, isFavorite } = useSpacePreferences();
   const { data: dealStats } = useDealPipelineStats();
   const dealStageCounts = dealStats?.by_stage ?? {};
