@@ -30,11 +30,21 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import { Search, UserPlus, Edit, Trash2, Shield, Mail, Calendar, Loader2, Ban, RefreshCw, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, UserPlus, Edit, Trash2, Shield, Mail, Calendar, Loader2, Ban, RefreshCw, X, MoreHorizontal, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
 import { useUserInvites, useCreateUserInvite, useDeleteUserInvite, useResendUserInvite } from "@/hooks/useUserInvites";
+import { useDepartments } from "@/hooks/useDepartments";
+import { BulkInviteDialog } from "@/components/admin/BulkInviteDialog";
 
 interface UserProfile {
   id: string;
@@ -47,6 +57,16 @@ interface UserProfile {
   is_active: boolean;
   deactivated_at: string | null;
   deactivated_by: string | null;
+  department_id: string | null;
+}
+
+async function extractEdgeFunctionError(error: { message?: string; context?: Response }): Promise<string> {
+  try {
+    const body = await error.context?.clone().json();
+    return body?.message || body?.error || error.message || "Action failed";
+  } catch {
+    return error.message || "Action failed";
+  }
 }
 
 export default function UserManagement() {
@@ -54,7 +74,11 @@ export default function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [bulkInviteDialogOpen, setBulkInviteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -67,6 +91,7 @@ export default function UserManagement() {
   const createInvite = useCreateUserInvite();
   const deleteInvite = useDeleteUserInvite();
   const resendInvite = useResendUserInvite();
+  const { data: departments = [] } = useDepartments({ activeOnly: true });
 
   useEffect(() => {
     fetchUsers();
@@ -83,6 +108,14 @@ export default function UserManagement() {
 
       if (profilesError) throw profilesError;
 
+      const { data: deptAssignments } = await supabase
+        .from("department_users")
+        .select("user_id, department_id");
+
+      const departmentByUser = new Map(
+        (deptAssignments || []).map((row) => [row.user_id, row.department_id])
+      );
+
       // Fetch roles for each user
       const usersWithRoles = await Promise.all(
         (profiles || []).map(async (profile) => {
@@ -97,6 +130,7 @@ export default function UserManagement() {
             role: roleData?.role || null,
             last_sign_in_at: null, // Would need auth.users table access
             is_active: profile.is_active ?? true,
+            department_id: departmentByUser.get(profile.id) || null,
           };
         })
       );
@@ -137,28 +171,21 @@ export default function UserManagement() {
 
     setProcessing(true);
     try {
-      // Check if user already has a role
-      const { data: existingRole } = await supabase
-        .from("user_roles")
-        .select("*")
-        .eq("user_id", selectedUser.id)
-        .single();
+      const { data, error } = await supabase.functions.invoke("rbac-manage", {
+        body: {
+          action: "change_user_role",
+          target_user_id: selectedUser.id,
+          new_role: editRole,
+        },
+      });
 
-      if (existingRole) {
-        // Update existing role
-        const { error } = await supabase
-          .from("user_roles")
-          .update({ role: editRole as "admin" | "moderator" | "user" })
-          .eq("user_id", selectedUser.id);
-
-        if (error) throw error;
-      } else {
-        // Insert new role
-        const { error } = await supabase
-          .from("user_roles")
-          .insert([{ user_id: selectedUser.id, role: editRole as "admin" | "moderator" | "user" }]);
-
-        if (error) throw error;
+      if (error) {
+        toast.error(await extractEdgeFunctionError(error));
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.message || data.error);
+        return;
       }
 
       toast.success("User role updated successfully");
@@ -179,49 +206,46 @@ export default function UserManagement() {
     }
 
     try {
-      // In a real implementation, you would call an edge function to safely delete the user
-      // For now, just delete the profile and role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
+      const { data, error } = await supabase.functions.invoke("manage-user-status", {
+        body: { action: "remove", target_user_id: userId },
+      });
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
+      if (error) {
+        toast.error(await extractEdgeFunctionError(error));
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.message || data.error);
+        return;
+      }
 
-      if (profileError) throw profileError;
-
-      toast.success("User deleted successfully");
+      toast.success("User removed successfully");
       fetchUsers();
     } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast.error("Failed to delete user");
+      console.error("Error removing user:", error);
+      toast.error("Failed to remove user");
     }
   };
 
   const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      const { data: currentUserData } = await supabase.auth.getUser();
+      const { data, error } = await supabase.functions.invoke("manage-user-status", {
+        body: {
+          action: currentStatus ? "suspend" : "reactivate",
+          target_user_id: userId,
+        },
+      });
 
-      if (!currentUserData.user) {
-        toast.error("Not authenticated");
+      if (error) {
+        toast.error(await extractEdgeFunctionError(error));
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.message || data.error);
         return;
       }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          is_active: !currentStatus,
-          deactivated_at: !currentStatus ? null : new Date().toISOString(),
-          deactivated_by: !currentStatus ? null : currentUserData.user.id,
-        })
-        .eq("id", userId);
-
-      if (error) throw error;
-
-      toast.success(`User ${!currentStatus ? "activated" : "deactivated"} successfully`);
+      toast.success(`User ${currentStatus ? "deactivated" : "activated"} successfully`);
       fetchUsers();
     } catch (error: any) {
       console.error("Error toggling user status:", error);
@@ -235,11 +259,22 @@ export default function UserManagement() {
     setEditDialogOpen(true);
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
       user.email.toLowerCase().includes(search.toLowerCase()) ||
-      user.full_name?.toLowerCase().includes(search.toLowerCase())
-  );
+      user.full_name?.toLowerCase().includes(search.toLowerCase());
+    const matchesRole = roleFilter === "all" || (user.role || "user") === roleFilter;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && user.is_active) ||
+      (statusFilter === "suspended" && !user.is_active);
+    const matchesDepartment =
+      departmentFilter === "all" || user.department_id === departmentFilter;
+
+    return matchesSearch && matchesRole && matchesStatus && matchesDepartment;
+  });
+
+  const adminCount = users.filter((u) => u.role === "admin").length;
 
   const getRoleBadgeVariant = (role: string | null): "default" | "secondary" | "destructive" | "outline" => {
     switch (role) {
@@ -262,10 +297,16 @@ export default function UserManagement() {
             Manage user accounts, roles, and permissions
           </p>
         </div>
-        <Button onClick={() => setInviteDialogOpen(true)}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Invite User
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkInviteDialogOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Bulk Invite (CSV)
+          </Button>
+          <Button onClick={() => setInviteDialogOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Invite User
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -367,20 +408,58 @@ export default function UserManagement() {
         <CardHeader>
           <CardTitle>All Users</CardTitle>
           <CardDescription>View and manage all user accounts</CardDescription>
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex flex-col gap-3 mt-4 sm:flex-row sm:items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex h-32 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
             </div>
           ) : (
             <Table>
@@ -429,38 +508,115 @@ export default function UserManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={user.is_active}
-                            onCheckedChange={() => handleToggleUserStatus(user.id, user.is_active)}
-                            disabled={user.id === currentUser?.id}
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {user.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </div>
+                        <Badge variant={user.is_active ? "outline" : "secondary"}>
+                          {user.is_active ? "Active" : "Suspended"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(user.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditDialog(user)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteUser(user.id)}
-                            disabled={user.id === currentUser?.id}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                        {(() => {
+                          const isSelf = user.id === currentUser?.id;
+                          const isLastAdmin = user.role === "admin" && adminCount <= 1;
+                          const roleChangeDisabled = isSelf || isLastAdmin;
+                          const roleChangeReason = isSelf
+                            ? "You cannot change your own role"
+                            : isLastAdmin
+                            ? "Cannot change the role of the last remaining admin"
+                            : null;
+                          const statusActionDisabled = isSelf || (user.is_active && isLastAdmin);
+                          const statusActionReason = isSelf
+                            ? "You cannot suspend your own account"
+                            : "Cannot suspend the last remaining admin";
+                          const removeDisabled = isSelf || isLastAdmin;
+                          const removeReason = isSelf
+                            ? "You cannot remove your own account"
+                            : "Cannot remove the last remaining admin";
+
+                          return (
+                            <TooltipProvider>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {roleChangeDisabled ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div>
+                                          <DropdownMenuItem disabled>
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Change Role
+                                          </DropdownMenuItem>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{roleChangeReason}</TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Change Role
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  {statusActionDisabled ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div>
+                                          <DropdownMenuItem disabled>
+                                            {user.is_active ? (
+                                              <Ban className="mr-2 h-4 w-4" />
+                                            ) : (
+                                              <UserCheck className="mr-2 h-4 w-4" />
+                                            )}
+                                            {user.is_active ? "Suspend" : "Reactivate"}
+                                          </DropdownMenuItem>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{statusActionReason}</TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onClick={() => handleToggleUserStatus(user.id, user.is_active)}
+                                    >
+                                      {user.is_active ? (
+                                        <Ban className="mr-2 h-4 w-4" />
+                                      ) : (
+                                        <UserCheck className="mr-2 h-4 w-4" />
+                                      )}
+                                      {user.is_active ? "Suspend" : "Reactivate"}
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  {removeDisabled ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div>
+                                          <DropdownMenuItem disabled className="text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Remove
+                                          </DropdownMenuItem>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{removeReason}</TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDeleteUser(user.id)}
+                                      className="text-destructive"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Remove
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TooltipProvider>
+                          );
+                        })()}
                       </TableCell>
                     </TableRow>
                   ))
@@ -579,6 +735,8 @@ export default function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkInviteDialog open={bulkInviteDialogOpen} onOpenChange={setBulkInviteDialogOpen} />
     </div>
   );
 }

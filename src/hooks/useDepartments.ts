@@ -14,6 +14,9 @@ export interface Department {
   name: string;
   description: string | null;
   manager_id: string | null;
+  head_user_id: string | null;
+  color: string | null;
+  parent_department_id: string | null;
   is_active: boolean | null;
   created_at: string | null;
   updated_at: string | null;
@@ -22,6 +25,7 @@ export interface Department {
 export interface DepartmentWithStats extends Department {
   user_count: number;
   pod_count: number;
+  head_name: string | null;
 }
 
 export interface DepartmentUser {
@@ -69,6 +73,21 @@ async function fetchDepartmentStats(departmentIds: string[]) {
   return { userCounts, podCounts };
 }
 
+async function fetchHeadNames(headUserIds: string[]) {
+  const headMap = new Map<string, string>();
+  if (headUserIds.length === 0) return headMap;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .in("id", headUserIds);
+
+  (data || []).forEach((p) => {
+    headMap.set(p.id, p.full_name || p.email || "Unknown");
+  });
+  return headMap;
+}
+
 function sortDepartments(
   departments: DepartmentWithStats[],
   sortField: DepartmentSortField,
@@ -104,12 +123,17 @@ export function useDepartments(filters?: DepartmentListFilters) {
       if (departments.length === 0) return [];
 
       const ids = departments.map((d) => d.id);
-      const { userCounts, podCounts } = await fetchDepartmentStats(ids);
+      const headUserIds = [...new Set(departments.map((d) => d.head_user_id).filter(Boolean))] as string[];
+      const [{ userCounts, podCounts }, headNames] = await Promise.all([
+        fetchDepartmentStats(ids),
+        fetchHeadNames(headUserIds),
+      ]);
 
       let result: DepartmentWithStats[] = departments.map((d) => ({
         ...d,
         user_count: userCounts.get(d.id) || 0,
         pod_count: podCounts.get(d.id) || 0,
+        head_name: d.head_user_id ? headNames.get(d.head_user_id) || null : null,
       }));
 
       if (filters?.search?.trim()) {
@@ -145,11 +169,16 @@ export function useDepartment(id: string | undefined) {
       if (error) throw error;
       if (!data) return null;
 
-      const { userCounts, podCounts } = await fetchDepartmentStats([id]);
+      const dept = data as Department;
+      const [{ userCounts, podCounts }, headNames] = await Promise.all([
+        fetchDepartmentStats([id]),
+        fetchHeadNames(dept.head_user_id ? [dept.head_user_id] : []),
+      ]);
       return {
-        ...(data as Department),
+        ...dept,
         user_count: userCounts.get(id) || 0,
         pod_count: podCounts.get(id) || 0,
+        head_name: dept.head_user_id ? headNames.get(dept.head_user_id) || null : null,
       };
     },
     enabled: !!id,
@@ -200,6 +229,9 @@ export function useCreateDepartment() {
         .insert({
           name: data.name.trim(),
           description: data.description?.trim() || null,
+          head_user_id: data.head_user_id || null,
+          color: data.color || null,
+          parent_department_id: data.parent_department_id || null,
         })
         .select()
         .single();
@@ -228,6 +260,9 @@ export function useUpdateDepartment() {
         .update({
           name: data.name.trim(),
           description: data.description?.trim() || null,
+          head_user_id: data.head_user_id || null,
+          color: data.color || null,
+          parent_department_id: data.parent_department_id || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -353,6 +388,28 @@ export function useRemoveDepartmentUser() {
     onError: (error: Error) => {
       console.error("Error removing user:", error);
       toast.error("Failed to remove user from department");
+    },
+  });
+}
+
+export function useActiveUsersSearch(search?: string) {
+  return useQuery({
+    queryKey: ["profiles", "active-search", search],
+    queryFn: async () => {
+      let query = supabase
+        .from("profiles")
+        .select("id, email, full_name, avatar_url")
+        .eq("is_active", true)
+        .order("full_name")
+        .limit(50);
+
+      if (search?.trim()) {
+        query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
     },
   });
 }

@@ -436,7 +436,7 @@ export default function OnboardingWizard() {
             <p className="text-sm text-muted-foreground">
               Set up departments and assign users to teams.
             </p>
-            <Button variant="outline" onClick={() => navigate('/admin/department')}>
+            <Button variant="outline" onClick={() => navigate('/admin/departments')}>
               Manage Departments
             </Button>
           </div>

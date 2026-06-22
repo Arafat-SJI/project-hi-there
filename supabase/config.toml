@@ -521,3 +521,21 @@ verify_jwt = false
 
 [functions.kb-reprocess]
 verify_jwt = false
+
+[functions.accept-user-invite]
+verify_jwt = false
+
+[functions.validate-user-invite]
+verify_jwt = false
+
+[functions.send-user-invite]
+verify_jwt = false
+
+[functions.rbac-manage]
+verify_jwt = false
+
+[functions.manage-user-status]
+verify_jwt = false
+
+[functions.update-clickup-task]
+verify_jwt = false

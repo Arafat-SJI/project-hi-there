@@ -300,6 +300,9 @@ export type CreateGoogleMeetMeetingInput = z.infer<typeof createGoogleMeetMeetin
 export const departmentFormSchema = z.object({
   name: z.string().min(1, "Department name is required").max(100),
   description: z.string().max(500).optional(),
+  head_user_id: z.string().uuid().nullable().optional(),
+  color: z.string().max(20).nullable().optional(),
+  parent_department_id: z.string().uuid().nullable().optional(),
 });
 
 export type DepartmentFormData = z.infer<typeof departmentFormSchema>;

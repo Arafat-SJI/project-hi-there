@@ -1,8 +1,10 @@
+import { useEffect, useRef } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Loader2 } from "lucide-react";
 import { PermissionDenied } from "@/components/auth/PermissionDenied";
+import { toast } from "sonner";
 
 export function AdminRoute() {
   const { user, profile, loading, profileLoading } = useAuth();
@@ -37,10 +39,23 @@ export function AdminRoute() {
     profile?.role === "moderator";
 
   if (permissionsLoaded && !canAccessAdmin) {
-    return (
-      <PermissionDenied message="You do not have permission to access the admin panel." />
-    );
+    return <AdminAccessDenied />;
   }
 
   return <Outlet />;
+}
+
+function AdminAccessDenied() {
+  const hasNotified = useRef(false);
+
+  useEffect(() => {
+    if (!hasNotified.current) {
+      hasNotified.current = true;
+      toast.error("Admin access required");
+    }
+  }, []);
+
+  return (
+    <PermissionDenied message="You do not have permission to access the admin panel." />
+  );
 }
