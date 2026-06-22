@@ -43,6 +43,7 @@ import { Search, UserPlus, Edit, Trash2, Shield, Mail, Calendar, Loader2, Ban, R
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
 import { useUserInvites, useCreateUserInvite, useDeleteUserInvite, useResendUserInvite } from "@/hooks/useUserInvites";
+import { useDepartments } from "@/hooks/useDepartments";
 
 interface UserProfile {
   id: string;
@@ -55,6 +56,7 @@ interface UserProfile {
   is_active: boolean;
   deactivated_at: string | null;
   deactivated_by: string | null;
+  department_id: string | null;
 }
 
 async function extractEdgeFunctionError(error: { message?: string; context?: Response }): Promise<string> {
@@ -73,6 +75,7 @@ export default function UserManagement() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -86,6 +89,7 @@ export default function UserManagement() {
   const createInvite = useCreateUserInvite();
   const deleteInvite = useDeleteUserInvite();
   const resendInvite = useResendUserInvite();
+  const { data: departments = [] } = useDepartments({ activeOnly: true });
 
   useEffect(() => {
     fetchUsers();
@@ -102,6 +106,14 @@ export default function UserManagement() {
 
       if (profilesError) throw profilesError;
 
+      const { data: deptAssignments } = await supabase
+        .from("department_users")
+        .select("user_id, department_id");
+
+      const departmentByUser = new Map(
+        (deptAssignments || []).map((row) => [row.user_id, row.department_id])
+      );
+
       // Fetch roles for each user
       const usersWithRoles = await Promise.all(
         (profiles || []).map(async (profile) => {
@@ -116,6 +128,7 @@ export default function UserManagement() {
             role: roleData?.role || null,
             last_sign_in_at: null, // Would need auth.users table access
             is_active: profile.is_active ?? true,
+            department_id: departmentByUser.get(profile.id) || null,
           };
         })
       );
@@ -253,8 +266,10 @@ export default function UserManagement() {
       statusFilter === "all" ||
       (statusFilter === "active" && user.is_active) ||
       (statusFilter === "suspended" && !user.is_active);
+    const matchesDepartment =
+      departmentFilter === "all" || user.department_id === departmentFilter;
 
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesRole && matchesStatus && matchesDepartment;
   });
 
   const adminCount = users.filter((u) => u.role === "admin").length;
@@ -414,6 +429,19 @@ export default function UserManagement() {
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
