@@ -35,7 +35,61 @@ serve(async (req) => {
     const { userId } = authResult;
 
     const body = await req.json();
-    const { action, role_id, permission_keys } = body;
+    const { action, role_id, permission_keys, target_user_id, new_role } = body;
+
+    if (action === "change_user_role") {
+      if (!target_user_id || !new_role) {
+        return new Response(JSON.stringify({ error: "target_user_id and new_role are required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (target_user_id === userId) {
+        return new Response(
+          JSON.stringify({ error: "self_change_not_allowed", message: "You cannot change your own role" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: existing } = await serviceClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", target_user_id)
+        .maybeSingle();
+
+      if (existing?.role === "admin" && new_role !== "admin") {
+        const { count: adminCount } = await serviceClient
+          .from("user_roles")
+          .select("user_id", { count: "exact", head: true })
+          .eq("role", "admin");
+
+        if ((adminCount ?? 0) <= 1) {
+          return new Response(
+            JSON.stringify({ error: "last_admin", message: "Cannot change the role of the last remaining admin" }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      const { error: upsertError } = existing
+        ? await serviceClient.from("user_roles").update({ role: new_role }).eq("user_id", target_user_id)
+        : await serviceClient.from("user_roles").insert([{ user_id: target_user_id, role: new_role }]);
+
+      if (upsertError) throw upsertError;
+
+      await serviceClient.from("activity_logs").insert({
+        user_id: userId,
+        action: "user.role_changed",
+        resource_type: "user",
+        resource_id: target_user_id,
+        details: { previous_role: existing?.role ?? null, new_role },
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (action === "set_role_permissions") {
       if (!role_id || !Array.isArray(permission_keys)) {

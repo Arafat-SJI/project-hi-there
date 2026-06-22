@@ -31,6 +31,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Search, UserPlus, Edit, Trash2, Shield, Mail, Calendar, Loader2, Ban, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
@@ -63,6 +65,8 @@ export default function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -146,28 +150,21 @@ export default function UserManagement() {
 
     setProcessing(true);
     try {
-      // Check if user already has a role
-      const { data: existingRole } = await supabase
-        .from("user_roles")
-        .select("*")
-        .eq("user_id", selectedUser.id)
-        .single();
+      const { data, error } = await supabase.functions.invoke("rbac-manage", {
+        body: {
+          action: "change_user_role",
+          target_user_id: selectedUser.id,
+          new_role: editRole,
+        },
+      });
 
-      if (existingRole) {
-        // Update existing role
-        const { error } = await supabase
-          .from("user_roles")
-          .update({ role: editRole as "admin" | "moderator" | "user" })
-          .eq("user_id", selectedUser.id);
-
-        if (error) throw error;
-      } else {
-        // Insert new role
-        const { error } = await supabase
-          .from("user_roles")
-          .insert([{ user_id: selectedUser.id, role: editRole as "admin" | "moderator" | "user" }]);
-
-        if (error) throw error;
+      if (error) {
+        toast.error(await extractEdgeFunctionError(error));
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.message || data.error);
+        return;
       }
 
       toast.success("User role updated successfully");
@@ -241,11 +238,18 @@ export default function UserManagement() {
     setEditDialogOpen(true);
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
       user.email.toLowerCase().includes(search.toLowerCase()) ||
-      user.full_name?.toLowerCase().includes(search.toLowerCase())
-  );
+      user.full_name?.toLowerCase().includes(search.toLowerCase());
+    const matchesRole = roleFilter === "all" || (user.role || "user") === roleFilter;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && user.is_active) ||
+      (statusFilter === "suspended" && !user.is_active);
+
+    return matchesSearch && matchesRole && matchesStatus;
+  });
 
   const getRoleBadgeVariant = (role: string | null): "default" | "secondary" | "destructive" | "outline" => {
     switch (role) {
@@ -373,20 +377,45 @@ export default function UserManagement() {
         <CardHeader>
           <CardTitle>All Users</CardTitle>
           <CardDescription>View and manage all user accounts</CardDescription>
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex flex-col gap-3 mt-4 sm:flex-row sm:items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex h-32 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
             </div>
           ) : (
             <Table>
