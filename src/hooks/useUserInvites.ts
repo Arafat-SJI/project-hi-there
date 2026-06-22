@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { invokeEdgeFunction } from "@/lib/edge-functions";
+import { logActivity } from "@/lib/activity-logger";
 
 export interface UserInvite {
   id: string;
