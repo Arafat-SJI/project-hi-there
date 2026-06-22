@@ -67,6 +67,7 @@ export function DepartmentsTable({
             </button>
           </TableHead>
           <TableHead>Description</TableHead>
+          <TableHead>Head</TableHead>
           <TableHead>Users</TableHead>
           <TableHead>PODs</TableHead>
           <TableHead>
@@ -87,12 +88,23 @@ export function DepartmentsTable({
         {departments.map((dept) => (
           <TableRow key={dept.id}>
             <TableCell>
-              <p className="font-medium">{dept.name}</p>
+              <div className="flex items-center gap-2">
+                {dept.color && (
+                  <span
+                    className="h-2.5 w-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: dept.color }}
+                  />
+                )}
+                <p className="font-medium">{dept.name}</p>
+              </div>
             </TableCell>
             <TableCell>
               <span className="text-sm text-muted-foreground line-clamp-2">
                 {dept.description || "—"}
               </span>
+            </TableCell>
+            <TableCell>
+              <span className="text-sm text-muted-foreground">{dept.head_name || "—"}</span>
             </TableCell>
             <TableCell>{dept.user_count}</TableCell>
             <TableCell>{dept.pod_count}</TableCell>
