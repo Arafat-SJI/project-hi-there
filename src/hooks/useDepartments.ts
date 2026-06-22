@@ -240,8 +240,14 @@ export function useCreateDepartment() {
       if (error) throw error;
       return department as Department;
     },
-    onSuccess: () => {
+    onSuccess: (department) => {
       invalidateKeys.departments(queryClient);
+      void logActivity({
+        action: "department.created",
+        resourceType: "department",
+        resourceId: department.id,
+        details: { name: department.name },
+      });
       toast.success("Department created successfully");
     },
     onError: (error: Error) => {
