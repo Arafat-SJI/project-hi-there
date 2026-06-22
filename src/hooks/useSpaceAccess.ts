@@ -17,7 +17,10 @@ import type { AppConfig } from "@/hooks/useAppConfig";
 
 type FeatureKey = keyof AppConfig["features"];
 
-export function useSpaceAccess() {
+export type SpaceAccessContext = "space" | "admin";
+
+export function useSpaceAccess(options: { context?: SpaceAccessContext } = {}) {
+  const context = options.context ?? "space";
   const { profile, profileLoading } = useAuth();
   const { hasModule, isLoading: modulesLoading } = useModuleAccess();
   const { isFeatureEnabled, isLoading: flagsLoading } = useFeatureFlags();
