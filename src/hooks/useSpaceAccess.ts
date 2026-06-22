@@ -17,7 +17,10 @@ import type { AppConfig } from "@/hooks/useAppConfig";
 
 type FeatureKey = keyof AppConfig["features"];
 
-export function useSpaceAccess() {
+export type SpaceAccessContext = "space" | "admin";
+
+export function useSpaceAccess(options: { context?: SpaceAccessContext } = {}) {
+  const context = options.context ?? "space";
   const { profile, profileLoading } = useAuth();
   const { hasModule, isLoading: modulesLoading } = useModuleAccess();
   const { isFeatureEnabled, isLoading: flagsLoading } = useFeatureFlags();
@@ -103,7 +106,10 @@ export function useSpaceAccess() {
   ]);
 
   const isNavItemVisible = (item: SpaceNavItem): boolean => {
-    if (item.adminOnly && !isAdmin) return false;
+    if (item.adminOnly) {
+      if (context === "space") return false;
+      if (!isAdmin) return false;
+    }
     if (item.featureFlag && !isFeatureEnabled(item.featureFlag as FeatureKey)) return false;
     if (item.module && !hasModule(item.module)) return false;
     if (item.eosOnly && !isEosUser && !isAdmin) return false;
@@ -120,6 +126,10 @@ export function useSpaceAccess() {
   };
 
   const isNavGroupVisible = (group: SpaceNavGroup): boolean => {
+    if (group.adminOnly) {
+      if (context === "space") return false;
+      if (!isAdmin) return false;
+    }
     if (group.eosOnly && !isEosUser && !isAdmin) return false;
     if (group.agencyRoles && !isAdmin && currentAgencyRole) {
       if (!group.agencyRoles.includes(currentAgencyRole)) return false;

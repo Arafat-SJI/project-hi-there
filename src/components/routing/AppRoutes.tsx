@@ -57,10 +57,15 @@ export function AppRoutes() {
 
       <Route element={<ProtectedRoute />}>
         {fourSpaces ? (
-          <Route element={<SpaceLayout />}>
-            {globalSpaceRoutes}
-            {spaceRoutes}
-          </Route>
+          <>
+            <Route element={<SpaceLayout />}>
+              {globalSpaceRoutes}
+              {spaceRoutes}
+            </Route>
+            <Route element={<AdminRoute />}>
+              <Route element={<AdminLayout />}>{adminRoutes}</Route>
+            </Route>
+          </>
         ) : (
           <>
             <Route element={<DashboardLayout />}>
