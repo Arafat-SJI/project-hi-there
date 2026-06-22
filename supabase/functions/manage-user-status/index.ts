@@ -114,7 +114,21 @@ serve(async (req) => {
     }
 
     if (action === "remove") {
-      await serviceClient.from("user_roles").delete().eq("user_id", target_user_id);
+      const { error: roleDeleteError } = await serviceClient
+        .from("user_roles")
+        .delete()
+        .eq("user_id", target_user_id);
+
+      if (roleDeleteError) {
+        if (roleDeleteError.message?.includes("last remaining Owner")) {
+          return new Response(
+            JSON.stringify({ error: "last_owner", message: "Cannot remove the last remaining Owner" }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw roleDeleteError;
+      }
+
       await serviceClient.from("department_users").delete().eq("user_id", target_user_id);
 
       await serviceClient.from("activity_logs").insert({
