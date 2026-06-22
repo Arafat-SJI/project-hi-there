@@ -13,6 +13,13 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Activity,
   Search,
   Download,
@@ -50,6 +57,15 @@ const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   login: LogIn,
   logout: LogOut,
   access: Shield,
+  "user.suspended": Shield,
+  "user.reactivated": Shield,
+  "user.removed": Trash2,
+  "user.role_changed": Edit,
+  "invite.sent": Plus,
+  "invite.resent": Plus,
+  "invite.accepted": LogIn,
+  "permission.changed": Shield,
+  "role.created": Plus,
 };
 
 const ACTION_COLORS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -60,12 +76,31 @@ const ACTION_COLORS: Record<string, "default" | "secondary" | "destructive" | "o
   login: "default",
   logout: "secondary",
   access: "outline",
+  "user.suspended": "destructive",
+  "user.reactivated": "default",
+  "user.removed": "destructive",
+  "user.role_changed": "secondary",
+  "invite.sent": "default",
+  "invite.resent": "secondary",
+  "invite.accepted": "default",
+  "permission.changed": "secondary",
+  "role.created": "default",
 };
+
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes("\"") || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
 
 export default function ActivityLogs() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [actionFilter, setActionFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     fetchActivityLogs();
@@ -120,7 +155,7 @@ export default function ActivityLogs() {
   const handleExport = () => {
     const csv = [
       ["Timestamp", "User", "Action", "Resource", "IP Address", "Details"].join(","),
-      ...logs.map((log) =>
+      ...filteredLogs.map((log) =>
         [
           new Date(log.created_at).toISOString(),
           log.user_email || log.user_id,
@@ -128,7 +163,7 @@ export default function ActivityLogs() {
           log.resource_type || "N/A",
           log.ip_address || "N/A",
           JSON.stringify(log.details || {}),
-        ].join(",")
+        ].map(csvEscape).join(",")
       ),
     ].join("\n");
 
@@ -143,12 +178,22 @@ export default function ActivityLogs() {
     toast.success("Activity logs exported successfully");
   };
 
-  const filteredLogs = logs.filter(
-    (log) =>
+  const actionOptions = [...new Set(logs.map((log) => log.action))].sort();
+
+  const filteredLogs = logs.filter((log) => {
+    const matchesSearch =
       log.user_email?.toLowerCase().includes(search.toLowerCase()) ||
       log.action.toLowerCase().includes(search.toLowerCase()) ||
-      log.resource_type?.toLowerCase().includes(search.toLowerCase())
-  );
+      log.resource_type?.toLowerCase().includes(search.toLowerCase());
+
+    const matchesAction = actionFilter === "all" || log.action === actionFilter;
+
+    const logDate = log.created_at.slice(0, 10);
+    const matchesFrom = !dateFrom || logDate >= dateFrom;
+    const matchesTo = !dateTo || logDate <= dateTo;
+
+    return matchesSearch && matchesAction && matchesFrom && matchesTo;
+  });
 
   const getActionIcon = (action: string) => {
     const Icon = ACTION_ICONS[action] || Activity;
@@ -221,13 +266,40 @@ export default function ActivityLogs() {
           <CardDescription>Search activity logs</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-3 md:flex-row md:items-end">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by user, action, or resource..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Action" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Actions</SelectItem>
+                {actionOptions.map((action) => (
+                  <SelectItem key={action} value={action}>
+                    {action}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Input
-              placeholder="Search by user, action, or resource..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full md:w-40"
+            />
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full md:w-40"
             />
           </div>
         </CardContent>
