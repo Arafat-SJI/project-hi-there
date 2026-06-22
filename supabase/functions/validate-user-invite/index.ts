@@ -55,6 +55,13 @@ serve(async (req) => {
       });
     }
 
+    if (invite.status === "revoked") {
+      return new Response(JSON.stringify({ error: "Invitation was revoked" }), {
+        status: 410,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (new Date(invite.expires_at) < new Date()) {
       await serviceClient
         .from("user_invites")
