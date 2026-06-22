@@ -279,9 +279,15 @@ export function useUpdateDepartment() {
       if (error) throw error;
       return department as Department;
     },
-    onSuccess: (_, { id }) => {
+    onSuccess: (department, { id }) => {
       invalidateKeys.departments(queryClient);
       queryClient.invalidateQueries({ queryKey: queryKeys.departments.detail(id) });
+      void logActivity({
+        action: "department.updated",
+        resourceType: "department",
+        resourceId: id,
+        details: { name: department.name },
+      });
       toast.success("Department updated successfully");
     },
     onError: (error: Error) => {
