@@ -30,10 +30,16 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, UserPlus, Edit, Trash2, Shield, Mail, Calendar, Loader2, Ban, RefreshCw, X } from "lucide-react";
+import { Search, UserPlus, Edit, Trash2, Shield, Mail, Calendar, Loader2, Ban, RefreshCw, X, MoreHorizontal, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
 import { useUserInvites, useCreateUserInvite, useDeleteUserInvite, useResendUserInvite } from "@/hooks/useUserInvites";
@@ -251,6 +257,8 @@ export default function UserManagement() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
+  const adminCount = users.filter((u) => u.role === "admin").length;
+
   const getRoleBadgeVariant = (role: string | null): "default" | "secondary" | "destructive" | "outline" => {
     switch (role) {
       case "admin":
@@ -464,38 +472,115 @@ export default function UserManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={user.is_active}
-                            onCheckedChange={() => handleToggleUserStatus(user.id, user.is_active)}
-                            disabled={user.id === currentUser?.id}
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {user.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </div>
+                        <Badge variant={user.is_active ? "outline" : "secondary"}>
+                          {user.is_active ? "Active" : "Suspended"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(user.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditDialog(user)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteUser(user.id)}
-                            disabled={user.id === currentUser?.id}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                        {(() => {
+                          const isSelf = user.id === currentUser?.id;
+                          const isLastAdmin = user.role === "admin" && adminCount <= 1;
+                          const roleChangeDisabled = isSelf || isLastAdmin;
+                          const roleChangeReason = isSelf
+                            ? "You cannot change your own role"
+                            : isLastAdmin
+                            ? "Cannot change the role of the last remaining admin"
+                            : null;
+                          const statusActionDisabled = isSelf || (user.is_active && isLastAdmin);
+                          const statusActionReason = isSelf
+                            ? "You cannot suspend your own account"
+                            : "Cannot suspend the last remaining admin";
+                          const removeDisabled = isSelf || isLastAdmin;
+                          const removeReason = isSelf
+                            ? "You cannot remove your own account"
+                            : "Cannot remove the last remaining admin";
+
+                          return (
+                            <TooltipProvider>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {roleChangeDisabled ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div>
+                                          <DropdownMenuItem disabled>
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Change Role
+                                          </DropdownMenuItem>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{roleChangeReason}</TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Change Role
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  {statusActionDisabled ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div>
+                                          <DropdownMenuItem disabled>
+                                            {user.is_active ? (
+                                              <Ban className="mr-2 h-4 w-4" />
+                                            ) : (
+                                              <UserCheck className="mr-2 h-4 w-4" />
+                                            )}
+                                            {user.is_active ? "Suspend" : "Reactivate"}
+                                          </DropdownMenuItem>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{statusActionReason}</TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onClick={() => handleToggleUserStatus(user.id, user.is_active)}
+                                    >
+                                      {user.is_active ? (
+                                        <Ban className="mr-2 h-4 w-4" />
+                                      ) : (
+                                        <UserCheck className="mr-2 h-4 w-4" />
+                                      )}
+                                      {user.is_active ? "Suspend" : "Reactivate"}
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  {removeDisabled ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div>
+                                          <DropdownMenuItem disabled className="text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Remove
+                                          </DropdownMenuItem>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{removeReason}</TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onClick={() => handleDeleteUser(user.id)}
+                                      className="text-destructive"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Remove
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TooltipProvider>
+                          );
+                        })()}
                       </TableCell>
                     </TableRow>
                   ))
