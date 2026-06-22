@@ -470,7 +470,7 @@ export const spaceNavigation: Record<SpaceId, SpaceNavGroup[]> = {
           headerOnly: true,
           children: [
             { title: "Scorecard", href: "/eos/scorecards", icon: "BarChart3", module: "eos" },
-            { title: "Scorecard Settings", href: "/eos/admin/scorecards", icon: "Settings", requiredPermissions: ["settings.admin"] },
+            { title: "Scorecard Settings", href: "/eos/admin/scorecards", icon: "Settings", adminOnly: true, requiredPermissions: ["settings.admin"] },
           ],
         },
         {
