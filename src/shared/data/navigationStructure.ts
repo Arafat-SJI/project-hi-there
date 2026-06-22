@@ -407,18 +407,30 @@ export const adminNavigation: NavGroup[] = [
       },
       {
         title: "Departments",
-        href: "/admin/department",
+        href: "/admin/departments",
         icon: "Building2",
-      },
-      {
-        title: "Security",
-        href: "/admin/settings/security",
-        icon: "Shield",
       },
       {
         title: "Activity Logs",
         href: "/admin/logs",
         icon: "Activity",
+      },
+      {
+        title: "Security",
+        href: "/admin/security/authentication",
+        icon: "Shield",
+        children: [
+          {
+            title: "Authentication",
+            href: "/admin/security/authentication",
+            icon: "Shield",
+          },
+          {
+            title: "SSO Settings",
+            href: "/admin/security/sso",
+            icon: "Shield",
+          },
+        ],
       },
     ],
   },

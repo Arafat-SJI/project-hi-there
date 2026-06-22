@@ -110,8 +110,12 @@ export const adminRoutes = (
     <Route path="/admin/users/invitations" element={<UserInvitations />} />
     <Route path="/admin/roles" element={<RoleManagement />} />
     <Route path="/admin/roles/permissions" element={<PermissionMatrix />} />
-    <Route path="/admin/department" element={<DepartmentManagement />} />
-    <Route path="/admin/team/departments" element={<Navigate to="/admin/department" replace />} />
+    <Route path="/admin/departments" element={<DepartmentManagement />} />
+    <Route path="/admin/department" element={<Navigate to="/admin/departments" replace />} />
+    <Route path="/admin/team/departments" element={<Navigate to="/admin/departments" replace />} />
+    <Route path="/admin/security" element={<Navigate to="/admin/security/authentication" replace />} />
+    <Route path="/admin/security/authentication" element={<SecuritySettings />} />
+    <Route path="/admin/security/sso" element={<SSOSettings />} />
     <Route path="/admin/logs" element={<ActivityLogs />} />
     <Route path="/admin/audit-logs" element={<ActivityLogs />} />
 
@@ -124,7 +128,7 @@ export const adminRoutes = (
     <Route path="/admin/settings/workspace" element={<WorkspaceHub />} />
     <Route path="/admin/settings/notifications" element={<Navigate to="/admin/notifications?tab=email" replace />} />
     <Route path="/admin/settings/advanced" element={<AdvancedSettings />} />
-    <Route path="/admin/settings/security" element={<SecuritySettings />} />
+    <Route path="/admin/settings/security" element={<Navigate to="/admin/security/authentication" replace />} />
     <Route path="/admin/settings/seeding" element={<TemplateSeeding />} />
     {/* Workspace sub-pages (preserved, linked from WorkspaceHub) */}
     <Route path="/admin/settings/project-statuses" element={<ProjectStatusSettings />} />
@@ -132,7 +136,7 @@ export const adminRoutes = (
     <Route path="/admin/settings/dashboard-widgets" element={<DashboardWidgets />} />
     <Route path="/admin/settings/agency-roles" element={<Navigate to="/admin/roles?tab=agency" replace />} />
     {/* Backward compatibility — old SSO route redirects to security settings */}
-    <Route path="/admin/sso-settings" element={<Navigate to="/admin/settings/security" replace />} />
+    <Route path="/admin/sso-settings" element={<Navigate to="/admin/security/sso" replace />} />
 
     <Route path="/admin/integrations" element={<Integrations />} />
     <Route path="/admin/integrations/oauth/callback" element={<OAuthCallback />} />

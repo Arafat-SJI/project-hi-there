@@ -1,6 +1,6 @@
 /**
  * Department Management Admin Page
- * Route: /admin/department
+ * Route: /admin/departments
  */
 
 import { useState } from "react";

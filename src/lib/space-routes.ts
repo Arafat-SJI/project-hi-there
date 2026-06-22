@@ -66,6 +66,7 @@ export const LEGACY_PREFIX_REDIRECTS: Array<{ from: string; to: string }> = [
   { from: "/admin/roles/permissions", to: "/operations/roles/permissions" },
   { from: "/admin/roles", to: "/operations/roles" },
   { from: "/admin/department", to: "/operations/departments" },
+  { from: "/admin/departments", to: "/operations/departments" },
   { from: "/admin/audit-logs", to: "/operations/activity-logs" },
   { from: "/admin/logs", to: "/operations/activity-logs" },
   { from: "/admin/feedback", to: "/operations/feedback" },
