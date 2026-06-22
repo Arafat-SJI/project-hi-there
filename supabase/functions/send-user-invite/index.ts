@@ -202,12 +202,20 @@ serve(async (req) => {
       action: resend ? "invite.resent" : "invite.sent",
       resource_type: "user_invite",
       resource_id: invite.id,
-      details: { email: invite.email, email_sent: emailResult.success },
+      details: {
+        email: invite.email,
+        email_sent: emailResult.success,
+        revoked_invite_id: revokedInviteId,
+        expires_at: invite.expires_at,
+      },
     });
 
     return new Response(
       JSON.stringify({
         invite,
+        invite_id: invite.id,
+        expires_at: invite.expires_at,
+        revoked_invite_id: revokedInviteId,
         email_sent: emailResult.success,
         email_error: emailResult.error,
       }),
