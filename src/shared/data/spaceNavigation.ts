@@ -367,6 +367,7 @@ export const spaceNavigation: Record<SpaceId, SpaceNavGroup[]> = {
           title: "Pods",
           href: "/operations/pods",
           icon: "Layers",
+          adminOnly: true,
           requiredPermissions: ["settings.admin"],
         },
         {
