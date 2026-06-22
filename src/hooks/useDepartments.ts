@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys, invalidateKeys } from "@/lib/cache";
 import { toast } from "sonner";
+import { logActivity } from "@/lib/activity-logger";
 import type { DepartmentFormData } from "@/lib/validation";
 
 export interface Department {
