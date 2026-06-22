@@ -1,4 +1,8 @@
-# CLAUDE.md — SJ Control Tower Framework
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+# SJ Control Tower Framework
 
 ## Project Overview
 
