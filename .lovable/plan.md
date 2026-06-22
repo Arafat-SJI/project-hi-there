@@ -1,84 +1,62 @@
-## Goal
+# Plan: ClickUp-Brain²-Style Pitch Deck → CollabAI Control Tower Edition
 
-Create two cold-outreach marketing artifacts for **CollabAI Control Tower**, targeting decision-makers at legal, accounting, and financial services firms:
+Rebuild `/mnt/documents/collabai-pitch-deck.pptx` (+ `.pdf`) mirroring the narrative arc of ClickUp's `meet-brain.html`, but with two key shifts:
 
-1. A hybrid "clickbait" cold email
-2. A short 10-slide pitch deck (PPTX + PDF)
+1. **"Brain" → "Knowledge Base"** everywhere
+2. **Lead story = Control Tower unifies scattered tools** (CRM + Jira + Meetings + Docs + Drive + Teams → one analytical view). The Knowledge Base is what makes that unified view *intelligent*.
 
-Both drive to **https://collabai.software/book-demo**.
+**No pricing. No $ figures. No seat counts. Anywhere.**
 
----
+## Core narrative
 
-## Deliverables
+> Your data lives in 10+ tools — HubSpot, Salesforce, Jira, Confluence, Zoom, Teams, Drive, SharePoint, ActiveCollab, Outlook. None of them talk to each other. Your team can't see the whole picture, so decisions get made blind.
+>
+> **CollabAI Control Tower** connects every app you already use, pulls the data into one analytical view, and powers it with a **Knowledge Base** that already knows your work.
 
-All files written to `/mnt/documents/` and delivered as downloadable artifacts.
+## Capability mapping (ClickUp Brain² claim → CollabAI reality)
 
-| File | Format | Purpose |
-|---|---|---|
-| `collabai-cold-email.md` | Markdown | Copy/paste into Gmail, Outlook, HubSpot |
-| `collabai-cold-email.html` | HTML | Drop into SendGrid, Mailchimp, Apollo |
-| `collabai-pitch-deck.pptx` | PowerPoint | Attach or present live |
-| `collabai-pitch-deck.pdf` | PDF | Email-friendly leave-behind |
+| ClickUp says | CollabAI Control Tower equivalent |
+|---|---|
+| "Your company's AI" | Multi-tenant Knowledge Base with RLS, SSO, pgVector org memory |
+| "Personality" | Prompt Templates + Agent Personalizations + user memory |
+| "Every model, one Brain" | Multi-provider routing (OpenAI, Claude, Gemini, Lovable AI) — all query the same KB |
+| "Already knows the work" | RAG over Meetings, Docs, Projects, Deals, Tasks (`unified_documents` + embeddings) |
+| "Slides / Artifacts" | KB-powered agents generate decks, briefs, exec summaries |
+| "Super Agents 24/7" | 24+ specialized agents reading from your KB |
+| "Connected apps & MCP" | 20+ integrations + MCP |
+| "Build any system" | Knowledge categories, personal + org KB, semantic search, agent teams |
 
----
+## Deck structure (10 slides — no pricing)
 
-## 1. Cold Email (hybrid clickbait)
+1. **Cover** — "One Control Tower for every tool your team already uses." + booking pill
+2. **The problem: your data is scattered** — visual: 10 disconnected app logos floating in chaos, with a frustrated stat ("Teams check 6+ tools to answer one question"). Sets up the pain.
+3. **The fix: one place to see everything** — Control Tower diagram: CRM + Jira + Meetings + Docs + Drive + Teams → **Control Tower** → unified analytical view (deals, projects, meetings, KPIs side-by-side)
+4. **Three things no other platform matches** — Unified View · Knowledge Base · Agentic Action (tri-column)
+5. **It doesn't just show data. It does the work.** — 6-tile grid: Unified Analytics · Semantic Search · Auto-Indexed Meetings · Generated Artifacts · Agent-Ready Context · MCP & Integrations
+6. **One Knowledge Base, every model** — provider row (OpenAI · Claude · Gemini · Lovable AI) + "auto-routed or hand-picked", all querying the same KB
+7. **Connected to everything you already use** — integration logo wall: HubSpot, Salesforce, Zoho, Jira, Confluence, ActiveCollab, Zoom, Teams, Meet, Slack, Drive, SharePoint, Outlook, ClickUp, MCP — with a sub-line: *"We don't replace your stack. We make it visible."*
+8. **24+ specialized agents read from your unified KB** — sample agent cards (Deal Coach, Meeting Summarizer, Project Risk Analyst, etc.)
+9. **Enterprise-grade by default** — SSO (Google/Azure/SAML), RLS multi-tenant, audit logs, private/on-prem deployment, signed-URL storage
+10. **CTA** — "Book a 20-min demo" + `https://collabai.software/book-demo` + QR code
 
-**Subject line A/B options (3 variants):**
-- "Your competitors already have private AI agents — do you?"
-- "ChatGPT is costing your firm $108K/year. There's a better way."
-- "The AI your partners *wish* you'd give them"
+## Design
 
-**Preview text:** "Private AI agents. Behind your firewall. Built for legal, accounting, and financial firms."
+- Palette: deep navy `#0F172A` cover/CTA, white body, cyan `#06B6D4` accent, slate `#64748B` secondary
+- Bold display headers, oversized stats, cyan pulse-dot prefix on section labels
+- No accent underlines beneath titles (AI-tell)
+- Every slide has a visual: icon grids, logo wall, scattered-vs-unified diagram, agent cards, provider row
 
-**Body (~150 words):**
-1. Hook — "Your associates are pasting client data into ChatGPT right now."
-2. Stakes — privilege, compliance, audit-trail risk
-3. Reframe — CollabAI Control Tower as the private alternative
-4. 3 proof bullets:
-   - Pre-built agents (Legal Research, Tax Advisor, Contract Analyzer)
-   - 100% behind your firewall (SOC 2, HIPAA-ready)
-   - Starts at $4K/yr vs $108K for ChatGPT Enterprise
-5. Soft CTA — "Worth 15 minutes to see what your team could do with it?"
-6. Button → `https://collabai.software/book-demo`
-7. PS — deck attached + live sandbox URL
+## Technical execution
 
-Industry-swap tokens (`{{INDUSTRY}}`, `{{PAIN_POINT}}`) included so the same email works for legal, accounting, and financial prospects with one find-and-replace.
+- Reuse `/tmp/build_deck.js` (pptxgenjs + qrcode); rewrite slide definitions
+- Embed all images base64 (LibreOffice PDF requirement)
+- Build PPTX → LibreOffice (`--env:UserInstallation=file:///tmp/lohome`) → PDF → `pdftoppm` JPEGs
+- QA: visually inspect every slide AND grep PPTX text for `$|price|pricing|cost|/seat|/user/mo` to guarantee zero pricing leakage; fix and re-render before delivering
+- Deliver `<presentation-artifact>` links for both `.pptx` and `.pdf`
 
----
+## Out of scope
+- No app code changes
+- No pricing of any kind
+- No client-specific branding
 
-## 2. Pitch Deck (10 slides, 1920×1080)
-
-Brand-matched to the live product: deep navy `#0F172A`, electric cyan `#06B6D4`, white text, subtle grid, pulsing AI-indicator motif. Dark/light "sandwich" rhythm.
-
-| # | Slide | Visual |
-|---|---|---|
-| 1 | "Your AI Agents. One Control Center." | Full-bleed dark, glowing badge |
-| 2 | The Problem — scattered AI, leaking client data | 4-icon grid |
-| 3 | The Risk — privilege/HIPAA/SOC 2 stat callouts | Large amber-accented numbers |
-| 4 | The Solution — Control Tower diagram | Hub-and-spoke: agents → firewall → data |
-| 5 | Pre-Built AI Agents | 6-card grid (Legal Research, Tax Advisor, Contract Analyzer, Meeting Intel, Knowledge Search, Client CRM) |
-| 6 | Private by Design | Firewall boundary + SOC2/HIPAA badges |
-| 7 | vs ChatGPT Enterprise vs Copilot | Comparison table (from `PricingPreview.tsx`) |
-| 8 | Outcomes — 10x faster, 70% response-time drop, $104K saved | 3 big stats |
-| 9 | Pricing — "Starting at $4K/yr" vs competitor anchors | Big number + 3 bullets |
-| 10 | CTA — "See it live in 15 minutes" | `collabai.software/book-demo` + QR code |
-
-**Design tokens:** Outfit Bold headers, Inter body, palette `#0F172A` / `#06B6D4` / `#FFFFFF` / `#F59E0B`. Pulsing-dot motif in every footer.
-
----
-
-## Technical Plan
-
-1. Write `.md` + `.html` email files directly.
-2. Read `tailwind.config.ts` and `src/index.css` to lock exact product hex values.
-3. Generate `.pptx` via `pptxgenjs` (install globally), embed images as base64.
-4. Convert to PDF via LibreOffice (`run_libreoffice.py`).
-5. **Mandatory visual QA** (per PPTX skill): render every slide to JPG with `pdftoppm`, inspect each for overflow / contrast / alignment / leftover placeholder text, fix and re-verify.
-6. Deliver all 4 files as `<presentation-artifact>` tags.
-
-No app code is modified — pure marketing artifact task.
-
----
-
-Approve and I'll build all four files in one pass.
+Approve and I'll build it.
