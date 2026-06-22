@@ -308,9 +308,15 @@ export function useDeleteDepartment() {
         .eq("id", id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       invalidateKeys.departments(queryClient);
+      void logActivity({
+        action: "department.deleted",
+        resourceType: "department",
+        resourceId: id,
+      });
       toast.success("Department deactivated successfully");
     },
     onError: (error: Error) => {
