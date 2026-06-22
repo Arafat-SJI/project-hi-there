@@ -400,12 +400,14 @@ export const spaceNavigation: Record<SpaceId, SpaceNavGroup[]> = {
           title: "Integrations",
           href: "/operations/integrations",
           icon: "Zap",
+          adminOnly: true,
           requiredPermissions: ["integrations.admin", "settings.admin"],
         },
         {
           title: "MCP Servers",
           href: "/operations/mcp-servers",
           icon: "Plug",
+          adminOnly: true,
           requiredPermissions: ["settings.admin"],
         },
         {
