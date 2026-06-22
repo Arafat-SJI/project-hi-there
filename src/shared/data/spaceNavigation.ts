@@ -553,6 +553,7 @@ export const spaceNavigation: Record<SpaceId, SpaceNavGroup[]> = {
       id: "eos-admin",
       title: "EOS Admin",
       icon: "Shield",
+      adminOnly: true,
       items: [
         {
           title: "EOS Hub Admin",
