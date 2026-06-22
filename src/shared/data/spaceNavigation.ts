@@ -31,6 +31,7 @@ export interface SpaceNavGroup {
   items: SpaceNavItem[];
   agencyRoles?: AgencyRole[];
   eosOnly?: boolean;
+  adminOnly?: boolean;
 }
 
 export const spaceNavigation: Record<SpaceId, SpaceNavGroup[]> = {
