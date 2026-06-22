@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys, invalidateKeys } from "@/lib/cache";
 import { toast } from "sonner";
+import { logActivity } from "@/lib/activity-logger";
 import type { DepartmentFormData } from "@/lib/validation";
 
 export interface Department {
@@ -239,8 +240,14 @@ export function useCreateDepartment() {
       if (error) throw error;
       return department as Department;
     },
-    onSuccess: () => {
+    onSuccess: (department) => {
       invalidateKeys.departments(queryClient);
+      void logActivity({
+        action: "department.created",
+        resourceType: "department",
+        resourceId: department.id,
+        details: { name: department.name },
+      });
       toast.success("Department created successfully");
     },
     onError: (error: Error) => {
@@ -272,9 +279,15 @@ export function useUpdateDepartment() {
       if (error) throw error;
       return department as Department;
     },
-    onSuccess: (_, { id }) => {
+    onSuccess: (department, { id }) => {
       invalidateKeys.departments(queryClient);
       queryClient.invalidateQueries({ queryKey: queryKeys.departments.detail(id) });
+      void logActivity({
+        action: "department.updated",
+        resourceType: "department",
+        resourceId: id,
+        details: { name: department.name },
+      });
       toast.success("Department updated successfully");
     },
     onError: (error: Error) => {
@@ -295,9 +308,15 @@ export function useDeleteDepartment() {
         .eq("id", id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       invalidateKeys.departments(queryClient);
+      void logActivity({
+        action: "department.deleted",
+        resourceType: "department",
+        resourceId: id,
+      });
       toast.success("Department deactivated successfully");
     },
     onError: (error: Error) => {

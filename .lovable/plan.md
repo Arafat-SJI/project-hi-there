@@ -1,88 +1,62 @@
-# Fix: Admin Panel missing & admin/user menus mixed
+# User Management — Close-Out Follow-ups
 
-## Root cause
+Three small fixes to close the remaining gaps from the audit.
 
-`src/components/routing/AppRoutes.tsx` mounts the admin route tree **only in the legacy branch**:
+## 1. Seed system roles (migration)
 
-```tsx
-{fourSpaces ? (
-  <Route element={<SpaceLayout />}>{globalSpaceRoutes}{spaceRoutes}</Route>
-) : (
-  <>
-    <Route element={<DashboardLayout />}>…</Route>
-    <Route element={<AdminRoute />}>
-      <Route element={<AdminLayout />}>{adminRoutes}</Route>
-    </Route>
-  </>
-)}
-```
+New migration `seed_system_roles.sql`:
+- Upsert into `public.roles` (tenant = default `00000000-0000-0000-0000-000000000001`) the 4 system rows with `is_system = true`:
+  - `owner` — Owner
+  - `admin` — Administrator
+  - `member` — Member
+  - `viewer` — Viewer
+- Use `ON CONFLICT (tenant_id, slug) DO UPDATE SET is_system = true, name = EXCLUDED.name` so existing rows are normalized without losing FK references.
+- No GRANT/RLS changes (table already exists).
 
-The `enableFourSpaces` flag is currently ON, so:
+Guarantees the last-owner guard and UAT prerequisite always have the 4 canonical rows.
 
-1. **Admin Panel is missing** — `/admin` and all `/admin/*` URLs fall through to the catch-all `NotFound`. The "Admin" link in `TopNav` (line 338) leads nowhere.
-2. **Menus look mixed** — `src/shared/data/spaceNavigation.ts` declares admin items (Memory Admin, User Management, Integrations Admin, AI Admin, etc.) inside the per-space groups, gated only by `requiredPermissions: ["...admin"]`. `useSpaceAccess.isNavItemVisible` shows them whenever `isAdmin` is true, so admin entries render right next to user features in the Knowledge / Operations / Sales sidebars.
+## 2. `send-user-invite` — proper resend revocation
 
-## Fix
+Edit `supabase/functions/send-user-invite/index.ts`:
+- When `resend === true` (or when an existing `pending` row is found for the email):
+  1. Update the prior row(s) for that email: `status = 'revoked'`, `cancelled_at = now()`.
+  2. Insert a fresh `user_invites` row with new `token` and new `expires_at` (existing behaviour).
+  3. Emit `activity_logs` entry `invitation.revoked` for the old row in addition to `invite.resent`.
+- Return `{ expires_at, invite_id }` in the response so the UI can show the new expiry inline.
+- No schema changes.
 
-### 1. Mount the Admin route tree in Four Spaces mode
+Closes UAT F29 ("old link must become invalid").
 
-`src/components/routing/AppRoutes.tsx` — add the admin branch as a sibling of `SpaceLayout` (still inside `ProtectedRoute`) so admin routes load with `AdminLayout` (its own `AdminSidebar`), not inside a space:
+## 3. `AcceptInvite` — distinct revoked state + audit emissions
 
-```tsx
-{fourSpaces ? (
-  <>
-    <Route element={<SpaceLayout />}>
-      {globalSpaceRoutes}
-      {spaceRoutes}
-    </Route>
-    <Route element={<AdminRoute />}>
-      <Route element={<AdminLayout />}>{adminRoutes}</Route>
-    </Route>
-  </>
-) : (
-  /* unchanged legacy branch */
-)}
-```
+Edit `src/pages/AcceptInvite.tsx`:
+- Branch error rendering on the error code/string returned by `accept-user-invite`:
+  - `expired` → existing expired card
+  - `cancelled` → existing cancelled card
+  - `revoked` → new card: "This invitation was replaced by a newer one. Please use the latest email." with a "Contact your admin" CTA.
+  - `already_accepted` → existing card
+  - fallback → generic invalid
 
-This restores `/admin` and every `/admin/*` page, using the dedicated `AdminSidebar`.
-
-### 2. Stop bleeding admin entries into space sidebars
-
-- **`src/shared/data/spaceNavigation.ts`** — tag every admin-targeted item with `adminOnly: true` (alongside existing `requiredPermissions`). Concretely, every item whose `href` starts with `/admin` or whose `requiredPermissions` include `settings.admin` / `users.admin` / `integrations.admin` / `ai.admin` / `knowledge.admin` / `meetings.admin` / `projects.admin`. Also flag admin-only groups (e.g. "Administration", "AI Admin", "Memory Admin") with `adminOnly: true` at the group level.
-- **`src/hooks/useSpaceAccess.ts`** — add a `context` option so the hook can be reused for both sidebars:
-
-  ```ts
-  useSpaceAccess({ context: "space" | "admin" } = { context: "space" })
-  ```
-
-  - `context: "space"` → hide `adminOnly` items unconditionally (even for admins — they live in `AdminLayout`).
-  - `context: "admin"` → existing behavior (admins see them).
-
-- **`src/components/layout/SpaceSidebar.tsx`** — call `useSpaceAccess({ context: "space" })`. `AdminSidebar` already doesn't use this hook, so no other caller changes.
-
-### 3. Keep the TopNav entry point
-
-`TopNav` already shows the "Admin" shortcut for admins (line 338) — once step 1 lands the link works. No change needed.
-
-## Files to edit
-
-- `src/components/routing/AppRoutes.tsx` — mount admin tree in fourSpaces branch.
-- `src/hooks/useSpaceAccess.ts` — add `context` option; hide `adminOnly` in space context.
-- `src/shared/data/spaceNavigation.ts` — mark admin items/groups with `adminOnly: true`.
-- `src/components/layout/SpaceSidebar.tsx` — call `useSpaceAccess({ context: "space" })`.
-
-## How to test
-
-1. Sign in as Omkar (admin).
-2. Navigate to `/admin` → Admin Panel loads with `AdminSidebar` (no spaces UI).
-3. Click through `/admin/users`, `/admin/integrations`, `/admin/memory`, `/admin/ai/*` → all routes resolve (no NotFound).
-4. Open `/knowledge/dashboard`, `/sales/...`, `/operations/...` → sidebars show only user-facing items; admin entries no longer appear inside space groups.
-5. TopNav "Admin" shortcut navigates to `/admin`.
-6. Sign in as a non-admin → `/admin` redirects via `AdminRoute`; space sidebars unchanged.
-7. Toggle `enableFourSpaces` OFF → legacy DashboardLayout + admin still works (regression check).
+Audit-log emission sweep (no UI):
+- Verify these mutations write to `activity_logs` via `logCrud` / direct insert. Add the missing ones:
+  - `manage-user-status` edge fn → `user.suspended` / `user.reactivated`
+  - `rbac-manage` → `user.role_changed`, `user.removed`
+  - `DepartmentDialog` / `DepartmentsTable` mutations → `department.created` / `department.updated` / `department.deleted`
+  - `useCancelUserInvite` → `invitation.revoked`
+- Only add the emission where it's missing; keep action names consistent with the Activity Logs filter list.
 
 ## Out of scope
 
-- Re-categorizing individual admin pages inside `AdminSidebar`.
-- Permission catalog changes.
-- Visual redesign of either sidebar.
+- New tables, RLS rewrites.
+- MFA, sessions, multi-tenant `org_members`.
+- Visual redesign of any page.
+
+## Sequence
+
+1 (migration) → 2 (edge fn) → 3 (UI + audit emissions). Phases 2 and 3 can run in parallel after the migration lands.
+
+## Acceptance
+
+- UAT prerequisite: 4 system roles present with `is_system=true`.
+- UAT F29: resending an invite invalidates the prior token immediately (verified by attempting old link → "revoked" card).
+- Activity Logs CSV includes `user.suspended`, `user.reactivated`, `department.*`, `invitation.revoked`, `user.role_changed`, `user.removed` after exercising each action.

@@ -17,8 +17,16 @@ export type ActivityAction =
   | "invite.resent"
   | "invite.accepted"
   | "invite.cancelled"
+  | "invitation.revoked"
   | "user.role_assigned"
+  | "user.role_changed"
   | "user.department_changed"
+  | "user.suspended"
+  | "user.reactivated"
+  | "user.removed"
+  | "department.created"
+  | "department.updated"
+  | "department.deleted"
   | "onboarding.completed";
 
 export type ResourceType =
@@ -31,6 +39,7 @@ export type ResourceType =
   | "settings"
   | "role"
   | "user_invite"
+  | "department"
   | null;
 
 interface LogActivityParams {

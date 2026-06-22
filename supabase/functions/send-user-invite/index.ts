@@ -49,6 +49,7 @@ serve(async (req) => {
     } = body;
 
     let invite;
+    let revokedInviteId: string | null = null;
 
     if (resend && invite_id) {
       const { data: existing } = await serviceClient
@@ -64,19 +65,43 @@ serve(async (req) => {
         });
       }
 
-      const { data: updated, error } = await serviceClient
+      // Revoke the prior row so its token is immediately invalid
+      await serviceClient
         .from("user_invites")
         .update({
-          token: crypto.randomUUID(),
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          status: "revoked",
+          cancelled_at: new Date().toISOString(),
+        })
+        .eq("id", invite_id);
+      revokedInviteId = invite_id;
+
+      await serviceClient.from("activity_logs").insert({
+        user_id: userId,
+        action: "invitation.revoked",
+        resource_type: "user_invite",
+        resource_id: invite_id,
+        details: { email: existing.email, reason: "resend" },
+      });
+
+      // Insert a fresh invite row carrying forward the prior assignments
+      const { data: created, error } = await serviceClient
+        .from("user_invites")
+        .insert({
+          email: existing.email,
+          role: role || existing.role,
+          role_id: role_id || existing.role_id,
+          department_id: department_id ?? existing.department_id,
+          pod_id: pod_id ?? existing.pod_id,
+          welcome_message: welcome_message ?? existing.welcome_message,
+          invited_by: userId,
+          tenant_id: existing.tenant_id ?? DEFAULT_TENANT,
           status: "pending",
         })
-        .eq("id", invite_id)
         .select()
         .single();
 
       if (error) throw error;
-      invite = updated;
+      invite = created;
     } else {
       if (!email) {
         return new Response(JSON.stringify({ error: "email is required" }), {
@@ -177,12 +202,20 @@ serve(async (req) => {
       action: resend ? "invite.resent" : "invite.sent",
       resource_type: "user_invite",
       resource_id: invite.id,
-      details: { email: invite.email, email_sent: emailResult.success },
+      details: {
+        email: invite.email,
+        email_sent: emailResult.success,
+        revoked_invite_id: revokedInviteId,
+        expires_at: invite.expires_at,
+      },
     });
 
     return new Response(
       JSON.stringify({
         invite,
+        invite_id: invite.id,
+        expires_at: invite.expires_at,
+        revoked_invite_id: revokedInviteId,
         email_sent: emailResult.success,
         email_error: emailResult.error,
       }),

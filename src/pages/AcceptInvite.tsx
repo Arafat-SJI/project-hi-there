@@ -62,13 +62,20 @@ export default function AcceptInvite() {
 
   if (error) {
     const lower = error.toLowerCase();
+    const isRevoked = lower.includes("revoked");
     const title = lower.includes("already accepted")
       ? "Invitation Already Used"
       : lower.includes("expired")
       ? "Invitation Expired"
+      : isRevoked
+      ? "Invitation Replaced"
       : lower.includes("cancelled")
       ? "Invitation Cancelled"
       : "Invalid Invitation";
+
+    const description = isRevoked
+      ? "This invitation was replaced by a newer one. Please use the most recent email sent to you, or contact your administrator to request a new invite."
+      : error;
 
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -80,7 +87,7 @@ export default function AcceptInvite() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4">{error}</p>
+            <p className="text-muted-foreground mb-4">{description}</p>
             <Button asChild>
               <Link to="/login">Go to Login</Link>
             </Button>

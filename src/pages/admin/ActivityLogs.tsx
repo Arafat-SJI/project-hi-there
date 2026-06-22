@@ -64,8 +64,13 @@ const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   "invite.sent": Plus,
   "invite.resent": Plus,
   "invite.accepted": LogIn,
+  "invite.cancelled": Trash2,
+  "invitation.revoked": Trash2,
   "permission.changed": Shield,
   "role.created": Plus,
+  "department.created": Plus,
+  "department.updated": Edit,
+  "department.deleted": Trash2,
 };
 
 const ACTION_COLORS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -83,8 +88,13 @@ const ACTION_COLORS: Record<string, "default" | "secondary" | "destructive" | "o
   "invite.sent": "default",
   "invite.resent": "secondary",
   "invite.accepted": "default",
+  "invite.cancelled": "destructive",
+  "invitation.revoked": "destructive",
   "permission.changed": "secondary",
   "role.created": "default",
+  "department.created": "default",
+  "department.updated": "secondary",
+  "department.deleted": "destructive",
 };
 
 function csvEscape(value: string): string {

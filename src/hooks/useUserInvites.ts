@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { invokeEdgeFunction } from "@/lib/edge-functions";
+import { logActivity } from "@/lib/activity-logger";
 
 export interface UserInvite {
   id: string;
@@ -89,9 +90,16 @@ export function useCancelUserInvite() {
         .eq("id", inviteId);
 
       if (error) throw error;
+      return inviteId;
     },
-    onSuccess: () => {
+    onSuccess: (inviteId) => {
       queryClient.invalidateQueries({ queryKey: ["user_invites"] });
+      void logActivity({
+        action: "invitation.revoked",
+        resourceType: "user_invite",
+        resourceId: inviteId,
+        details: { reason: "cancelled" },
+      });
       toast.success("Invitation cancelled");
     },
     onError: () => toast.error("Failed to cancel invitation"),
