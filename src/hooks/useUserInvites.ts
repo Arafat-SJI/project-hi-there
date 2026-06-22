@@ -90,9 +90,16 @@ export function useCancelUserInvite() {
         .eq("id", inviteId);
 
       if (error) throw error;
+      return inviteId;
     },
-    onSuccess: () => {
+    onSuccess: (inviteId) => {
       queryClient.invalidateQueries({ queryKey: ["user_invites"] });
+      void logActivity({
+        action: "invitation.revoked",
+        resourceType: "user_invite",
+        resourceId: inviteId,
+        details: { reason: "cancelled" },
+      });
       toast.success("Invitation cancelled");
     },
     onError: () => toast.error("Failed to cancel invitation"),
