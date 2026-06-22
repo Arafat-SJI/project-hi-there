@@ -2064,33 +2064,50 @@ export type Database = {
       }
       departments: {
         Row: {
+          color: string | null
           created_at: string | null
           description: string | null
+          head_user_id: string | null
           id: string
           is_active: boolean | null
           manager_id: string | null
           name: string
+          parent_department_id: string | null
           updated_at: string | null
         }
         Insert: {
+          color?: string | null
           created_at?: string | null
           description?: string | null
+          head_user_id?: string | null
           id?: string
           is_active?: boolean | null
           manager_id?: string | null
           name: string
+          parent_department_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          color?: string | null
           created_at?: string | null
           description?: string | null
+          head_user_id?: string | null
           id?: string
           is_active?: boolean | null
           manager_id?: string | null
           name?: string
+          parent_department_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "departments_parent_department_id_fkey"
+            columns: ["parent_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_images: {
         Row: {
