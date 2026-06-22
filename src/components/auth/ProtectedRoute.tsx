@@ -1,9 +1,10 @@
+import { useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 export function ProtectedRoute() {
-  const { user, loading, profileLoading } = useAuth();
+  const { user, profile, loading, profileLoading, signOut } = useAuth();
 
   // Wait for both auth session AND profile (including role) to finish loading.
   // Rendering child routes while profileLoading is true would let role-gated
@@ -20,5 +21,28 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
+  if (profile?.is_active === false) {
+    return <SuspendedScreen onSignOut={signOut} />;
+  }
+
   return <Outlet />;
+}
+
+function SuspendedScreen({ onSignOut }: { onSignOut: () => Promise<void> }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSignOut();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [onSignOut]);
+
+  return (
+    <div className="flex h-screen flex-col items-center justify-center gap-4 text-center px-4">
+      <h1 className="text-2xl font-semibold">Your access has been suspended</h1>
+      <p className="text-muted-foreground max-w-md">
+        Your account access has been suspended by an administrator. Please contact your
+        administrator if you believe this is a mistake. You will be signed out shortly.
+      </p>
+    </div>
+  );
 }

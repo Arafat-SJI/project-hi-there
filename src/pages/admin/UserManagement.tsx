@@ -49,6 +49,15 @@ interface UserProfile {
   deactivated_by: string | null;
 }
 
+async function extractEdgeFunctionError(error: { message?: string; context?: Response }): Promise<string> {
+  try {
+    const body = await error.context?.clone().json();
+    return body?.message || body?.error || error.message || "Action failed";
+  } catch {
+    return error.message || "Action failed";
+  }
+}
+
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -179,49 +188,46 @@ export default function UserManagement() {
     }
 
     try {
-      // In a real implementation, you would call an edge function to safely delete the user
-      // For now, just delete the profile and role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
+      const { data, error } = await supabase.functions.invoke("manage-user-status", {
+        body: { action: "remove", target_user_id: userId },
+      });
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
+      if (error) {
+        toast.error(await extractEdgeFunctionError(error));
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.message || data.error);
+        return;
+      }
 
-      if (profileError) throw profileError;
-
-      toast.success("User deleted successfully");
+      toast.success("User removed successfully");
       fetchUsers();
     } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast.error("Failed to delete user");
+      console.error("Error removing user:", error);
+      toast.error("Failed to remove user");
     }
   };
 
   const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      const { data: currentUserData } = await supabase.auth.getUser();
+      const { data, error } = await supabase.functions.invoke("manage-user-status", {
+        body: {
+          action: currentStatus ? "suspend" : "reactivate",
+          target_user_id: userId,
+        },
+      });
 
-      if (!currentUserData.user) {
-        toast.error("Not authenticated");
+      if (error) {
+        toast.error(await extractEdgeFunctionError(error));
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.message || data.error);
         return;
       }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          is_active: !currentStatus,
-          deactivated_at: !currentStatus ? null : new Date().toISOString(),
-          deactivated_by: !currentStatus ? null : currentUserData.user.id,
-        })
-        .eq("id", userId);
-
-      if (error) throw error;
-
-      toast.success(`User ${!currentStatus ? "activated" : "deactivated"} successfully`);
+      toast.success(`User ${currentStatus ? "deactivated" : "activated"} successfully`);
       fetchUsers();
     } catch (error: any) {
       console.error("Error toggling user status:", error);
