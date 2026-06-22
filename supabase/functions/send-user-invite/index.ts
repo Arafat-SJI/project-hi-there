@@ -85,10 +85,39 @@ serve(async (req) => {
         });
       }
 
+      const normalizedEmail = email.toLowerCase().trim();
+
+      const { data: existingProfile } = await serviceClient
+        .from("profiles")
+        .select("id")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (existingProfile) {
+        return new Response(
+          JSON.stringify({ error: "already_member", message: "This email already belongs to a user" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: existingInvite } = await serviceClient
+        .from("user_invites")
+        .select("id")
+        .eq("email", normalizedEmail)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (existingInvite) {
+        return new Response(
+          JSON.stringify({ error: "already_pending", message: "An invitation is already pending for this email" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       const { data: created, error } = await serviceClient
         .from("user_invites")
         .insert({
-          email: email.toLowerCase().trim(),
+          email: normalizedEmail,
           role: role || "user",
           role_id: role_id || null,
           department_id: department_id || null,

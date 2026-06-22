@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
 import { useUserInvites, useCreateUserInvite, useDeleteUserInvite, useResendUserInvite } from "@/hooks/useUserInvites";
 import { useDepartments } from "@/hooks/useDepartments";
+import { BulkInviteDialog } from "@/components/admin/BulkInviteDialog";
 
 interface UserProfile {
   id: string;
@@ -77,6 +78,7 @@ export default function UserManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [bulkInviteDialogOpen, setBulkInviteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -295,10 +297,16 @@ export default function UserManagement() {
             Manage user accounts, roles, and permissions
           </p>
         </div>
-        <Button onClick={() => setInviteDialogOpen(true)}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Invite User
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkInviteDialogOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Bulk Invite (CSV)
+          </Button>
+          <Button onClick={() => setInviteDialogOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Invite User
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -727,6 +735,8 @@ export default function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkInviteDialog open={bulkInviteDialogOpen} onOpenChange={setBulkInviteDialogOpen} />
     </div>
   );
 }

@@ -34,7 +34,7 @@ export default function AcceptInvite() {
 
     invokeEdgeFunction<{ invite: InviteDetails }>("validate-user-invite", { token })
       .then((data) => setInvite(data.invite))
-      .catch(() => setError("Invalid or expired invitation"))
+      .catch((err) => setError(err instanceof Error ? err.message : "Invalid or expired invitation"))
       .finally(() => setLoading(false));
   }, [token]);
 
@@ -61,13 +61,22 @@ export default function AcceptInvite() {
   }
 
   if (error) {
+    const lower = error.toLowerCase();
+    const title = lower.includes("already accepted")
+      ? "Invitation Already Used"
+      : lower.includes("expired")
+      ? "Invitation Expired"
+      : lower.includes("cancelled")
+      ? "Invitation Cancelled"
+      : "Invalid Invitation";
+
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-5 w-5" />
-              Invalid Invitation
+              {title}
             </CardTitle>
           </CardHeader>
           <CardContent>
