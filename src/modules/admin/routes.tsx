@@ -92,6 +92,7 @@ export const adminRoutes = (
   <>
     {/* Dashboard */}
     <Route path="/admin" element={<Admin />} />
+    <Route path="/admin/design-tokens" element={<DesignTokens />} />
     <Route path="/admin/ai/agent-categories" element={<AgentCategories />} />
     <Route path="/admin/ai/agents" element={<AIAgents />} />
     <Route path="/admin/ai/chat" element={<AIChat />} />
