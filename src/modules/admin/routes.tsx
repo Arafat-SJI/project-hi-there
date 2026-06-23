@@ -47,6 +47,7 @@ import OnboardingWizard from "@/pages/admin/OnboardingWizard";
 import SSOSettings from "@/pages/admin/SSOSettings";
 import MFAPolicyPage from "@/pages/admin/MFAPolicyPage";
 import SignupWhitelistPage from "@/pages/admin/SignupWhitelistPage";
+import AdminSessions from "@/pages/admin/AdminSessions";
 import MeetingAnalytics from "@/pages/admin/MeetingAnalytics";
 import FeedbackManagement from "@/pages/admin/FeedbackManagement";
 import MCPServers from "@/pages/MCPServers";
@@ -123,6 +124,7 @@ export const adminRoutes = (
     <Route path="/admin/security/sso" element={<SSOSettings />} />
     <Route path="/admin/security/mfa" element={<MFAPolicyPage />} />
     <Route path="/admin/security/signup-whitelist" element={<SignupWhitelistPage />} />
+    <Route path="/admin/security/sessions" element={<AdminSessions />} />
     <Route path="/admin/logs" element={<ActivityLogs />} />
     <Route path="/admin/audit-logs" element={<ActivityLogs />} />
 

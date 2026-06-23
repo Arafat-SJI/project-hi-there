@@ -223,6 +223,11 @@ export const queryKeys = {
     domains: ["signupWhitelist", "domains"] as const,
   },
 
+  // Admin session management
+  adminSessions: {
+    list: ["adminSessions", "list"] as const,
+  },
+
   // Departments
   departments: {
     all: ["departments"] as const,
@@ -368,6 +373,9 @@ export const invalidateKeys = {
   },
   signupWhitelist: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.signupWhitelist.domains });
+  },
+  adminSessions: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.adminSessions.list });
   },
   departments: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.departments.all });
