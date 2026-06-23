@@ -83,6 +83,7 @@ import AIAnalytics from "@/pages/admin/ai/AIAnalytics";
 import KnowledgeSearch from "@/pages/admin/ai-hub/KnowledgeSearch";
 import Memory from "@/pages/admin/ai-hub/Memory";
 import { adminNotificationRoutes } from "@/modules/notifications/adminRoutes";
+import DesignTokens from "@/pages/admin/DesignTokens";
 
 /**
  * Admin routes - require admin role
@@ -91,6 +92,7 @@ export const adminRoutes = (
   <>
     {/* Dashboard */}
     <Route path="/admin" element={<Admin />} />
+    <Route path="/admin/design-tokens" element={<DesignTokens />} />
     <Route path="/admin/ai/agent-categories" element={<AgentCategories />} />
     <Route path="/admin/ai/agents" element={<AIAgents />} />
     <Route path="/admin/ai/chat" element={<AIChat />} />
