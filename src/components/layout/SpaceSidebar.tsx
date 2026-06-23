@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useSpace } from "@/contexts/SpaceContext";
 import { useSpaceAccess } from "@/hooks/useSpaceAccess";
-import { useSpacePreferences } from "@/hooks/useSpacePreferences";
 import { useDealPipelineStats } from "@/modules/business-dev/hooks/useDeals";
 import { spaceNavigation, type SpaceNavItem, type SpaceNavGroup } from "@/shared/data/spaceNavigation";
 import { SPACE_REGISTRY } from "@/shared/config/spaces";
+import { SpaceSidebarSwitcher } from "@/components/layout/SpaceSwitcher";
 import {
   Sidebar,
   SidebarContent,
@@ -32,7 +32,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { AIIndicator } from "@/components/ui/ai-indicator";
-import { Input } from "@/components/ui/input";
 import {
   LayoutDashboard,
   Users,
@@ -74,8 +73,6 @@ import {
   Plug,
   Palette,
   Mail,
-  Star,
-  Clock,
   FlaskConical,
   Database,
   Cpu,
@@ -123,8 +120,6 @@ const iconMap: Record<string, LucideIcon> = {
   Plug,
   Palette,
   Mail,
-  Star,
-  Clock,
   FlaskConical,
   Database,
   Cpu,
@@ -145,13 +140,11 @@ export function SpaceSidebar() {
   const { companyName } = useBranding();
   const { currentSpace } = useSpace();
   const { isNavItemVisible, isNavGroupVisible } = useSpaceAccess({ context: "space" });
-  const { favorites, recentPages, toggleFavorite, isFavorite } = useSpacePreferences();
   const { data: dealStats } = useDealPipelineStats();
-  const dealStageCounts = dealStats?.by_stage ?? {};
   const spaceDef = SPACE_REGISTRY[currentSpace];
   const groups = spaceNavigation[currentSpace] ?? [];
+  const dashboardPath = spaceDef.dashboardPath;
 
-  const [sidebarSearch, setSidebarSearch] = useState("");
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem(menuStateKey(currentSpace));
@@ -192,36 +185,24 @@ export function SpaceSidebar() {
   };
 
   const visibleGroups = useMemo(() => {
-    const q = sidebarSearch.trim().toLowerCase();
-    const itemMatches = (item: SpaceNavItem) => {
-      if (!q) return true;
-      if (item.title.toLowerCase().includes(q)) return true;
-      return (item.children ?? []).some((c) => c.title.toLowerCase().includes(q));
-    };
     return groups
       .filter(isNavGroupVisible)
       .map((group) => ({
         ...group,
-        items: group.items.filter(isNavItemVisible).filter(itemMatches),
+        items: group.items
+          .filter(isNavItemVisible)
+          .filter((item) => item.href.split("?")[0] !== dashboardPath),
       }))
       .filter((g) => g.items.length > 0);
-  }, [groups, isNavGroupVisible, isNavItemVisible, sidebarSearch]);
-
-  const spaceFavorites = favorites.filter((f) => f.spaceId === currentSpace);
-  const spaceRecents = recentPages.filter((r) => r.spaceId === currentSpace);
+  }, [groups, isNavGroupVisible, isNavItemVisible, dashboardPath]);
 
   const renderNavItem = (item: SpaceNavItem, group: SpaceNavGroup) => {
     const Icon = resolveIcon(item.icon);
-    const children = item.children?.filter(isNavItemVisible).filter((child) => {
-      const q = sidebarSearch.trim().toLowerCase();
-      if (!q) return true;
-      return child.title.toLowerCase().includes(q);
-    }) ?? [];
+    const children = item.children?.filter(isNavItemVisible) ?? [];
     const hasChildren = children.length > 0;
     const itemKey = `${group.id}-${item.title}`;
     const childActive = children.some((c) => isRouteActive(c.href));
     const isOpen = openMenus[itemKey] ?? (childActive || item.headerOnly === true);
-    const favorited = isFavorite(item.href);
 
     if (hasChildren) {
       return (
@@ -280,25 +261,11 @@ export function SpaceSidebar() {
           <Link to={item.href}>
             <Icon />
             <span>{item.title}</span>
-            <button
-              type="button"
-              className="ml-auto opacity-0 group-hover/menu-item:opacity-100 hover:opacity-100"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleFavorite({
-                  title: item.title,
-                  href: item.href,
-                  spaceId: currentSpace,
-                  icon: item.icon,
-                });
-              }}
-              aria-label={favorited ? "Remove favorite" : "Add favorite"}
-            >
-              <Star
-                className={cn("h-3.5 w-3.5", favorited && "fill-amber-400 text-amber-400")}
-              />
-            </button>
+            {item.badge && (
+              <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {item.badge}
+              </span>
+            )}
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -313,88 +280,44 @@ export function SpaceSidebar() {
           open ? "p-4" : "p-0 h-12 flex items-center justify-center"
         )}
       >
-        <Link
-          to={spaceDef.dashboardPath}
-          className={cn("flex items-center gap-3", !open && "justify-center")}
-        >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary shadow-sm">
-            <Brain className="h-5 w-5 text-primary-foreground" />
-          </div>
-          {open && (
-            <div className="flex min-w-0 flex-col">
-              <span className="text-sm font-semibold text-sidebar-foreground truncate">
-                {spaceDef.label} Space
-              </span>
-              <span className="text-xs text-muted-foreground truncate">{companyName}</span>
+        <div className={cn("w-full", !open && "flex justify-center")}>
+          <Link
+            to={dashboardPath}
+            className={cn("flex items-center gap-3", !open && "justify-center")}
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary shadow-sm">
+              <Brain className="h-5 w-5 text-primary-foreground" />
             </div>
-          )}
-        </Link>
+            {open && (
+              <div className="flex min-w-0 flex-col">
+                <span className="text-sm font-semibold text-sidebar-foreground truncate">
+                  Control Tower
+                </span>
+                <span className="text-xs text-muted-foreground truncate">{companyName}</span>
+              </div>
+            )}
+          </Link>
+          {open && <SpaceSidebarSwitcher />}
+        </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        {open && (
-          <SidebarGroup className="py-2">
-            <div className="px-2">
-              <Input
-                placeholder="Filter menu…"
-                value={sidebarSearch}
-                onChange={(e) => setSidebarSearch(e.target.value)}
-                className="h-8 text-xs"
-              />
-            </div>
-          </SidebarGroup>
-        )}
-
-        {spaceFavorites.length > 0 && !sidebarSearch.trim() && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center gap-1.5">
-              <Star className="h-3.5 w-3.5" /> Favorites
-            </SidebarGroupLabel>
-            <SidebarMenu>
-              {spaceFavorites.map((fav) => {
-                const Icon = resolveIcon(fav.icon);
-                return (
-                  <SidebarMenuItem key={fav.href}>
-                    <SidebarMenuButton asChild isActive={isRouteActive(fav.href)} tooltip={fav.title}>
-                      <Link to={fav.href}>
-                        <Icon />
-                        <span>{fav.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
-
-        {spaceRecents.length > 0 && !sidebarSearch.trim() && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" /> Recent
-            </SidebarGroupLabel>
-            <SidebarMenu>
-              {spaceRecents.slice(0, 5).map((recent) => (
-                <SidebarMenuItem key={recent.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isRouteActive(recent.href)}
-                    tooltip={recent.title}
-                  >
-                    <Link to={recent.href}>
-                      <Clock className="h-4 w-4" />
-                      <span className="truncate">{recent.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
-
-        {(spaceFavorites.length > 0 || spaceRecents.length > 0) && !sidebarSearch.trim() && (
-          <SidebarSeparator />
-        )}
+      <SidebarContent className="scrollbar-modern">
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isRouteActive(dashboardPath)}
+                tooltip="Dashboard"
+              >
+                <Link to={dashboardPath}>
+                  <LayoutDashboard />
+                  <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
         {visibleGroups.map((group) => (
           <SidebarGroup key={group.id}>
@@ -428,8 +351,8 @@ export function SpaceSidebar() {
       {open && (
         <SidebarFooter className="border-t border-sidebar-border">
           <div className="rounded-lg bg-sidebar-accent/50 px-4 py-3">
-            <p className="text-sm font-medium text-sidebar-foreground">{spaceDef.label}</p>
-            <p className="text-xs text-muted-foreground">Four Spaces IA</p>
+            <p className="text-sm font-medium text-sidebar-foreground">Framework</p>
+            <p className="text-xs text-muted-foreground">v1.0.0 — Enterprise</p>
           </div>
         </SidebarFooter>
       )}

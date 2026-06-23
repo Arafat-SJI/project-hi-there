@@ -118,6 +118,51 @@ export function resolveLegacyRedirect(pathname: string, search = ""): string | n
   return null;
 }
 
+/**
+ * Resolve a Four Spaces path back to its legacy equivalent.
+ * Used when enableFourSpaces is disabled.
+ */
+export function resolveSpaceToLegacyRedirect(pathname: string, search = ""): string | null {
+  const withSearch = (path: string) =>
+    search ? `${path}${search.startsWith("?") ? search : `?${search}`}` : path;
+
+  for (const [legacy, space] of Object.entries(LEGACY_PATH_REDIRECTS)) {
+    if (pathname === space) {
+      return withSearch(legacy);
+    }
+    if (pathname.startsWith(space + "/")) {
+      const suffix = pathname.slice(space.length);
+      return withSearch(`${legacy}${suffix}`);
+    }
+  }
+
+  for (const { from, to } of LEGACY_PREFIX_REDIRECTS) {
+    if (pathname === to) {
+      return withSearch(from);
+    }
+    if (pathname.startsWith(to + "/")) {
+      const suffix = pathname.slice(to.length);
+      return withSearch(`${from}${suffix}`);
+    }
+  }
+
+  if (pathname.startsWith("/sales/")) return withSearch("/dashboard");
+  if (pathname.startsWith("/knowledge/")) return withSearch("/knowledge");
+  if (pathname.startsWith("/operations/")) return withSearch("/dashboard");
+
+  // Four Spaces EOS-only paths → legacy EOS routes
+  if (pathname === "/eos/dashboard") return withSearch("/eos");
+  if (pathname === "/eos/rocks") return withSearch("/okrs");
+  if (pathname.startsWith("/eos/meetings/")) {
+    const suffix = pathname.slice("/eos/meetings".length);
+    return withSearch(`/meetings${suffix || ""}`);
+  }
+  if (pathname.startsWith("/eos/ids")) return withSearch(pathname.replace("/eos/ids", "/eos/issues"));
+  if (pathname.startsWith("/eos/scorecards")) return withSearch(pathname.replace("/eos/scorecards", "/eos/scorecard"));
+
+  return null;
+}
+
 /** Default space dashboard for a user preference value */
 export function getDashboardForSpace(spaceId: string): string {
   const map: Record<string, string> = {

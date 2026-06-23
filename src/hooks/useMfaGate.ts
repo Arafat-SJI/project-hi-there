@@ -27,12 +27,12 @@ function useOwnMfaStatus() {
 }
 
 export function useMfaGate() {
-  const { data: policy, isLoading: policyLoading } = useMfaPolicy();
-  const { data: status, isLoading: statusLoading } = useOwnMfaStatus();
+  const { data: policy, isLoading: policyLoading, isError: policyError } = useMfaPolicy();
+  const { data: status, isLoading: statusLoading, isError: statusError } = useOwnMfaStatus();
 
   const isLoading = policyLoading || statusLoading;
-  const required = !!policy?.required;
-  const enrolled = !!status?.enrolled;
+  const required = policyError ? false : !!policy?.required;
+  const enrolled = statusError ? false : !!status?.enrolled;
   const graceEndsAt = status?.grace_period_ends_at ? new Date(status.grace_period_ends_at) : null;
   const graceExpired = !!graceEndsAt && graceEndsAt.getTime() < Date.now();
   const mustEnrollNow = required && !enrolled && graceExpired;

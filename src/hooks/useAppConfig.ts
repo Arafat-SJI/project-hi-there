@@ -88,6 +88,11 @@ function transformConfig(rows: ConfigRow[]): AppConfig {
     }
   });
 
+  // Four Spaces disabled — always use legacy Control Tower layout
+  if (config.features) {
+    config.features.enableFourSpaces = false;
+  }
+
   return config as AppConfig;
 }
 

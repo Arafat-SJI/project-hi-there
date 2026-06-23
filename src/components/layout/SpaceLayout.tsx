@@ -4,7 +4,6 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { SpaceProvider } from "@/contexts/SpaceContext";
 import { SpaceSidebar } from "./SpaceSidebar";
 import { TopNav } from "./TopNav";
-import { SpaceBreadcrumbs } from "./SpaceBreadcrumbs";
 import { useOnboardingRedirect } from "@/hooks/useOnboarding";
 import { useSpace } from "@/contexts/SpaceContext";
 import { Loader2 } from "lucide-react";
@@ -34,7 +33,6 @@ function SpaceLayoutInner() {
       <SpaceSidebar />
       <div className="flex flex-1 flex-col min-w-0">
         <TopNav />
-        <SpaceBreadcrumbs />
         <main className="flex-1 min-w-0 overflow-auto p-6 lg:p-8">
           <Outlet />
         </main>

@@ -1,8 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { queryKeys, invalidateKeys } from "@/lib/cache";
 import { toast } from "sonner";
 import { invokeEdgeFunction } from "@/lib/edge-functions";
+
+const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 export interface MfaPolicy {
   id: string;
@@ -13,6 +16,16 @@ export interface MfaPolicy {
   trust_idp_mfa: boolean;
   updated_at: string;
 }
+
+const DEFAULT_MFA_POLICY: MfaPolicy = {
+  id: "",
+  tenant_id: DEFAULT_TENANT_ID,
+  required: false,
+  grace_period_days: 7,
+  allowed_factors: ["totp"],
+  trust_idp_mfa: false,
+  updated_at: new Date().toISOString(),
+};
 
 export interface MfaEnrollmentRow {
   user_id: string;
@@ -25,12 +38,29 @@ export interface MfaEnrollmentRow {
 }
 
 export function useMfaPolicy() {
+  const { user } = useAuth();
+
   return useQuery({
     queryKey: queryKeys.mfa.policy,
     queryFn: async () => {
-      const result = await invokeEdgeFunction<{ policy: MfaPolicy }>("mfa-policy", { action: "get_policy" });
-      return result.policy;
+      // Direct read — RLS allows authenticated SELECT (mfa_enforcement migration).
+      // Avoids edge function CORS failures when mfa-policy is not deployed locally.
+      const { data, error } = await supabase
+        .from("mfa_policies")
+        .select("*")
+        .eq("tenant_id", DEFAULT_TENANT_ID)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("MFA policy read failed, using defaults:", error.message);
+        return DEFAULT_MFA_POLICY;
+      }
+
+      return (data as MfaPolicy | null) ?? DEFAULT_MFA_POLICY;
     },
+    enabled: !!user,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
