@@ -83,6 +83,7 @@ import AIAnalytics from "@/pages/admin/ai/AIAnalytics";
 import KnowledgeSearch from "@/pages/admin/ai-hub/KnowledgeSearch";
 import Memory from "@/pages/admin/ai-hub/Memory";
 import { adminNotificationRoutes } from "@/modules/notifications/adminRoutes";
+import DesignTokens from "@/pages/admin/DesignTokens";
 
 /**
  * Admin routes - require admin role
