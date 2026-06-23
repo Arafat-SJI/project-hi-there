@@ -211,6 +211,13 @@ export const queryKeys = {
     searchAnalytics: ["admin", "searchAnalytics"] as const,
   },
 
+  // MFA enforcement
+  mfa: {
+    policy: ["mfa", "policy"] as const,
+    enrollment: ["mfa", "enrollment"] as const,
+    factors: ["mfa", "factors"] as const,
+  },
+
   // Departments
   departments: {
     all: ["departments"] as const,
@@ -348,6 +355,11 @@ export const invalidateKeys = {
   },
   roles: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.admin.roles });
+  },
+  mfa: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.mfa.policy });
+    queryClient.invalidateQueries({ queryKey: queryKeys.mfa.enrollment });
+    queryClient.invalidateQueries({ queryKey: queryKeys.mfa.factors });
   },
   departments: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.departments.all });

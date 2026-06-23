@@ -25,6 +25,7 @@ import NotFound from "@/pages/NotFound";
 import Dashboard from "@/pages/Dashboard";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
+import AccountSecurity from "@/pages/AccountSecurity";
 import Sessions from "@/pages/Sessions";
 import Help from "@/pages/Help";
 import Feedback from "@/pages/Feedback";
@@ -61,6 +62,7 @@ export const coreProtectedRoutes = (
     <Route path="/onboarding" element={<Onboarding />} />
     <Route path="/profile" element={<Profile />} />
     <Route path="/settings" element={<Settings />} />
+    <Route path="/settings/security" element={<AccountSecurity />} />
     <Route path="/sessions" element={<Sessions />} />
     <Route path="/help" element={<Help />} />
     <Route path="/feedback" element={<Feedback />} />

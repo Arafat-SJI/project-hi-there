@@ -16,9 +16,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, ShieldCheck } from "lucide-react";
+import { Loader2, Save, ShieldCheck, KeyRound, ArrowRight } from "lucide-react";
 import { useAppConfig, useUpdateAppConfig, AppConfig } from "@/hooks/useAppConfig";
 import SSOSettings from "@/pages/admin/SSOSettings";
+import { Link } from "react-router-dom";
 
 export default function SecuritySettings() {
   const { data: config, isLoading } = useAppConfig();
@@ -115,6 +116,28 @@ export default function SecuritySettings() {
             </>
           )}
         </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              <div>
+                <CardTitle>Multi-Factor Authentication</CardTitle>
+                <CardDescription>
+                  Enforce MFA enrollment and manage who still needs to set it up.
+                </CardDescription>
+              </div>
+            </div>
+            <Button variant="outline" asChild>
+              <Link to="/admin/security/mfa">
+                Manage MFA
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
       </Card>
 
       <SSOSettings />

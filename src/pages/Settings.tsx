@@ -13,8 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Bell, Moon, Globe, Shield, Zap, Loader2 } from "lucide-react";
+import { Bell, Moon, Globe, Shield, Zap, Loader2, ArrowRight } from "lucide-react";
 import { ConnectedServices } from "@/components/settings/ConnectedServices";
+import { Link } from "react-router-dom";
 
 export default function Settings() {
   const { data: preferences, isLoading } = usePreferences();
@@ -331,6 +332,23 @@ export default function Settings() {
               }
               disabled={isProcessing}
             />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Two-factor authentication</Label>
+              <p className="text-sm text-muted-foreground">
+                Manage authenticator app and MFA enrollment
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/settings/security">
+                Manage
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>

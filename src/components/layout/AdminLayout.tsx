@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 import { TopNav } from "./TopNav";
+import { MfaGraceBanner } from "@/components/auth/MfaGraceBanner";
 
 export function AdminLayout() {
   return (
@@ -10,6 +11,7 @@ export function AdminLayout() {
         <AdminSidebar />
         <div className="flex flex-1 flex-col min-w-0">
           <TopNav />
+          <MfaGraceBanner />
           <main className="flex-1 min-w-0 overflow-auto p-6 lg:p-8">
             <Outlet />
           </main>

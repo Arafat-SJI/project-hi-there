@@ -534,6 +534,12 @@ verify_jwt = false
 [functions.rbac-manage]
 verify_jwt = false
 
+[functions.mfa-policy]
+verify_jwt = false
+
+[functions.mfa-enrollment]
+verify_jwt = false
+
 [functions.manage-user-status]
 verify_jwt = false
 

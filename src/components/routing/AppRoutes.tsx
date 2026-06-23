@@ -18,6 +18,7 @@ import { adminRoutes } from "@/modules/admin";
 import { spaceRoutes, globalSpaceRoutes } from "@/modules/spaces";
 import ClientPortalDashboard from "@/pages/client/ClientPortalDashboard";
 import ProjectDashboard from "@/pages/client/ProjectDashboard";
+import MFAEnroll from "@/pages/MFAEnroll";
 
 function RouteLoading() {
   return (
@@ -56,6 +57,7 @@ export function AppRoutes() {
       <Route path="/client/project/:token" element={<ProjectDashboard />} />
 
       <Route element={<ProtectedRoute />}>
+        <Route path="/mfa/enroll" element={<MFAEnroll />} />
         {fourSpaces ? (
           <>
             <Route element={<SpaceLayout />}>

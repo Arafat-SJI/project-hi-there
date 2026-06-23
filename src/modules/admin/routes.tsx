@@ -45,6 +45,7 @@ import ResourceUtilizationReports from "@/pages/admin/ResourceUtilizationReports
 import AIModelManagement from "@/pages/admin/AIModelManagement";
 import OnboardingWizard from "@/pages/admin/OnboardingWizard";
 import SSOSettings from "@/pages/admin/SSOSettings";
+import MFAPolicyPage from "@/pages/admin/MFAPolicyPage";
 import MeetingAnalytics from "@/pages/admin/MeetingAnalytics";
 import FeedbackManagement from "@/pages/admin/FeedbackManagement";
 import MCPServers from "@/pages/MCPServers";
@@ -119,6 +120,7 @@ export const adminRoutes = (
     <Route path="/admin/security" element={<Navigate to="/admin/security/authentication" replace />} />
     <Route path="/admin/security/authentication" element={<SecuritySettings />} />
     <Route path="/admin/security/sso" element={<SSOSettings />} />
+    <Route path="/admin/security/mfa" element={<MFAPolicyPage />} />
     <Route path="/admin/logs" element={<ActivityLogs />} />
     <Route path="/admin/audit-logs" element={<ActivityLogs />} />
 
