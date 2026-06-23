@@ -16,10 +16,10 @@ import { useProjectReports } from "@/hooks/useProjectReports";
 function StatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
     "Planning": "bg-violet-100 text-violet-800 border-violet-200",
-    "In Progress": "bg-blue-100 text-blue-800 border-blue-200",
-    "On Hold": "bg-yellow-100 text-yellow-800 border-yellow-200",
-    "Completed": "bg-green-100 text-green-800 border-green-200",
-    "Archived": "bg-gray-100 text-gray-600 border-gray-200",
+    "In Progress": "bg-info/10 text-info border-info/30",
+    "On Hold": "bg-warning/10 text-warning border-warning/30",
+    "Completed": "bg-success/10 text-success border-success/30",
+    "Archived": "bg-muted text-muted-foreground border-border",
   };
   return (
     <Badge variant="outline" className={colorMap[status] || ""}>

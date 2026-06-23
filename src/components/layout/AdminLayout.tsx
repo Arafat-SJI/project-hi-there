@@ -11,7 +11,9 @@ export function AdminLayout() {
         <AdminSidebar />
         <div className="flex flex-1 flex-col min-w-0">
           <TopNav />
-          <MfaGraceBanner />
+          <div className="border-b border-border">
+            <MfaGraceBanner />
+          </div>
           <main className="flex-1 min-w-0 overflow-auto p-6 lg:p-8">
             <Outlet />
           </main>

@@ -475,9 +475,9 @@ export default function EmbeddingsExplorer() {
       { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }
     > = {
       pending: { variant: "outline", label: "Pending", className: "bg-amber-50 text-amber-800 border-amber-200" },
-      processing: { variant: "default", label: "Processing", className: "bg-blue-100 text-blue-800 border-0" },
-      completed: { variant: "secondary", label: "Completed", className: "bg-green-50 text-green-800 border-green-200" },
-      failed: { variant: "destructive", label: "Failed", className: "bg-red-50 text-red-800 border-red-200" },
+      processing: { variant: "default", label: "Processing", className: "bg-info/10 text-info border-0" },
+      completed: { variant: "secondary", label: "Completed", className: "bg-success/10 text-success border-success/30" },
+      failed: { variant: "destructive", label: "Failed", className: "bg-destructive/10 text-destructive border-destructive/30" },
     };
     const c = config[status] ?? { variant: "outline", label: status };
     return (
@@ -488,7 +488,7 @@ export default function EmbeddingsExplorer() {
   };
 
   const sourceIcon = (entityType: string) => {
-    if (entityType === "meeting") return <Video className="h-4 w-4 text-blue-600" />;
+    if (entityType === "meeting") return <Video className="h-4 w-4 text-info" />;
     return <FileText className="h-4 w-4 text-violet-600" />;
   };
 
@@ -514,7 +514,7 @@ export default function EmbeddingsExplorer() {
             />
             <label
               htmlFor="pipeline-active"
-              className={`text-sm font-medium ${pipelineActive ? "text-green-600" : "text-muted-foreground"}`}
+              className={`text-sm font-medium ${pipelineActive ? "text-success" : "text-muted-foreground"}`}
             >
               Pipeline Active
             </label>
@@ -580,8 +580,8 @@ export default function EmbeddingsExplorer() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-blue-100 p-2">
-                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                <div className="rounded-full bg-info/10 p-2">
+                  <Loader2 className="h-5 w-5 text-info animate-spin" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.processing}</p>
@@ -593,8 +593,8 @@ export default function EmbeddingsExplorer() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-green-100 p-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <div className="rounded-full bg-success/10 p-2">
+                  <CheckCircle2 className="h-5 w-5 text-success" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.completed}</p>
@@ -608,8 +608,8 @@ export default function EmbeddingsExplorer() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-red-100 p-2">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
+                <div className="rounded-full bg-destructive/10 p-2">
+                  <AlertCircle className="h-5 w-5 text-destructive" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.failed}</p>

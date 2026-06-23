@@ -226,11 +226,11 @@ export default function IntegrationAnalytics() {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs">
-                <CheckCircle2 className="h-3 w-3 mr-1 text-green-600" />
+                <CheckCircle2 className="h-3 w-3 mr-1 text-success" />
                 {stats.successfulCalls}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                <XCircle className="h-3 w-3 mr-1 text-red-600" />
+                <XCircle className="h-3 w-3 mr-1 text-destructive" />
                 {stats.failedCalls}
               </Badge>
             </div>

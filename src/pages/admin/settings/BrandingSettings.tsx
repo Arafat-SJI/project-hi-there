@@ -165,14 +165,14 @@ function BrandingPreview({ form }: { form: BrandingForm }) {
                 className="h-10 w-auto object-contain"
               />
             )}
-            <p className="text-center text-sm font-semibold text-white">
+            <p className="text-center text-sm font-semibold text-primary-foreground">
               {form.loginMessage || DEFAULTS.loginMessage}
             </p>
-            <p className="text-center text-xs text-white/70">
+            <p className="text-center text-xs text-primary-foreground/70">
               {form.tagline || DEFAULTS.tagline}
             </p>
             <div
-              className="mt-2 rounded px-4 py-1.5 text-xs font-medium text-white"
+              className="mt-2 rounded px-4 py-1.5 text-xs font-medium text-primary-foreground"
               style={{ backgroundColor: form.primaryColor || DEFAULTS.primaryColor }}
             >
               Sign In
@@ -192,7 +192,7 @@ function BrandingPreview({ form }: { form: BrandingForm }) {
               <img src={form.logoUrl} alt="logo" className="h-7 w-7 object-contain" />
             ) : (
               <div
-                className="flex h-7 w-7 items-center justify-center rounded text-xs font-bold text-white"
+                className="flex h-7 w-7 items-center justify-center rounded text-xs font-bold text-primary-foreground"
                 style={{ backgroundColor: form.primaryColor || DEFAULTS.primaryColor }}
               >
                 {(form.companyName || DEFAULTS.companyName).charAt(0).toUpperCase()}
@@ -217,14 +217,14 @@ function BrandingPreview({ form }: { form: BrandingForm }) {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <button
-            className="rounded px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+            className="rounded px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
             style={{ backgroundColor: form.primaryColor || DEFAULTS.primaryColor }}
           >
             Primary Action
           </button>
           {form.secondaryColor && (
             <button
-              className="rounded px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+              className="rounded px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
               style={{ backgroundColor: form.secondaryColor }}
             >
               Secondary

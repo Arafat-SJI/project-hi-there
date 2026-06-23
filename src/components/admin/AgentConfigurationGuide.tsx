@@ -51,7 +51,7 @@ export function FeatureGuideTooltip({ title, description, when, whenNot, example
 
             <div className="space-y-1">
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium">When to use:</p>
                   <p className="text-xs text-muted-foreground">{when}</p>
@@ -79,7 +79,7 @@ export function FeatureGuideTooltip({ title, description, when, whenNot, example
                 href={docs}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
+                className="text-xs text-info hover:underline inline-flex items-center gap-1"
               >
                 Learn more →
               </a>
@@ -179,7 +179,7 @@ export function MultiAgentCollaborationInfo() {
           href="/docs/MULTI_AGENT_TUTORIAL.md"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-blue-600 hover:underline inline-block mt-2"
+          className="text-xs text-info hover:underline inline-block mt-2"
         >
           Read Multi-Agent Tutorial →
         </a>
@@ -208,9 +208,9 @@ export function HITLApprovalInfo() {
           <li>Low-confidence decisions (&lt;70% confidence)</li>
         </ul>
 
-        <div className="bg-blue-50 border border-blue-200 rounded p-2 mt-2">
-          <p className="text-xs font-medium text-blue-900">Pro Tip:</p>
-          <p className="text-xs text-blue-700">
+        <div className="bg-info/10 border border-info/30 rounded p-2 mt-2">
+          <p className="text-xs font-medium text-info">Pro Tip:</p>
+          <p className="text-xs text-info">
             Start with strict approvals (require approval for everything), then relax as you build trust.
           </p>
         </div>
@@ -219,7 +219,7 @@ export function HITLApprovalInfo() {
           href="/docs/HITL_SETUP_GUIDE.md"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-blue-600 hover:underline inline-block mt-2"
+          className="text-xs text-info hover:underline inline-block mt-2"
         >
           Read HITL Setup Guide →
         </a>
@@ -325,7 +325,7 @@ export function SystemPromptGuide() {
         <p className="font-medium">Example Templates:</p>
 
         <div>
-          <p className="font-medium text-green-700">✓ Good:</p>
+          <p className="font-medium text-success">✓ Good:</p>
           <code className="block bg-background p-2 rounded mt-1">
             You are an expert UI/UX designer. Focus on:
             <br />- User-centered design principles
@@ -339,7 +339,7 @@ export function SystemPromptGuide() {
         </div>
 
         <div>
-          <p className="font-medium text-red-700">✗ Bad:</p>
+          <p className="font-medium text-destructive">✗ Bad:</p>
           <code className="block bg-background p-2 rounded mt-1">
             You are a helpful assistant.
           </code>
@@ -397,7 +397,7 @@ export function FeatureComparisonCard() {
           </CardHeader>
           <CardContent className="py-2 pt-0 space-y-2 text-xs">
             <div className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium">Enabled:</p>
                 <p className="text-muted-foreground">{feature.enabled}</p>
@@ -422,10 +422,10 @@ export function FeatureComparisonCard() {
  */
 export function QuickStartWizard() {
   return (
-    <Card className="border-2 border-blue-500">
+    <Card className="border-2 border-info">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Info className="h-5 w-5 text-blue-600" />
+          <Info className="h-5 w-5 text-info" />
           Quick Start Guide
         </CardTitle>
         <CardDescription>
@@ -435,7 +435,7 @@ export function QuickStartWizard() {
       <CardContent className="space-y-4">
         <div className="space-y-3">
           <div className="flex gap-3">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold flex-shrink-0">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-info text-primary-foreground text-xs font-bold flex-shrink-0">
               1
             </div>
             <div className="flex-1">
@@ -447,7 +447,7 @@ export function QuickStartWizard() {
           </div>
 
           <div className="flex gap-3">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold flex-shrink-0">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-info text-primary-foreground text-xs font-bold flex-shrink-0">
               2
             </div>
             <div className="flex-1">
@@ -459,7 +459,7 @@ export function QuickStartWizard() {
           </div>
 
           <div className="flex gap-3">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold flex-shrink-0">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-info text-primary-foreground text-xs font-bold flex-shrink-0">
               3
             </div>
             <div className="flex-1">
@@ -471,7 +471,7 @@ export function QuickStartWizard() {
           </div>
 
           <div className="flex gap-3">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold flex-shrink-0">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-info text-primary-foreground text-xs font-bold flex-shrink-0">
               4
             </div>
             <div className="flex-1">
@@ -483,7 +483,7 @@ export function QuickStartWizard() {
           </div>
 
           <div className="flex gap-3">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold flex-shrink-0">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-info text-primary-foreground text-xs font-bold flex-shrink-0">
               5
             </div>
             <div className="flex-1">
@@ -495,9 +495,9 @@ export function QuickStartWizard() {
           </div>
         </div>
 
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-xs text-green-900">
+        <Alert className="bg-success/10 border-success/30">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertDescription className="text-xs text-success">
             <span className="font-medium">Pro Tip:</span> Start simple! Enable one feature at a time
             and test thoroughly before adding more complexity.
           </AlertDescription>

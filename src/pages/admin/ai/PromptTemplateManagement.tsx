@@ -249,7 +249,7 @@ export default function PromptTemplateManagement() {
             <CardDescription>Active Templates</CardDescription>
           </CardHeader>
           <CardContent>
-            <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <span className="text-2xl font-bold text-success dark:text-green-400">
               {isLoading ? "—" : stats.active}
             </span>
           </CardContent>

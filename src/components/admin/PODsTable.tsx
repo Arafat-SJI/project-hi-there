@@ -97,7 +97,7 @@ export function PODsTable({
               {pod.description || '—'}
             </TableCell>
             <TableCell>
-              <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+              <Badge variant="secondary" className="bg-success/10 text-success border-success/30">
                 {pod.hr_synced_count || 0}
               </Badge>
             </TableCell>
@@ -106,7 +106,7 @@ export function PODsTable({
               {pod.show_in_resource_projection ? (
                 <Badge
                   variant="secondary"
-                  className="bg-green-100 text-green-700 border-green-200 gap-1"
+                  className="bg-success/10 text-success border-success/30 gap-1"
                 >
                   <BarChart2 className="h-3 w-3" />
                   Enabled

@@ -248,8 +248,8 @@ export default function AgentCategories() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-green-500/10 p-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <div className="rounded-lg bg-success/10 p-2">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
@@ -263,8 +263,8 @@ export default function AgentCategories() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-500/10 p-2">
-                <Bot className="h-5 w-5 text-blue-600" />
+              <div className="rounded-lg bg-info/10 p-2">
+                <Bot className="h-5 w-5 text-info" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{totalAgents}</p>
@@ -330,7 +330,7 @@ export default function AgentCategories() {
                         </CardDescription>
                       </div>
                       {category.is_active ? (
-                        <Badge variant="default" className="bg-green-500">
+                        <Badge variant="default" className="bg-success">
                           Active
                         </Badge>
                       ) : (
@@ -443,7 +443,7 @@ export default function AgentCategories() {
                         <TableCell>{category.display_order}</TableCell>
                         <TableCell>
                           {category.is_active ? (
-                            <Badge variant="default" className="bg-green-500">
+                            <Badge variant="default" className="bg-success">
                               Active
                             </Badge>
                           ) : (

@@ -169,7 +169,7 @@ export default function MFAPolicyPage() {
                     </TableCell>
                     <TableCell>
                       {row.enrolled ? (
-                        <Badge variant="default" className="bg-green-600">
+                        <Badge variant="default" className="bg-success">
                           Enrolled
                         </Badge>
                       ) : (

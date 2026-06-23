@@ -250,10 +250,10 @@ export default function FeedbackManagement() {
       closed: "outline",
     };
     const colors: Record<string, string> = {
-      pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-      reviewed: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-      resolved: "bg-green-500/10 text-green-600 border-green-500/20",
-      closed: "bg-gray-500/10 text-gray-600 border-gray-500/20",
+      pending: "bg-warning/10 text-warning border-warning/20",
+      reviewed: "bg-info/10 text-info border-info/20",
+      resolved: "bg-success/10 text-success border-success/20",
+      closed: "bg-muted/500/10 text-muted-foreground border-gray-500/20",
     };
     return (
       <Badge variant="outline" className={`flex items-center gap-1 w-fit ${colors[status] || ""}`}>
@@ -271,7 +271,7 @@ export default function FeedbackManagement() {
           <Star
             key={i}
             className={`h-3 w-3 ${
-              i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+              i < rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"
             }`}
           />
         ))}
@@ -500,7 +500,7 @@ export default function FeedbackManagement() {
                       </TableCell>
                       <TableCell className="text-right">
                         {item.admin_notes ? (
-                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/20">
                             Responded
                           </Badge>
                         ) : (
@@ -578,7 +578,7 @@ export default function FeedbackManagement() {
                         className={`h-5 w-5 ${
                           i < selectedFeedback.rating!
                             ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-300"
+                            : "text-muted-foreground"
                         }`}
                       />
                     ))}

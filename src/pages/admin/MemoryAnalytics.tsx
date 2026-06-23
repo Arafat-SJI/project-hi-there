@@ -89,7 +89,7 @@ export default function MemoryAnalytics() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : queueError ? (
-            <p className="text-sm text-red-500">
+            <p className="text-sm text-destructive">
               Failed to load queue history: {queueError.message}
             </p>
           ) : queueRuns.length === 0 ? (
@@ -142,7 +142,7 @@ export default function MemoryAnalytics() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-[260px]">
                       {(run.failed_count ?? 0) > 0 ? (
-                        <span className="text-red-500">
+                        <span className="text-destructive">
                           {run.failed_count} failed
                         </span>
                       ) : (
@@ -171,7 +171,7 @@ export default function MemoryAnalytics() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : logsError ? (
-            <p className="text-sm text-red-500">
+            <p className="text-sm text-destructive">
               Failed to load search logs: {logsError.message}
             </p>
           ) : searchLogs.length === 0 ? (
