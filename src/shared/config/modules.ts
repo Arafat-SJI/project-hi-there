@@ -28,6 +28,7 @@ export type ModuleId =
   | "lead-followup"
   | "knowledge"
   | "productivity"
+  | "automation"
   | "admin";
 
 export interface ModuleDefinition {
@@ -146,6 +147,17 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultEnabled: true,
     featureFlags: [],
   },
+  automation: {
+    id: "automation",
+    name: "Automation",
+    description: "No-code workflow automation with triggers, actions, and approvals",
+    icon: "Workflow",
+    category: "operations",
+    isCore: false,
+    dependencies: ["platform"],
+    defaultEnabled: true,
+    featureFlags: ["enableAutomations"],
+  },
   admin: {
     id: "admin",
     name: "Admin",
@@ -176,6 +188,7 @@ export function isModuleBundled(moduleId: ModuleId): boolean {
     "business-dev": env.modules.businessDev,
     knowledge: env.modules.knowledge,
     productivity: env.modules.productivity,
+    automation: env.modules.automation,
   };
 
   return envMap[moduleId] ?? mod.defaultEnabled;

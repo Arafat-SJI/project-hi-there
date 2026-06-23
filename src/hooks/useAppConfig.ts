@@ -33,6 +33,7 @@ export interface AppConfig {
     enableZoomSync: boolean;
     useGenericMeetings: boolean;
     enableFourSpaces: boolean;
+    enableAutomations: boolean;
   };
   // Email
   email: {
@@ -204,6 +205,7 @@ export function useResetAppConfig() {
           enableZoomSync: false,
           useGenericMeetings: false,
           enableFourSpaces: false,
+          enableAutomations: true,
         },
         email: {
           enableEmailNotifications: true,

@@ -539,3 +539,18 @@ verify_jwt = false
 
 [functions.update-clickup-task]
 verify_jwt = false
+
+[functions.automation-manage]
+verify_jwt = false
+
+[functions.automation-trigger-evaluator]
+verify_jwt = false
+
+[functions.automation-executor]
+verify_jwt = false
+
+[functions.automation-scheduler]
+verify_jwt = false
+
+[functions.automation-webhook-receiver]
+verify_jwt = false

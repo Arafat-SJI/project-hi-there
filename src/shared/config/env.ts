@@ -34,6 +34,7 @@ export const env = {
     businessDev: envBool("VITE_MODULE_BUSINESS_DEV", true),
     knowledge: envBool("VITE_MODULE_KNOWLEDGE", true),
     productivity: envBool("VITE_MODULE_PRODUCTIVITY", true),
+    automation: envBool("VITE_MODULE_AUTOMATION", true),
     admin: envBool("VITE_MODULE_ADMIN", true),
   },
 

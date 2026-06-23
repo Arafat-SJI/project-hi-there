@@ -256,6 +256,13 @@ export const navigationGroups: NavGroup[] = [
         icon: "MessageCircle",
         featureFlag: "enableFeedback",
       },
+      {
+        title: "Automation",
+        href: "/automation/workflows",
+        icon: "GitBranch",
+        module: "automation",
+        featureFlag: "enableAutomations",
+      },
     ],
   },
 ];
