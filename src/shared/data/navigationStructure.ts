@@ -496,4 +496,16 @@ export const adminNavigation: NavGroup[] = [
       },
     ],
   },
+  {
+    id: "documentation",
+    title: "DOCUMENTATION",
+    icon: "BookOpen",
+    items: [
+      {
+        title: "Design Tokens",
+        href: "/admin/design-tokens",
+        icon: "Palette",
+      },
+    ],
+  },
 ];
