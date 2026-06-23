@@ -278,14 +278,10 @@ export default function DesignTokens() {
                 <CardContent>
                   <dl className="grid grid-cols-[110px_1fr] gap-y-1.5 text-xs">
                     {Object.entries(c.tokens).map(([k, v]) => (
-                      <>
-                        <dt key={`${c.name}-${k}-k`} className="font-medium text-muted-foreground">
-                          {k}
-                        </dt>
-                        <dd key={`${c.name}-${k}-v`} className="font-mono text-foreground/90">
-                          {v}
-                        </dd>
-                      </>
+                      <Fragment key={`${c.name}-${k}`}>
+                        <dt className="font-medium text-muted-foreground">{k}</dt>
+                        <dd className="font-mono text-foreground/90">{v}</dd>
+                      </Fragment>
                     ))}
                   </dl>
                 </CardContent>
