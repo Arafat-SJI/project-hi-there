@@ -162,6 +162,13 @@ export const navigationGroups: NavGroup[] = [
         module: "meetings",
         featureFlag: "enableMeetings",
       },
+      {
+        title: "Meeting Analytics",
+        href: "/meetings/analytics",
+        icon: "BarChart3",
+        module: "meetings",
+        featureFlag: "enableMeetings",
+      },
     ],
   },
   {
@@ -430,23 +437,6 @@ export const adminNavigation: NavGroup[] = [
     ],
   },
   {
-    id: "general",
-    title: "GENERAL",
-    icon: "LayoutGrid",
-    items: [
-      {
-        title: "Feedback",
-        href: "/admin/feedback",
-        icon: "MessageSquare",
-      },
-      {
-        title: "Meeting Analytics",
-        href: "/admin/meeting-analytics",
-        icon: "Calendar",
-      },
-    ],
-  },
-  {
     id: "system",
     title: "SYSTEM",
     icon: "Settings",
@@ -461,11 +451,6 @@ export const adminNavigation: NavGroup[] = [
             title: "Branding",
             href: "/admin/settings/branding",
             icon: "Palette",
-          },
-          {
-            title: "Workspace",
-            href: "/admin/settings/workspace",
-            icon: "Layers",
           },
           {
             title: "Notifications",

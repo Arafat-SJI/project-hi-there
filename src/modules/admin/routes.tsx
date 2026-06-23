@@ -20,7 +20,6 @@ import ProjectModules from "@/pages/admin/ProjectModules";
 
 // Settings sub-pages
 import BrandingSettings from "@/pages/admin/settings/BrandingSettings";
-import WorkspaceHub from "@/pages/admin/settings/WorkspaceHub";
 import AdvancedSettings from "@/pages/admin/settings/AdvancedSettings";
 import SecuritySettings from "@/pages/admin/settings/SecuritySettings";
 import TemplateSeeding from "@/pages/admin/settings/TemplateSeeding";
@@ -48,8 +47,6 @@ import SSOSettings from "@/pages/admin/SSOSettings";
 import MFAPolicyPage from "@/pages/admin/MFAPolicyPage";
 import SignupWhitelistPage from "@/pages/admin/SignupWhitelistPage";
 import AdminSessions from "@/pages/admin/AdminSessions";
-import MeetingAnalytics from "@/pages/admin/MeetingAnalytics";
-import FeedbackManagement from "@/pages/admin/FeedbackManagement";
 import MCPServers from "@/pages/MCPServers";
 
 import DepartmentManagement from "@/pages/admin/DepartmentManagement";
@@ -136,7 +133,7 @@ export const adminRoutes = (
     {/* /admin/settings (root) → legacy SystemSettings → redirects to /admin/settings/branding */}
     <Route path="/admin/settings" element={<SystemSettings />} />
     <Route path="/admin/settings/branding" element={<BrandingSettings />} />
-    <Route path="/admin/settings/workspace" element={<WorkspaceHub />} />
+    <Route path="/admin/settings/workspace" element={<Navigate to="/admin/settings/branding" replace />} />
     <Route path="/admin/settings/notifications" element={<Navigate to="/admin/notifications?tab=email" replace />} />
     <Route path="/admin/settings/advanced" element={<AdvancedSettings />} />
     <Route path="/admin/settings/security" element={<Navigate to="/admin/security/authentication" replace />} />
@@ -207,8 +204,8 @@ export const adminRoutes = (
     <Route path="/admin/eos/accountability" element={<AdminEOSAccountability />} />
     <Route path="/admin/eos/okrs" element={<OKRsWorkspace />} />
 
-    {/* Content & Feedback */}
-    <Route path="/admin/feedback" element={<FeedbackManagement />} />
+    {/* Content & Feedback — merged with user-facing /feedback */}
+    <Route path="/admin/feedback" element={<Navigate to="/feedback" replace />} />
 
     {/* Reports */}
     <Route path="/admin/reports/projects" element={<ProjectReports />} />
@@ -223,6 +220,6 @@ export const adminRoutes = (
     {/* OAuth & API Access */}
     <Route path="/admin/oauth-clients" element={<OAuthClients />} />
     <Route path="/admin/api-keys" element={<ApiKeys />} />
-    <Route path="/admin/meeting-analytics" element={<MeetingAnalytics />} />
+    <Route path="/admin/meeting-analytics" element={<Navigate to="/meetings/analytics" replace />} />
   </>
 );
