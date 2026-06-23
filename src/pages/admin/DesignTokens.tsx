@@ -65,11 +65,14 @@ function ColorSwatch({ token }: { token: ColorToken }) {
 }
 
 export default function DesignTokens() {
+  useEffect(() => {
+    const prev = document.title;
+    document.title = "Design Tokens · Documentation · Admin";
+    return () => { document.title = prev; };
+  }, []);
+
   return (
     <>
-      <Helmet>
-        <title>Design Tokens · Documentation · Admin</title>
-      </Helmet>
 
       <div className="space-y-6">
         {/* Header */}
