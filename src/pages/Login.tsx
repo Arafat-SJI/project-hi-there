@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Brain, Shield, Crown, Briefcase, Code, LogOut, User } from "lucide-react";
+import { Loader2, Brain, Shield, Crown, Briefcase, Code } from "lucide-react";
 
 const TEST_ACCOUNTS = [
   { label: "CEO / Owner", email: "ceo@collabai.software", role: "owner", icon: Crown, color: "border-amber-500/30 hover:bg-amber-500/10" },
@@ -80,19 +80,6 @@ export default function Login() {
           <h1 className="text-xl font-semibold text-foreground">Control Tower</h1>
         </div>
 
-        {/* Current session banner */}
-        {user && (
-          <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
-            <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-primary" />
-              <span className="font-medium">{user.email}</span>
-            </div>
-            <Button size="sm" variant="ghost" onClick={() => signOut()}>
-              <LogOut className="h-4 w-4 mr-1" /> Logout
-            </Button>
-          </div>
-        )}
-
         {/* Quick Login — hidden in production */}
         {!isProduction && (
           <Card>
@@ -104,14 +91,13 @@ export default function Login() {
               {TEST_ACCOUNTS.map((acct) => {
                 const Icon = acct.icon;
                 const isLoading = quickLoading === acct.email;
-                const isActive = user?.email === acct.email;
                 return (
                   <button
                     key={acct.email}
                     type="button"
                     onClick={() => handleQuickLogin(acct.email)}
                     disabled={!!quickLoading}
-                    className={`relative flex items-center gap-2 rounded-lg border p-3 text-left transition-all ${acct.color} disabled:opacity-50 ${isActive ? "ring-2 ring-primary" : ""}`}
+                    className={`relative flex items-center gap-2 rounded-lg border p-3 text-left transition-all ${acct.color} disabled:opacity-50`}
                   >
                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <Icon className="h-4 w-4 shrink-0" />}
                     <div className="min-w-0">
@@ -121,7 +107,6 @@ export default function Login() {
                       </div>
                       <p className="text-[10px] text-muted-foreground truncate">{acct.email}</p>
                     </div>
-                    {isActive && <Badge className="absolute -top-1.5 -right-1.5 text-[9px] px-1 py-0">Active</Badge>}
                   </button>
                 );
               })}
