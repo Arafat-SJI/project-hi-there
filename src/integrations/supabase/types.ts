@@ -6215,6 +6215,72 @@ export type Database = {
           },
         ]
       }
+      mfa_enrollment_status: {
+        Row: {
+          created_at: string
+          enrolled: boolean
+          enrolled_at: string | null
+          grace_period_ends_at: string | null
+          last_reminded_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enrolled?: boolean
+          enrolled_at?: string | null
+          grace_period_ends_at?: string | null
+          last_reminded_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enrolled?: boolean
+          enrolled_at?: string | null
+          grace_period_ends_at?: string | null
+          last_reminded_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mfa_policies: {
+        Row: {
+          allowed_factors: string[]
+          created_at: string
+          grace_period_days: number
+          id: string
+          required: boolean
+          tenant_id: string
+          trust_idp_mfa: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_factors?: string[]
+          created_at?: string
+          grace_period_days?: number
+          id?: string
+          required?: boolean
+          tenant_id?: string
+          trust_idp_mfa?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_factors?: string[]
+          created_at?: string
+          grace_period_days?: number
+          id?: string
+          required?: boolean
+          tenant_id?: string
+          trust_idp_mfa?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       notification_digest_queue: {
         Row: {
           created_at: string
@@ -7161,6 +7227,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_assignable: boolean
           key: string
           name: string
           resource: string
@@ -7171,6 +7238,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_assignable?: boolean
           key: string
           name: string
           resource: string
@@ -7181,6 +7249,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_assignable?: boolean
           key?: string
           name?: string
           resource?: string
@@ -8626,6 +8695,30 @@ export type Database = {
           updated_by?: string | null
           webhook_secret?: string | null
           webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      signup_domain_allowlist: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          domain: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          domain: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          domain?: string
+          id?: string
+          is_active?: boolean
         }
         Relationships: []
       }
@@ -10464,6 +10557,26 @@ export type Database = {
           user_email: string
           user_id: string
         }[]
+      }
+      admin_list_user_sessions: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          not_after: string
+          session_id: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
+      admin_terminate_session: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
+      admin_terminate_user_sessions: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       boost_memory_importance: {
         Args: { p_boost_amount?: number; p_memory_id: string }
