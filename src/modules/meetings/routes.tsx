@@ -19,6 +19,7 @@ import MeetingPendingAssignmentsPage from "./pages/MeetingPendingAssignmentsPage
 import MeetingIdRedirectPage from "./pages/MeetingIdRedirectPage";
 import KnowledgeMeetingsPage from "./pages/KnowledgeMeetingsPage";
 import FellowActionItemsPage from "./pages/FellowActionItemsPage";
+import MeetingAnalytics from "@/pages/admin/MeetingAnalytics";
 
 // Legacy pages (still used for create/edit forms)
 import MeetingForm from "@/pages/MeetingForm";
@@ -36,6 +37,9 @@ export const meetingsRoutes = (
     {/* Transcripts */}
     <Route path="/meetings/transcripts" element={<MeetingTranscriptsPage />} />
     <Route path="/meetings/transcripts/:slug" element={<TranscriptDetailPage />} />
+
+    {/* Analytics (moved from /admin/meeting-analytics) */}
+    <Route path="/meetings/analytics" element={<MeetingAnalytics />} />
 
     {/* Additional features — redirected to tabs */}
     <Route path="/meetings/series" element={<Navigate to="/meetings/schedule?view=series" replace />} />
