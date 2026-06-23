@@ -418,23 +418,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
-      // Clear all storage
-      localStorage.clear();
-      sessionStorage.clear();
-      
+
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
       });
     } catch (error) {
       const authError = error as AuthError;
+      console.error("Sign out error:", authError);
       toast({
         title: "Sign out failed",
         description: authError.message,
         variant: "destructive",
       });
-      throw error;
+    } finally {
+      // Always clear client auth state and storage so login never shows a stale session.
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setLoading(false);
+      setProfileLoading(false);
+      isFetchingProfileRef.current = false;
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (storageError) {
+        console.error("Error clearing storage on sign out:", storageError);
+      }
     }
   };
 
