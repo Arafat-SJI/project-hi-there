@@ -11,6 +11,7 @@ import Admin from "@/pages/Admin";
 import UserManagement from "@/pages/admin/UserManagement";
 import UserInvitations from "@/pages/admin/UserInvitations";
 import RoleManagement from "@/pages/admin/RoleManagement";
+import RoleBuilder from "@/pages/admin/RoleBuilder";
 import PermissionMatrix from "@/pages/admin/PermissionMatrix";
 import ActivityLogs from "@/pages/admin/ActivityLogs";
 import SystemSettings from "@/pages/admin/SystemSettings";
@@ -109,6 +110,8 @@ export const adminRoutes = (
     <Route path="/admin/users" element={<UserManagement />} />
     <Route path="/admin/users/invitations" element={<UserInvitations />} />
     <Route path="/admin/roles" element={<RoleManagement />} />
+    <Route path="/admin/roles/new" element={<RoleBuilder />} />
+    <Route path="/admin/roles/:roleId/edit" element={<RoleBuilder />} />
     <Route path="/admin/roles/permissions" element={<PermissionMatrix />} />
     <Route path="/admin/departments" element={<DepartmentManagement />} />
     <Route path="/admin/department" element={<Navigate to="/admin/departments" replace />} />

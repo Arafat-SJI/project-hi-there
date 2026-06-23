@@ -307,6 +307,14 @@ export const departmentFormSchema = z.object({
 
 export type DepartmentFormData = z.infer<typeof departmentFormSchema>;
 
+export const roleFormSchema = z.object({
+  name: z.string().min(1, "Role name is required").max(100),
+  description: z.string().max(500).optional(),
+  permissionKeys: z.array(z.string()).default([]),
+});
+
+export type RoleBuilderFormData = z.infer<typeof roleFormSchema>;
+
 export const integrationKnowledgeSourceRefSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('integration'),

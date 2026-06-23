@@ -154,6 +154,15 @@ export function useUpdateRole() {
         .single();
 
       if (error) throw error;
+
+      if (data.permissionKeys) {
+        await invokeEdgeFunction("rbac-manage", {
+          action: "set_role_permissions",
+          role_id: id,
+          permission_keys: data.permissionKeys,
+        });
+      }
+
       return role as Role;
     },
     onSuccess: () => {
@@ -192,19 +201,18 @@ export function useDeleteRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { data: role } = await supabase
-        .from("roles")
-        .select("is_system")
-        .eq("id", id)
-        .single();
-
-      if (role?.is_system) {
-        throw new Error("System roles cannot be deleted");
-      }
-
-      const { error } = await supabase.from("roles").delete().eq("id", id);
-      if (error) throw error;
+    mutationFn: async ({
+      id,
+      reassignToRoleId,
+    }: {
+      id: string;
+      reassignToRoleId?: string;
+    }) => {
+      await invokeEdgeFunction("rbac-manage", {
+        action: "delete_role",
+        role_id: id,
+        reassign_to_role_id: reassignToRoleId,
+      });
     },
     onSuccess: () => {
       invalidateKeys.roles(queryClient);
