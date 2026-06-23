@@ -124,7 +124,7 @@ export const navigationGroups: NavGroup[] = [
   },
   {
     id: "work-management",
-    title: "Work Management",
+    title: "Operations Management",
     icon: "ListTodo",
     items: [
       {
@@ -230,32 +230,20 @@ export const navigationGroups: NavGroup[] = [
         icon: "Network",
         module: "eos",
       },
-    ],
-  },
-  {
-    id: "operations",
-    title: "Operations",
-    icon: "Settings2",
-    agencyRoles: ["owner", "pm"], // ICs don't need operations
-    items: [
-      {
-        title: "Productivity",
-        href: "/productivity",
-        icon: "BarChart3",
-        module: "productivity",
-      },
       {
         title: "Processes",
         href: "/process",
         icon: "FileText",
         module: "productivity",
       },
-      {
-        title: "Feedback",
-        href: "/feedback",
-        icon: "MessageCircle",
-        featureFlag: "enableFeedback",
-      },
+    ],
+  },
+  {
+    id: "automation",
+    title: "Automation",
+    icon: "GitBranch",
+    agencyRoles: ["owner", "pm"],
+    items: [
       {
         title: "Automation",
         href: "/automation/workflows",

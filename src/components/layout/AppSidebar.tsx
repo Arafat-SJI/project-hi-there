@@ -388,6 +388,20 @@ export function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {isFeatureEnabled("enableFeedback" as any) && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isRouteActive("/feedback")}
+                  tooltip="Feedback"
+                >
+                  <Link to="/feedback">
+                    <MessageCircle />
+                    <span>Feedback</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
