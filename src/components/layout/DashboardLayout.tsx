@@ -4,6 +4,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { TopNav } from "./TopNav";
 import { useOnboardingRedirect } from "@/hooks/useOnboarding";
+import { MfaGraceBanner } from "@/components/auth/MfaGraceBanner";
 
 export function DashboardLayout() {
   const { needsOnboarding, loading } = useOnboardingRedirect();
@@ -22,6 +23,7 @@ export function DashboardLayout() {
         <AppSidebar />
         <div className="flex flex-1 flex-col min-w-0">
           <TopNav />
+          <MfaGraceBanner />
           <main className="flex-1 min-w-0 overflow-auto p-6 lg:p-8">
             <Outlet />
           </main>

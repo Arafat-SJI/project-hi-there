@@ -211,6 +211,23 @@ export const queryKeys = {
     searchAnalytics: ["admin", "searchAnalytics"] as const,
   },
 
+  // MFA enforcement
+  mfa: {
+    policy: ["mfa", "policy"] as const,
+    enrollment: ["mfa", "enrollment"] as const,
+    factors: ["mfa", "factors"] as const,
+  },
+
+  // Self-signup domain whitelist
+  signupWhitelist: {
+    domains: ["signupWhitelist", "domains"] as const,
+  },
+
+  // Admin session management
+  adminSessions: {
+    list: ["adminSessions", "list"] as const,
+  },
+
   // Departments
   departments: {
     all: ["departments"] as const,
@@ -348,6 +365,17 @@ export const invalidateKeys = {
   },
   roles: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.admin.roles });
+  },
+  mfa: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.mfa.policy });
+    queryClient.invalidateQueries({ queryKey: queryKeys.mfa.enrollment });
+    queryClient.invalidateQueries({ queryKey: queryKeys.mfa.factors });
+  },
+  signupWhitelist: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.signupWhitelist.domains });
+  },
+  adminSessions: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.adminSessions.list });
   },
   departments: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.departments.all });

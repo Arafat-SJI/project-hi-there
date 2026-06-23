@@ -35,7 +35,7 @@ serve(async (req) => {
     const { userId } = authResult;
 
     const body = await req.json();
-    const { action, role_id, permission_keys, target_user_id, new_role } = body;
+    const { action, role_id, permission_keys, target_user_id, new_role, reassign_to_role_id } = body;
 
     if (action === "change_user_role") {
       if (!target_user_id || !new_role) {
@@ -101,8 +101,28 @@ serve(async (req) => {
 
       const { data: perms } = await serviceClient
         .from("permissions")
-        .select("id, key")
+        .select("id, key, is_assignable")
         .in("key", permission_keys);
+
+      const { data: targetRole } = await serviceClient
+        .from("roles")
+        .select("slug")
+        .eq("id", role_id)
+        .single();
+
+      const restrictedKeys = (perms ?? [])
+        .filter((p) => p.is_assignable === false)
+        .map((p) => p.key);
+
+      if (restrictedKeys.length && targetRole?.slug !== "owner") {
+        return new Response(
+          JSON.stringify({
+            error: "restricted_permissions",
+            message: `These permissions can only be assigned to the Owner role: ${restrictedKeys.join(", ")}`,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       await serviceClient.from("role_permissions").delete().eq("role_id", role_id);
 
@@ -192,6 +212,88 @@ serve(async (req) => {
       });
 
       return new Response(JSON.stringify({ role: newRole }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "delete_role") {
+      if (!role_id) {
+        return new Response(JSON.stringify({ error: "role_id required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: role, error: roleError } = await serviceClient
+        .from("roles")
+        .select("id, is_system")
+        .eq("id", role_id)
+        .single();
+
+      if (roleError || !role) {
+        return new Response(JSON.stringify({ error: "Role not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (role.is_system) {
+        return new Response(
+          JSON.stringify({ error: "system_role", message: "System roles cannot be deleted" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { count: memberCount } = await serviceClient
+        .from("user_roles")
+        .select("user_id", { count: "exact", head: true })
+        .eq("role_id", role_id);
+
+      if ((memberCount ?? 0) > 0) {
+        if (!reassign_to_role_id) {
+          return new Response(
+            JSON.stringify({
+              error: "members_assigned",
+              message: "This role has assigned members. Provide reassign_to_role_id to reassign them before deleting.",
+              member_count: memberCount,
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { data: targetRole, error: targetRoleError } = await serviceClient
+          .from("roles")
+          .select("id")
+          .eq("id", reassign_to_role_id)
+          .single();
+
+        if (targetRoleError || !targetRole) {
+          return new Response(JSON.stringify({ error: "reassign_to_role_id is invalid" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { error: reassignError } = await serviceClient
+          .from("user_roles")
+          .update({ role_id: targetRole.id })
+          .eq("role_id", role_id);
+
+        if (reassignError) throw reassignError;
+      }
+
+      const { error: deleteError } = await serviceClient.from("roles").delete().eq("id", role_id);
+      if (deleteError) throw deleteError;
+
+      await serviceClient.from("activity_logs").insert({
+        user_id: userId,
+        action: "role.deleted",
+        resource_type: "role",
+        resource_id: role_id,
+        details: { reassigned_to: reassign_to_role_id ?? null, member_count: memberCount ?? 0 },
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

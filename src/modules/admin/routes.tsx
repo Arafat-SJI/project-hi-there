@@ -11,6 +11,7 @@ import Admin from "@/pages/Admin";
 import UserManagement from "@/pages/admin/UserManagement";
 import UserInvitations from "@/pages/admin/UserInvitations";
 import RoleManagement from "@/pages/admin/RoleManagement";
+import RoleBuilder from "@/pages/admin/RoleBuilder";
 import PermissionMatrix from "@/pages/admin/PermissionMatrix";
 import ActivityLogs from "@/pages/admin/ActivityLogs";
 import SystemSettings from "@/pages/admin/SystemSettings";
@@ -44,6 +45,9 @@ import ResourceUtilizationReports from "@/pages/admin/ResourceUtilizationReports
 import AIModelManagement from "@/pages/admin/AIModelManagement";
 import OnboardingWizard from "@/pages/admin/OnboardingWizard";
 import SSOSettings from "@/pages/admin/SSOSettings";
+import MFAPolicyPage from "@/pages/admin/MFAPolicyPage";
+import SignupWhitelistPage from "@/pages/admin/SignupWhitelistPage";
+import AdminSessions from "@/pages/admin/AdminSessions";
 import MeetingAnalytics from "@/pages/admin/MeetingAnalytics";
 import FeedbackManagement from "@/pages/admin/FeedbackManagement";
 import MCPServers from "@/pages/MCPServers";
@@ -109,6 +113,8 @@ export const adminRoutes = (
     <Route path="/admin/users" element={<UserManagement />} />
     <Route path="/admin/users/invitations" element={<UserInvitations />} />
     <Route path="/admin/roles" element={<RoleManagement />} />
+    <Route path="/admin/roles/new" element={<RoleBuilder />} />
+    <Route path="/admin/roles/:roleId/edit" element={<RoleBuilder />} />
     <Route path="/admin/roles/permissions" element={<PermissionMatrix />} />
     <Route path="/admin/departments" element={<DepartmentManagement />} />
     <Route path="/admin/department" element={<Navigate to="/admin/departments" replace />} />
@@ -116,6 +122,9 @@ export const adminRoutes = (
     <Route path="/admin/security" element={<Navigate to="/admin/security/authentication" replace />} />
     <Route path="/admin/security/authentication" element={<SecuritySettings />} />
     <Route path="/admin/security/sso" element={<SSOSettings />} />
+    <Route path="/admin/security/mfa" element={<MFAPolicyPage />} />
+    <Route path="/admin/security/signup-whitelist" element={<SignupWhitelistPage />} />
+    <Route path="/admin/security/sessions" element={<AdminSessions />} />
     <Route path="/admin/logs" element={<ActivityLogs />} />
     <Route path="/admin/audit-logs" element={<ActivityLogs />} />
 

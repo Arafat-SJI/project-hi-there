@@ -1,15 +1,18 @@
 import { useEffect } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMfaGate } from "@/hooks/useMfaGate";
 import { Loader2 } from "lucide-react";
 
 export function ProtectedRoute() {
   const { user, profile, loading, profileLoading, signOut } = useAuth();
+  const { isLoading: mfaLoading, mustEnrollNow } = useMfaGate();
+  const location = useLocation();
 
   // Wait for both auth session AND profile (including role) to finish loading.
   // Rendering child routes while profileLoading is true would let role-gated
   // components briefly render with an incomplete profile, causing access flickers.
-  if (loading || profileLoading) {
+  if (loading || profileLoading || (!!user && mfaLoading)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -23,6 +26,10 @@ export function ProtectedRoute() {
 
   if (profile?.is_active === false) {
     return <SuspendedScreen onSignOut={signOut} />;
+  }
+
+  if (mustEnrollNow && location.pathname !== "/mfa/enroll") {
+    return <Navigate to="/mfa/enroll" replace />;
   }
 
   return <Outlet />;

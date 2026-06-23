@@ -2,16 +2,12 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   useRoles,
-  useCreateRole,
-  useUpdateRole,
   useDeleteRole,
   useCloneRole,
   useRoleUsers,
   Role,
-  RoleFormData,
 } from "@/hooks/useRoles";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,14 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,19 +35,23 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Shield,
   Plus,
   Edit,
   Trash2,
   Loader2,
-  Check,
   Copy,
   Grid3X3,
   Users,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { usePermissionCatalog } from "@/hooks/usePermissions";
 import { format } from "date-fns";
 
@@ -70,59 +62,39 @@ import AgencyRoles from "@/pages/admin/AgencyRoles";
 function RoleCatalog() {
   const { data: roles, isLoading, isError } = useRoles();
   const { data: permissions } = usePermissionCatalog();
-  const createRole = useCreateRole();
-  const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
   const cloneRole = useCloneRole();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailRole, setDetailRole] = useState<Role | null>(null);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<RoleFormData>({ name: "", description: "" });
+  const [deletingRole, setDeletingRole] = useState<Role | null>(null);
+  const [reassignToRoleId, setReassignToRoleId] = useState<string>("");
 
   const { data: roleUsers } = useRoleUsers(detailRole?.id);
 
-  const openCreateDialog = () => {
-    setEditingRole(null);
-    setFormData({ name: "", description: "" });
-    setDialogOpen(true);
+  const openDeleteDialog = (role: Role) => {
+    setDeletingRole(role);
+    setReassignToRoleId("");
+    setDeleteDialogOpen(true);
   };
 
-  const openEditDialog = (role: Role) => {
-    setEditingRole(role);
-    setFormData({ name: role.name, description: role.description || "" });
-    setDialogOpen(true);
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.name.trim()) return;
-    try {
-      if (editingRole) {
-        await updateRole.mutateAsync({ id: editingRole.id, data: formData });
-      } else {
-        await createRole.mutateAsync(formData);
-      }
-      setDialogOpen(false);
-    } catch {
-      // handled by mutation
-    }
-  };
+  const reassignableRoles = (roles ?? []).filter((r) => r.id !== deletingRole?.id);
+  const needsReassignment = (deletingRole?.assigned_user_count ?? 0) > 0;
 
   const handleDelete = async () => {
-    if (!deletingRoleId) return;
+    if (!deletingRole) return;
+    if (needsReassignment && !reassignToRoleId) return;
     try {
-      await deleteRole.mutateAsync(deletingRoleId);
+      await deleteRole.mutateAsync({
+        id: deletingRole.id,
+        reassignToRoleId: needsReassignment ? reassignToRoleId : undefined,
+      });
       setDeleteDialogOpen(false);
-      setDeletingRoleId(null);
+      setDeletingRole(null);
     } catch {
       // handled by mutation
     }
   };
-
-  const isProcessing =
-    createRole.isPending || updateRole.isPending || cloneRole.isPending;
 
   return (
     <div className="space-y-6">
@@ -138,9 +110,11 @@ function RoleCatalog() {
               Permission Matrix
             </Link>
           </Button>
-          <Button onClick={openCreateDialog}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Role
+          <Button asChild>
+            <Link to="/admin/roles/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Role
+            </Link>
           </Button>
         </div>
       </div>
@@ -241,21 +215,15 @@ function RoleCatalog() {
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditDialog(role)}
-                          disabled={role.is_system}
-                        >
-                          <Edit className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" asChild disabled={role.is_system}>
+                          <Link to={`/admin/roles/${role.id}/edit`}>
+                            <Edit className="h-4 w-4" />
+                          </Link>
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            setDeletingRoleId(role.id);
-                            setDeleteDialogOpen(true);
-                          }}
+                          onClick={() => openDeleteDialog(role)}
                           disabled={role.is_system}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -270,64 +238,38 @@ function RoleCatalog() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingRole ? "Edit Role" : "Create Role"}</DialogTitle>
-            <DialogDescription>
-              {editingRole
-                ? "Update role name and description. Use Permission Matrix for access control."
-                : "Create a custom role. Assign permissions in the Permission Matrix."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Role Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                disabled={isProcessing}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={2}
-                disabled={isProcessing}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isProcessing}>
-              {isProcessing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="mr-2 h-4 w-4" />
-              )}
-              {editingRole ? "Update" : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Role</AlertDialogTitle>
             <AlertDialogDescription>
-              Users assigned this role will lose associated permissions. This cannot be undone.
+              {needsReassignment
+                ? `This role has ${deletingRole?.assigned_user_count} assigned member(s). Choose a replacement role before deleting — they will be reassigned automatically.`
+                : "This cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {needsReassignment && (
+            <div className="space-y-2 py-2">
+              <Select value={reassignToRoleId} onValueChange={setReassignToRoleId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select replacement role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {reassignableRoles.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleteRole.isPending}>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteRole.isPending || (needsReassignment && !reassignToRoleId)}
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
