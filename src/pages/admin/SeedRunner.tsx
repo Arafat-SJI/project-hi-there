@@ -274,9 +274,9 @@ function SeedFileCard({
 
   const statusIcon = {
     idle: <FileCode2 className="h-5 w-5 text-muted-foreground" />,
-    running: <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />,
-    success: <CheckCircle2 className="h-5 w-5 text-green-500" />,
-    error: <XCircle className="h-5 w-5 text-red-500" />,
+    running: <Loader2 className="h-5 w-5 text-info animate-spin" />,
+    success: <CheckCircle2 className="h-5 w-5 text-success" />,
+    error: <XCircle className="h-5 w-5 text-destructive" />,
   }[safeState.status];
 
   const borderColor = {
@@ -332,10 +332,10 @@ function SeedFileCard({
 
         {/* Error display */}
         {safeState.status === "error" && safeState.error && (
-          <div className="mt-3 rounded-md border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 p-3">
+          <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 dark:bg-red-950/30 dark:border-red-900 p-3">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-              <pre className="text-xs text-red-700 dark:text-red-400 whitespace-pre-wrap font-mono break-all">
+              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <pre className="text-xs text-destructive dark:text-red-400 whitespace-pre-wrap font-mono break-all">
                 {safeState.error}
               </pre>
             </div>
@@ -543,19 +543,19 @@ export default function SeedRunner() {
       {(successCount > 0 || errorCount > 0 || runningCount > 0) && (
         <div className="flex gap-3 text-sm">
           {successCount > 0 && (
-            <Badge variant="outline" className="text-green-600 border-green-300">
+            <Badge variant="outline" className="text-success border-success/30">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               {successCount} succeeded
             </Badge>
           )}
           {errorCount > 0 && (
-            <Badge variant="outline" className="text-red-600 border-red-300">
+            <Badge variant="outline" className="text-destructive border-destructive/30">
               <XCircle className="h-3 w-3 mr-1" />
               {errorCount} failed
             </Badge>
           )}
           {runningCount > 0 && (
-            <Badge variant="outline" className="text-blue-600 border-blue-300">
+            <Badge variant="outline" className="text-info border-info/30">
               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
               {runningCount} running
             </Badge>

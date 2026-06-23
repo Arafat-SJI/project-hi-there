@@ -134,7 +134,7 @@ export default function OAuthCallback() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             )}
             {status === 'success' && (
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <CheckCircle2 className="h-8 w-8 text-success" />
             )}
             {status === 'error' && (
               <XCircle className="h-8 w-8 text-destructive" />
@@ -178,13 +178,13 @@ export default function OAuthCallback() {
           {/* Success message */}
           {status === 'success' && (
             <div className="space-y-3">
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-success/10 border border-success/30 dark:bg-green-900/20 dark:border-green-800">
+                <CheckCircle2 className="h-4 w-4 text-success mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium text-green-900 dark:text-green-100">
+                  <p className="font-medium text-success dark:text-green-100">
                     Integration connected successfully
                   </p>
-                  <p className="text-green-800 dark:text-green-200 mt-1">
+                  <p className="text-success dark:text-green-200 mt-1">
                     Your credentials have been stored securely and you can now use this
                     integration. Redirecting...
                   </p>
@@ -196,13 +196,13 @@ export default function OAuthCallback() {
           {/* Error actions */}
           {status === 'error' && (
             <div className="space-y-3">
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
-                <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 dark:bg-red-900/20 dark:border-red-800">
+                <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium text-red-900 dark:text-red-100">
+                  <p className="font-medium text-destructive dark:text-red-100">
                     Failed to complete OAuth flow
                   </p>
-                  <p className="text-red-800 dark:text-red-200 mt-1">
+                  <p className="text-destructive dark:text-red-200 mt-1">
                     Please try connecting again. If the problem persists, check your OAuth
                     configuration or contact support.
                   </p>

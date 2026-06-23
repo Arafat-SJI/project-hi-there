@@ -118,7 +118,7 @@ export default function SignupWhitelistPage() {
                           disabled={toggleDomain.isPending}
                         />
                         {row.is_active ? (
-                          <Badge variant="default" className="bg-green-600">
+                          <Badge variant="default" className="bg-success">
                             Active
                           </Badge>
                         ) : (

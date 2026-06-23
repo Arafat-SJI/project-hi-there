@@ -63,7 +63,7 @@ const EOS_ADMIN_SECTIONS = [
 ];
 
 const statusColors: Record<string, { bg: string; text: string; label: string }> = {
-  live: { bg: "bg-green-100", text: "text-green-700", label: "Live" },
+  live: { bg: "bg-success/10", text: "text-success", label: "Live" },
   planned: { bg: "bg-purple-100", text: "text-purple-700", label: "Planned" },
 };
 

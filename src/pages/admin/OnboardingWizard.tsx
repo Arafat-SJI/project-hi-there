@@ -189,9 +189,9 @@ function AdminUserCheck() {
 
       {adminCount && adminCount > 0 && (
         <Alert>
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <CheckCircle2 className="h-4 w-4 text-success" />
           <AlertDescription>
-            <p className="font-medium text-green-600">Admin Users Configured ✓</p>
+            <p className="font-medium text-success">Admin Users Configured ✓</p>
             <p className="text-sm mt-1">
               {adminCount} admin user(s) found. Your platform is ready for management.
             </p>
@@ -555,7 +555,7 @@ export default function OnboardingWizard() {
               </>
             ) : saveConfig.isSuccess ? (
               <>
-                <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
+                <CheckCircle2 className="h-16 w-16 text-success mx-auto" />
                 <div>
                   <h3 className="text-xl font-semibold">Setup Complete!</h3>
                   <p className="text-muted-foreground mt-2">
@@ -639,12 +639,12 @@ export default function OnboardingWizard() {
             <div
               key={step.id}
               className={`flex flex-col items-center gap-1 ${
-                isActive ? 'text-primary' : isCompleted ? 'text-green-500' : 'text-muted-foreground'
+                isActive ? 'text-primary' : isCompleted ? 'text-success' : 'text-muted-foreground'
               }`}
             >
               <div
                 className={`p-2 rounded-full ${
-                  isActive ? 'bg-primary/10' : isCompleted ? 'bg-green-500/10' : 'bg-muted'
+                  isActive ? 'bg-primary/10' : isCompleted ? 'bg-success/10' : 'bg-muted'
                 }`}
               >
                 {isCompleted ? (

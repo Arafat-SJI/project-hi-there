@@ -186,7 +186,7 @@ export default function GoogleDriveIntegration() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 shadow-lg">
-              <HardDrive className="h-7 w-7 text-white" />
+              <HardDrive className="h-7 w-7 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-blue-300 bg-clip-text text-transparent">
@@ -202,13 +202,13 @@ export default function GoogleDriveIntegration() {
 
       <div className="grid gap-6">
         {/* Configuration Card */}
-        <Card className="border-2 border-blue-200 dark:border-blue-800 shadow-lg hover:shadow-xl transition-shadow">
+        <Card className="border-2 border-info/30 dark:border-blue-800 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10">
-                    <HardDrive className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <HardDrive className="h-5 w-5 text-info dark:text-blue-400" />
                   </div>
                   OAuth Configuration
                 </CardTitle>
@@ -219,29 +219,29 @@ export default function GoogleDriveIntegration() {
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border-2 border-blue-200 dark:border-blue-800 p-5 shadow-sm">
+            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border-2 border-info/30 dark:border-blue-800 p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="p-1.5 rounded-md bg-blue-200 dark:bg-blue-900/50">
-                      <ExternalLink className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                      <ExternalLink className="h-4 w-4 text-info dark:text-blue-300" />
                     </div>
-                    <p className="text-sm font-bold text-blue-900 dark:text-blue-100">
+                    <p className="text-sm font-bold text-info dark:text-blue-100">
                       Redirect URL (OAuth Callback)
                     </p>
                   </div>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-3 ml-7">
+                  <p className="text-sm text-info dark:text-blue-300 mb-3 ml-7">
                     Add this URL to your Google OAuth app settings in Google Cloud Console
                   </p>
-                  <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-800 shadow-sm">
-                    <code className="text-xs font-mono text-blue-900 dark:text-blue-100 flex-1 break-all">
+                  <div className="flex items-center gap-2 p-3 bg-card dark:bg-gray-900 rounded-lg border-2 border-info/30 dark:border-blue-800 shadow-sm">
+                    <code className="text-xs font-mono text-info dark:text-blue-100 flex-1 break-all">
                       {redirectUrl}
                     </code>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={copyRedirectUrl}
-                      className="h-9 w-9 p-0 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                      className="h-9 w-9 p-0 hover:bg-info/10 dark:hover:bg-blue-950/30"
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -284,17 +284,17 @@ export default function GoogleDriveIntegration() {
         </Card>
 
         {/* Organization Configuration Card */}
-        <Card className={`border-2 shadow-lg hover:shadow-xl transition-shadow ${isOrgConfigured ? 'border-green-200 dark:border-green-800' : 'border-amber-200 dark:border-amber-800'}`}>
+        <Card className={`border-2 shadow-lg hover:shadow-xl transition-shadow ${isOrgConfigured ? 'border-success/30 dark:border-green-800' : 'border-amber-200 dark:border-amber-800'}`}>
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <CardTitle className="flex items-center gap-3 text-xl mb-2">
                   <div className={`p-2 rounded-lg ${isOrgConfigured ? 'bg-gradient-to-br from-green-500/10 to-green-600/10' : 'bg-gradient-to-br from-amber-500/10 to-amber-600/10'}`}>
-                    <Settings className={`h-5 w-5 ${isOrgConfigured ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
+                    <Settings className={`h-5 w-5 ${isOrgConfigured ? 'text-success dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
                   </div>
                   Organization Configuration
                   {isOrgConfigured ? (
-                    <Badge variant="outline" className="ml-3 border-green-200 text-green-700 dark:border-green-800 dark:text-green-300 bg-green-50 dark:bg-green-950/30">
+                    <Badge variant="outline" className="ml-3 border-success/30 text-success dark:border-green-800 dark:text-green-300 bg-success/10 dark:bg-green-950/30">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       Configured
                     </Badge>
@@ -360,7 +360,7 @@ export default function GoogleDriveIntegration() {
                 onClick={handleSaveOrgConfig}
                 disabled={isSavingConfig || !hasRequiredFields}
                 size="lg"
-                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-md hover:shadow-lg transition-all"
+                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-primary-foreground shadow-md hover:shadow-lg transition-all"
               >
                 {isSavingConfig ? (
                   <>
@@ -377,14 +377,14 @@ export default function GoogleDriveIntegration() {
             </div>
 
             {isOrgConfigured && (
-              <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border-2 border-green-200 dark:border-green-800 p-5 shadow-sm">
+              <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border-2 border-success/30 dark:border-green-800 p-5 shadow-sm">
                 <div className="flex items-start gap-4">
                   <div className="p-2 rounded-lg bg-green-200 dark:bg-green-900/50">
-                    <CheckCircle2 className="h-5 w-5 text-green-700 dark:text-green-300" />
+                    <CheckCircle2 className="h-5 w-5 text-success dark:text-green-300" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-green-900 dark:text-green-100 text-base mb-2">Configuration Active</p>
-                    <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
+                    <p className="font-bold text-success dark:text-green-100 text-base mb-2">Configuration Active</p>
+                    <p className="text-sm text-success dark:text-green-300 leading-relaxed">
                       Users can now connect their personal Google accounts using the connection section below.
                     </p>
                   </div>
@@ -410,14 +410,14 @@ export default function GoogleDriveIntegration() {
           <CardContent className="space-y-4">
             {isConnected ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border-2 border-green-200 dark:border-green-800 shadow-sm">
+                <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border-2 border-success/30 dark:border-green-800 shadow-sm">
                   <div className="flex items-center gap-4">
                     <div className="p-3 rounded-xl bg-green-200 dark:bg-green-900/50 shadow-sm">
-                      <CheckCircle2 className="h-6 w-6 text-green-700 dark:text-green-300" />
+                      <CheckCircle2 className="h-6 w-6 text-success dark:text-green-300" />
                     </div>
                     <div>
-                      <p className="font-bold text-green-900 dark:text-green-100 text-base">Connected</p>
-                      <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      <p className="font-bold text-success dark:text-green-100 text-base">Connected</p>
+                      <p className="text-sm text-success dark:text-green-300 mt-1">
                         {googleToken?.account_email || googleToken?.account_name || 'Google account'}
                       </p>
                     </div>
@@ -426,7 +426,7 @@ export default function GoogleDriveIntegration() {
                     variant="outline"
                     onClick={handleDisconnect}
                     disabled={loading || disconnectOAuth.isPending}
-                    className="border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30 hover:border-red-300 transition-colors"
+                    className="border-destructive/30 hover:bg-destructive/10 dark:border-red-800 dark:hover:bg-red-950/30 hover:border-destructive/30 transition-colors"
                   >
                     {disconnectOAuth.isPending ? (
                       <>
@@ -457,14 +457,14 @@ export default function GoogleDriveIntegration() {
                 )}
 
                 {hasError && errorMessage && (
-                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/30 dark:to-red-900/20 border-2 border-red-200 dark:border-red-800 shadow-sm">
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/30 dark:to-red-900/20 border-2 border-destructive/30 dark:border-red-800 shadow-sm">
                     <div className="flex items-center gap-4">
                       <div className="p-3 rounded-xl bg-red-200 dark:bg-red-900/50 shadow-sm">
-                        <AlertCircle className="h-6 w-6 text-red-700 dark:text-red-300" />
+                        <AlertCircle className="h-6 w-6 text-destructive dark:text-red-300" />
                       </div>
                       <div>
-                        <p className="font-bold text-red-900 dark:text-red-100 text-base">Connection Error</p>
-                        <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                        <p className="font-bold text-destructive dark:text-red-100 text-base">Connection Error</p>
+                        <p className="text-sm text-destructive dark:text-red-300 mt-1">
                           {errorMessage}
                         </p>
                       </div>
@@ -507,7 +507,7 @@ export default function GoogleDriveIntegration() {
                     onClick={handleConnect}
                     disabled={loading || connectOAuth.isPending || !isOrgConfigured}
                     size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-md hover:shadow-lg transition-all"
+                    className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-primary-foreground shadow-md hover:shadow-lg transition-all"
                   >
                     {loading || connectOAuth.isPending ? (
                       <>

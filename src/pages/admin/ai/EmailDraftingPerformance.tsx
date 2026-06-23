@@ -42,14 +42,14 @@ const TOP_METRIC_CONFIG = [
     title: "Email Drafts",
     description: "Using agent memory",
     icon: Mail,
-    iconBg: "bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400",
+    iconBg: "bg-info/10 text-info dark:bg-blue-950/50 dark:text-blue-400",
   },
   {
     key: "successRate" as const,
     title: "Success Rate",
     descriptionKey: "positiveOutcomes" as const,
     icon: CheckCircle2,
-    iconBg: "bg-green-100 text-green-600 dark:bg-green-950/50 dark:text-green-400",
+    iconBg: "bg-success/10 text-success dark:bg-green-950/50 dark:text-green-400",
   },
   {
     key: "responseBoost" as const,
@@ -262,16 +262,16 @@ export default function EmailDraftingPerformance(): JSX.Element {
                 <span className="text-sm font-medium text-foreground">{row.metric}</span>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">Baseline: {row.baseline}</span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">
+                  <span className="text-success dark:text-green-400 font-medium">
                     {personalizedValue}
                     {row.recommended && (
-                      <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300 border-0">
+                      <Badge className="ml-2 bg-success/10 text-success dark:bg-green-950/50 dark:text-green-300 border-0">
                         Recommended
                       </Badge>
                     )}
                   </span>
                   {row.change && (
-                    <span className="text-green-600 dark:text-green-400 font-medium">
+                    <span className="text-success dark:text-green-400 font-medium">
                       {row.change}
                     </span>
                   )}
@@ -304,11 +304,11 @@ export default function EmailDraftingPerformance(): JSX.Element {
           {isLoading ? (
             <Skeleton className="h-5 w-16" />
           ) : (
-            <span className="text-green-600 dark:text-green-400 font-semibold">
+            <span className="text-success dark:text-green-400 font-semibold">
               Personalized: {emailsUsingMemoryPct != null ? `${emailsUsingMemoryPct}%` : "—"}
             </span>
           )}
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300 border-0">
+          <Badge className="bg-success/10 text-success dark:bg-green-950/50 dark:text-green-300 border-0">
             Recommended
           </Badge>
         </div>
@@ -325,7 +325,7 @@ export default function EmailDraftingPerformance(): JSX.Element {
                   <BarChart3 className="h-3.5 w-3.5" />
                   {p.pct}
                 </div>
-                <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                <div className="flex items-center gap-2 text-sm text-success dark:text-green-400">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   {p.benefit}
                 </div>
@@ -342,8 +342,8 @@ export default function EmailDraftingPerformance(): JSX.Element {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <div className="rounded-full bg-green-100 p-1.5 dark:bg-green-950/50">
-                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <div className="rounded-full bg-success/10 p-1.5 dark:bg-green-950/50">
+                  <CheckCircle2 className="h-4 w-4 text-success dark:text-green-400" />
                 </div>
                 Agent Capabilities
               </CardTitle>
@@ -355,12 +355,12 @@ export default function EmailDraftingPerformance(): JSX.Element {
                   className={`flex items-start gap-3 py-3 ${i < AGENT_CAPABILITIES.length - 1 ? "border-b border-border" : ""}`}
                 >
                   {c.enabled ? (
-                    <div className="rounded-full bg-green-100 p-1 dark:bg-green-950/50 shrink-0 mt-0.5">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <div className="rounded-full bg-success/10 p-1 dark:bg-green-950/50 shrink-0 mt-0.5">
+                      <CheckCircle2 className="h-4 w-4 text-success dark:text-green-400" />
                     </div>
                   ) : (
-                    <div className="rounded-full bg-blue-100 p-1 dark:bg-blue-950/50 shrink-0 mt-0.5">
-                      <ArrowUpRight className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <div className="rounded-full bg-info/10 p-1 dark:bg-blue-950/50 shrink-0 mt-0.5">
+                      <ArrowUpRight className="h-4 w-4 text-info dark:text-blue-400" />
                     </div>
                   )}
                   <div>
@@ -392,8 +392,8 @@ export default function EmailDraftingPerformance(): JSX.Element {
                       variant={r.priority === "High" ? "default" : "secondary"}
                       className={
                         r.priority === "High"
-                          ? "bg-green-600 text-white border-0 shrink-0"
-                          : "bg-amber-600 text-white border-0 shrink-0"
+                          ? "bg-success text-primary-foreground border-0 shrink-0"
+                          : "bg-amber-600 text-primary-foreground border-0 shrink-0"
                       }
                     >
                       {r.priority}

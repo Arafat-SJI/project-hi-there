@@ -67,10 +67,10 @@ const CATEGORY_ICONS = [
 
 // Color palette for categories
 const CATEGORY_COLORS = [
-  { value: 'blue', class: 'bg-blue-500' },
-  { value: 'green', class: 'bg-green-500' },
-  { value: 'yellow', class: 'bg-yellow-500' },
-  { value: 'red', class: 'bg-red-500' },
+  { value: 'blue', class: 'bg-info' },
+  { value: 'green', class: 'bg-success' },
+  { value: 'yellow', class: 'bg-warning' },
+  { value: 'red', class: 'bg-destructive' },
   { value: 'purple', class: 'bg-purple-500' },
   { value: 'pink', class: 'bg-pink-500' },
   { value: 'indigo', class: 'bg-indigo-500' },
@@ -184,8 +184,8 @@ export default function KnowledgeCategories() {
               <div
                 className={`w-10 h-10 rounded-lg ${
                   CATEGORY_COLORS.find((c) => c.value === category.color)
-                    ?.class || 'bg-gray-500'
-                } flex items-center justify-center text-white`}
+                    ?.class || 'bg-muted/500'
+                } flex items-center justify-center text-primary-foreground`}
               >
                 <FolderTree className="w-5 h-5" />
               </div>
@@ -293,7 +293,7 @@ export default function KnowledgeCategories() {
             <div className="text-sm font-medium text-muted-foreground">
               Completed
             </div>
-            <div className="text-2xl font-bold mt-2 text-green-600">
+            <div className="text-2xl font-bold mt-2 text-success">
               {embeddingStats.completed}
             </div>
           </Card>
@@ -301,7 +301,7 @@ export default function KnowledgeCategories() {
             <div className="text-sm font-medium text-muted-foreground">
               Pending
             </div>
-            <div className="text-2xl font-bold mt-2 text-yellow-600">
+            <div className="text-2xl font-bold mt-2 text-warning">
               {embeddingStats.pending}
             </div>
           </Card>
@@ -309,7 +309,7 @@ export default function KnowledgeCategories() {
             <div className="text-sm font-medium text-muted-foreground">
               Processing
             </div>
-            <div className="text-2xl font-bold mt-2 text-blue-600">
+            <div className="text-2xl font-bold mt-2 text-info">
               {embeddingStats.processing}
             </div>
           </Card>
@@ -317,7 +317,7 @@ export default function KnowledgeCategories() {
             <div className="text-sm font-medium text-muted-foreground">
               Failed
             </div>
-            <div className="text-2xl font-bold mt-2 text-red-600">
+            <div className="text-2xl font-bold mt-2 text-destructive">
               {embeddingStats.failed}
             </div>
           </Card>

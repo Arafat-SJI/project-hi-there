@@ -150,7 +150,7 @@ export function PODMembersViewer({ podId, open, onOpenChange }: PODMembersViewer
                 <Users className="h-3 w-3" />
                 {rpMembersCount} RP Members
               </Badge>
-              <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 gap-1">
+              <Badge variant="secondary" className="bg-success/10 text-success border-success/30 gap-1">
                 <UserCheck className="h-3 w-3" />
                 {hasLoginCount} Has Login
               </Badge>
@@ -204,7 +204,7 @@ export function PODMembersViewer({ podId, open, onOpenChange }: PODMembersViewer
                           {member.has_login ? (
                             <Badge
                               variant="secondary"
-                              className="bg-green-100 text-green-700 border-green-200"
+                              className="bg-success/10 text-success border-success/30"
                             >
                               <UserCheck className="h-3 w-3 mr-1" />
                               Login

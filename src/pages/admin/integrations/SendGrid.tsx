@@ -205,7 +205,7 @@ export default function SendGridIntegration() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-3 shadow-lg">
-            <Mail className="h-7 w-7 text-white" />
+            <Mail className="h-7 w-7 text-primary-foreground" />
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">SendGrid</h1>

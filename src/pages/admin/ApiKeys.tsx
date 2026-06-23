@@ -107,7 +107,7 @@ export default function ApiKeys() {
                     Save this key now. You won't be able to see it again.
                   </DialogDescription>
                 </DialogHeader>
-                <Alert className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-300">
+                <Alert className="bg-warning/10 dark:bg-yellow-950/20 border-warning/30">
                   <Key className="h-4 w-4" />
                   <AlertDescription className="ml-2">
                     <strong>Important:</strong> Copy and save this API key in a secure location. For security reasons, we cannot show it again.
@@ -267,7 +267,7 @@ export default function ApiKeys() {
                     </TableCell>
                     <TableCell>
                       {key.enabled ? (
-                        <Badge variant="default" className="bg-green-500">
+                        <Badge variant="default" className="bg-success">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                           Active
                         </Badge>
@@ -324,24 +324,24 @@ export default function ApiKeys() {
         </CardContent>
       </Card>
 
-      <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+      <Card className="bg-info/10 dark:bg-blue-950/20 border-info/30 dark:border-blue-900">
         <CardHeader>
-          <CardTitle className="text-blue-900 dark:text-blue-100">API Usage</CardTitle>
-          <CardDescription className="text-blue-700 dark:text-blue-300">
+          <CardTitle className="text-info dark:text-blue-100">API Usage</CardTitle>
+          <CardDescription className="text-info dark:text-blue-300">
             How to use API keys in your requests
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <Label className="text-sm text-blue-900 dark:text-blue-200">cURL Example</Label>
-            <code className="block text-xs bg-white dark:bg-blue-950 px-3 py-2 rounded mt-1 font-mono">
+            <Label className="text-sm text-info dark:text-blue-200">cURL Example</Label>
+            <code className="block text-xs bg-card dark:bg-blue-950 px-3 py-2 rounded mt-1 font-mono">
               curl {window.location.origin}/api/v1/tasks \<br />
               &nbsp;&nbsp;-H "x-api-key: YOUR_API_KEY"
             </code>
           </div>
           <div>
-            <Label className="text-sm text-blue-900 dark:text-blue-200">JavaScript Example</Label>
-            <code className="block text-xs bg-white dark:bg-blue-950 px-3 py-2 rounded mt-1 font-mono overflow-x-auto">
+            <Label className="text-sm text-info dark:text-blue-200">JavaScript Example</Label>
+            <code className="block text-xs bg-card dark:bg-blue-950 px-3 py-2 rounded mt-1 font-mono overflow-x-auto">
               fetch('{window.location.origin}/api/v1/tasks', {'{'}<br />
               &nbsp;&nbsp;headers: {'{'} 'x-api-key': 'YOUR_API_KEY' {'}'}<br />
               {'}'})

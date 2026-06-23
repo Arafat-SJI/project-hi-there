@@ -255,7 +255,7 @@ export default function OAuthClients() {
                     </TableCell>
                     <TableCell>
                       {client.enabled ? (
-                        <Badge variant="default" className="bg-green-500">
+                        <Badge variant="default" className="bg-success">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                           Active
                         </Badge>
@@ -312,18 +312,18 @@ export default function OAuthClients() {
         </CardContent>
       </Card>
 
-      <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+      <Card className="bg-info/10 dark:bg-blue-950/20 border-info/30 dark:border-blue-900">
         <CardHeader>
-          <CardTitle className="text-blue-900 dark:text-blue-100">OAuth Provider Endpoints</CardTitle>
-          <CardDescription className="text-blue-700 dark:text-blue-300">
+          <CardTitle className="text-info dark:text-blue-100">OAuth Provider Endpoints</CardTitle>
+          <CardDescription className="text-info dark:text-blue-300">
             Share these URLs with client app developers
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <Label className="text-sm text-blue-900 dark:text-blue-200">Authorization URL</Label>
+            <Label className="text-sm text-info dark:text-blue-200">Authorization URL</Label>
             <div className="flex items-center gap-2 mt-1">
-              <code className="text-xs bg-white dark:bg-blue-950 px-3 py-1.5 rounded flex-1">
+              <code className="text-xs bg-card dark:bg-blue-950 px-3 py-1.5 rounded flex-1">
                 {window.location.origin}/functions/v1/oauth-authorize
               </code>
               <Button
@@ -336,9 +336,9 @@ export default function OAuthClients() {
             </div>
           </div>
           <div>
-            <Label className="text-sm text-blue-900 dark:text-blue-200">Token URL</Label>
+            <Label className="text-sm text-info dark:text-blue-200">Token URL</Label>
             <div className="flex items-center gap-2 mt-1">
-              <code className="text-xs bg-white dark:bg-blue-950 px-3 py-1.5 rounded flex-1">
+              <code className="text-xs bg-card dark:bg-blue-950 px-3 py-1.5 rounded flex-1">
                 {window.location.origin}/functions/v1/oauth-token
               </code>
               <Button
@@ -351,9 +351,9 @@ export default function OAuthClients() {
             </div>
           </div>
           <div>
-            <Label className="text-sm text-blue-900 dark:text-blue-200">UserInfo URL</Label>
+            <Label className="text-sm text-info dark:text-blue-200">UserInfo URL</Label>
             <div className="flex items-center gap-2 mt-1">
-              <code className="text-xs bg-white dark:bg-blue-950 px-3 py-1.5 rounded flex-1">
+              <code className="text-xs bg-card dark:bg-blue-950 px-3 py-1.5 rounded flex-1">
                 {window.location.origin}/functions/v1/oauth-userinfo
               </code>
               <Button

@@ -251,12 +251,12 @@ export default function MeetingAnalytics() {
                     <div
                       className={`h-3 w-3 rounded-full ${
                         status === 'completed'
-                          ? 'bg-green-500'
+                          ? 'bg-success'
                           : status === 'scheduled'
-                          ? 'bg-blue-500'
+                          ? 'bg-info'
                           : status === 'cancelled'
-                          ? 'bg-red-500'
-                          : 'bg-gray-500'
+                          ? 'bg-destructive'
+                          : 'bg-muted/500'
                       }`}
                     />
                     <span className="capitalize">{status}</span>
@@ -359,10 +359,10 @@ export default function MeetingAnalytics() {
 
       {/* Meeting Efficiency */}
       {efficiency && (
-        <Card className="border-green-500/20">
+        <Card className="border-success/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Gauge className="h-5 w-5 text-green-600" />
+              <Gauge className="h-5 w-5 text-success" />
               Meeting Efficiency
             </CardTitle>
             <CardDescription>
@@ -372,7 +372,7 @@ export default function MeetingAnalytics() {
           <CardContent className="space-y-6">
             {/* Efficiency Score */}
             <div className="flex items-center gap-4">
-              <div className="text-4xl font-bold text-green-600">
+              <div className="text-4xl font-bold text-success">
                 {efficiency.avgEfficiencyScore}
               </div>
               <div className="flex-1">

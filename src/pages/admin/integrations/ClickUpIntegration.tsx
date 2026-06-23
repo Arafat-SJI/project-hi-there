@@ -279,7 +279,7 @@ export default function ClickUpIntegration() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 shadow-lg">
-              <Kanban className="h-7 w-7 text-white" />
+              <Kanban className="h-7 w-7 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight">ClickUp Integration</h1>
@@ -298,7 +298,7 @@ export default function ClickUpIntegration() {
             <Settings className="h-5 w-5 text-muted-foreground" />
             Organization Configuration
             {isOrgConfigured ? (
-              <Badge variant="outline" className="ml-2 border-green-200 text-green-700 dark:border-green-800 dark:text-green-300">
+              <Badge variant="outline" className="ml-2 border-success/30 text-success dark:border-green-800 dark:text-green-300">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 Configured
               </Badge>
@@ -440,10 +440,10 @@ export default function ClickUpIntegration() {
             <div
               className={`mt-2 rounded-md border px-3 py-2 text-sm flex items-start gap-2 ${
                 statusVariant === "success"
-                  ? "border-green-200 bg-green-50 text-green-800"
+                  ? "border-success/30 bg-success/10 text-success"
                   : statusVariant === "error"
-                  ? "border-red-200 bg-red-50 text-red-800"
-                  : "border-blue-200 bg-blue-50 text-blue-800"
+                  ? "border-destructive/30 bg-destructive/10 text-destructive"
+                  : "border-info/30 bg-info/10 text-info"
               }`}
             >
               {statusVariant === "success" && (

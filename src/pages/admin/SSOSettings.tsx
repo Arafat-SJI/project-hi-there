@@ -240,7 +240,7 @@ export default function SSOSettings() {
               const isEnabled = config?.is_enabled;
 
               return (
-                <Card key={provider.type} className={isEnabled ? 'border-green-500' : ''}>
+                <Card key={provider.type} className={isEnabled ? 'border-success' : ''}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
@@ -248,7 +248,7 @@ export default function SSOSettings() {
                         {provider.name}
                       </CardTitle>
                       {isEnabled ? (
-                        <Badge className="bg-green-500">Active</Badge>
+                        <Badge className="bg-success">Active</Badge>
                       ) : isConfigured ? (
                         <Badge variant="secondary">Configured</Badge>
                       ) : (
@@ -416,7 +416,7 @@ export default function SSOSettings() {
                         className="flex items-center justify-between p-3 border rounded-lg"
                       >
                         <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 text-success" />
                           <span>{config.display_name}</span>
                           {config.is_primary && (
                             <Badge variant="default">Primary</Badge>

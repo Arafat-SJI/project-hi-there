@@ -148,16 +148,16 @@ export function AdminSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader
         className={cn(
-          "border-b border-sidebar-border",
-          open ? "p-4" : "p-0 h-12 flex items-center justify-center"
+          "h-14 border-b border-sidebar-border px-4",
+          !open && "justify-center px-0"
         )}
       >
         <Link
           to="/admin"
           className={cn("flex items-center gap-3", !open && "justify-center")}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-destructive shadow-sm">
-            <Shield className="h-5 w-5 text-destructive-foreground" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary shadow-sm">
+            <Shield className="h-5 w-5 text-primary-foreground" />
           </div>
           {open && (
             <div className="flex flex-col min-w-0">
@@ -187,9 +187,20 @@ export function AdminSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        {adminNavigation.map((group) => (
+        {adminNavigation.map((group) => {
+          const groupActive = group.items.some((item) =>
+            item.children?.length
+              ? item.children.some((child) => isActive(child.href))
+              : isActive(item.href),
+          );
+
+          return (
           <SidebarGroup key={group.id}>
-            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+            <SidebarGroupLabel
+              className={cn(groupActive && "font-semibold text-sidebar-foreground")}
+            >
+              {group.title}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
@@ -222,7 +233,7 @@ export function AdminSidebar() {
                             <SidebarMenuButton tooltip={item.title}>
                               <Icon />
                               <span>{item.title}</span>
-                              <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                              <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-150 group-data-[state=open]/collapsible:rotate-90" />
                             </SidebarMenuButton>
                           </CollapsibleTrigger>
                           <CollapsibleContent>
@@ -262,8 +273,8 @@ export function AdminSidebar() {
                           <span>{item.title}</span>
                           {integrationsBadge != null && (
                             <Badge
-                              variant="default"
-                              className="ml-auto h-5 min-w-[20px] px-1.5 text-xs"
+                              variant="secondary"
+                              className="ml-auto h-5 min-w-5 rounded-full px-1.5 text-xs"
                             >
                               {integrationsBadge}
                             </Badge>
@@ -276,12 +287,13 @@ export function AdminSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ))}
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
         {open ? (
-          <div className="px-2 py-1 text-xs text-muted-foreground">
+          <div className="px-2 py-1 text-xs font-medium uppercase tracking-[0.01em] text-muted-foreground">
             Admin · {companyName}
           </div>
         ) : null}

@@ -214,7 +214,7 @@ export default function ZoomIntegration() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 shadow-lg">
-              <Video className="h-7 w-7 text-white" />
+              <Video className="h-7 w-7 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-blue-300 bg-clip-text text-transparent">
@@ -245,9 +245,9 @@ export default function ZoomIntegration() {
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10">
-                    <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    <Video className="h-6 w-6 text-info dark:text-blue-400" />
                   </div>
-                  <TrendingUp className="h-4 w-4 text-green-600 opacity-60" />
+                  <TrendingUp className="h-4 w-4 text-success opacity-60" />
                 </div>
                 <div className="mt-4">
                   <p className="text-3xl font-bold text-foreground">{meetingsCount}</p>
@@ -262,7 +262,7 @@ export default function ZoomIntegration() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10">
                     <Clock className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <TrendingUp className="h-4 w-4 text-green-600 opacity-60" />
+                  <TrendingUp className="h-4 w-4 text-success opacity-60" />
                 </div>
                 <div className="mt-4">
                   <p className="text-3xl font-bold text-foreground">{upcomingMeetings}</p>
@@ -275,9 +275,9 @@ export default function ZoomIntegration() {
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/10 to-green-600/10">
-                    <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    <CheckCircle2 className="h-6 w-6 text-success dark:text-green-400" />
                   </div>
-                  <TrendingUp className="h-4 w-4 text-green-600 opacity-60" />
+                  <TrendingUp className="h-4 w-4 text-success opacity-60" />
                 </div>
                 <div className="mt-4">
                   <p className="text-3xl font-bold text-foreground">{completedMeetings}</p>
@@ -292,7 +292,7 @@ export default function ZoomIntegration() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/10 to-indigo-600/10">
                     <Zap className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                   </div>
-                  <Badge variant="outline" className="border-green-200 text-green-700 dark:border-green-800 dark:text-green-300">
+                  <Badge variant="outline" className="border-success/30 text-success dark:border-green-800 dark:text-green-300">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Active
                   </Badge>
@@ -311,13 +311,13 @@ export default function ZoomIntegration() {
 
       <div className="grid gap-6">
         {/* Configuration Card */}
-        <Card className="border-2 border-blue-200 dark:border-blue-800 shadow-lg hover:shadow-xl transition-shadow">
+        <Card className="border-2 border-info/30 dark:border-blue-800 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-3 text-xl">
                   <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10">
-                    <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <Video className="h-5 w-5 text-info dark:text-blue-400" />
                   </div>
                   OAuth Configuration
                 </CardTitle>
@@ -328,29 +328,29 @@ export default function ZoomIntegration() {
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border-2 border-blue-200 dark:border-blue-800 p-5 shadow-sm">
+            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border-2 border-info/30 dark:border-blue-800 p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="p-1.5 rounded-md bg-blue-200 dark:bg-blue-900/50">
-                      <ExternalLink className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                      <ExternalLink className="h-4 w-4 text-info dark:text-blue-300" />
                     </div>
-                    <p className="text-sm font-bold text-blue-900 dark:text-blue-100">
+                    <p className="text-sm font-bold text-info dark:text-blue-100">
                       Redirect URL (OAuth Callback)
                     </p>
                   </div>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-3 ml-7">
+                  <p className="text-sm text-info dark:text-blue-300 mb-3 ml-7">
                     Add this URL to your Zoom OAuth app settings in the Zoom Marketplace
                   </p>
-                  <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-800 shadow-sm">
-                    <code className="text-xs font-mono text-blue-900 dark:text-blue-100 flex-1 break-all">
+                  <div className="flex items-center gap-2 p-3 bg-card dark:bg-gray-900 rounded-lg border-2 border-info/30 dark:border-blue-800 shadow-sm">
+                    <code className="text-xs font-mono text-info dark:text-blue-100 flex-1 break-all">
                       {redirectUrl}
                     </code>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={copyRedirectUrl}
-                      className="h-9 w-9 p-0 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                      className="h-9 w-9 p-0 hover:bg-info/10 dark:hover:bg-blue-950/30"
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -392,17 +392,17 @@ export default function ZoomIntegration() {
         </Card>
 
         {/* Organization Configuration Card */}
-        <Card className={`border-2 shadow-lg hover:shadow-xl transition-shadow ${isOrgConfigured ? 'border-green-200 dark:border-green-800' : 'border-amber-200 dark:border-amber-800'}`}>
+        <Card className={`border-2 shadow-lg hover:shadow-xl transition-shadow ${isOrgConfigured ? 'border-success/30 dark:border-green-800' : 'border-amber-200 dark:border-amber-800'}`}>
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <CardTitle className="flex items-center gap-3 text-xl mb-2">
                   <div className={`p-2 rounded-lg ${isOrgConfigured ? 'bg-gradient-to-br from-green-500/10 to-green-600/10' : 'bg-gradient-to-br from-amber-500/10 to-amber-600/10'}`}>
-                    <Settings className={`h-5 w-5 ${isOrgConfigured ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
+                    <Settings className={`h-5 w-5 ${isOrgConfigured ? 'text-success dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
                   </div>
                   Organization Configuration
                   {isOrgConfigured ? (
-                    <Badge variant="outline" className="ml-3 border-green-200 text-green-700 dark:border-green-800 dark:text-green-300 bg-green-50 dark:bg-green-950/30">
+                    <Badge variant="outline" className="ml-3 border-success/30 text-success dark:border-green-800 dark:text-green-300 bg-success/10 dark:bg-green-950/30">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       Configured
                     </Badge>
@@ -468,7 +468,7 @@ export default function ZoomIntegration() {
                 onClick={handleSaveOrgConfig}
                 disabled={isSavingConfig || !hasRequiredFields}
                 size="lg"
-                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-md hover:shadow-lg transition-all"
+                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-primary-foreground shadow-md hover:shadow-lg transition-all"
               >
                 {isSavingConfig ? (
                   <>
@@ -485,14 +485,14 @@ export default function ZoomIntegration() {
             </div>
 
             {isOrgConfigured && (
-              <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border-2 border-green-200 dark:border-green-800 p-5 shadow-sm">
+              <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border-2 border-success/30 dark:border-green-800 p-5 shadow-sm">
                 <div className="flex items-start gap-4">
                   <div className="p-2 rounded-lg bg-green-200 dark:bg-green-900/50">
-                    <CheckCircle2 className="h-5 w-5 text-green-700 dark:text-green-300" />
+                    <CheckCircle2 className="h-5 w-5 text-success dark:text-green-300" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-green-900 dark:text-green-100 text-base mb-2">Configuration Active</p>
-                    <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
+                    <p className="font-bold text-success dark:text-green-100 text-base mb-2">Configuration Active</p>
+                    <p className="text-sm text-success dark:text-green-300 leading-relaxed">
                       Users can now connect their personal Zoom accounts using the connection section below.
                     </p>
                   </div>
@@ -518,14 +518,14 @@ export default function ZoomIntegration() {
           <CardContent className="space-y-4">
             {isConnected ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border-2 border-green-200 dark:border-green-800 shadow-sm">
+                <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border-2 border-success/30 dark:border-green-800 shadow-sm">
                   <div className="flex items-center gap-4">
                     <div className="p-3 rounded-xl bg-green-200 dark:bg-green-900/50 shadow-sm">
-                      <CheckCircle2 className="h-6 w-6 text-green-700 dark:text-green-300" />
+                      <CheckCircle2 className="h-6 w-6 text-success dark:text-green-300" />
                     </div>
                     <div>
-                      <p className="font-bold text-green-900 dark:text-green-100 text-base">Connected</p>
-                      <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      <p className="font-bold text-success dark:text-green-100 text-base">Connected</p>
+                      <p className="text-sm text-success dark:text-green-300 mt-1">
                         {zoomToken?.account_email || zoomToken?.account_name || 'Zoom account'}
                       </p>
                     </div>
@@ -534,7 +534,7 @@ export default function ZoomIntegration() {
                     variant="outline"
                     onClick={handleDisconnect}
                     disabled={loading || disconnectOAuth.isPending}
-                    className="border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30 hover:border-red-300 transition-colors"
+                    className="border-destructive/30 hover:bg-destructive/10 dark:border-red-800 dark:hover:bg-red-950/30 hover:border-destructive/30 transition-colors"
                   >
                     {disconnectOAuth.isPending ? (
                       <>
@@ -565,14 +565,14 @@ export default function ZoomIntegration() {
                 )}
 
                 {hasError && errorMessage && (
-                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/30 dark:to-red-900/20 border-2 border-red-200 dark:border-red-800 shadow-sm">
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/30 dark:to-red-900/20 border-2 border-destructive/30 dark:border-red-800 shadow-sm">
                     <div className="flex items-center gap-4">
                       <div className="p-3 rounded-xl bg-red-200 dark:bg-red-900/50 shadow-sm">
-                        <AlertCircle className="h-6 w-6 text-red-700 dark:text-red-300" />
+                        <AlertCircle className="h-6 w-6 text-destructive dark:text-red-300" />
                       </div>
                       <div>
-                        <p className="font-bold text-red-900 dark:text-red-100 text-base">Connection Error</p>
-                        <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                        <p className="font-bold text-destructive dark:text-red-100 text-base">Connection Error</p>
+                        <p className="text-sm text-destructive dark:text-red-300 mt-1">
                           {errorMessage}
                         </p>
                       </div>
@@ -615,7 +615,7 @@ export default function ZoomIntegration() {
                     onClick={handleConnect}
                     disabled={loading || connectOAuth.isPending || !isOrgConfigured}
                     size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-md hover:shadow-lg transition-all"
+                    className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-primary-foreground shadow-md hover:shadow-lg transition-all"
                   >
                     {loading || connectOAuth.isPending ? (
                       <>
@@ -664,7 +664,7 @@ export default function ZoomIntegration() {
                 disabled={syncZoom.isPending || !hasValidToken}
                 variant="secondary"
                 size="lg"
-                className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white shadow-md hover:shadow-lg transition-all"
+                className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-primary-foreground shadow-md hover:shadow-lg transition-all"
               >
                 {syncZoom.isPending ? (
                   <>
@@ -684,12 +684,12 @@ export default function ZoomIntegration() {
               </p>
 
               {syncZoom.isSuccess && (
-                <div className="rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30 p-5 shadow-sm">
+                <div className="rounded-xl border-2 border-success/30 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30 p-5 shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-green-200 dark:bg-green-900/50">
-                      <CheckCircle2 className="h-5 w-5 text-green-700 dark:text-green-300" />
+                      <CheckCircle2 className="h-5 w-5 text-success dark:text-green-300" />
                     </div>
-                    <span className="text-green-900 dark:text-green-100 font-bold text-base">
+                    <span className="text-success dark:text-green-100 font-bold text-base">
                       Meetings synced successfully
                     </span>
                   </div>
@@ -723,7 +723,7 @@ export default function ZoomIntegration() {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10">
-                  <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <Video className="h-5 w-5 text-info dark:text-blue-400" />
                 </div>
                 Create Zoom Meeting
               </CardTitle>
@@ -734,7 +734,7 @@ export default function ZoomIntegration() {
             <CardContent className="space-y-5">
               <CreateZoomMeetingDialog 
                 trigger={
-                  <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-md hover:shadow-lg transition-all">
+                  <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-primary-foreground shadow-md hover:shadow-lg transition-all">
                     <Plus className="mr-2 h-4 w-4" />
                     New Zoom Meeting
                   </Button>
@@ -743,7 +743,7 @@ export default function ZoomIntegration() {
               
               <div className="rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 p-4 border-2 border-muted shadow-sm">
                 <p className="text-sm text-muted-foreground flex items-start gap-3 leading-relaxed">
-                  <Video className="h-5 w-5 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                  <Video className="h-5 w-5 mt-0.5 flex-shrink-0 text-info dark:text-blue-400" />
                   <span>
                     Create meetings with title, time, agenda, and optional attendees. The meeting will be saved locally and attendees will receive email invites.
                   </span>

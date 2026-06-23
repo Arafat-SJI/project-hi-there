@@ -191,7 +191,7 @@ function OverviewTab() {
             {isLoading ? <Skeleton className="h-20 w-full" /> : (
               <>
                 <div className="flex flex-wrap gap-3">
-                  {[{ label: "Pending", val: q.pending, bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-800 dark:text-amber-200", bold: "text-amber-700 dark:text-amber-400" }, { label: "Processing", val: q.processing, bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-800 dark:text-blue-200", bold: "text-blue-700 dark:text-blue-400" }, { label: "Completed", val: q.completed, bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-800 dark:text-green-200", bold: "text-green-700 dark:text-green-400" }, { label: "Failed", val: q.failed, bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-800 dark:text-red-200", bold: "text-red-700 dark:text-red-400" }].map(({ label, val, bg, text, bold }) => (
+                  {[{ label: "Pending", val: q.pending, bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-800 dark:text-amber-200", bold: "text-amber-700 dark:text-amber-400" }, { label: "Processing", val: q.processing, bg: "bg-info/10 dark:bg-blue-900/30", text: "text-info dark:text-blue-200", bold: "text-info dark:text-blue-400" }, { label: "Completed", val: q.completed, bg: "bg-success/10 dark:bg-green-900/30", text: "text-success dark:text-green-200", bold: "text-success dark:text-green-400" }, { label: "Failed", val: q.failed, bg: "bg-destructive/10 dark:bg-red-900/30", text: "text-destructive dark:text-red-200", bold: "text-destructive dark:text-red-400" }].map(({ label, val, bg, text, bold }) => (
                     <div key={label} className={`rounded-lg ${bg} px-4 py-2`}><span className={`text-sm font-medium ${text}`}>{label}</span><p className={`text-xl font-bold ${bold}`}>{val}</p></div>
                   ))}
                 </div>
@@ -204,7 +204,7 @@ function OverviewTab() {
           <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" />Performance</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             {[{ label: "Avg Query Latency", val: "<300ms — —" }, { label: "Memory Cache TTL", val: "Per user — 1 hour" }, { label: "Token Savings", val: "70% reduction — OK" }, { label: "Consolidation", val: "Per user — Every 20 turns" }].map(({ label, val }) => (
-              <div key={label}><p className="text-sm font-medium text-muted-foreground">{label}</p><p className="text-sm font-semibold text-green-600 dark:text-green-400">{val}</p></div>
+              <div key={label}><p className="text-sm font-medium text-muted-foreground">{label}</p><p className="text-sm font-semibold text-success dark:text-green-400">{val}</p></div>
             ))}
           </CardContent>
         </Card>
@@ -451,7 +451,7 @@ function PatternCard2({ card }: { card: PatternCard }) {
     <Card className="border rounded-lg shadow-sm">
       <CardContent className="pt-4 pb-4">
         <div className="flex justify-between items-start gap-2">
-          <div className="min-w-0"><p className="text-sm font-semibold text-foreground">{card.title}</p><p className="text-xs text-muted-foreground mt-1">{card.description}</p><p className="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5 shrink-0" />{card.metric}</p></div>
+          <div className="min-w-0"><p className="text-sm font-semibold text-foreground">{card.title}</p><p className="text-xs text-muted-foreground mt-1">{card.description}</p><p className="text-xs text-success dark:text-green-400 mt-2 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5 shrink-0" />{card.metric}</p></div>
           <Badge variant="secondary" className="shrink-0 text-xs">{card.badge}</Badge>
         </div>
       </CardContent>
@@ -465,7 +465,7 @@ function RecCard({ rec }: { rec: SuccessRecommendation }) {
       <CardContent className="pt-4 pb-4">
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0"><p className="text-sm font-semibold text-foreground">{rec.title}</p><p className="text-xs text-muted-foreground mt-1">{rec.description}</p><p className="text-xs text-primary mt-2 flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5 shrink-0" />{rec.action}</p></div>
-          <Badge className={rec.priority === "High" ? "shrink-0 bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 border-0" : "shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 border-0"}>{rec.priority}</Badge>
+          <Badge className={rec.priority === "High" ? "shrink-0 bg-success/10 text-success dark:bg-green-900/40 dark:text-green-200 border-0" : "shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 border-0"}>{rec.priority}</Badge>
         </div>
       </CardContent>
     </Card>
@@ -478,7 +478,7 @@ function RiskCard2({ risk }: { risk: RiskPattern }) {
       <CardContent className="pt-4 pb-4">
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0"><p className="text-sm font-semibold text-foreground">{risk.title}</p><p className="text-xs text-muted-foreground mt-1">{risk.description}</p><p className="text-xs text-destructive mt-2 flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5 shrink-0" />{risk.action}</p></div>
-          <Badge className={risk.priority === "high" ? "shrink-0 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 border-0 capitalize" : "shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 border-0 capitalize"}>{risk.priority}</Badge>
+          <Badge className={risk.priority === "high" ? "shrink-0 bg-destructive/10 text-destructive dark:bg-red-900/40 dark:text-red-200 border-0 capitalize" : "shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 border-0 capitalize"}>{risk.priority}</Badge>
         </div>
       </CardContent>
     </Card>
@@ -506,7 +506,7 @@ function LearningPatternsTab() {
           <>
             {[
               { value: s?.teamMemories ?? 0, label: "Shared patterns", icon: Users, bg: "bg-violet-100 dark:bg-violet-900/30" },
-              { value: `${(s?.avgRelevancePct ?? 0).toFixed(0)}%`, label: "Pattern confidence", icon: TrendingUp, bg: "bg-green-100 dark:bg-green-900/30" },
+              { value: `${(s?.avgRelevancePct ?? 0).toFixed(0)}%`, label: "Pattern confidence", icon: TrendingUp, bg: "bg-success/10 dark:bg-green-900/30" },
               { value: s?.patternsThisWeek ?? 0, label: "This week", icon: Zap, bg: "bg-violet-100 dark:bg-violet-900/30" },
               { value: s?.teamInsights ?? 0, label: "Available", icon: Target, bg: "bg-amber-100 dark:bg-amber-900/30" },
             ].map(({ value, label, icon: Icon, bg }) => (
@@ -569,7 +569,7 @@ function LearningPatternsTab() {
         <h3 className="text-base font-semibold mb-3">Consolidation Process</h3>
         <ul className="space-y-2">
           {CONSOLIDATION_STEPS.map((step, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm"><CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><div><p className="font-medium text-foreground">{step.main}</p><p className="text-muted-foreground text-xs">{step.sub}</p></div></li>
+            <li key={i} className="flex items-start gap-2 text-sm"><CheckCircle2 className="h-5 w-5 text-success dark:text-green-400 shrink-0 mt-0.5" /><div><p className="font-medium text-foreground">{step.main}</p><p className="text-muted-foreground text-xs">{step.sub}</p></div></li>
           ))}
         </ul>
       </div>

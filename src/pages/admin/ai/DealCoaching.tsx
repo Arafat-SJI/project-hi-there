@@ -223,8 +223,8 @@ export default function DealCoaching(): JSX.Element {
               </Card>
             ))
           : [
-              { title: "Deals Coached", value: String(dealsCoached), desc: "With agent guidance", icon: Target, iconBg: "bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400" },
-              { title: "Close Rate", value: `${closeRatePct}%`, desc: closeRateVsBaseline !== 0 ? (closeRateVsBaseline > 0 ? `+${closeRateVsBaseline}% vs baseline` : `${closeRateVsBaseline}% vs baseline`) : "vs baseline", icon: CheckCircle2, iconBg: "bg-green-100 text-green-600 dark:bg-green-950/50 dark:text-green-400" },
+              { title: "Deals Coached", value: String(dealsCoached), desc: "With agent guidance", icon: Target, iconBg: "bg-info/10 text-info dark:bg-blue-950/50 dark:text-blue-400" },
+              { title: "Close Rate", value: `${closeRatePct}%`, desc: closeRateVsBaseline !== 0 ? (closeRateVsBaseline > 0 ? `+${closeRateVsBaseline}% vs baseline` : `${closeRateVsBaseline}% vs baseline`) : "vs baseline", icon: CheckCircle2, iconBg: "bg-success/10 text-success dark:bg-green-950/50 dark:text-green-400" },
               { title: "Cycle Reduction", value: `${cycleReductionPct > 0 ? "-" : ""}${cycleReductionPct}%`, desc: "Avg days to close", icon: Clock, iconBg: "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400" },
               { title: "Pattern Accuracy", value: `${patternAccuracyPct}%`, desc: "Risk prediction", icon: BarChart3, iconBg: "bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400" },
             ].map((m) => (
@@ -248,7 +248,7 @@ export default function DealCoaching(): JSX.Element {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <TrendingDown className="h-4 w-4 text-success dark:text-green-400" />
               Coaching Impact
             </CardTitle>
           </CardHeader>
@@ -257,26 +257,26 @@ export default function DealCoaching(): JSX.Element {
               <span className="text-sm font-medium">Close Rate</span>
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-muted-foreground">Baseline: {baselineCloseRate}%</span>
-                <span className="text-green-600 dark:text-green-400 font-medium">{closeRatePct}%</span>
-                <span className="text-green-600 dark:text-green-400">+{closeRatePct - baselineCloseRate}%</span>
+                <span className="text-success dark:text-green-400 font-medium">{closeRatePct}%</span>
+                <span className="text-success dark:text-green-400">+{closeRatePct - baselineCloseRate}%</span>
               </div>
             </div>
             <div className="flex items-center justify-between border-b border-border pb-3">
               <span className="text-sm font-medium">Avg Deal Cycle</span>
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-muted-foreground">Baseline: {baselineCycleDays} days</span>
-                <span className="text-green-600 dark:text-green-400 font-medium">{avgCycleDays} days</span>
-                <span className="text-green-600 dark:text-green-400">-{cycleReductionPct}%</span>
+                <span className="text-success dark:text-green-400 font-medium">{avgCycleDays} days</span>
+                <span className="text-success dark:text-green-400">-{cycleReductionPct}%</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Deal Size</span>
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-muted-foreground">Baseline: $245K</span>
-                <span className="text-green-600 dark:text-green-400 font-medium">
+                <span className="text-success dark:text-green-400 font-medium">
                   ${avgDealSize >= 1000 ? `${Math.round(avgDealSize / 1000)}K` : avgDealSize}
                 </span>
-                <span className="text-green-600 dark:text-green-400">+{dealSizeVsBaselinePct}%</span>
+                <span className="text-success dark:text-green-400">+{dealSizeVsBaselinePct}%</span>
               </div>
             </div>
           </CardContent>
@@ -314,8 +314,8 @@ export default function DealCoaching(): JSX.Element {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-xs">Baseline: {baselineCycleDays} days</p>
-            <p className="text-xl font-bold text-green-600 dark:text-green-400">{avgCycleDays} days</p>
-            <p className="text-xs text-green-600 dark:text-green-400">-{cycleReductionPct}%</p>
+            <p className="text-xl font-bold text-success dark:text-green-400">{avgCycleDays} days</p>
+            <p className="text-xs text-success dark:text-green-400">-{cycleReductionPct}%</p>
           </CardContent>
         </Card>
         <Card>
@@ -324,10 +324,10 @@ export default function DealCoaching(): JSX.Element {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-xs">Baseline: $245K</p>
-            <p className="text-xl font-bold text-green-600 dark:text-green-400">
+            <p className="text-xl font-bold text-success dark:text-green-400">
               ${avgDealSize >= 1000 ? `${Math.round(avgDealSize / 1000)}K` : avgDealSize}
             </p>
-            <p className="text-xs text-green-600 dark:text-green-400">+{dealSizeVsBaselinePct}%</p>
+            <p className="text-xs text-success dark:text-green-400">+{dealSizeVsBaselinePct}%</p>
           </CardContent>
         </Card>
         <Card>
@@ -336,8 +336,8 @@ export default function DealCoaching(): JSX.Element {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-xs">Baseline: N/A</p>
-            <p className="text-xl font-bold text-green-600 dark:text-green-400">{tipsAppliedDeals} deals</p>
-            <p className="text-xs text-green-600 dark:text-green-400">{adoptionPct}% adoption</p>
+            <p className="text-xl font-bold text-success dark:text-green-400">{tipsAppliedDeals} deals</p>
+            <p className="text-xs text-success dark:text-green-400">{adoptionPct}% adoption</p>
           </CardContent>
         </Card>
         <Card>
@@ -361,10 +361,10 @@ export default function DealCoaching(): JSX.Element {
               key={tip.id}
               className={
                 tip.severity === "critical"
-                  ? "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50"
+                  ? "bg-destructive/10 dark:bg-red-950/20 border-destructive/30 dark:border-red-900/50"
                   : tip.severity === "high"
                     ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50"
-                    : "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50"
+                    : "bg-info/10 dark:bg-blue-950/20 border-info/30 dark:border-blue-900/50"
               }
             >
               <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
@@ -373,10 +373,10 @@ export default function DealCoaching(): JSX.Element {
                   variant="secondary"
                   className={
                     tip.severity === "critical"
-                      ? "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
+                      ? "bg-destructive/10 text-destructive dark:bg-red-900/50 dark:text-red-300"
                       : tip.severity === "high"
                         ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
-                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300"
+                        : "bg-info/10 text-info dark:bg-blue-900/50 dark:text-blue-300"
                   }
                 >
                   {tip.severity}
@@ -386,7 +386,7 @@ export default function DealCoaching(): JSX.Element {
                 <p className="text-xs text-muted-foreground">{tip.description}</p>
                 <div className="flex items-center gap-2">
                   <Progress value={tip.adoptionPct} className="h-2 flex-1" />
-                  <span className="text-xs font-medium text-green-600 dark:text-green-400">{tip.adoptionPct}%</span>
+                  <span className="text-xs font-medium text-success dark:text-green-400">{tip.adoptionPct}%</span>
                 </div>
                 <p className="text-xs font-medium">Impact: {tip.impact}</p>
                 <ul className="text-xs text-muted-foreground list-disc list-inside space-y-0.5">
@@ -419,7 +419,7 @@ export default function DealCoaching(): JSX.Element {
                 <CardContent className="pt-4">
                   <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
                   <p className="text-2xl font-bold text-primary">{s.avgDays} days avg</p>
-                  <p className={`text-sm ${s.trendPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  <p className={`text-sm ${s.trendPositive ? "text-success dark:text-green-400" : "text-destructive dark:text-red-400"}`}>
                     {s.trend === "On track" ? "→ On track" : s.trendPositive ? `↑ ${s.trend}` : `↓ ${s.trend}`}
                   </p>
                 </CardContent>
@@ -456,7 +456,7 @@ export default function DealCoaching(): JSX.Element {
                   <button type="button" className="text-sm text-primary hover:underline mt-1 flex items-center gap-1">
                     <ArrowRight className="h-3.5 w-3.5" /> {rf.action}
                   </button>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ {rf.successRate}% success rate</p>
+                  <p className="text-xs text-success dark:text-green-400 mt-1">✓ {rf.successRate}% success rate</p>
                 </div>
                 <Badge variant="destructive" className="shrink-0">Detected {rf.detectedPct}%</Badge>
               </CardContent>
@@ -481,8 +481,8 @@ export default function DealCoaching(): JSX.Element {
                 {REAL_TIME_CAPABILITIES.map((c) => (
                   <li key={c.label} className="flex items-center gap-2 text-sm">
                     {c.enabled ? (
-                      <div className="rounded-full bg-green-100 p-1 dark:bg-green-950/50 shrink-0">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <div className="rounded-full bg-success/10 p-1 dark:bg-green-950/50 shrink-0">
+                        <CheckCircle2 className="h-4 w-4 text-success dark:text-green-400" />
                       </div>
                     ) : (
                       <div className="rounded-full bg-muted p-1 shrink-0">
@@ -500,8 +500,8 @@ export default function DealCoaching(): JSX.Element {
                 {LEARNING_CAPABILITIES.map((c) => (
                   <li key={c.label} className="flex items-center gap-2 text-sm">
                     {c.enabled ? (
-                      <div className="rounded-full bg-green-100 p-1 dark:bg-green-950/50 shrink-0">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <div className="rounded-full bg-success/10 p-1 dark:bg-green-950/50 shrink-0">
+                        <CheckCircle2 className="h-4 w-4 text-success dark:text-green-400" />
                       </div>
                     ) : (
                       <div className="rounded-full bg-muted p-1 shrink-0">

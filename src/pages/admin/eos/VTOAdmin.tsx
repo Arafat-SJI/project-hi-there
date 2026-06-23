@@ -103,7 +103,7 @@ export default function VTOAdmin() {
                 <p className="text-sm text-muted-foreground">Average completion</p>
                 <p className="text-2xl font-bold">{averageCompletion}%</p>
               </div>
-              <ShieldCheck className="h-9 w-9 text-green-600 opacity-80" />
+              <ShieldCheck className="h-9 w-9 text-success opacity-80" />
             </div>
           </CardContent>
         </Card>

@@ -518,7 +518,7 @@ export default function MicrosoftTeamsIntegration() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 shadow-lg">
-              <Building2 className="h-7 w-7 text-white" />
+              <Building2 className="h-7 w-7 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent">
@@ -537,8 +537,8 @@ export default function MicrosoftTeamsIntegration() {
         <Card className="border-2 shadow-lg overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 pb-4">
             <CardTitle className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10 dark:bg-blue-400/10">
-                <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 rounded-lg bg-info/10 dark:bg-blue-400/10">
+                <Building2 className="h-5 w-5 text-info dark:text-blue-400" />
               </div>
               <span>Connection Status</span>
             </CardTitle>
@@ -549,15 +549,15 @@ export default function MicrosoftTeamsIntegration() {
           <CardContent className="pt-6">
             {isConnected ? (
               <div className="space-y-4">
-                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/50 dark:via-emerald-950/30 dark:to-teal-950/30 border-2 border-green-200 dark:border-green-800 p-6 shadow-sm">
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/50 dark:via-emerald-950/30 dark:to-teal-950/30 border-2 border-success/30 dark:border-green-800 p-6 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-full bg-green-500 dark:bg-green-600 shadow-md">
-                        <CheckCircle2 className="h-6 w-6 text-white" />
+                      <div className="p-3 rounded-full bg-success dark:bg-success shadow-md">
+                        <CheckCircle2 className="h-6 w-6 text-primary-foreground" />
                       </div>
                       <div>
-                        <p className="font-bold text-lg text-green-900 dark:text-green-100">Connected</p>
-                        <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
+                        <p className="font-bold text-lg text-success dark:text-green-100">Connected</p>
+                        <p className="text-sm text-success dark:text-green-300 mt-0.5">
                           {user?.email || 'Microsoft user'}
                         </p>
                       </div>
@@ -566,7 +566,7 @@ export default function MicrosoftTeamsIntegration() {
                       variant="outline"
                       onClick={handleDisconnect}
                       disabled={loading}
-                      className="border-red-300 hover:bg-red-50 hover:border-red-400 dark:border-red-800 dark:hover:bg-red-950/50 text-red-600 dark:text-red-400 font-medium"
+                      className="border-destructive/30 hover:bg-destructive/10 hover:border-red-400 dark:border-red-800 dark:hover:bg-red-950/50 text-destructive dark:text-red-400 font-medium"
                     >
                       {loading ? (
                         <>
@@ -599,7 +599,7 @@ export default function MicrosoftTeamsIntegration() {
                       onClick={handleConnect}
                       disabled={loading}
                       size="lg"
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md font-medium"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-primary-foreground shadow-md font-medium"
                     >
                       {loading ? (
                         <>
@@ -670,24 +670,24 @@ export default function MicrosoftTeamsIntegration() {
               {graphResult && (
                 <div className={`rounded-xl border-2 p-5 ${
                   graphResult.success 
-                    ? 'border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30' 
+                    ? 'border-success/30 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30' 
                     : 'border-destructive/30 bg-destructive/5'
                 }`}>
                   {graphResult.success ? (
                     <div className="space-y-4">
                       {/* User Info */}
                       <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50">
-                          <User className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <div className="p-2 rounded-lg bg-success/10 dark:bg-green-900/50">
+                          <User className="h-5 w-5 text-success dark:text-green-400" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-semibold text-green-900 dark:text-green-100 text-base">
+                          <p className="font-semibold text-success dark:text-green-100 text-base">
                             {graphResult.user?.displayName}
                           </p>
-                          <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
+                          <p className="text-sm text-success dark:text-green-300 mt-0.5">
                             {graphResult.user?.mail || graphResult.user?.userPrincipalName}
                           </p>
-                          <p className="text-xs text-green-600 dark:text-green-400 font-mono mt-2 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded">
+                          <p className="text-xs text-success dark:text-green-400 font-mono mt-2 bg-success/10 dark:bg-green-900/50 px-2 py-1 rounded">
                             ID: {graphResult.user?.id}
                           </p>
                         </div>
@@ -695,18 +695,18 @@ export default function MicrosoftTeamsIntegration() {
 
                       {/* Token Info */}
                       {graphResult.tokenMetadata && (
-                        <div className="border-t border-green-200 dark:border-green-800 pt-4 space-y-3">
+                        <div className="border-t border-success/30 dark:border-green-800 pt-4 space-y-3">
                           <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
-                            <span className="text-green-800 dark:text-green-200 font-medium">
+                            <Clock className="h-4 w-4 text-success dark:text-green-400" />
+                            <span className="text-success dark:text-green-200 font-medium">
                               Token expires in {graphResult.tokenMetadata.expiresInMinutes} minutes
                             </span>
                           </div>
                           <div className="flex items-start gap-2 text-sm">
-                            <Key className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                            <Key className="h-4 w-4 text-success dark:text-green-400 mt-0.5 flex-shrink-0" />
                             <div className="flex-1">
-                              <span className="text-green-800 dark:text-green-200 font-medium">Scopes: </span>
-                              <span className="font-mono text-xs text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded block mt-1">
+                              <span className="text-success dark:text-green-200 font-medium">Scopes: </span>
+                              <span className="font-mono text-xs text-success dark:text-green-300 bg-success/10 dark:bg-green-900/50 px-2 py-1 rounded block mt-1">
                                 {graphResult.tokenMetadata.scopes.join(', ')}
                               </span>
                             </div>
@@ -854,13 +854,13 @@ export default function MicrosoftTeamsIntegration() {
               </p>
 
               {syncTeamsMeetings.data && (
-                <div className="rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30 p-5">
+                <div className="rounded-xl border-2 border-success/30 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950/50 dark:to-emerald-950/30 p-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <div className="p-1.5 rounded-full bg-success/10 dark:bg-green-900/50">
+                        <CheckCircle2 className="h-4 w-4 text-success dark:text-green-400" />
                       </div>
-                      <span className="text-green-900 dark:text-green-100 font-semibold">
+                      <span className="text-success dark:text-green-100 font-semibold">
                         {syncTeamsMeetings.data.updated > 0 
                           ? `${syncTeamsMeetings.data.updated} meeting${syncTeamsMeetings.data.updated !== 1 ? 's' : ''} refreshed`
                           : 'Meetings up to date'}
@@ -892,11 +892,11 @@ export default function MicrosoftTeamsIntegration() {
 
         {/* Create Teams Meeting Card */}
         {isConnected && (
-          <Card className="border-2 shadow-md hover:shadow-lg transition-all hover:border-blue-300 dark:hover:border-blue-700">
+          <Card className="border-2 shadow-md hover:shadow-lg transition-all hover:border-info/30 dark:hover:border-blue-700">
             <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 pb-4">
               <CardTitle className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10 dark:bg-blue-400/10">
-                  <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 rounded-lg bg-info/10 dark:bg-blue-400/10">
+                  <Video className="h-5 w-5 text-info dark:text-blue-400" />
                 </div>
                 Create Teams Meeting
               </CardTitle>
@@ -907,7 +907,7 @@ export default function MicrosoftTeamsIntegration() {
             <CardContent className="pt-6 space-y-4">
               <CreateTeamsMeetingDialog 
                 trigger={
-                  <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md font-medium">
+                  <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-primary-foreground shadow-md font-medium">
                     <Plus className="mr-2 h-4 w-4" />
                     New Teams Meeting
                   </Button>
@@ -1130,8 +1130,8 @@ export default function MicrosoftTeamsIntegration() {
           <CardContent className="pt-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 mt-0.5">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <div className="p-2 rounded-lg bg-success/10 dark:bg-green-900/50 mt-0.5">
+                  <CheckCircle2 className="h-5 w-5 text-success dark:text-green-400 flex-shrink-0" />
                 </div>
                 <div>
                   <p className="font-semibold mb-1">Single Sign-On (SSO)</p>
@@ -1141,8 +1141,8 @@ export default function MicrosoftTeamsIntegration() {
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 mt-0.5">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <div className="p-2 rounded-lg bg-success/10 dark:bg-green-900/50 mt-0.5">
+                  <CheckCircle2 className="h-5 w-5 text-success dark:text-green-400 flex-shrink-0" />
                 </div>
                 <div>
                   <p className="font-semibold mb-1">Teams Channel Access</p>
@@ -1152,8 +1152,8 @@ export default function MicrosoftTeamsIntegration() {
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 mt-0.5">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <div className="p-2 rounded-lg bg-success/10 dark:bg-green-900/50 mt-0.5">
+                  <CheckCircle2 className="h-5 w-5 text-success dark:text-green-400 flex-shrink-0" />
                 </div>
                 <div>
                   <p className="font-semibold mb-1">Meeting Management</p>
@@ -1163,8 +1163,8 @@ export default function MicrosoftTeamsIntegration() {
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50 mt-0.5">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <div className="p-2 rounded-lg bg-success/10 dark:bg-green-900/50 mt-0.5">
+                  <CheckCircle2 className="h-5 w-5 text-success dark:text-green-400 flex-shrink-0" />
                 </div>
                 <div>
                   <p className="font-semibold mb-1">File Sharing</p>
@@ -1194,31 +1194,31 @@ export default function MicrosoftTeamsIntegration() {
             <div className="space-y-3">
               <div className={`flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${
                 import.meta.env.VITE_MICROSOFT_CLIENT_ID 
-                  ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
-                  : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
+                  ? 'bg-success/10 dark:bg-green-950/30 border-success/30 dark:border-green-800' 
+                  : 'bg-destructive/10 dark:bg-red-950/30 border-destructive/30 dark:border-red-800'
               }`}>
                 <span className="font-mono text-sm font-medium">VITE_MICROSOFT_CLIENT_ID</span>
-                <span className={`font-semibold ${import.meta.env.VITE_MICROSOFT_CLIENT_ID ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                <span className={`font-semibold ${import.meta.env.VITE_MICROSOFT_CLIENT_ID ? "text-success dark:text-green-400" : "text-destructive dark:text-red-400"}`}>
                   {import.meta.env.VITE_MICROSOFT_CLIENT_ID ? "✓ Set" : "✗ Missing"}
                 </span>
               </div>
               <div className={`flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${
                 import.meta.env.VITE_MICROSOFT_DIRECTORY_ID 
-                  ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
-                  : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
+                  ? 'bg-success/10 dark:bg-green-950/30 border-success/30 dark:border-green-800' 
+                  : 'bg-destructive/10 dark:bg-red-950/30 border-destructive/30 dark:border-red-800'
               }`}>
                 <span className="font-mono text-sm font-medium">VITE_MICROSOFT_DIRECTORY_ID</span>
-                <span className={`font-semibold ${import.meta.env.VITE_MICROSOFT_DIRECTORY_ID ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                <span className={`font-semibold ${import.meta.env.VITE_MICROSOFT_DIRECTORY_ID ? "text-success dark:text-green-400" : "text-destructive dark:text-red-400"}`}>
                   {import.meta.env.VITE_MICROSOFT_DIRECTORY_ID ? "✓ Set" : "✗ Missing"}
                 </span>
               </div>
               <div className={`flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${
                 import.meta.env.VITE_MICROSOFT_REDIRECT_URI 
-                  ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
-                  : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
+                  ? 'bg-success/10 dark:bg-green-950/30 border-success/30 dark:border-green-800' 
+                  : 'bg-destructive/10 dark:bg-red-950/30 border-destructive/30 dark:border-red-800'
               }`}>
                 <span className="font-mono text-sm font-medium">VITE_MICROSOFT_REDIRECT_URI</span>
-                <span className={`font-semibold ${import.meta.env.VITE_MICROSOFT_REDIRECT_URI ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                <span className={`font-semibold ${import.meta.env.VITE_MICROSOFT_REDIRECT_URI ? "text-success dark:text-green-400" : "text-destructive dark:text-red-400"}`}>
                   {import.meta.env.VITE_MICROSOFT_REDIRECT_URI ? "✓ Set" : "✗ Missing"}
                 </span>
               </div>

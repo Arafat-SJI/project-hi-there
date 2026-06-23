@@ -75,17 +75,17 @@ function StatusBadge({ status }: { status: ItemStatus }) {
 function StatusIcon({ status }: { status: ItemStatus }) {
   switch (status) {
     case "done":
-      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      return <CheckCircle2 className="h-4 w-4 text-success" />;
     case "qa-ready":
-      return <FlaskConical className="h-4 w-4 text-blue-500" />;
+      return <FlaskConical className="h-4 w-4 text-info" />;
     case "in-progress":
       return <Clock className="h-4 w-4 text-amber-500" />;
     case "planned":
       return <Circle className="h-4 w-4 text-purple-500" />;
     case "blocked":
-      return <Ban className="h-4 w-4 text-red-500" />;
+      return <Ban className="h-4 w-4 text-destructive" />;
     case "not-started":
-      return <Circle className="h-4 w-4 text-gray-400" />;
+      return <Circle className="h-4 w-4 text-muted-foreground" />;
   }
 }
 
@@ -325,9 +325,9 @@ function ModuleCard({ module }: { module: ModuleStatus }) {
                   {module.qaChecklist.map((q, i) => (
                     <div key={i} className="flex items-center gap-2 text-sm">
                       {q.tested ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
                       ) : (
-                        <Circle className="h-4 w-4 text-gray-300 shrink-0" />
+                        <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
                       )}
                       <span className={`flex-1 ${q.tested ? "line-through text-muted-foreground" : ""}`}>
                         {q.description}
@@ -405,7 +405,7 @@ function QASummaryTable() {
                 </TableCell>
                 <TableCell>{qa.total}</TableCell>
                 <TableCell>
-                  <span className={qa.tested > 0 ? "text-green-600 font-medium" : ""}>{qa.tested}</span>
+                  <span className={qa.tested > 0 ? "text-success font-medium" : ""}>{qa.tested}</span>
                 </TableCell>
                 <TableCell>
                   <span className={qa.total - qa.tested > 0 ? "text-amber-600 font-medium" : ""}>
@@ -819,7 +819,7 @@ function NextStepsTab() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <FlaskConical className="h-5 w-5 text-blue-500" />
+              <FlaskConical className="h-5 w-5 text-info" />
               <CardTitle className="text-base">Modules Ready for QA</CardTitle>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -923,7 +923,7 @@ function DocsTab() {
                 <div className="space-y-1.5 ml-1">
                   {module.docs.map((doc) => (
                     <div key={doc.path} className="flex items-start gap-2 text-sm">
-                      <ExternalLink className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
+                      <ExternalLink className="h-3.5 w-3.5 text-info shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <span className="font-medium text-sm">{doc.title}</span>
                         <p className="text-xs text-muted-foreground">{doc.description}</p>
@@ -1117,18 +1117,18 @@ function PMOverviewTab() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center text-sm">
-                    <span className={pagesDone === pagesTotal ? "text-green-600 font-medium" : ""}>
+                    <span className={pagesDone === pagesTotal ? "text-success font-medium" : ""}>
                       {pagesDone}/{pagesTotal}
                     </span>
                   </TableCell>
                   <TableCell className="text-center text-sm">
-                    <span className={hooksDone === hooksTotal ? "text-green-600 font-medium" : ""}>
+                    <span className={hooksDone === hooksTotal ? "text-success font-medium" : ""}>
                       {hooksDone}/{hooksTotal}
                     </span>
                   </TableCell>
                   <TableCell className="text-center text-sm">
                     {efTotal > 0 ? (
-                      <span className={efDone === efTotal ? "text-green-600 font-medium" : ""}>
+                      <span className={efDone === efTotal ? "text-success font-medium" : ""}>
                         {efDone}/{efTotal}
                       </span>
                     ) : (
@@ -1143,7 +1143,7 @@ function PMOverviewTab() {
                   </TableCell>
                   <TableCell className="text-center text-sm">
                     {qa.total > 0 ? (
-                      <span className={qa.tested === qa.total && qa.total > 0 ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                      <span className={qa.tested === qa.total && qa.total > 0 ? "text-success font-medium" : "text-muted-foreground"}>
                         {qa.tested}/{qa.total}
                       </span>
                     ) : (
@@ -1173,7 +1173,7 @@ function PMOverviewTab() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <CheckCircle2 className="h-5 w-5 text-success" />
             <CardTitle className="text-base">Completed Work by Module</CardTitle>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -1202,7 +1202,7 @@ function PMOverviewTab() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                 {items.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
                     <Badge variant="outline" className="text-[9px] px-1 shrink-0">{item.type}</Badge>
                     <span className="truncate text-muted-foreground">{item.name.split("—")[0].trim()}</span>
                   </div>
@@ -1253,7 +1253,7 @@ function PMOverviewTab() {
                 ))}
                 {pendingEdgeFns.map((e, i) => (
                   <div key={`ef-${i}`} className="flex items-start gap-2 text-sm">
-                    <Server className="h-3.5 w-3.5 text-gray-400 shrink-0 mt-0.5" />
+                    <Server className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                     <span className="text-muted-foreground">{e.name}</span>
                     <StatusBadge status={e.status} />
                   </div>

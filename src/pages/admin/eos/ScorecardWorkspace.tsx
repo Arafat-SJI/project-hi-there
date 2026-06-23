@@ -434,7 +434,7 @@ export default function ScorecardWorkspace() {
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-2xl font-bold text-green-600">{metricHealth.onTrack}</p>
+            <p className="text-2xl font-bold text-success">{metricHealth.onTrack}</p>
             <p className="text-sm text-muted-foreground">On-track metrics</p>
             <p className="text-xs text-muted-foreground">{metricHealth.offTrack} at risk</p>
           </CardContent>
@@ -618,7 +618,7 @@ export default function ScorecardWorkspace() {
                         {m.status == null || (m.status as string) === "pending" || m.status === "needs_attention" ? (
                           <Badge variant="outline">Pending</Badge>
                         ) : m.status === "on_track" ? (
-                          <Badge className="bg-green-600/10 text-green-700 border-green-200">
+                          <Badge className="bg-success/10 text-success border-success/30">
                             <CheckCircle2 className="h-3 w-3 mr-1" /> On Track
                           </Badge>
                         ) : (
@@ -694,7 +694,7 @@ export default function ScorecardWorkspace() {
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CheckCircle2 className="h-5 w-5 text-success" />
                   <div>
                     <p className="text-2xl font-bold">
                       {filteredMetrics.length ? Math.round((metricHealth.onTrack / filteredMetrics.length) * 100) : 0}%

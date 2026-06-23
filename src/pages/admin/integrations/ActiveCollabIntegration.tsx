@@ -104,7 +104,7 @@ export default function ActiveCollabIntegration() {
         </Link>
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg">
-            <Kanban className="h-7 w-7 text-white" />
+            <Kanban className="h-7 w-7 text-primary-foreground" />
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">ActiveCollab</h1>

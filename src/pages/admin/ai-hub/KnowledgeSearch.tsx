@@ -301,16 +301,16 @@ function EmbeddingsTab() {
   const statusBadge = (status: PipelineStatus) => {
     const config: Record<PipelineStatus, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }> = {
       pending: { variant: "outline", label: "Pending", className: "bg-amber-50 text-amber-800 border-amber-200" },
-      processing: { variant: "default", label: "Processing", className: "bg-blue-100 text-blue-800 border-0" },
-      completed: { variant: "secondary", label: "Completed", className: "bg-green-50 text-green-800 border-green-200" },
-      failed: { variant: "destructive", label: "Failed", className: "bg-red-50 text-red-800 border-red-200" },
+      processing: { variant: "default", label: "Processing", className: "bg-info/10 text-info border-0" },
+      completed: { variant: "secondary", label: "Completed", className: "bg-success/10 text-success border-success/30" },
+      failed: { variant: "destructive", label: "Failed", className: "bg-destructive/10 text-destructive border-destructive/30" },
     };
     const c = config[status];
     return <Badge variant={c.variant} className={c.className ?? ""}>{c.label}</Badge>;
   };
 
   const sourceIcon = (sourceType: SourceType) =>
-    sourceType === "meeting" ? <Video className="h-4 w-4 text-blue-600" /> : <FileText className="h-4 w-4 text-violet-600" />;
+    sourceType === "meeting" ? <Video className="h-4 w-4 text-info" /> : <FileText className="h-4 w-4 text-violet-600" />;
 
   return (
     <div className="space-y-6">
@@ -324,7 +324,7 @@ function EmbeddingsTab() {
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-muted-foreground" />
               <Switch id="pipeline-enabled" checked={pipelineEnabled} onCheckedChange={(v) => setPipelineEnabled(v).catch(() => {})} disabled={settingLoading || settingUpdating} />
-              <label htmlFor="pipeline-enabled" className={`text-sm font-medium whitespace-nowrap ${pipelineEnabled ? "text-green-600" : "text-muted-foreground"}`}>Pipeline Active</label>
+              <label htmlFor="pipeline-enabled" className={`text-sm font-medium whitespace-nowrap ${pipelineEnabled ? "text-success" : "text-muted-foreground"}`}>Pipeline Active</label>
             </div>
             <Button size="sm" onClick={processMeetings} disabled={!pipelineEnabled}><Play className="h-4 w-4 mr-2" />Process Meetings</Button>
             <Button size="sm" variant="outline" onClick={processKnowledgeFiles} disabled={!pipelineEnabled}><FileText className="h-4 w-4 mr-2" />Process Knowledge Files</Button>
@@ -339,11 +339,11 @@ function EmbeddingsTab() {
         <div className="grid gap-4 md:grid-cols-4">
           {[
             { key: "pending" as const, label: "Pending", sub: "Awaiting processing", icon: Clock, iconBg: "bg-amber-100", iconColor: "text-amber-600", valueColor: "text-amber-600" },
-            { key: "processing" as const, label: "Processing", sub: "Currently running", icon: Loader2, iconBg: "bg-blue-100", iconColor: "text-blue-600", valueColor: "text-blue-600" },
-            { key: "completed" as const, label: "Completed", sub: `${stats.totalChunks.toLocaleString()} total chunks`, icon: CheckCircle2, iconBg: "bg-green-100", iconColor: "text-green-600", valueColor: "text-green-600" },
-            { key: "failed" as const, label: "Failed", sub: "Need attention", icon: AlertCircle, iconBg: "bg-red-100", iconColor: "text-red-600", valueColor: "text-red-600" },
+            { key: "processing" as const, label: "Processing", sub: "Currently running", icon: Loader2, iconBg: "bg-info/10", iconColor: "text-info", valueColor: "text-info" },
+            { key: "completed" as const, label: "Completed", sub: `${stats.totalChunks.toLocaleString()} total chunks`, icon: CheckCircle2, iconBg: "bg-success/10", iconColor: "text-success", valueColor: "text-success" },
+            { key: "failed" as const, label: "Failed", sub: "Need attention", icon: AlertCircle, iconBg: "bg-destructive/10", iconColor: "text-destructive", valueColor: "text-destructive" },
           ].map(({ key, label, sub, icon: Icon, iconBg, iconColor, valueColor }) => (
-            <Card key={key} className={`cursor-pointer transition-all ${statusFilter === key ? "ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-950/20" : "hover:bg-muted/50"}`} onClick={() => { setStatusFilter(key); setPage(1); }}>
+            <Card key={key} className={`cursor-pointer transition-all ${statusFilter === key ? "ring-2 ring-ring bg-info/10 dark:bg-blue-950/20" : "hover:bg-muted/50"}`} onClick={() => { setStatusFilter(key); setPage(1); }}>
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-base font-semibold text-foreground">{label}</h3>
@@ -376,7 +376,7 @@ function EmbeddingsTab() {
           {stats && (
             <div className="flex flex-wrap gap-1 border-b pb-3">
               {([{ key: "all", label: "All", count: stats.total }, { key: "pending", label: "Pending", count: stats.pending }, { key: "processing", label: "Processing", count: stats.processing }, { key: "completed", label: "Completed", count: stats.completed }, { key: "failed", label: "Failed", count: stats.failed }] as const).map(({ key, label, count }) => (
-                <button key={key} type="button" onClick={() => { setStatusFilter(key); setPage(1); }} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${statusFilter === key ? "bg-blue-600 text-white shadow-sm" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>{label} ({count})</button>
+                <button key={key} type="button" onClick={() => { setStatusFilter(key); setPage(1); }} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${statusFilter === key ? "bg-info text-primary-foreground shadow-sm" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>{label} ({count})</button>
               ))}
             </div>
           )}

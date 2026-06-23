@@ -27,11 +27,11 @@ export default function TeamsMeetings() {
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case "scheduled":
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Scheduled</Badge>;
+        return <Badge variant="outline" className="bg-info/10 text-info border-info/30">Scheduled</Badge>;
       case "completed":
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Completed</Badge>;
+        return <Badge variant="outline" className="bg-success/10 text-success border-success/30">Completed</Badge>;
       case "cancelled":
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Cancelled</Badge>;
+        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">Cancelled</Badge>;
       default:
         return <Badge variant="secondary">{status || "Unknown"}</Badge>;
     }

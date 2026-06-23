@@ -781,7 +781,7 @@ export default function AdminEOSAccountability() {
                   <TableCell className="font-medium">{chart.name}</TableCell>
                   <TableCell>
                     {chart.is_current ? (
-                      <Badge className="bg-green-100 text-green-700 border-green-200">
+                      <Badge className="bg-success/10 text-success border-success/30">
                         <CheckCircle2 className="h-3 w-3 mr-1" /> Current
                       </Badge>
                     ) : (
