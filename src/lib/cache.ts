@@ -218,6 +218,11 @@ export const queryKeys = {
     factors: ["mfa", "factors"] as const,
   },
 
+  // Self-signup domain whitelist
+  signupWhitelist: {
+    domains: ["signupWhitelist", "domains"] as const,
+  },
+
   // Departments
   departments: {
     all: ["departments"] as const,
@@ -360,6 +365,9 @@ export const invalidateKeys = {
     queryClient.invalidateQueries({ queryKey: queryKeys.mfa.policy });
     queryClient.invalidateQueries({ queryKey: queryKeys.mfa.enrollment });
     queryClient.invalidateQueries({ queryKey: queryKeys.mfa.factors });
+  },
+  signupWhitelist: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.signupWhitelist.domains });
   },
   departments: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.departments.all });

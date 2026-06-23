@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Brain } from "lucide-react";
+import { checkSignupDomainAllowed } from "@/hooks/useSignupWhitelist";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -44,6 +45,12 @@ export default function Signup() {
 
     setLoading(true);
     try {
+      const allowed = await checkSignupDomainAllowed(email);
+      if (!allowed) {
+        setError("Sign-ups from this email domain are not permitted. Contact your administrator for an invite.");
+        return;
+      }
+
       await signUp(email, password, fullName);
       navigate("/dashboard");
     } catch (error: any) {
