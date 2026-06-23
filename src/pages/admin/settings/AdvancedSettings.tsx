@@ -73,6 +73,7 @@ export default function AdvancedSettings() {
               ["enableMeetings", "Meetings", "Enable meeting management and scheduling"],
               ["enableTasks", "Tasks", "Enable task management functionality"],
               ["enableNotifications", "Notifications", "Enable notification system"],
+              ["enableAutomations", "Automation Engine", "Enable workflow automation engine"],
               ["enableSemanticSearch", "Semantic Search", "Enable AI-powered semantic search"],
               ["enableClients", "Clients Module", "Enable client/CRM management"],
               ["enableAIAgents", "AI Agents", "Enable AI agents management"],

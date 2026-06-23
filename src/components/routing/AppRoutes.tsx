@@ -14,6 +14,7 @@ import { businessDevRoutes } from "@/modules/business-dev";
 import { eosRoutes } from "@/modules/eos";
 import { projectsRoutes } from "@/modules/projects";
 import { productivityRoutes } from "@/modules/productivity";
+import { automationRoutes } from "@/modules/automation";
 import { adminRoutes } from "@/modules/admin";
 import { spaceRoutes, globalSpaceRoutes } from "@/modules/spaces";
 import ClientPortalDashboard from "@/pages/client/ClientPortalDashboard";
@@ -79,6 +80,7 @@ export function AppRoutes() {
               {eosRoutes}
               {projectsRoutes}
               {productivityRoutes}
+              {automationRoutes}
             </Route>
             <Route element={<AdminRoute />}>
               <Route element={<AdminLayout />}>{adminRoutes}</Route>

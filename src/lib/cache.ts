@@ -267,6 +267,19 @@ export const queryKeys = {
     templates: ["notifications", "templates"] as const,
   },
 
+  // Automation
+  automation: {
+    all: ["automation"] as const,
+    workflows: (filters?: Record<string, unknown>) => ["automation", "workflows", filters] as const,
+    workflow: (id: string) => ["automation", "workflow", id] as const,
+    executions: (filters?: Record<string, unknown>) => ["automation", "executions", filters] as const,
+    execution: (id: string) => ["automation", "execution", id] as const,
+    templates: ["automation", "templates"] as const,
+    webhooks: ["automation", "webhooks"] as const,
+    analytics: ["automation", "analytics"] as const,
+    approvals: ["automation", "approvals"] as const,
+  },
+
   // Dashboard (agency-first)
   dashboard: {
     ownerMetrics: ["dashboard", "ownerMetrics"] as const,
@@ -423,6 +436,11 @@ export const invalidateKeys = {
   },
   eos: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.eos.all });
+  },
+  automation: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.automation.all });
+    queryClient.invalidateQueries({ queryKey: ["automation", "workflows"] });
+    queryClient.invalidateQueries({ queryKey: ["automation", "executions"] });
   },
   zohoDeal: (queryClient: any, dealId: string) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.zoho.attachments(dealId) });

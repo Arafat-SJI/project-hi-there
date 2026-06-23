@@ -105,4 +105,13 @@ export const API = {
     TEAM_METRICS: "team-productivity-metrics",
     TEAM_LIST: "team-productivity-list",
   },
+
+  // Automation
+  AUTOMATION: {
+    MANAGE: "automation-manage",
+    TRIGGER_EVALUATOR: "automation-trigger-evaluator",
+    EXECUTOR: "automation-executor",
+    SCHEDULER: "automation-scheduler",
+    WEBHOOK_RECEIVER: "automation-webhook-receiver",
+  },
 } as const;

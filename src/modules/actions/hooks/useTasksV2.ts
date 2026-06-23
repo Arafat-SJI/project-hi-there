@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { queryKeys, invalidateKeys } from "@/lib/cache";
+import { emitAutomationEvent } from "@/lib/automation-emit";
 import type { Task, TaskFormData, TaskFilters, TaskStats, TaskView } from "../types/tasks";
 
 /**
@@ -326,8 +327,15 @@ export function useCreateTask() {
       if (error) throw error;
       return task;
     },
-    onSuccess: () => {
+    onSuccess: (task) => {
       invalidateKeys.tasks(queryClient);
+      emitAutomationEvent("task.created", {
+        id: task.id,
+        title: task.title,
+        status: task.status,
+        priority: task.priority,
+        assigned_to: task.assigned_to,
+      });
       toast.success("Task created");
     },
     onError: (error: Error) => {
@@ -362,8 +370,22 @@ export function useUpdateTask() {
       if (error) throw error;
       return task;
     },
-    onSuccess: () => {
+    onSuccess: (task) => {
       invalidateKeys.tasks(queryClient);
+      emitAutomationEvent("task.updated", {
+        id: task.id,
+        title: task.title,
+        status: task.status,
+        priority: task.priority,
+        assigned_to: task.assigned_to,
+      });
+      if (task.status === "completed") {
+        emitAutomationEvent("task.completed", {
+          id: task.id,
+          title: task.title,
+          assigned_to: task.assigned_to,
+        });
+      }
       toast.success("Task updated");
     },
     onError: (error: Error) => {
