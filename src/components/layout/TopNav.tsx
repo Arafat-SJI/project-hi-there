@@ -1,12 +1,9 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import { usePageIndex, searchPageIndex } from "@/hooks/usePageIndex";
-import { SpaceSwitcher } from "@/components/layout/SpaceSwitcher";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,11 +29,10 @@ import {
   Users,
   Calendar,
   Loader2,
-  LayoutGrid,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { NotificationBell } from "@/modules/notifications/components/NotificationBell";
 import { useSemanticSearch } from "@/hooks/useSemanticSearch";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -44,13 +40,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 export function TopNav() {
   const { user, profile, signOut } = useAuth();
   const { hasPermission } = usePermissions();
-  const { features, isFeatureEnabled } = useFeatureFlags();
-  const fourSpaces = features?.enableFourSpaces === true;
-  const navigate = useNavigate();
+  const { isFeatureEnabled } = useFeatureFlags();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchTab, setSearchTab] = useState<"pages" | "content">("pages");
-  const pageIndex = usePageIndex();
-  const notificationsPath = fourSpaces ? "/operations/notifications" : "/notifications";
 
   const {
     query: searchQuery,
@@ -61,17 +52,10 @@ export function TopNav() {
     setQuery: setSearchQuery,
   } = useSemanticSearch();
 
-  const pageResults = useMemo(
-    () => searchPageIndex(pageIndex, searchQuery),
-    [pageIndex, searchQuery]
-  );
-
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    if (searchTab === "content") {
-      await search(searchQuery);
-    }
+    await search(searchQuery);
   };
 
   const getEntityIcon = (entityType: string) => {
@@ -93,30 +77,21 @@ export function TopNav() {
     } catch (error) {
       console.error("Sign out error:", error);
     } finally {
-      // Force navigation to login regardless of auth state propagation timing
       window.location.href = "/login";
     }
-  };
-
-  const openSearch = () => {
-    setSearchOpen(true);
-    setSearchTab(fourSpaces ? "pages" : "content");
   };
 
   return (
     <header className="sticky top-0 z-30 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="flex h-full items-center justify-between gap-3 px-4 lg:px-6">
-        <div className="flex items-center gap-3 min-w-0">
-          <SidebarTrigger className="shrink-0" />
-          {fourSpaces && <SpaceSwitcher />}
-        </div>
+        <SidebarTrigger className="shrink-0" />
 
         <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder={fourSpaces ? "Search pages and content…" : "Search anything..."}
-            onClick={openSearch}
+            placeholder="Search anything..."
+            onClick={() => setSearchOpen(true)}
             readOnly
             className="h-9 w-full max-w-sm border-transparent bg-muted/50 pl-9 text-sm placeholder:text-muted-foreground/70 focus:border-border focus:bg-background cursor-pointer"
           />
@@ -133,163 +108,69 @@ export function TopNav() {
             <DialogHeader>
               <DialogTitle>Search</DialogTitle>
               <DialogDescription>
-                {fourSpaces
-                  ? "Find pages across spaces or search content"
-                  : "Search across clients, meetings, knowledge base, and more"}
+                Search across clients, meetings, knowledge base, and more
               </DialogDescription>
             </DialogHeader>
-
-            {fourSpaces ? (
-              <Tabs value={searchTab} onValueChange={(v) => setSearchTab(v as "pages" | "content")}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="pages">Pages</TabsTrigger>
-                  <TabsTrigger value="content">Content</TabsTrigger>
-                </TabsList>
-                <div className="mt-4">
-                  <Input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="What are you looking for?"
-                    autoFocus
-                  />
-                </div>
-                <TabsContent value="pages" className="mt-4 max-h-[400px] overflow-y-auto space-y-1">
-                  {!searchQuery.trim() ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">
-                      Type to search navigation pages
-                    </p>
-                  ) : pageResults.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">No pages found</p>
-                  ) : (
-                    pageResults.map((result) => (
-                      <button
-                        key={result.href}
-                        type="button"
-                        className="flex w-full items-start gap-3 rounded-lg border p-3 text-left hover:bg-accent"
-                        onClick={() => {
-                          navigate(result.href);
-                          setSearchOpen(false);
-                          setSearchQuery("");
-                        }}
-                      >
-                        <LayoutGrid className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">{result.title}</p>
-                          <p className="text-xs text-muted-foreground">{result.breadcrumb}</p>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </TabsContent>
-                <TabsContent value="content" className="mt-4">
-                  <form onSubmit={handleSearch} className="mb-4 flex gap-2">
-                    <Button type="submit" disabled={searching || !searchQuery.trim()}>
-                      {searching ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Search className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </form>
-                  <div className="max-h-[360px] space-y-2 overflow-y-auto">
-                    {searching ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : searchResults.length === 0 && searchQuery ? (
-                      <p className="py-8 text-center text-sm text-muted-foreground">No results found</p>
-                    ) : (
-                      searchResults.map((result) => (
-                        <div
-                          key={result.id}
-                          className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-accent"
-                          onClick={() => {
-                            setSearchOpen(false);
-                            clearResults();
-                          }}
-                        >
-                          <div className="mt-0.5">{getEntityIcon(result.entity_type)}</div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs">
-                                {result.entity_type}
-                              </Badge>
-                              <Badge variant="secondary" className="text-xs">
-                                {Math.round(result.similarity * 100)}% match
-                              </Badge>
-                            </div>
-                            <p className="mt-1 line-clamp-2 text-sm">{result.content}</p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            ) : (
-              <>
-                <form onSubmit={handleSearch} className="space-y-4">
-                  <div className="flex gap-2">
-                    <Input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="What are you looking for?"
-                      disabled={searching}
-                      autoFocus
-                    />
-                    <Button type="submit" disabled={searching || !searchQuery.trim()}>
-                      {searching ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Search className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </form>
-                <div className="mt-4 max-h-[400px] space-y-2 overflow-y-auto">
+            <form onSubmit={handleSearch} className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="What are you looking for?"
+                  disabled={searching}
+                  autoFocus
+                />
+                <Button type="submit" disabled={searching || !searchQuery.trim()}>
                   {searching ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : searchResults.length === 0 && searchQuery ? (
-                    <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-                      <Search className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">No results found</p>
-                    </div>
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    searchResults.map((result) => (
-                      <div
-                        key={result.id}
-                        className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-accent"
-                        onClick={() => {
-                          setSearchOpen(false);
-                          clearResults();
-                        }}
-                      >
-                        <div className="mt-0.5">{getEntityIcon(result.entity_type)}</div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {result.entity_type}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              {Math.round(result.similarity * 100)}% match
-                            </Badge>
-                          </div>
-                          <p className="mt-1 line-clamp-2 text-sm">{result.content}</p>
-                        </div>
-                      </div>
-                    ))
+                    <Search className="h-4 w-4" />
                   )}
+                </Button>
+              </div>
+            </form>
+            <div className="mt-4 max-h-[400px] space-y-2 overflow-y-auto">
+              {searching ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-              </>
-            )}
+              ) : searchResults.length === 0 && searchQuery ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                  <Search className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No results found</p>
+                </div>
+              ) : (
+                searchResults.map((result) => (
+                  <div
+                    key={result.id}
+                    className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-accent"
+                    onClick={() => {
+                      setSearchOpen(false);
+                      clearResults();
+                    }}
+                  >
+                    <div className="mt-0.5">{getEntityIcon(result.entity_type)}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {result.entity_type}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {Math.round(result.similarity * 100)}% match
+                        </Badge>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-sm">{result.content}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </DialogContent>
         </Dialog>
 
         <div className="flex items-center gap-1">
           {isFeatureEnabled("enableNotifications") && hasPermission("notifications.view") && (
-            <NotificationBell notificationsPath={notificationsPath} />
+            <NotificationBell notificationsPath="/notifications" />
           )}
 
           <DropdownMenu>
@@ -328,19 +209,21 @@ export function TopNav() {
                   Settings
                 </Link>
               </DropdownMenuItem>
-              {!fourSpaces &&
-                (hasPermission("settings.admin") ||
-                  profile?.role === "admin" ||
-                  profile?.role === "moderator") && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin" className="flex items-center gap-2 font-medium text-orange-600 dark:text-orange-400">
-                        Admin Panel
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
+              {(hasPermission("settings.admin") ||
+                profile?.role === "admin" ||
+                profile?.role === "moderator") && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to="/admin"
+                      className="flex items-center gap-2 font-medium text-orange-600 dark:text-orange-400"
+                    >
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleSignOut}

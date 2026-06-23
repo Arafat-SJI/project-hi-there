@@ -15,9 +15,9 @@ export function useFeatureFlags() {
    * @returns boolean indicating if the feature is enabled
    */
   const isFeatureEnabled = (featureName: FeatureKey): boolean => {
-    // Four Spaces is opt-in — default off when config is missing or unset
+    // Four Spaces disabled — legacy Control Tower layout only
     if (featureName === "enableFourSpaces") {
-      return config?.features?.enableFourSpaces === true;
+      return false;
     }
     if (!config?.features) return true;
     return config.features[featureName] ?? true;

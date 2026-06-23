@@ -6,8 +6,17 @@ import {
   BookOpen,
   Settings2,
   Target,
+  ChevronsUpDown,
+  Check,
   type LucideIcon,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 const SPACE_ICONS: Record<string, LucideIcon> = {
   Briefcase,
@@ -16,40 +25,50 @@ const SPACE_ICONS: Record<string, LucideIcon> = {
   Target,
 };
 
-export function SpaceSwitcher() {
+/** Sidebar dropdown — matches legacy layout (no top-bar tabs). */
+export function SpaceSidebarSwitcher() {
   const spaceCtx = useSpaceOptional();
   if (!spaceCtx) return null;
 
   const { visibleSpaces, currentSpace, setCurrentSpace } = spaceCtx;
-
   if (visibleSpaces.length <= 1) return null;
 
+  const active = visibleSpaces.find((s) => s.id === currentSpace) ?? visibleSpaces[0];
+  const ActiveIcon = SPACE_ICONS[active.icon] ?? Briefcase;
+
   return (
-    <nav
-      className="hidden md:flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1"
-      aria-label="Workspace spaces"
-    >
-      {visibleSpaces.map((space) => {
-        const Icon = SPACE_ICONS[space.icon] ?? Briefcase;
-        const active = currentSpace === space.id;
-        return (
-          <button
-            key={space.id}
-            type="button"
-            onClick={() => setCurrentSpace(space.id)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              active
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            {space.label}
-          </button>
-        );
-      })}
-    </nav>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2 h-8 w-full justify-between gap-2 px-2 text-xs font-medium"
+        >
+          <span className="flex min-w-0 items-center gap-1.5">
+            <ActiveIcon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{active.label} Space</span>
+          </span>
+          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-52">
+        {visibleSpaces.map((space) => {
+          const Icon = SPACE_ICONS[space.icon] ?? Briefcase;
+          const isActive = currentSpace === space.id;
+          return (
+            <DropdownMenuItem
+              key={space.id}
+              onClick={() => setCurrentSpace(space.id)}
+              className="gap-2"
+            >
+              <Icon className="h-4 w-4" />
+              <span className="flex-1">{space.label} Space</span>
+              {isActive ? <Check className="h-4 w-4 text-primary" /> : null}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
