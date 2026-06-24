@@ -36,6 +36,12 @@ export function useTasksV2(filters?: TaskFilters) {
 
       if (filters?.view === "jira") {
         query = query.eq("metadata->>source", "jira");
+      } else if (
+        filters?.view === "clickup" ||
+        filters?.view === "activecollab" ||
+        filters?.view === "workamajig"
+      ) {
+        query = query.eq("metadata->>source", filters.view);
       } else if (filters?.view && filters.view !== "all") {
         query = applyViewFilter(query, filters.view, user?.id, filters);
       }
@@ -147,7 +153,7 @@ export function useTaskStats() {
     queryFn: async (): Promise<TaskStats> => {
       const { data, error } = await supabase
         .from("tasks")
-        .select("status, due_date, assigned_to, created_by")
+        .select("status, due_date, assigned_to, created_by, metadata")
         .is("parent_id", null);
 
       if (error) throw error;
@@ -161,6 +167,12 @@ export function useTaskStats() {
 
       const notDone = (t: { status: string }) =>
         t.status !== "completed" && t.status !== "cancelled";
+
+      const sourceOf = (t: { metadata: unknown }) =>
+        (t.metadata as { source?: string } | null)?.source;
+
+      const countBySource = (source: string) =>
+        tasks.filter((t) => sourceOf(t) === source).length;
 
       return {
         total: tasks.length,
@@ -203,6 +215,10 @@ export function useTaskStats() {
           uid === undefined
             ? 0
             : tasks.filter((t) => t.assigned_to === uid || t.created_by === uid).length,
+        jiraCount: countBySource("jira"),
+        clickupCount: countBySource("clickup"),
+        activecollabCount: countBySource("activecollab"),
+        workamajigCount: countBySource("workamajig"),
       };
     },
     enabled: !!user,

@@ -2,9 +2,9 @@
  * Projects Listing Page
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,11 +19,28 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { useSyncProjects, useSyncTasks } from "@/hooks/useIntegrationSync";
+import { usePMIntegrationDisplay } from "@/hooks/usePMIntegrationDisplay";
+import { usePMSync } from "@/hooks/usePMSync";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plug, RefreshCw as RefreshCwIcon } from "lucide-react";
+
+const PROVIDER_LABELS: Record<string, string> = {
+  clickup: "ClickUp",
+  jira: "Jira",
+  activecollab: "ActiveCollab",
+  workamajig: "Workamajig",
+};
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>(
+    () => searchParams.get("source") ?? "all"
+  );
+  const { showOnProjects, primarySlug } = usePMIntegrationDisplay();
+  const pmSync = usePMSync(primarySlug ?? "");
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const syncJiraProjects = useSyncProjects("jira");
@@ -33,7 +50,13 @@ export default function ProjectsPage() {
   const { data: projects = [], isLoading } = useProjects({
     search: search || undefined,
     status_id: statusFilter !== "all" ? statusFilter : undefined,
+    external_provider: sourceFilter !== "all" ? sourceFilter : undefined,
   });
+
+  useEffect(() => {
+    const source = searchParams.get("source");
+    if (source) setSourceFilter(source);
+  }, [searchParams]);
   const { data: clients = [] } = useClients();
 
   const ownerIds = useMemo(() => [...new Set((projects || []).map((p) => p.owner_id).filter(Boolean))] as string[], [projects]);
@@ -112,6 +135,21 @@ export default function ProjectsPage() {
           <p className="text-muted-foreground">Manage your projects</p>
         </div>
         <div className="flex items-center gap-2">
+          {showOnProjects && primarySlug && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => pmSync.mutate(primarySlug)}
+              disabled={pmSync.isPending}
+            >
+              {pmSync.isPending ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCwIcon className="mr-1 h-4 w-4" />
+              )}
+              Sync {PROVIDER_LABELS[primarySlug] ?? primarySlug}
+            </Button>
+          )}
           <GlobalProjectsRestoreDialog />
           <Button
             variant="outline"
@@ -147,6 +185,17 @@ export default function ProjectsPage() {
         </div>
       </div>
 
+      {showOnProjects && primarySlug && (
+        <Alert>
+          <Plug className="h-4 w-4" />
+          <AlertDescription>
+            Synced projects from{" "}
+            <strong>{PROVIDER_LABELS[primarySlug] ?? primarySlug}</strong> appear here.
+            Use the sync button to pull the latest from your connected tool.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {statuses.slice(0, 4).map((s) => (
           <Card key={s.id}>
@@ -179,6 +228,34 @@ export default function ProjectsPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select
+          value={sourceFilter}
+          onValueChange={(value) => {
+            setSourceFilter(value);
+            if (value === "all") {
+              searchParams.delete("source");
+              setSearchParams(searchParams, { replace: true });
+            } else {
+              setSearchParams({ ...Object.fromEntries(searchParams), source: value }, { replace: true });
+            }
+          }}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All sources</SelectItem>
+            <SelectItem value="internal">Internal only</SelectItem>
+            {showOnProjects && primarySlug && (
+              <SelectItem value={primarySlug}>
+                {PROVIDER_LABELS[primarySlug] ?? primarySlug}
+              </SelectItem>
+            )}
+            <SelectItem value="clickup">ClickUp</SelectItem>
+            <SelectItem value="jira">Jira</SelectItem>
+            <SelectItem value="activecollab">ActiveCollab</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -194,6 +271,7 @@ export default function ProjectsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Project</TableHead>
+                <TableHead className="w-[100px]">Source</TableHead>
                 <TableHead className="w-[120px]">Status</TableHead>
                 <TableHead className="w-[170px]">Client / Owner</TableHead>
                 <TableHead className="w-[150px]">Dates</TableHead>
@@ -210,6 +288,15 @@ export default function ProjectsPage() {
                   <TableCell>
                     <p className="font-medium">{project.name}</p>
                     {project.description && <p className="text-xs text-muted-foreground line-clamp-1">{project.description}</p>}
+                  </TableCell>
+                  <TableCell>
+                    {project.external_provider ? (
+                      <Badge variant="secondary" className="text-xs capitalize">
+                        {PROVIDER_LABELS[project.external_provider] ?? project.external_provider}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">Internal</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     {project.status_id && statusById[project.status_id] ? (

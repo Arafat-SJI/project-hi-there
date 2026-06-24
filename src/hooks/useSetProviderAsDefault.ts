@@ -44,12 +44,20 @@ export function useSetProviderAsDefault() {
       const canonicalCategory = resolvePrimaryCategorySlug(categorySlug, categoryName);
       if (canonicalCategory) {
         const existing = await getPrimaryByCategorySettings();
+        const prev = existing[canonicalCategory];
         const payload: Partial<PrimaryByCategory> = {
           ...existing,
           [canonicalCategory]: {
             single_active_only: true,
             primary_slug: providerSlug,
             active_slugs: [providerSlug],
+            data_destinations: prev?.data_destinations,
+            provider_data_destinations: {
+              ...prev?.provider_data_destinations,
+              ...(prev?.data_destinations
+                ? { [providerSlug]: prev.data_destinations }
+                : {}),
+            },
           },
         };
         return savePrimaryByCategory(payload);

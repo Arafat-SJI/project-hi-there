@@ -33,6 +33,9 @@ import { formatDate } from "@/lib/utils";
 import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
 import { useSyncCrmData } from "@/hooks/useIntegrationSync";
+import { useCRMIntegrationDisplay } from "@/hooks/useCRMIntegrationDisplay";
+import { useCrmSync } from "@/hooks/useCrmSync";
+import { isCrmSyncProvider } from "@/lib/integration-preferences";
 
 const NO_COMPANY_LABEL = "— No company —";
 
@@ -77,7 +80,11 @@ export default function Clients() {
   });
   const { data: stats, isLoading: statsLoading } = useClientStats(statusFilter ?? undefined);
   const deleteClient = useDeleteClient();
+  const { showOnClients, primarySlug, destinations } = useCRMIntegrationDisplay();
+  const crmSync = useCrmSync(primarySlug ?? "", destinations);
   const syncZohoAccounts = useSyncCrmData("zoho-crm", "accounts");
+  const useUnifiedCrmSync =
+    showOnClients && !!primarySlug && isCrmSyncProvider(primarySlug);
 
   const companiesGrouped = useMemo(() => {
     if (!clients?.length) return { keys: [] as string[], map: new Map<string, Client[]>() };
@@ -113,14 +120,27 @@ export default function Clients() {
               Add Manually
             </Link>
           </Button>
-          <Button
-            variant="outline"
-            disabled={syncZohoAccounts.isPending}
-            onClick={() => syncZohoAccounts.mutate(undefined)}
-          >
-            {syncZohoAccounts.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Sync from Zoho
-          </Button>
+          {(useUnifiedCrmSync || !primarySlug) && (
+            <Button
+              variant="outline"
+              disabled={useUnifiedCrmSync ? crmSync.isPending : syncZohoAccounts.isPending}
+              onClick={() =>
+                useUnifiedCrmSync
+                  ? crmSync.mutate({
+                      providerSlug: primarySlug!,
+                      destinations: ["clients"],
+                    })
+                  : syncZohoAccounts.mutate(undefined)
+              }
+            >
+              {(useUnifiedCrmSync ? crmSync.isPending : syncZohoAccounts.isPending) ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              {useUnifiedCrmSync ? `Sync ${primarySlug === "zoho-crm" ? "Zoho" : primarySlug}` : "Sync from Zoho"}
+            </Button>
+          )}
           <Button variant="secondary" asChild>
             <Link to="/admin/integrations">Integrations</Link>
           </Button>

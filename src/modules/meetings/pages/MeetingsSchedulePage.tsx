@@ -59,6 +59,7 @@ import { CreateTeamsMeetingDialog } from "@/components/meetings/CreateTeamsMeeti
 import { CreateGoogleMeetMeetingDialog } from "@/components/meetings/CreateGoogleMeetMeetingDialog";
 import { useToast } from "@/hooks/use-toast";
 import { AgentTeamBanner } from "@/components/ai/AgentTeamBanner";
+import { MeetingIntegrationBanner } from "@/components/common/MeetingIntegrationBanner";
 import { AIAgentPresenceIndicator } from "@/components/ai/AIAgentPresenceIndicator";
 import { FellowRecordingsStrip } from "../components/FellowRecordingsStrip";
 
@@ -247,6 +248,7 @@ export default function MeetingsSchedulePage() {
       <TabsContent value="meetings" className="mt-4">
     <div className="space-y-6">
       <AgentTeamBanner team="meetings" />
+      <MeetingIntegrationBanner page="schedule" />
       <div className="flex flex-wrap gap-2">
         <AIAgentPresenceIndicator agentName="Meeting Summarizer" agentSlug="meeting-summarizer" gradientFrom="190 80% 45%" gradientTo="210 85% 55%" />
         <AIAgentPresenceIndicator agentName="Action Item Extractor" agentSlug="action-item-extractor" gradientFrom="190 80% 45%" gradientTo="210 85% 55%" />

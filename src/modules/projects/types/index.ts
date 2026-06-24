@@ -150,6 +150,8 @@ export interface ProjectFilters {
   sort_asc?: boolean;
   page?: number;
   page_size?: number;
+  /** Filter by external PM provider slug, or "internal" for non-synced projects */
+  external_provider?: string;
 }
 
 export type ProjectTab =
