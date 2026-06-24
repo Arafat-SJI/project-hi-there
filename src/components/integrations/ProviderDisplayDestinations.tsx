@@ -78,6 +78,10 @@ export function ProviderDisplayDestinations({
     };
     const nextPrimary =
       promoteToDefault || !pref?.primary_slug ? providerSlug : current.primary_slug;
+    const singleOnly = pref?.single_active_only ?? current.single_active_only ?? true;
+    const resolvedActiveSlugs = singleOnly
+      ? [nextPrimary]
+      : [...new Set([...(current.active_slugs ?? pref?.active_slugs ?? []), providerSlug])];
 
     saveCategory.mutate(
       {
@@ -85,8 +89,8 @@ export function ProviderDisplayDestinations({
         [categorySlug]: {
           ...current,
           primary_slug: nextPrimary,
-          active_slugs: [nextPrimary],
-          single_active_only: true,
+          active_slugs: resolvedActiveSlugs.filter(Boolean),
+          single_active_only: singleOnly,
           provider_data_destinations: {
             ...current.provider_data_destinations,
             [providerSlug]: savedDestinations,

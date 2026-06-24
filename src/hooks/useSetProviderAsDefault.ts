@@ -45,12 +45,15 @@ export function useSetProviderAsDefault() {
       if (canonicalCategory) {
         const existing = await getPrimaryByCategorySettings();
         const prev = existing[canonicalCategory];
+        const keepAllActive = prev?.single_active_only === false;
         const payload: Partial<PrimaryByCategory> = {
           ...existing,
           [canonicalCategory]: {
-            single_active_only: true,
+            single_active_only: prev?.single_active_only ?? true,
             primary_slug: providerSlug,
-            active_slugs: [providerSlug],
+            active_slugs: keepAllActive
+              ? [...new Set([...(prev?.active_slugs ?? []), providerSlug])]
+              : [providerSlug],
             data_destinations: prev?.data_destinations,
             provider_data_destinations: {
               ...prev?.provider_data_destinations,

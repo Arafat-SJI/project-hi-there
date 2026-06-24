@@ -34,6 +34,7 @@ import { usePMSync } from '@/hooks/usePMSync';
 import { useCrmSync } from '@/hooks/useCrmSync';
 import { useMeetingSync } from '@/hooks/useMeetingSync';
 import { useSyncTeamsMeetings } from '@/hooks/useSyncTeamsMeetings';
+import { useEmailSync } from '@/hooks/useEmailSync';
 
 export default function Integrations() {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ export default function Integrations() {
   const crmSync = useCrmSync();
   const meetingSync = useMeetingSync();
   const teamsSync = useSyncTeamsMeetings();
+  const emailSync = useEmailSync();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<string>('');
@@ -198,7 +200,9 @@ export default function Integrations() {
             const isPMTab = resolvedCategorySlug === 'project-management';
             const isCRMTab = resolvedCategorySlug === 'crm-systems';
             const isMeetingTab = resolvedCategorySlug === 'meeting-providers';
-            const isDataDestinationTab = isPMTab || isCRMTab || isMeetingTab;
+            const isEmailTab = resolvedCategorySlug === 'email-providers';
+            const isDataDestinationTab =
+              isPMTab || isCRMTab || isMeetingTab || isEmailTab;
 
             const handleSyncProvider = async (
               providerSlug: string,
@@ -226,6 +230,14 @@ export default function Integrations() {
                   } else {
                     await meetingSync.mutateAsync({ providerSlug, destinations });
                   }
+                } else if (category === 'email-providers') {
+                  const pref = categoryPref;
+                  const destinations = getDataDestinationsForProvider(
+                    pref,
+                    providerSlug,
+                    'email-providers'
+                  );
+                  await emailSync.mutateAsync({ providerSlug, destinations });
                 } else {
                   await pmSync.mutateAsync(providerSlug);
                 }

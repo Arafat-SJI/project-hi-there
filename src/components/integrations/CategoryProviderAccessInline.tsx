@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import { usePMSync } from '@/hooks/usePMSync';
 import { useCrmSync } from '@/hooks/useCrmSync';
 import { useMeetingSync } from '@/hooks/useMeetingSync';
 import { useSyncTeamsMeetings } from '@/hooks/useSyncTeamsMeetings';
+import { useEmailSync } from '@/hooks/useEmailSync';
 import { getIntegrationViewPath } from '@/lib/integration-display';
 import { cn } from '@/lib/utils';
 import { ExternalLink, Loader2, RefreshCw, Star } from 'lucide-react';
@@ -74,16 +76,29 @@ export function CategoryProviderAccessInline({
     [...destinationOptions]
   );
   const [dirty, setDirty] = useState(false);
+  const [singleOnly, setSingleOnly] = useState(
+    () => pref?.single_active_only ?? connectedProviders.length <= 1
+  );
+  const [activeSlugs, setActiveSlugs] = useState<string[]>(() =>
+    pref?.active_slugs?.length
+      ? pref.active_slugs
+      : connectedProviders.map((p) => p.slug)
+  );
 
   const pmSync = usePMSync(effectivePrimary ?? '');
   const crmSync = useCrmSync(effectivePrimary ?? '', destinations);
   const meetingSync = useMeetingSync(effectivePrimary ?? '', destinations);
   const teamsSync = useSyncTeamsMeetings();
+  const emailSync = useEmailSync(effectivePrimary ?? '', destinations);
   const supportsDestinations = categorySupportsDataDestinations(categorySlug);
   const canSync =
     effectivePrimary != null && isCategorySyncProvider(categorySlug, effectivePrimary);
   const isSyncing =
-    pmSync.isPending || crmSync.isPending || meetingSync.isPending || teamsSync.isPending;
+    pmSync.isPending ||
+    crmSync.isPending ||
+    meetingSync.isPending ||
+    teamsSync.isPending ||
+    emailSync.isPending;
 
   useEffect(() => {
     if (!pref || dirty) return;
@@ -94,7 +109,38 @@ export function CategoryProviderAccessInline({
       const valid = filterDestinationsForCategory(categorySlug, fromPref);
       setDestinations(valid.length > 0 ? valid : [...destinationOptions]);
     }
+    if (typeof pref.single_active_only === 'boolean') {
+      setSingleOnly(pref.single_active_only);
+    }
+    if (pref.active_slugs?.length) {
+      setActiveSlugs(pref.active_slugs);
+    }
   }, [pref, effectivePrimary, dirty, categorySlug, destinationOptions]);
+
+  const allDestinationsSelected =
+    destinationOptions.length > 0 &&
+    destinationOptions.every((page) => destinations.includes(page));
+
+  const toggleActiveProvider = (slug: string, checked: boolean) => {
+    if (singleOnly) return;
+    const next = checked
+      ? [...new Set([...activeSlugs, slug])]
+      : activeSlugs.filter((s) => s !== slug);
+    if (next.length === 0) return;
+    setActiveSlugs(next);
+    setDirty(true);
+  };
+
+  const selectAllDestinations = () => {
+    setDestinations([...destinationOptions]);
+    setDirty(true);
+  };
+
+  const selectAllProviders = () => {
+    setSingleOnly(false);
+    setActiveSlugs(connectedProviders.map((p) => p.slug));
+    setDirty(true);
+  };
 
   if (connectedProviders.length === 0) {
     return (
@@ -117,11 +163,16 @@ export function CategoryProviderAccessInline({
   const saveDestinations = () => {
     if (!effectivePrimary) return;
     const savedDestinations = filterDestinationsForCategory(categorySlug, destinations);
+    const resolvedActiveSlugs = singleOnly
+      ? [effectivePrimary]
+      : activeSlugs.length > 0
+        ? activeSlugs
+        : connectedProviders.map((p) => p.slug);
     const existing = primaryByCategory ?? {};
     const current = existing[categorySlug] ?? {
       primary_slug: effectivePrimary,
-      active_slugs: [effectivePrimary],
-      single_active_only: true,
+      active_slugs: resolvedActiveSlugs,
+      single_active_only: singleOnly,
       data_destinations: [...destinationOptions],
     };
     saveCategory.mutate(
@@ -130,8 +181,8 @@ export function CategoryProviderAccessInline({
         [categorySlug]: {
           ...current,
           primary_slug: effectivePrimary,
-          active_slugs: [effectivePrimary],
-          single_active_only: true,
+          active_slugs: resolvedActiveSlugs,
+          single_active_only: singleOnly,
           provider_data_destinations: {
             ...current.provider_data_destinations,
             [effectivePrimary]: savedDestinations,
@@ -159,6 +210,10 @@ export function CategoryProviderAccessInline({
       meetingSync.mutate({ providerSlug: effectivePrimary, destinations });
       return;
     }
+    if (categorySlug === 'email-providers') {
+      emailSync.mutate({ providerSlug: effectivePrimary, destinations });
+      return;
+    }
     pmSync.mutate(effectivePrimary);
   };
 
@@ -167,7 +222,9 @@ export function CategoryProviderAccessInline({
       ? 'Sync pulls accounts, deals, leads, and contacts based on the pages you enable below.'
       : categorySlug === 'meeting-providers'
         ? 'Sync imports meetings and transcripts from your connected platform. Choose which meeting pages show that data.'
-        : 'Sync runs from here or from the provider Configure page. User-level sync is also in Settings → Connected Services.';
+        : categorySlug === 'email-providers'
+          ? 'Choose where outbound email and delivery activity appear. Sync refreshes logs and contact email history.'
+          : 'Sync runs from here or from the provider Configure page. User-level sync is also in Settings → Connected Services.';
 
   return (
     <div
@@ -199,7 +256,7 @@ export function CategoryProviderAccessInline({
 
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="text-xs">
-            Admin default only
+            {singleOnly ? 'Single provider' : 'All providers active'}
           </Badge>
           {effectivePrimary && (
             <Badge className="gap-1 text-xs">
@@ -207,8 +264,82 @@ export function CategoryProviderAccessInline({
               Default: {primaryName}
             </Badge>
           )}
+          {!singleOnly && activeSlugs.length > 1 && (
+            <Badge variant="secondary" className="text-xs">
+              {activeSlugs.length} providers active
+            </Badge>
+          )}
         </div>
       </div>
+
+      {connectedProviders.length > 1 && (
+        <div className="rounded-lg border bg-background p-4 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Active providers</p>
+              <p className="text-xs text-muted-foreground">
+                Use one default provider, or keep all connected providers active in the app.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor={`${categorySlug}-single-only`} className="text-xs whitespace-nowrap">
+                Use only one provider
+              </Label>
+              <Switch
+                id={`${categorySlug}-single-only`}
+                checked={singleOnly}
+                onCheckedChange={(checked) => {
+                  setSingleOnly(checked);
+                  if (checked && effectivePrimary) {
+                    setActiveSlugs([effectivePrimary]);
+                  } else {
+                    setActiveSlugs(connectedProviders.map((p) => p.slug));
+                  }
+                  setDirty(true);
+                }}
+              />
+            </div>
+          </div>
+
+          {singleOnly ? (
+            <p className="text-xs text-muted-foreground">
+              Only <span className="font-medium text-foreground">{primaryName}</span> is active.
+              Other connected providers stay linked but won&apos;t show data until you switch
+              the default star or turn off single-provider mode.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  All checked providers can show data. Star sets which one syncs first.
+                </p>
+                <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={selectAllProviders}>
+                  Select all providers
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                {connectedProviders.map((p) => (
+                  <div key={p.slug} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`${categorySlug}-active-${p.slug}`}
+                      checked={activeSlugs.includes(p.slug)}
+                      onCheckedChange={(checked) =>
+                        toggleActiveProvider(p.slug, checked === true)
+                      }
+                    />
+                    <Label htmlFor={`${categorySlug}-active-${p.slug}`} className="text-sm">
+                      {p.name}
+                      {p.slug === effectivePrimary && (
+                        <span className="text-muted-foreground"> (default)</span>
+                      )}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {supportsDestinations && connectedProviders.length > 0 && (
         <div className="rounded-lg border bg-background p-4 space-y-4">
@@ -245,7 +376,23 @@ export function CategoryProviderAccessInline({
           ) : (
             <>
           <div>
-            <p className="text-sm font-medium">Show synced data on</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium">Show synced data on</p>
+              {!allDestinationsSelected && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={selectAllDestinations}
+                >
+                  Select all pages
+                </Button>
+              )}
+              {allDestinationsSelected && destinationOptions.length > 1 && (
+                <span className="text-xs text-muted-foreground">All pages selected</span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               Choose which pages display data pulled from {primaryName}. {syncHelpText}
               {needsInitialSave && (

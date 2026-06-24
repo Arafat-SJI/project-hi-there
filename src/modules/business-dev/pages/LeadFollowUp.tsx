@@ -45,6 +45,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { format, isSameDay, isBefore, startOfToday, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmailIntegrationBanner } from '@/components/common/EmailIntegrationBanner'
 
 interface Contact {
   id: string
@@ -270,6 +271,7 @@ export default function LeadFollowUp() {
 
   return (
     <div className="space-y-6">
+      <EmailIntegrationBanner page="lead-followup" />
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Lead Follow-Up</h1>

@@ -16,6 +16,7 @@ import { Plus, Search, Users, Loader2, Mail, Phone, Building2, ChevronLeft, Chev
 import { useContacts, useCreateContact } from "../hooks/useContacts";
 import { DataSourceBadge } from "@/components/common/DataSourceBadge";
 import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
+import { EmailIntegrationBanner } from "@/components/common/EmailIntegrationBanner";
 import { useSyncCrmData } from "@/hooks/useIntegrationSync";
 import { useCRMIntegrationDisplay } from "@/hooks/useCRMIntegrationDisplay";
 import { useCrmSync } from "@/hooks/useCrmSync";
@@ -77,6 +78,7 @@ export default function ContactsPage() {
   return (
     <div className="space-y-6">
       <CrmConnectionBanner />
+      <EmailIntegrationBanner page="contacts" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Contacts</h1>

@@ -314,11 +314,18 @@ export async function buildValidationContext(): Promise<ValidationContext> {
 export const PM_DATA_DESTINATIONS = ['projects', 'tasks'] as const;
 export const CRM_DATA_DESTINATIONS = ['clients', 'deals', 'contacts'] as const;
 export const MEETING_DATA_DESTINATIONS = ['schedule', 'transcripts'] as const;
+export const EMAIL_DATA_DESTINATIONS = [
+  'lead-followup',
+  'contacts',
+  'notifications',
+] as const;
 
 export const INTEGRATION_DATA_DESTINATIONS = [
   ...PM_DATA_DESTINATIONS,
   ...CRM_DATA_DESTINATIONS,
   ...MEETING_DATA_DESTINATIONS,
+  'lead-followup',
+  'notifications',
 ] as const;
 
 export type IntegrationDataDestination =
@@ -330,6 +337,7 @@ export const CATEGORY_DATA_DESTINATION_OPTIONS: Partial<
   'project-management': PM_DATA_DESTINATIONS,
   'crm-systems': CRM_DATA_DESTINATIONS,
   'meeting-providers': MEETING_DATA_DESTINATIONS,
+  'email-providers': EMAIL_DATA_DESTINATIONS,
 };
 
 export function getDefaultDataDestinationsForCategory(
@@ -373,6 +381,12 @@ export const DEFAULT_MEETING_DATA_DESTINATIONS: IntegrationDataDestination[] = [
   'transcripts',
 ];
 
+export const DEFAULT_EMAIL_DATA_DESTINATIONS: IntegrationDataDestination[] = [
+  'lead-followup',
+  'contacts',
+  'notifications',
+];
+
 export const INTEGRATION_DATA_DESTINATION_LABELS: Record<
   IntegrationDataDestination,
   string
@@ -384,6 +398,8 @@ export const INTEGRATION_DATA_DESTINATION_LABELS: Record<
   contacts: 'Contacts',
   schedule: 'Meeting Schedule',
   transcripts: 'Transcripts',
+  'lead-followup': 'Lead Follow-Up',
+  notifications: 'Notifications',
 };
 
 /** PM providers that sync into projects and/or tasks tables */
@@ -422,6 +438,15 @@ export function isMeetingSyncProvider(slug: string): slug is MeetingSyncProvider
   return (MEETING_SYNC_PROVIDER_SLUGS as readonly string[]).includes(slug);
 }
 
+/** Email providers with implemented sync in this app */
+export const EMAIL_SYNC_PROVIDER_SLUGS = ['sendgrid', 'outlook'] as const;
+
+export type EmailSyncProviderSlug = (typeof EMAIL_SYNC_PROVIDER_SLUGS)[number];
+
+export function isEmailSyncProvider(slug: string): slug is EmailSyncProviderSlug {
+  return (EMAIL_SYNC_PROVIDER_SLUGS as readonly string[]).includes(slug);
+}
+
 export function isCategorySyncProvider(
   category: PrimaryIntegrationCategorySlug,
   slug: string
@@ -429,6 +454,7 @@ export function isCategorySyncProvider(
   if (category === 'project-management') return isPMSyncProvider(slug);
   if (category === 'crm-systems') return isCrmSyncProvider(slug);
   if (category === 'meeting-providers') return isMeetingSyncProvider(slug);
+  if (category === 'email-providers') return isEmailSyncProvider(slug);
   return false;
 }
 
@@ -702,7 +728,9 @@ function sanitizePrimaryByCategory(
       primary_slug,
       active_slugs,
       single_active_only:
-        entry.single_active_only === true || isCategoryAdminDefaultOnly(category),
+        typeof entry.single_active_only === 'boolean'
+          ? entry.single_active_only
+          : isCategoryAdminDefaultOnly(category),
       data_destinations:
         data_destinations.length > 0
           ? data_destinations
