@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Bell, Mail, AlertTriangle, BarChart3 } from "lucide-react";
@@ -13,9 +13,12 @@ import {
 } from "recharts";
 import { useNotificationAdminMetrics } from "../../hooks/useNotificationAdmin";
 import NotificationSettings from "@/pages/admin/settings/NotificationSettings";
+import { EmailIntegrationBanner } from "@/components/common/EmailIntegrationBanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AdminNotificationsDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") === "email" ? "email" : "metrics";
   const { data: metrics, isLoading } = useNotificationAdminMetrics();
 
   if (isLoading) {
@@ -51,7 +54,15 @@ export default function AdminNotificationsDashboard() {
         </div>
       </div>
 
-      <Tabs defaultValue="metrics">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          const next = new URLSearchParams(searchParams);
+          if (value === "metrics") next.delete("tab");
+          else next.set("tab", value);
+          setSearchParams(next, { replace: true });
+        }}
+      >
         <TabsList>
           <TabsTrigger value="metrics">Metrics</TabsTrigger>
           <TabsTrigger value="email">Email Config</TabsTrigger>
@@ -162,7 +173,8 @@ export default function AdminNotificationsDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="email" className="mt-6">
+        <TabsContent value="email" className="mt-6 space-y-4">
+          <EmailIntegrationBanner page="notifications" />
           <NotificationSettings />
         </TabsContent>
       </Tabs>
