@@ -2,7 +2,7 @@
  * SendGrid Integration - Dedicated Admin Page
  * API key stored only in Supabase secrets; UI shows validation status only.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,10 +25,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { integrationKeys } from "@/hooks/useIntegrations";
 import { supabase } from "@/integrations/supabase/client";
 import {
   useSendGridConfig,
   useUpdateSendGridConfig,
+  syncSendGridOrganizationIntegration,
   type UpdateSendGridConfigInput,
 } from "@/hooks/useSendGridConfig";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -47,12 +50,19 @@ type FormValues = z.infer<typeof formSchema>;
 type ApiKeyStatus = "checking" | "valid" | "not_configured" | "invalid";
 
 export default function SendGridIntegration() {
+  const queryClient = useQueryClient();
   const { data: config, isLoading: configLoading } = useSendGridConfig();
   const updateConfig = useUpdateSendGridConfig();
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>("checking");
   const [isValidating, setIsValidating] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [isSendingTest, setIsSendingTest] = useState(false);
+  const hubSyncedRef = useRef(false);
+
+  const invalidateIntegrationHub = () => {
+    queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
+    queryClient.invalidateQueries({ queryKey: integrationKeys.all });
+  };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -88,6 +98,13 @@ export default function SendGridIntegration() {
       if (result?.success) {
         setApiKeyStatus("valid");
         if (showToast) toast.success(result.message || "API key is valid");
+        if (config?.is_enabled) {
+          void syncSendGridOrganizationIntegration(true, {
+            from_email: config.from_email,
+            from_name: config.from_name,
+            is_enabled: config.is_enabled,
+          }).then(invalidateIntegrationHub);
+        }
       } else {
         setApiKeyStatus("invalid");
         if (showToast) toast.error(result?.message || "API key invalid or connection failed");
@@ -119,6 +136,16 @@ export default function SendGridIntegration() {
   useEffect(() => {
     validateConnection(false);
   }, []);
+
+  useEffect(() => {
+    if (hubSyncedRef.current || !config?.is_enabled || apiKeyStatus !== "valid") return;
+    hubSyncedRef.current = true;
+    void syncSendGridOrganizationIntegration(true, {
+      from_email: config.from_email,
+      from_name: config.from_name,
+      is_enabled: config.is_enabled,
+    }).then(invalidateIntegrationHub);
+  }, [config, apiKeyStatus, queryClient]);
 
   const onSubmit = (values: FormValues) => {
     const payload: UpdateSendGridConfigInput = {

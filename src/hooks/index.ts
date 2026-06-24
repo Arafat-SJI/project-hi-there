@@ -81,6 +81,13 @@ export {
   knowledgeKeysToRefs,
 } from './useIntegrationSettings';
 export {
+  useAIModelPolicy,
+  useSaveAIModelPolicy,
+  useSelectableChatModels,
+  useAgentChatModels,
+  persistAgentChatModelChoice,
+} from './useAIModelPolicy';
+export {
   useUserOAuthTokens,
   useUserOAuthToken,
   useAvailableUserProviders,

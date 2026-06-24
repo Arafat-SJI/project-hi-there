@@ -38,6 +38,7 @@ import { DynamicFormField } from '@/components/integrations/DynamicFormField';
 import { ServiceManagement } from '@/components/integrations/ServiceManagement';
 import { UsageStats } from '@/components/integrations/UsageStats';
 import { AIModelsSection } from '@/components/integrations/AIModelsSection';
+import { AIProviderConnectSettings } from '@/components/integrations/AIProviderConnectSettings';
 import {
   areRequiredFieldsFilled,
   generateOAuthState,
@@ -102,7 +103,7 @@ export default function ProviderDetail() {
 
       if (category) {
         setCategorySlug(category.slug);
-        setIsAIProvider(category.slug === 'ai');
+        setIsAIProvider(category.slug === 'ai-providers');
       }
     };
 
@@ -746,6 +747,17 @@ export default function ProviderDetail() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* AI provider connect settings (model variant + default provider) */}
+      {isAIProvider && provider && slug && (
+        <AIProviderConnectSettings
+          providerSlug={slug}
+          providerName={provider.name}
+          isConnected={orgIntegration?.connection_status === 'connected'}
+          config={formValues}
+          onConfigChange={handleFieldChange}
+        />
       )}
 
       {/* AI Models Section - Only for AI providers */}

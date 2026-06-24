@@ -130,6 +130,9 @@ serve(async (req) => {
 
     if (provider && credentials) {
       service = provider;
+      if (service === 'google-gemini') {
+        service = 'google_ai';
+      }
       // Extract API key from credentials - common field names
       // Skip first-value fallback for Jira / Confluence / SharePoint / Outlook (multi-field auth)
       if (provider !== 'jira' && provider !== 'confluence' && provider !== 'sharepoint' && provider !== 'outlook') {

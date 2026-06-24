@@ -8,14 +8,10 @@ import {
   useIntegrationSettings,
   useSaveIntegrationSettings,
   useIntegrationPreferenceOptions,
-  usePrimaryByCategorySettings,
-  useCategoryIntegrationOptions,
-  useSavePrimaryByCategory,
   knowledgeRefsToKeys,
   knowledgeKeysToRefs,
 } from '@/hooks/useIntegrationSettings';
 import { IntegrationMultiSelect } from '@/components/integrations/IntegrationMultiSelect';
-import { CategoryPrimarySourceCard } from '@/components/integrations/CategoryPrimarySourceCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -26,12 +22,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { AlertTriangle, Loader2, Settings2 } from 'lucide-react';
-import type {
-  IntegrationPreferencesInput,
-  PrimaryByCategory,
-  PrimaryIntegrationCategorySlug,
-  CategoryIntegrationPreference,
-} from '@/lib/integration-preferences';
+import type { IntegrationPreferencesInput } from '@/lib/integration-preferences';
 
 export function IntegrationPreferencesSection() {
   const { profile } = useAuth();
@@ -41,45 +32,15 @@ export function IntegrationPreferencesSection() {
   const { data: options, isLoading: optionsLoading } = useIntegrationPreferenceOptions();
   const saveSettings = useSaveIntegrationSettings();
 
-  const { data: savedByCategory, isLoading: byCategoryLoading } =
-    usePrimaryByCategorySettings();
-  const { data: categoryOptions, isLoading: categoryOptionsLoading } =
-    useCategoryIntegrationOptions();
-  const saveByCategory = useSavePrimaryByCategory();
-
   const [primaryIntegrations, setPrimaryIntegrations] = useState<string[]>([]);
   const [primaryKnowledgeKeys, setPrimaryKnowledgeKeys] = useState<string[]>([]);
-  const [byCategory, setByCategory] = useState<Partial<PrimaryByCategory>>({});
   const [dirty, setDirty] = useState(false);
-  const [byCategoryDirty, setByCategoryDirty] = useState(false);
 
   useEffect(() => {
     if (!saved || dirty) return;
     setPrimaryIntegrations(saved.primary_integrations);
     setPrimaryKnowledgeKeys(knowledgeRefsToKeys(saved.primary_knowledge_sources));
   }, [saved, dirty]);
-
-  useEffect(() => {
-    if (!savedByCategory || byCategoryDirty) return;
-    setByCategory(savedByCategory);
-  }, [savedByCategory, byCategoryDirty]);
-
-  const handleCategoryChange = (
-    slug: PrimaryIntegrationCategorySlug,
-    value: CategoryIntegrationPreference
-  ) => {
-    setByCategory((prev) => ({ ...prev, [slug]: value }));
-    setByCategoryDirty(true);
-  };
-
-  const handleSaveByCategory = async () => {
-    try {
-      await saveByCategory.mutateAsync(byCategory);
-      setByCategoryDirty(false);
-    } catch {
-      // Toast handled by mutation hook
-    }
-  };
 
   const staleWarnings = useMemo(() => {
     const warnings: string[] = [];
@@ -119,7 +80,6 @@ export function IntegrationPreferencesSection() {
   };
 
   const isLoading = settingsLoading || optionsLoading;
-  const isByCategoryLoading = byCategoryLoading || categoryOptionsLoading;
 
   if (isLoading) {
     return (
@@ -132,63 +92,7 @@ export function IntegrationPreferencesSection() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card id="preferences-by-category">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5 text-primary" />
-            <CardTitle>Primary Sources by Category</CardTitle>
-          </div>
-          <CardDescription>
-            For each category, choose which connected providers are active and which one is the
-            primary source of truth consumed by Contacts, Deals, and other modules.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isByCategoryLoading ? (
-            <div className="flex h-24 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            (categoryOptions ?? []).map((category) => (
-              <CategoryPrimarySourceCard
-                key={category.slug}
-                category={category}
-                value={byCategory[category.slug] ?? { primary_slug: null, active_slugs: [] }}
-                onChange={(value) => handleCategoryChange(category.slug, value)}
-                disabled={!isAdmin}
-              />
-            ))
-          )}
-
-          <div className="flex justify-end">
-            {isAdmin ? (
-              <Button
-                onClick={handleSaveByCategory}
-                disabled={saveByCategory.isPending || !byCategoryDirty}
-              >
-                {saveByCategory.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Save Category Preferences
-              </Button>
-            ) : (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button disabled>Save Category Preferences</Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>Admin access required to edit preferences.</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card id="preferences">
+    <Card id="preferences">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Settings2 className="h-5 w-5 text-primary" />
@@ -277,6 +181,5 @@ export function IntegrationPreferencesSection() {
         </div>
       </CardContent>
     </Card>
-    </div>
   );
 }

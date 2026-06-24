@@ -604,6 +604,20 @@ export function filterProvidersByQuery(
 }
 
 // ============================================
+// CATEGORY HELPERS
+// ============================================
+
+/** Match AI Providers tab regardless of slug variant in DB */
+export function isAIProvidersCategory(slug: string, name?: string): boolean {
+  const normalized = slug.toLowerCase().replace(/_/g, '-').trim();
+  if (normalized === 'ai-providers' || normalized === 'ai-provider') return true;
+  if (normalized.includes('ai') && normalized.includes('provider')) return true;
+  const normalizedName = name?.trim().toLowerCase();
+  if (normalizedName === 'ai providers' || normalizedName === 'ai provider') return true;
+  return false;
+}
+
+// ============================================
 // ERROR HANDLING
 // ============================================
 

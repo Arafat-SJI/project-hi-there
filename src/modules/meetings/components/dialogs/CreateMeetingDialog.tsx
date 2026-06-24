@@ -31,6 +31,8 @@ import { useCreateMeetingV2 } from "../../hooks/useMeetingsV2";
 import DateTimePicker from "../common/DateTimePicker";
 import type { MeetingType } from "../../types/meetings";
 import { useIntegrationProvider, useOrganizationIntegration } from "@/hooks/useIntegrations";
+import { usePrimaryByCategorySettings } from "@/hooks/useIntegrationSettings";
+import { shouldShowProviderForCategory } from "@/lib/integration-preferences";
 import { useUserOAuthToken, useHasValidToken, useConnectOAuth } from "@/hooks/useUserIntegrations";
 import { useToast } from "@/hooks/use-toast";
 import { initiateAzureLoginRedirect, getStoredGraphResponse, getStoredMSALResponse } from "@/lib/azureAuth";
@@ -176,6 +178,15 @@ export default function CreateMeetingDialog({
   const { data: zoomProvider } = useIntegrationProvider("zoom");
   const { data: teamsProvider } = useIntegrationProvider("microsoft-teams");
   const { data: googleMeetProvider } = useIntegrationProvider("google-meet");
+  const { data: primaryByCategory } = usePrimaryByCategorySettings();
+  const meetingPref = primaryByCategory?.["meeting-providers"];
+
+  const visiblePlatforms = PLATFORMS.filter((platform) =>
+    shouldShowProviderForCategory(platform.slug, meetingPref)
+  );
+  const hasMeetingProviderRestriction =
+    Boolean(meetingPref?.single_active_only) ||
+    Boolean(meetingPref?.active_slugs?.length);
 
   const zoomOrg = useOrganizationIntegration(zoomProvider?.id || "");
   const teamsOrg = useOrganizationIntegration(teamsProvider?.id || "");
@@ -352,9 +363,27 @@ export default function CreateMeetingDialog({
                     Click <strong className="text-foreground">Create meeting</strong> on a connected platform to open the meeting form.
                   </p>
                 )}
+                {hasMeetingProviderRestriction && visiblePlatforms.length < PLATFORMS.length && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Your organization uses{" "}
+                    <strong className="text-foreground">
+                      {visiblePlatforms.map((p) => p.label).join(", ") || "selected providers"}
+                    </strong>{" "}
+                    for meetings. Change this in Admin → Integration Hub → Meeting Platforms.
+                  </p>
+                )}
               </div>
-              <div className="grid grid-cols-3 gap-4 min-w-0">
-                {PLATFORMS.map((platform) => (
+              {visiblePlatforms.length === 0 ? (
+                <p className="text-sm text-muted-foreground rounded-lg border border-dashed p-4 text-center">
+                  No meeting platforms are active for your organization. Ask an admin to enable one
+                  under Integration Hub → Meeting Platforms.
+                </p>
+              ) : (
+              <div className={cn(
+                "grid gap-4 min-w-0",
+                visiblePlatforms.length === 1 ? "grid-cols-1 max-w-sm" : visiblePlatforms.length === 2 ? "grid-cols-2" : "grid-cols-3"
+              )}>
+                {visiblePlatforms.map((platform) => (
                   <PlatformCard
                     key={platform.slug}
                     platform={platform}
@@ -371,6 +400,7 @@ export default function CreateMeetingDialog({
                   />
                 ))}
               </div>
+              )}
             </div>
             <div className="pt-4 border-t">
               <button
