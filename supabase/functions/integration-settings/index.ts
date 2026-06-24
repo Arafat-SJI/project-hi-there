@@ -13,6 +13,7 @@ const PRIMARY_INTEGRATION_CATEGORY_SLUGS = [
   'crm-systems',
   'project-management',
   'meeting-providers',
+  'email-providers',
   'storage-productivity',
 ];
 

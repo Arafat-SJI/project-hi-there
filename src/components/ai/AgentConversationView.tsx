@@ -6,43 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Send,
   Bot,
   Loader2,
   Sparkles,
-  RefreshCw,
   Copy,
   Check,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getInitials } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import {
   useAgentMessages,
   useAgentConversation,
   useSendMessage,
   AgentMessage,
 } from "@/hooks/useAgentConversations";
+import {
+  useAgentChatModels,
+  persistAgentChatModelChoice,
+} from "@/hooks/useAIModelPolicy";
+import { ModelSelect } from "@/components/ai/ModelSelect";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-interface AIModel {
-  id: string;
-  name: string;
-  model_id: string;
-  is_default: boolean;
-  ai_providers: { name: string } | null;
-}
 
 interface AgentConversationViewProps {
   conversationId: string;
@@ -55,7 +42,6 @@ export function AgentConversationView({
 }: AgentConversationViewProps) {
   const { profile } = useAuth();
   const [input, setInput] = useState("");
-  const [models, setModels] = useState<AIModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -66,40 +52,26 @@ export function AgentConversationView({
     useAgentMessages(conversationId);
   const sendMessage = useSendMessage();
 
-  // Load AI models
+  const {
+    visibleModels,
+    resolvedModelId,
+    showPicker,
+    isLoading: modelsLoading,
+    policy,
+  } = useAgentChatModels();
+
   useEffect(() => {
-    const loadModels = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("ai_models")
-          .select("*, ai_providers(name)")
-          .eq("category", "chat")
-          .eq("enabled", true)
-          .order("is_default", { ascending: false })
-          .order("name");
+    if (resolvedModelId) {
+      setSelectedModel(resolvedModelId);
+    }
+  }, [resolvedModelId]);
 
-        if (error) throw error;
-
-        const transformedModels: AIModel[] = (data || []).map((m) => ({
-          id: m.id,
-          name: m.name,
-          model_id: m.model_id,
-          is_default: m.is_default,
-          ai_providers: m.ai_providers as { name: string } | null,
-        }));
-
-        setModels(transformedModels);
-        const defaultModel = transformedModels.find((m) => m.is_default);
-        if (defaultModel) {
-          setSelectedModel(defaultModel.id);
-        }
-      } catch (error) {
-        console.error("Failed to load AI models:", error);
-      }
-    };
-
-    loadModels();
-  }, []);
+  const handleModelChange = (modelId: string) => {
+    setSelectedModel(modelId);
+    if (policy?.selection_mode === "user_choice") {
+      persistAgentChatModelChoice(modelId);
+    }
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -118,7 +90,7 @@ export function AgentConversationView({
         conversation_id: conversationId,
         agent_id: agentId,
         content: messageContent,
-        model_id: selectedModel || undefined,
+        model_id: selectedModel || resolvedModelId || undefined,
         memory_enabled: (agent as any)?.memory_enabled ?? false,
       });
     } catch (err) {
@@ -143,21 +115,24 @@ export function AgentConversationView({
   const conversationStarters = (agent as any)?.conversation_starters || [];
   const welcomeMessage = (agent as any)?.welcome_message;
 
-  const isLoading = conversationLoading || messagesLoading;
+  const isLoading = conversationLoading || messagesLoading || modelsLoading;
   const hasMessages = messages && messages.length > 0;
+  const activeModel =
+    visibleModels.find((m) => m.id === selectedModel) ??
+    visibleModels.find((m) => m.id === resolvedModelId);
 
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <Avatar className="h-10 w-10">
               <AvatarFallback className="bg-primary/10 text-primary">
                 {agent?.avatar || <Bot className="h-5 w-5" />}
               </AvatarFallback>
             </Avatar>
-            <div>
+            <div className="min-w-0">
               <h2 className="font-semibold">{agent?.name || "AI Assistant"}</h2>
               {conversation?.title && (
                 <p className="text-sm text-muted-foreground truncate max-w-[300px]">
@@ -167,26 +142,18 @@ export function AgentConversationView({
             </div>
           </div>
 
-          {models.length > 1 && (
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select model" />
-              </SelectTrigger>
-              <SelectContent>
-                {models.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{model.name}</span>
-                      {model.is_default && (
-                        <Badge variant="secondary" className="text-xs">
-                          Default
-                        </Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {showPicker && selectedModel && (
+            <ModelSelect
+              models={visibleModels}
+              value={selectedModel}
+              onChange={handleModelChange}
+            />
+          )}
+
+          {!showPicker && activeModel && (
+            <p className="text-sm text-muted-foreground shrink-0">
+              Using {activeModel.provider_name} — {activeModel.name}
+            </p>
           )}
         </div>
       </div>

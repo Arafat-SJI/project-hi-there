@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { normalizeAIModelPolicy } from './ai-model-policy.ts'
 
 export interface AIModel {
   id: string
@@ -91,13 +92,35 @@ export async function getModel(
   }
 
   if (category) {
+    const { data: settingsRow } = await supabase
+      .from('integration_settings')
+      .select('ai_model_policy')
+      .is('organization_id', null)
+      .maybeSingle()
+
+    const policy = normalizeAIModelPolicy(settingsRow?.ai_model_policy)
+    if (policy.default_chat_model_id) {
+      const { data: policyModel, error: policyError } = await supabase
+        .from('ai_models')
+        .select('*, ai_providers(*)')
+        .eq('id', policy.default_chat_model_id)
+        .eq('enabled', true)
+        .maybeSingle()
+
+      if (!policyError && policyModel) {
+        return policyModel as AIModel
+      }
+    }
+
     const { data, error } = await supabase
       .from('ai_models')
       .select('*, ai_providers(*)')
       .eq('category', category)
       .eq('is_default', true)
       .eq('enabled', true)
-      .single()
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
     if (error || !data) return null
     return data as AIModel

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { chatCompletion, getModel, logUsage, calculateCost } from '../_shared/ai-provider-routing.ts'
+import { resolveEffectiveModelId } from '../_shared/ai-model-policy.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -209,6 +210,8 @@ serve(async (req) => {
     const temperature = providerConfig.temperature ?? 0.7
     const maxTokens = providerConfig.max_tokens ?? 2000
 
+    const effectiveModelId = await resolveEffectiveModelId(supabaseClient, model_id)
+
     // 7. Call AI provider
     const response = await chatCompletion(
       supabaseClient,
@@ -217,13 +220,13 @@ serve(async (req) => {
         max_tokens: maxTokens,
         temperature,
       },
-      model_id
+      effectiveModelId
     )
 
     const latency = Date.now() - startTime
 
     // 8. Get the model for cost calculation and logging
-    const model = await getModel(supabaseClient, model_id, 'chat')
+    const model = await getModel(supabaseClient, effectiveModelId, 'chat')
     if (!model) {
       throw new Error('Model not found')
     }

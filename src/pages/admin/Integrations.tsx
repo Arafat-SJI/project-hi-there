@@ -1,67 +1,69 @@
 /**
  * Integration Hub - Main Page
- * Category-based view of all available integrations
+ * Category tab bar with integration cards per Integration Hub spec (section 2.8)
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Loader2, Search, BarChart3, ChevronRight } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Search, BarChart3 } from 'lucide-react';
 import { useProvidersGroupedByCategory } from '@/hooks/useIntegrations';
+import { useAIModelPolicy } from '@/hooks/useAIModelPolicy';
 import { ProviderCard } from '@/components/integrations/ProviderCard';
-import { IntegrationPreferencesSection } from '@/components/integrations/IntegrationPreferencesSection';
+import { AIAgentAccessInline } from '@/components/integrations/AIAgentAccessInline';
+import { CategoryProviderAccessInline } from '@/components/integrations/CategoryProviderAccessInline';
+import { useSetProviderAsDefault } from '@/hooks/useSetProviderAsDefault';
 import {
-  getCategoryIcon,
   filterProvidersByQuery,
   IntegrationProvider,
   OrganizationIntegration,
+  isAIProvidersCategory,
 } from '@/lib/integration-utils';
+import {
+  isCategoryAdminDefaultOnly,
+  resolvePrimaryCategorySlug,
+} from '@/lib/integration-preferences';
+import { usePrimaryByCategorySettings } from '@/hooks/useIntegrationSettings';
 
 export default function Integrations() {
   const navigate = useNavigate();
   const { grouped, isLoading, error } = useProvidersGroupedByCategory();
+  const { data: aiPolicy } = useAIModelPolicy();
+  const { data: primaryByCategory } = usePrimaryByCategorySettings();
+  const setProviderAsDefault = useSetProviderAsDefault();
+  const [settingDefaultSlug, setSettingDefaultSlug] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
-  const didExpandInitially = useRef(false);
+  const [activeTab, setActiveTab] = useState<string>('');
 
-  // Expand every category once data loads (misuse of useState previously left all sections collapsed).
-  useEffect(() => {
-    if (!grouped?.length || didExpandInitially.current) return;
-    didExpandInitially.current = true;
-    setExpandedCategories(grouped.map((g) => g.category.id));
-  }, [grouped]);
-
-  const toggleCategory = (categoryId: string) => {
-    setExpandedCategories((prev) =>
-      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
-    );
-  };
-
-  const filteredGrouped = grouped
-    ?.filter((group) => {
-      // Filter by category
-      if (filterCategory !== 'all' && group.category.slug !== filterCategory) {
-        return false;
-      }
-      return true;
-    })
-    .map((group) => ({
+  const tabGroups = useMemo(() => {
+    if (!grouped?.length) return [];
+    return grouped.map((group) => ({
       ...group,
       providers: filterProvidersByQuery(group.providers, searchQuery),
-    }))
-    .filter((group) => group.providers.length > 0); // Only show categories with matching providers
+    }));
+  }, [grouped, searchQuery]);
+
+  const resolvedTab =
+    activeTab && tabGroups.some((g) => g.category.slug === activeTab)
+      ? activeTab
+      : tabGroups[0]?.category.slug ?? '';
+
+  const activeGroup = tabGroups.find((g) => g.category.slug === resolvedTab);
+
+  const activeConnectedProviders = useMemo(() => {
+    if (!activeGroup) return [];
+    return activeGroup.providers
+      .filter((p) => p.orgIntegration?.connection_status === 'connected')
+      .map((p) => ({ slug: p.slug, name: p.name }));
+  }, [activeGroup]);
+
+  const showAIAgentAccess =
+    activeGroup != null &&
+    isAIProvidersCategory(activeGroup.category.slug, activeGroup.category.name);
 
   if (isLoading) {
     return (
@@ -79,14 +81,14 @@ export default function Integrations() {
       </div>
     );
   }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Integration Hub</h1>
           <p className="text-muted-foreground">
-            Configure third-party service integrations
+            Connect, configure, and manage third-party REST API integrations
           </p>
         </div>
         <Button
@@ -98,11 +100,8 @@ export default function Integrations() {
         </Button>
       </div>
 
-      <IntegrationPreferencesSection />
-
-      {/* Search & Filter */}
       <div className="flex gap-4">
-        <div className="flex-1 relative">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search integrations..."
@@ -111,115 +110,144 @@ export default function Integrations() {
             className="pl-9"
           />
         </div>
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter: All" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {grouped?.map((group) => (
-              <SelectItem key={group.category.id} value={group.category.slug}>
-                {group.category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
-      {/* Categories with Providers */}
-      <div className="space-y-4">
-        {filteredGrouped?.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <p className="text-muted-foreground">No integrations found</p>
-              {searchQuery && (
-                <Button
-                  variant="link"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setFilterCategory('all');
-                  }}
-                >
-                  Clear filters
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
+      {tabGroups.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-muted-foreground">No integrations found</p>
+            {searchQuery && (
+              <Button variant="link" onClick={() => setSearchQuery('')}>
+                Clear search
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs value={resolvedTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="flex h-auto flex-wrap justify-start gap-1 bg-muted p-1">
+            {tabGroups.map((group) => (
+              <TabsTrigger
+                key={group.category.slug}
+                value={group.category.slug}
+                className="data-[state=active]:bg-background"
+              >
+                {group.category.name}
+                <span className="ml-2 rounded-full bg-muted-foreground/15 px-2 py-0.5 text-xs">
+                  {group.stats.connectedProviders}/{group.stats.totalProviders}
+                </span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {filteredGrouped?.map((group) => {
-          const CategoryIcon = getCategoryIcon(group.category.icon);
-          const isExpanded = expandedCategories.includes(group.category.id);
+          {showAIAgentAccess && (
+            <AIAgentAccessInline
+              connectedProviderNames={activeConnectedProviders}
+              defaultProviderSlug={aiPolicy?.default_provider_slug}
+            />
+          )}
 
-          return (
-            <Collapsible
-              key={group.category.id}
-              open={isExpanded}
-              onOpenChange={() => toggleCategory(group.category.id)}
-            >
-              <Card>
-                <CollapsibleTrigger className="w-full">
-                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <ChevronRight
-                          className={`h-5 w-5 transition-transform ${
-                            isExpanded ? 'rotate-90' : ''
-                          }`}
-                        />
-                        <CategoryIcon className="h-5 w-5" />
-                        <CardTitle>{group.category.name}</CardTitle>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {group.stats.totalProviders} provider
-                        {group.stats.totalProviders !== 1 ? 's' : ''}
-                        {group.stats.connectedProviders > 0 &&
-                          `, ${group.stats.connectedProviders} connected`}
-                      </div>
-                    </div>
-                    <CardDescription className="text-left ml-11">
-                      {group.category.description}
-                    </CardDescription>
-                  </CardHeader>
-                </CollapsibleTrigger>
+          {tabGroups.map((group) => {
+            const resolvedCategorySlug = resolvePrimaryCategorySlug(
+              group.category.slug,
+              group.category.name
+            );
+            const categoryPref = resolvedCategorySlug
+              ? primaryByCategory?.[resolvedCategorySlug]
+              : undefined;
 
-                <CollapsibleContent>
-                  <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                      {group.providers.map((provider) => (
+            const tabConnectedProviders = group.providers
+              .filter((p) => p.orgIntegration?.connection_status === 'connected')
+              .map((p) => ({ slug: p.slug, name: p.name }));
+
+            const isAITab = isAIProvidersCategory(group.category.slug, group.category.name);
+            const isAgentAccessLocked = aiPolicy?.selection_mode === 'admin_locked';
+            const isCategoryLocked = isAITab
+              ? isAgentAccessLocked
+              : isCategoryAdminDefaultOnly(group.category.slug, group.category.name);
+
+            const supportsDefaultControl =
+              (isAITab && isAgentAccessLocked) ||
+              (!isAITab && isCategoryLocked && resolvedCategorySlug != null);
+
+            const handleSetDefault = async (providerSlug: string) => {
+              setSettingDefaultSlug(providerSlug);
+              try {
+                await setProviderAsDefault.mutateAsync({
+                  categorySlug: group.category.slug,
+                  categoryName: group.category.name,
+                  providerSlug,
+                });
+              } finally {
+                setSettingDefaultSlug(null);
+              }
+            };
+
+            return (
+              <TabsContent
+                key={group.category.slug}
+                value={group.category.slug}
+                className="space-y-4"
+              >
+                {resolvedCategorySlug && !isAITab && (
+                  <CategoryProviderAccessInline
+                    categorySlug={resolvedCategorySlug}
+                    categoryName={group.category.name}
+                    connectedProviders={tabConnectedProviders}
+                    primarySlug={categoryPref?.primary_slug}
+                  />
+                )}
+
+                {group.providers.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-10 text-center text-muted-foreground">
+                      No providers match your search in this category.
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {group.providers.map((provider) => {
+                      const pref = categoryPref;
+                      const isActive =
+                        !pref?.active_slugs?.length ||
+                        pref.active_slugs.includes(provider.slug);
+                      const isPrimary = pref?.primary_slug === provider.slug;
+                      const isAiDefault = aiPolicy?.default_provider_slug === provider.slug;
+                      const isOrgDefault = isAITab
+                        ? isAiDefault && isCategoryLocked
+                        : isPrimary && isCategoryLocked;
+
+                      return (
                         <ProviderCard
                           key={provider.id}
                           provider={provider as IntegrationProvider}
-                          orgIntegration={(provider as any).orgIntegration as OrganizationIntegration | undefined}
+                          orgIntegration={
+                            (
+                              provider as IntegrationProvider & {
+                                orgIntegration?: OrganizationIntegration;
+                              }
+                            ).orgIntegration
+                          }
+                          isDefaultAIProvider={isAiDefault && isCategoryLocked}
+                          isPrimaryProvider={isPrimary && isCategoryLocked}
+                          isInactiveForCategory={
+                            Boolean(pref?.active_slugs?.length) && !isActive
+                          }
+                          canSetDefault={supportsDefaultControl}
+                          showAgentDefaultOnCard={isAITab}
+                          requireAgentDefault={isCategoryLocked}
+                          isOrganizationDefault={isOrgDefault}
+                          isSettingDefault={settingDefaultSlug === provider.slug}
+                          onSetAsDefault={() => handleSetDefault(provider.slug)}
                         />
-                      ))}
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          );
-        })}
-      </div>
-
-      {/* Help Text */}
-      {!searchQuery && filterCategory === 'all' && (
-        <Card className="border-dashed">
-          <CardContent className="py-6">
-            <div className="flex items-start gap-4">
-              <div className="rounded-lg bg-primary/10 p-3">
-                <Search className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-1">Need help finding an integration?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Use the search bar to find specific providers, or filter by category to browse
-                  available integrations. Click on any provider card to configure it.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            );
+          })}
+        </Tabs>
       )}
     </div>
   );

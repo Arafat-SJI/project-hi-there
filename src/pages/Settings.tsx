@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Bell, Moon, Globe, Shield, Zap, Loader2, ArrowRight } from "lucide-react";
 import { ConnectedServices } from "@/components/settings/ConnectedServices";
+import { OrganizationIntegrations } from "@/components/settings/OrganizationIntegrations";
 import { Link } from "react-router-dom";
 
 export default function Settings() {
@@ -404,6 +405,9 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Organization Integrations — admin hub defaults visible to all users */}
+      <OrganizationIntegrations />
 
       {/* Connected Services - User Integration Connections */}
       <ConnectedServices />

@@ -1,10 +1,11 @@
 /**
  * SendGrid admin configuration and status
- * Uses sendgrid_config (singleton) and integrations (slug='sendgrid')
+ * Uses sendgrid_config (singleton) and organization_integrations (Integration Hub)
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys, invalidateKeys, cacheConfig } from "@/lib/cache";
+import { integrationKeys } from "@/hooks/useIntegrations";
 import { toast } from "sonner";
 
 export interface SendGridConfig {
@@ -68,6 +69,67 @@ export interface UpdateSendGridConfigInput {
   api_key?: string;
 }
 
+/** Keep Integration Hub in sync with sendgrid_config (hub reads organization_integrations). */
+export async function syncSendGridOrganizationIntegration(
+  connected: boolean,
+  config?: Pick<SendGridConfig, "from_email" | "from_name" | "is_enabled">
+): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: provider, error: providerError } = await supabase
+    .from("integration_providers")
+    .select("id")
+    .eq("slug", "sendgrid")
+    .maybeSingle();
+
+  if (providerError || !provider) {
+    console.error("SendGrid provider not found for hub sync:", providerError);
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  if (!connected) {
+    const { error } = await supabase
+      .from("organization_integrations")
+      .update({
+        enabled: false,
+        connection_status: "disconnected",
+        connection_message: "SendGrid disabled",
+        last_tested_at: now,
+      })
+      .eq("user_id", user.id)
+      .eq("provider_id", provider.id);
+
+    if (error) console.error("Failed to disconnect SendGrid in hub:", error);
+    return;
+  }
+
+  const { error } = await supabase.from("organization_integrations").upsert(
+    {
+      user_id: user.id,
+      provider_id: provider.id,
+      enabled: true,
+      connection_status: "connected",
+      connection_message: "SendGrid configured",
+      last_tested_at: now,
+      config: config
+        ? {
+            from_email: config.from_email,
+            from_name: config.from_name,
+            is_enabled: config.is_enabled,
+          }
+        : {},
+    },
+    { onConflict: "user_id,provider_id" }
+  );
+
+  if (error) console.error("Failed to sync SendGrid to Integration Hub:", error);
+}
+
 export function useUpdateSendGridConfig() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -117,15 +179,14 @@ export function useUpdateSendGridConfig() {
     onSuccess: async (_, variables) => {
       invalidateKeys.sendgrid(queryClient);
 
-      const status = variables.is_enabled ? "connected" : "disconnected";
-      const { error: intErr } = await (supabase as any)
-        .from("integrations")
-        .update({ status, last_sync: new Date().toISOString() })
-        .eq("slug", "sendgrid");
-      if (intErr) {
-        console.error("Failed to update integrations row:", intErr);
-      }
-      queryClient.invalidateQueries({ queryKey: queryKeys.sendgrid.integration });
+      await syncSendGridOrganizationIntegration(variables.is_enabled, {
+        from_email: variables.from_email,
+        from_name: variables.from_name,
+        is_enabled: variables.is_enabled,
+      });
+
+      queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
+      queryClient.invalidateQueries({ queryKey: integrationKeys.all });
 
       toast.success("SendGrid configuration saved");
     },

@@ -36,6 +36,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  integrationSlugToAIProviderSlug,
+  setGlobalDefaultChatModel,
+} from '@/lib/ai-model-policy';
 
 interface AIModel {
   id: string;
@@ -83,10 +87,11 @@ export function AIModelsSection({
     setLoading(true);
     try {
       // First check if this provider exists in ai_providers table
+      const aiProviderSlug = integrationSlugToAIProviderSlug(providerSlug);
       const { data: aiProvider } = await supabase
         .from('ai_providers')
         .select('id')
-        .eq('slug', providerSlug)
+        .eq('slug', aiProviderSlug)
         .single();
 
       if (!aiProvider) {
@@ -170,22 +175,23 @@ export function AIModelsSection({
       const model = models.find((m) => m.id === modelId);
       if (!model) return;
 
-      // First, unset all defaults for this category
-      const { error: unsetError } = await supabase
-        .from('ai_models')
-        .update({ is_default: false })
-        .eq('provider_id', model.provider_id)
-        .eq('category', category);
+      if (category === 'chat') {
+        await setGlobalDefaultChatModel(modelId);
+      } else {
+        const { error: unsetError } = await supabase
+          .from('ai_models')
+          .update({ is_default: false })
+          .eq('category', category);
 
-      if (unsetError) throw unsetError;
+        if (unsetError) throw unsetError;
 
-      // Then set the new default
-      const { error: setError } = await supabase
-        .from('ai_models')
-        .update({ is_default: true })
-        .eq('id', modelId);
+        const { error: setError } = await supabase
+          .from('ai_models')
+          .update({ is_default: true })
+          .eq('id', modelId);
 
-      if (setError) throw setError;
+        if (setError) throw setError;
+      }
 
       setModels((prev) =>
         prev.map((m) =>

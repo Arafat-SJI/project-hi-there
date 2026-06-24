@@ -4179,6 +4179,7 @@ export type Database = {
       }
       integration_settings: {
         Row: {
+          ai_model_policy: Json
           created_at: string
           id: string
           organization_id: string | null
@@ -4189,6 +4190,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          ai_model_policy?: Json
           created_at?: string
           id?: string
           organization_id?: string | null
@@ -4199,6 +4201,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          ai_model_policy?: Json
           created_at?: string
           id?: string
           organization_id?: string | null

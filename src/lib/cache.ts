@@ -250,6 +250,10 @@ export const queryKeys = {
     options: () => ["integration-settings", "options"] as const,
     primaryByCategory: () => ["integration-settings", "primary-by-category"] as const,
     categoryOptions: () => ["integration-settings", "category-options"] as const,
+    orgOverview: () => ["integration-settings", "org-overview"] as const,
+    aiModelPolicy: () => ["integration-settings", "ai-model-policy"] as const,
+    selectableChatModels: () => ["integration-settings", "selectable-chat-models"] as const,
+    agentChatModels: () => ["integration-settings", "agent-chat-models"] as const,
   },
 
   // Notifications

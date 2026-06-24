@@ -14,6 +14,16 @@ export const PRIMARY_INTEGRATION_CATEGORY_SLUGS = [
   'crm-systems',
   'project-management',
   'meeting-providers',
+  'email-providers',
+  'storage-productivity',
+] as const;
+
+/** Categories where only one org-wide default is allowed — no "users can choose" */
+export const ADMIN_ONLY_INTEGRATION_CATEGORY_SLUGS = [
+  'crm-systems',
+  'project-management',
+  'meeting-providers',
+  'email-providers',
   'storage-productivity',
 ] as const;
 
@@ -304,6 +314,8 @@ export async function buildValidationContext(): Promise<ValidationContext> {
 export interface CategoryIntegrationPreference {
   primary_slug: string | null;
   active_slugs: string[];
+  /** When true, only one provider is active and used across the app for this category */
+  single_active_only: boolean;
 }
 
 export type PrimaryByCategory = Record<
@@ -312,7 +324,91 @@ export type PrimaryByCategory = Record<
 >;
 
 function emptyCategoryPreference(): CategoryIntegrationPreference {
-  return { primary_slug: null, active_slugs: [] };
+  return { primary_slug: null, active_slugs: [], single_active_only: false };
+}
+
+const PRIMARY_CATEGORY_MATCHERS: {
+  key: PrimaryIntegrationCategorySlug;
+  slugs: string[];
+  nameHints: string[];
+}[] = [
+  {
+    key: 'meeting-providers',
+    slugs: ['meeting-providers', 'meeting-provider', 'meetings', 'meeting-platforms'],
+    nameHints: ['meeting'],
+  },
+  {
+    key: 'email-providers',
+    slugs: ['email-providers', 'email-provider', 'email', 'email-services'],
+    nameHints: ['email'],
+  },
+  {
+    key: 'storage-productivity',
+    slugs: ['storage-productivity', 'storage', 'storage-productivity-tools'],
+    nameHints: ['storage'],
+  },
+  {
+    key: 'crm-systems',
+    slugs: ['crm-systems', 'crm', 'crm-providers'],
+    nameHints: ['crm'],
+  },
+  {
+    key: 'project-management',
+    slugs: ['project-management', 'project-management-tools', 'pm-tools'],
+    nameHints: ['project management', 'project-management'],
+  },
+];
+
+/** Map DB category slug/name to canonical primary_by_category key */
+export function resolvePrimaryCategorySlug(
+  slug: string,
+  name?: string
+): PrimaryIntegrationCategorySlug | null {
+  const normalized = slug.toLowerCase().replace(/_/g, '-').trim();
+  const normalizedName = name?.trim().toLowerCase() ?? '';
+
+  for (const rule of PRIMARY_CATEGORY_MATCHERS) {
+    if (rule.slugs.includes(normalized)) return rule.key;
+    if (rule.nameHints.some((hint) => normalizedName.includes(hint))) return rule.key;
+  }
+
+  if ((PRIMARY_INTEGRATION_CATEGORY_SLUGS as readonly string[]).includes(normalized)) {
+    return normalized as PrimaryIntegrationCategorySlug;
+  }
+
+  return null;
+}
+
+export function isCategoryWithTabPreferences(
+  slug: string,
+  name?: string
+): slug is PrimaryIntegrationCategorySlug {
+  return resolvePrimaryCategorySlug(slug, name) !== null;
+}
+
+/** CRM and similar categories — org must pick one admin default; users cannot choose */
+export function isCategoryAdminDefaultOnly(slug: string, name?: string): boolean {
+  const resolved = resolvePrimaryCategorySlug(slug, name);
+  return (
+    resolved !== null &&
+    (ADMIN_ONLY_INTEGRATION_CATEGORY_SLUGS as readonly string[]).includes(resolved)
+  );
+}
+
+/** Whether a provider should be offered in app flows for a category (meetings, email, etc.) */
+export function shouldShowProviderForCategory(
+  providerSlug: string,
+  pref: CategoryIntegrationPreference | null | undefined
+): boolean {
+  if (!pref) return true;
+
+  if (pref.single_active_only) {
+    if (!pref.primary_slug) return true;
+    return providerSlug === pref.primary_slug;
+  }
+
+  if (pref.active_slugs.length === 0) return true;
+  return pref.active_slugs.includes(providerSlug);
 }
 
 export function normalizePrimaryByCategory(
@@ -332,7 +428,9 @@ export function normalizePrimaryByCategory(
       typeof e.primary_slug === 'string' && e.primary_slug.length > 0
         ? e.primary_slug
         : null;
-    result[category] = { primary_slug, active_slugs };
+    const single_active_only =
+      e.single_active_only === true || isCategoryAdminDefaultOnly(category);
+    result[category] = { primary_slug, active_slugs, single_active_only };
   }
 
   return result;
@@ -368,7 +466,12 @@ function sanitizePrimaryByCategory(
       primary_slug = active_slugs[0] ?? null;
     }
 
-    value[category] = { primary_slug, active_slugs };
+    value[category] = {
+      primary_slug,
+      active_slugs,
+      single_active_only:
+        entry.single_active_only === true || isCategoryAdminDefaultOnly(category),
+    };
   }
 
   return { value, warnings };
