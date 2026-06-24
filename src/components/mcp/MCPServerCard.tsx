@@ -39,6 +39,7 @@ import {
   Globe,
   Loader2,
   Wrench,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -53,6 +54,7 @@ interface MCPServerCardProps {
   server: MCPServer;
   onEdit?: (server: MCPServer) => void;
   onViewTools?: (server: MCPServer) => void;
+  onViewConnection?: (server: MCPServer) => void;
   showActions?: boolean;
 }
 
@@ -60,6 +62,7 @@ export function MCPServerCard({
   server,
   onEdit,
   onViewTools,
+  onViewConnection,
   showActions = true,
 }: MCPServerCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -108,6 +111,7 @@ export function MCPServerCard({
     const colors: Record<string, string> = {
       stdio: "bg-purple-500/10 text-purple-700 border-purple-500/30",
       http: "bg-blue-500/10 text-blue-700 border-blue-500/30",
+      rest: "bg-amber-500/10 text-amber-700 border-amber-500/30",
       websocket: "bg-green-500/10 text-green-700 border-green-500/30",
       sse: "bg-orange-500/10 text-orange-700 border-orange-500/30",
     };
@@ -160,6 +164,10 @@ export function MCPServerCard({
                   <DropdownMenuItem onClick={handleVerify}>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Test Connection
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onViewConnection?.(server)}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Client connection JSON
                   </DropdownMenuItem>
                   {onViewTools && (
                     <DropdownMenuItem onClick={() => onViewTools(server)}>
