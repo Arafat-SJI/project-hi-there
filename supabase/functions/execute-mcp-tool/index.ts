@@ -18,6 +18,231 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// --- MCP Streamable HTTP client (inlined for single-file dashboard deploy) ---
+
+interface MCPSession {
+  sessionId?: string;
+  protocolVersion: string;
+}
+
+const DEFAULT_PROTOCOL_VERSION = "2024-11-05";
+
+function buildAuthHeaders(
+  authConfig: Record<string, unknown> = {},
+  authType = "none"
+): Record<string, string> {
+  const headers: Record<string, string> = {};
+
+  if (authConfig.authorization_header) {
+    headers["Authorization"] = String(authConfig.authorization_header);
+  } else if (authType === "api_key" && authConfig.api_key) {
+    headers["X-API-Key"] = String(authConfig.api_key);
+  } else if (authType === "bearer" && authConfig.bearer_token) {
+    headers["Authorization"] = `Bearer ${authConfig.bearer_token}`;
+  } else if (authType === "basic" && authConfig.username) {
+    const credentials = btoa(`${authConfig.username}:${authConfig.password || ""}`);
+    headers["Authorization"] = `Basic ${credentials}`;
+  }
+
+  return headers;
+}
+
+function parseSseJsonRpc(text: string): unknown {
+  const dataLines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trim())
+    .filter(Boolean);
+
+  if (dataLines.length === 0) {
+    throw new Error("Empty SSE response from MCP server");
+  }
+
+  const lastPayload = dataLines[dataLines.length - 1];
+  const parsed = JSON.parse(lastPayload);
+
+  if (parsed.error) {
+    throw new Error(parsed.error.message || "MCP request failed");
+  }
+
+  return parsed.result;
+}
+
+async function sendMCPRequest(
+  serverUrl: string,
+  method: string,
+  params: Record<string, unknown> = {},
+  authConfig: Record<string, unknown> = {},
+  authType = "none",
+  session: MCPSession = { protocolVersion: DEFAULT_PROTOCOL_VERSION }
+): Promise<{ result: unknown; session: MCPSession }> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+    ...buildAuthHeaders(authConfig, authType),
+  };
+
+  if (session.sessionId) {
+    headers["Mcp-Session-Id"] = session.sessionId;
+    headers["MCP-Protocol-Version"] = session.protocolVersion;
+  }
+
+  const requestBody = {
+    jsonrpc: "2.0",
+    id: Date.now(),
+    method,
+    params,
+  };
+
+  const response = await fetch(serverUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    throw new Error(
+      `HTTP ${response.status}: ${response.statusText}${errorBody ? ` - ${errorBody.slice(0, 200)}` : ""}`
+    );
+  }
+
+  const nextSession: MCPSession = {
+    protocolVersion: session.protocolVersion,
+    sessionId: response.headers.get("Mcp-Session-Id") || session.sessionId,
+  };
+
+  const contentType = response.headers.get("Content-Type") || "";
+  let result: unknown;
+
+  if (contentType.includes("text/event-stream")) {
+    result = parseSseJsonRpc(await response.text());
+  } else {
+    const json = await response.json();
+    if (json?.error) {
+      throw new Error(json.error.message || "MCP request failed");
+    }
+    result = json.result;
+  }
+
+  return { result, session: nextSession };
+}
+
+async function initializeMCPSession(
+  serverUrl: string,
+  authConfig: Record<string, unknown> = {},
+  authType = "none"
+): Promise<{ session: MCPSession; initResult: unknown }> {
+  const session: MCPSession = { protocolVersion: DEFAULT_PROTOCOL_VERSION };
+
+  const { result: initResult, session: initializedSession } = await sendMCPRequest(
+    serverUrl,
+    "initialize",
+    {
+      protocolVersion: DEFAULT_PROTOCOL_VERSION,
+      capabilities: {
+        roots: { listChanged: true },
+        sampling: {},
+      },
+      clientInfo: {
+        name: "SJ Control Tower",
+        version: "1.0.0",
+      },
+    },
+    authConfig,
+    authType,
+    session
+  );
+
+  await sendMCPRequest(
+    serverUrl,
+    "notifications/initialized",
+    {},
+    authConfig,
+    authType,
+    initializedSession
+  );
+
+  return { session: initializedSession, initResult };
+}
+
+// --- End MCP client ---
+
+const MCP_HTTP_CONFIG_KEY = "x-http-config";
+
+function schemaForValidation(schema: Record<string, unknown>): Record<string, unknown> {
+  const copy = { ...schema };
+  delete copy[MCP_HTTP_CONFIG_KEY];
+  return copy;
+}
+
+interface RestHttpConfig {
+  method: string;
+  path: string;
+  headers?: Record<string, string>;
+}
+
+async function executeRestTool(
+  server: { server_url: string; auth_type?: string; auth_config?: Record<string, unknown> },
+  toolSchema: Record<string, unknown>,
+  parameters: Record<string, unknown>
+): Promise<unknown> {
+  const httpConfig = toolSchema[MCP_HTTP_CONFIG_KEY] as RestHttpConfig | undefined;
+  if (!httpConfig?.path) {
+    throw new Error("REST tool is missing endpoint configuration");
+  }
+
+  const authConfig = (server.auth_config as Record<string, unknown>) ?? {};
+  const authType = server.auth_type ?? "none";
+
+  let url = httpConfig.path;
+  if (!url.startsWith("http")) {
+    const baseUrl = server.server_url.replace(/\/$/, "");
+    const path = httpConfig.path.startsWith("/") ? httpConfig.path : `/${httpConfig.path}`;
+    url = `${baseUrl}${path}`;
+  }
+
+  const method = (httpConfig.method || "POST").toUpperCase();
+  const headers: Record<string, string> = {
+  ...buildAuthHeaders(authConfig, authType),
+    ...(httpConfig.headers || {}),
+  };
+
+  if (!headers["Content-Type"] && !headers["content-type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const fetchOptions: RequestInit = { method, headers };
+
+  if (["POST", "PUT", "PATCH"].includes(method)) {
+    fetchOptions.body = JSON.stringify(parameters);
+  } else if (method === "GET" && Object.keys(parameters).length > 0) {
+    const query = new URLSearchParams(
+      Object.entries(parameters).map(([k, v]) => [k, String(v)])
+    ).toString();
+    url = `${url}${url.includes("?") ? "&" : "?"}${query}`;
+  }
+
+  const response = await fetch(url, fetchOptions);
+  const text = await response.text();
+
+  let parsed: unknown;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = { text };
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `HTTP ${response.status}: ${typeof parsed === "object" ? JSON.stringify(parsed) : text}`
+    );
+  }
+
+  return parsed;
+}
+
 interface MCPToolCallResponse {
   content: Array<{
     type: 'text' | 'image' | 'resource';
@@ -205,53 +430,6 @@ async function executeInternalTool(
   }
 }
 
-async function sendMCPRequest(
-  serverUrl: string,
-  method: string,
-  params: Record<string, unknown> = {},
-  authConfig: Record<string, unknown> = {},
-  authType: string = 'none'
-): Promise<unknown> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  // Apply authentication
-  if (authType === 'api_key' && authConfig.api_key) {
-    headers['X-API-Key'] = String(authConfig.api_key);
-  } else if (authType === 'bearer' && authConfig.bearer_token) {
-    headers['Authorization'] = `Bearer ${authConfig.bearer_token}`;
-  } else if (authType === 'basic' && authConfig.username) {
-    const credentials = btoa(`${authConfig.username}:${authConfig.password || ''}`);
-    headers['Authorization'] = `Basic ${credentials}`;
-  }
-
-  const requestBody = {
-    jsonrpc: '2.0',
-    id: Date.now(),
-    method,
-    params,
-  };
-
-  const response = await fetch(serverUrl, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-
-  if (data.error) {
-    throw new Error(data.error.message || 'MCP request failed');
-  }
-
-  return data.result;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -313,12 +491,13 @@ serve(async (req) => {
       // Try to fetch tool schema for validation
       const { data: toolData } = await supabaseClient
         .from('mcp_tools')
-        .select('input_schema')
+        .select('id, input_schema')
         .eq('server_id', serverId)
         .eq('name', toolName)
         .single()
 
       if (toolData) {
+        toolId = toolData.id
         toolSchema = toolData.input_schema
       }
     } else {
@@ -336,16 +515,23 @@ serve(async (req) => {
     }
 
     // Check if server is enabled
-    if (!server.is_enabled && server.is_active === false) {
+    if (server.is_enabled === false) {
       return new Response(
         JSON.stringify({ error: 'MCP server is not active' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
       )
     }
 
+    if (!toolId && serverId && toolName) {
+      return new Response(
+        JSON.stringify({ error: `Tool '${toolName}' not found on this server` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      )
+    }
+
     // Validate input parameters against schema
     if (toolSchema) {
-      const validationError = validateToolInput(parameters, toolSchema)
+      const validationError = validateToolInput(parameters, schemaForValidation(toolSchema))
       if (validationError) {
         return new Response(
           JSON.stringify({ error: `Invalid input: ${validationError}` }),
@@ -355,19 +541,15 @@ serve(async (req) => {
     }
 
     // Create execution record (support both old and new table structures)
-    const executionInsert: any = {
+    const executionInsert: Record<string, unknown> = {
       server_id: serverId,
+      tool_id: toolId,
       agent_id: requestData.agent_id || null,
       user_id: requestData.user_id,
       status: 'running',
       started_at: new Date().toISOString(),
-    }
-
-    // New format fields
-    if (toolId) {
-      executionInsert.tool_id = toolId
-      executionInsert.input_parameters = parameters
-      executionInsert.execution_context = requestData.execution_context || {}
+      input_parameters: parameters,
+      execution_context: requestData.execution_context || {},
     }
 
     // Old format fields (for backward compatibility)
@@ -409,33 +591,44 @@ serve(async (req) => {
           supabaseClient,
           requestData.user_id
         )
+      } else if (server.transport_type === 'rest') {
+        if (!toolSchema) {
+          throw new Error('REST tool configuration not found')
+        }
+        result = await executeRestTool(server, toolSchema as Record<string, unknown>, parameters)
       } else {
-        // Execute external MCP tool
-        const mcpResult = await sendMCPRequest(
+        const authConfig = (server.auth_config as Record<string, unknown>) ?? {}
+        const authType = server.auth_type ?? 'none'
+        const { session } = await initializeMCPSession(server.server_url, authConfig, authType)
+
+        const { result: mcpResult } = await sendMCPRequest(
           server.server_url,
           'tools/call',
           {
             name: toolName,
             arguments: parameters,
           },
-          server.auth_config || {},
-          server.auth_type || 'none'
-        ) as MCPToolCallResponse
+          authConfig,
+          authType,
+          session
+        ) as { result: MCPToolCallResponse }
+
+        const toolCallResult = mcpResult as MCPToolCallResponse
 
         // Process the result
-        if (mcpResult.content && Array.isArray(mcpResult.content)) {
-          const textContent = mcpResult.content
+        if (toolCallResult.content && Array.isArray(toolCallResult.content)) {
+          const textContent = toolCallResult.content
             .filter(c => c.type === 'text' && c.text)
             .map(c => c.text)
             .join('\n')
 
           result = {
-            raw: mcpResult,
+            raw: toolCallResult,
             text: textContent || null,
-            hasError: mcpResult.isError || false,
+            hasError: toolCallResult.isError || false,
           }
         } else {
-          result = mcpResult
+          result = toolCallResult
         }
       }
 

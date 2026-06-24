@@ -12,7 +12,7 @@ export function ProtectedRoute() {
   // Wait for both auth session AND profile (including role) to finish loading.
   // Rendering child routes while profileLoading is true would let role-gated
   // components briefly render with an incomplete profile, causing access flickers.
-  if (loading || profileLoading || (!!user && mfaLoading)) {
+  if (loading || (profileLoading && !profile) || (!!user && mfaLoading && !profile)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

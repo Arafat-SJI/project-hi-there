@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // The second caller waits for the first to finish rather than starting a
   // parallel query that can return role: undefined and briefly show Access Denied.
   const isFetchingProfileRef = useRef(false);
+  const profileUserIdRef = useRef<string | null>(null);
 
   // Fetch user role from user_roles table (picks highest-privilege role)
   const fetchUserRole = async (userId: string): Promise<string | undefined> => {
@@ -107,10 +108,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // two simultaneous fetches (one from onAuthStateChange, one from getSession)
   // can produce a profile with role: undefined on the first call, briefly
   // satisfying (profile !== null) while failing the isAdmin check.
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, options?: { silent?: boolean }) => {
     if (isFetchingProfileRef.current) return;
     isFetchingProfileRef.current = true;
-    setProfileLoading(true);
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setProfileLoading(true);
+    }
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -142,12 +146,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
 
           if (createError) throw createError;
-          setProfile({ ...newProfile, role, ...agencyPrefs });
+          const nextProfile = { ...newProfile, role, ...agencyPrefs };
+          profileUserIdRef.current = userId;
+          setProfile(nextProfile);
         } else {
           throw error;
         }
       } else {
-        setProfile({ ...data, role, ...agencyPrefs });
+        const nextProfile = { ...data, role, ...agencyPrefs };
+        profileUserIdRef.current = userId;
+        setProfile(nextProfile);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -167,20 +175,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // inside the deferred setTimeout callback before clearing the loading flag.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       // Only synchronous state updates here to avoid Supabase client deadlock
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
+        // Token refresh on tab focus must not re-block the UI or remount routes.
+        if (event === "TOKEN_REFRESHED") {
+          return;
+        }
+
+        const sameUser = profileUserIdRef.current === session.user.id;
+
         // Defer Supabase calls with setTimeout to prevent deadlock.
         // setLoading(false) is intentionally moved INSIDE this async callback so
         // it fires only after fetchProfile (and thus role resolution) completes.
         setTimeout(async () => {
-          await fetchProfile(session.user.id);
+          await fetchProfile(session.user.id, { silent: sameUser });
           setLoading(false);
         }, 0);
       } else {
+        profileUserIdRef.current = null;
         setProfile(null);
         setLoading(false);
       }
@@ -439,6 +455,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       setProfileLoading(false);
       isFetchingProfileRef.current = false;
+      profileUserIdRef.current = null;
       try {
         localStorage.clear();
         sessionStorage.clear();

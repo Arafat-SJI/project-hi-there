@@ -187,6 +187,9 @@ verify_jwt = false
 [functions.verify-mcp-server]
 verify_jwt = false
 
+[functions.control-tower-mcp]
+verify_jwt = false
+
 # Admin management - requires manual authentication validation
 [functions.promote-to-admin]
 verify_jwt = false

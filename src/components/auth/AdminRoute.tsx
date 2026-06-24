@@ -17,7 +17,7 @@ export function AdminRoute() {
 
   if (
     loading ||
-    profileLoading ||
+    (profileLoading && !profile) ||
     (user && !profile) ||
     (permissionsLoading && !permissionsLoaded)
   ) {

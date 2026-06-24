@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Wand2 } from "lucide-react";
 import {
   MCPServer,
   MCPTool,
@@ -40,18 +40,27 @@ import {
   useCreateMCPServer,
   useUpdateMCPServer,
 } from "@/hooks/useMCPServers";
+import { RESTToolEditor } from "@/components/mcp/RESTToolEditor";
+import {
+  ACTIVECOLLAB_CREATE_TASK_TEMPLATE,
+  curlToRestTool,
+  parseInputSchemaToRestTool,
+  type RestMCPTool,
+} from "@/lib/mcp-rest-tools";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   icon: z.string().optional(),
   server_url: z.string().min(1, "Server URL is required"),
-  transport_type: z.enum(["stdio", "http", "websocket", "sse"]),
+  transport_type: z.enum(["stdio", "http", "websocket", "sse", "rest"]),
   auth_type: z.enum(["none", "api_key", "bearer", "oauth", "basic"]),
   auth_api_key: z.string().optional(),
   auth_bearer_token: z.string().optional(),
   auth_username: z.string().optional(),
   auth_password: z.string().optional(),
+  auth_basic_header: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -64,7 +73,8 @@ interface MCPServerFormProps {
 }
 
 const TRANSPORT_OPTIONS: { value: TransportType; label: string; description: string }[] = [
-  { value: "http", label: "HTTP", description: "REST API endpoints" },
+  { value: "rest", label: "REST API", description: "HTTP endpoints (ActiveCollab, webhooks, etc.)" },
+  { value: "http", label: "MCP over HTTP", description: "Model Context Protocol servers (Zapier, etc.)" },
   { value: "stdio", label: "Stdio", description: "Standard input/output process" },
   { value: "websocket", label: "WebSocket", description: "Persistent WebSocket connection" },
   { value: "sse", label: "SSE", description: "Server-Sent Events" },
@@ -86,6 +96,8 @@ export function MCPServerForm({
   onSuccess,
 }: MCPServerFormProps) {
   const [customTools, setCustomTools] = useState<MCPTool[]>([]);
+  const [restTools, setRestTools] = useState<RestMCPTool[]>([]);
+  const [curlInput, setCurlInput] = useState("");
 
   const createServer = useCreateMCPServer();
   const updateServer = useUpdateMCPServer();
@@ -97,52 +109,68 @@ export function MCPServerForm({
       description: "",
       icon: "🔌",
       server_url: "",
-      transport_type: "http",
+      transport_type: "rest",
       auth_type: "none",
       auth_api_key: "",
       auth_bearer_token: "",
       auth_username: "",
       auth_password: "",
+      auth_basic_header: "",
     },
   });
 
   const isEditing = !!server;
   const isPending = createServer.isPending || updateServer.isPending;
 
-  // Reset form when dialog opens/closes or server changes
+  // Reset form only when the dialog opens or the edited server changes.
   useEffect(() => {
-    if (open) {
-      if (server) {
-        form.reset({
-          name: server.name,
-          description: server.description || "",
-          icon: server.icon || "🔌",
-          server_url: server.server_url,
-          transport_type: server.transport_type,
-          auth_type: server.auth_type,
-          auth_api_key: (server.auth_config as any)?.api_key || "",
-          auth_bearer_token: (server.auth_config as any)?.bearer_token || "",
-          auth_username: (server.auth_config as any)?.username || "",
-          auth_password: "",
-        });
-        setCustomTools(server.available_tools || []);
-      } else {
-        form.reset({
-          name: "",
-          description: "",
-          icon: "🔌",
-          server_url: "",
-          transport_type: "http",
-          auth_type: "none",
-          auth_api_key: "",
-          auth_bearer_token: "",
-          auth_username: "",
-          auth_password: "",
-        });
+    if (!open) return;
+
+    if (server) {
+      form.reset({
+        name: server.name,
+        description: server.description || "",
+        icon: server.icon || "🔌",
+        server_url: server.server_url,
+        transport_type: server.transport_type,
+        auth_type: server.auth_type,
+        auth_api_key: (server.auth_config as any)?.api_key || "",
+        auth_bearer_token: (server.auth_config as any)?.bearer_token || "",
+        auth_username: (server.auth_config as any)?.username || "",
+        auth_password: "",
+        auth_basic_header: (server.auth_config as any)?.authorization_header || "",
+      });
+      if (server.transport_type === "rest") {
+        setRestTools(
+          (server.available_tools || []).map((t) =>
+            parseInputSchemaToRestTool(t.name, t.description, t.inputSchema as Record<string, unknown>)
+          )
+        );
         setCustomTools([]);
+      } else {
+        setCustomTools(server.available_tools || []);
+        setRestTools([]);
       }
+    } else {
+      form.reset({
+        name: "",
+        description: "",
+        icon: "🔌",
+        server_url: "",
+        transport_type: "rest",
+        auth_type: "none",
+        auth_api_key: "",
+        auth_bearer_token: "",
+        auth_username: "",
+        auth_password: "",
+        auth_basic_header: "",
+      });
+      setCustomTools([]);
+      setRestTools([]);
+      setCurlInput("");
     }
-  }, [open, server, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only reset when dialog opens or server identity changes
+  }, [open, server?.id]);
 
   const onSubmit = async (data: FormData) => {
     // Build auth config
@@ -152,9 +180,25 @@ export function MCPServerForm({
     } else if (data.auth_type === "bearer" && data.auth_bearer_token) {
       authConfig.bearer_token = data.auth_bearer_token;
     } else if (data.auth_type === "basic") {
-      if (data.auth_username) authConfig.username = data.auth_username;
-      if (data.auth_password) authConfig.password = data.auth_password;
+      if (data.auth_basic_header) {
+        authConfig.authorization_header = data.auth_basic_header;
+      } else {
+        if (data.auth_username) authConfig.username = data.auth_username;
+        if (data.auth_password) authConfig.password = data.auth_password;
+      }
     }
+
+    const isRest = data.transport_type === "rest";
+    const payload = {
+      name: data.name,
+      description: data.description,
+      icon: data.icon,
+      server_url: data.server_url,
+      transport_type: data.transport_type,
+      auth_type: data.auth_type,
+      auth_config: authConfig,
+      ...(isRest ? { rest_tools: restTools } : { available_tools: customTools }),
+    };
 
     try {
       let result: MCPServer;
@@ -162,28 +206,10 @@ export function MCPServerForm({
       if (isEditing && server) {
         result = await updateServer.mutateAsync({
           id: server.id,
-          data: {
-            name: data.name,
-            description: data.description,
-            icon: data.icon,
-            server_url: data.server_url,
-            transport_type: data.transport_type,
-            auth_type: data.auth_type,
-            auth_config: authConfig,
-            available_tools: customTools,
-          },
+          data: payload,
         });
       } else {
-        result = await createServer.mutateAsync({
-          name: data.name,
-          description: data.description,
-          icon: data.icon,
-          server_url: data.server_url,
-          transport_type: data.transport_type,
-          auth_type: data.auth_type,
-          auth_config: authConfig,
-          available_tools: customTools,
-        });
+        result = await createServer.mutateAsync(payload);
       }
 
       onSuccess?.(result);
@@ -221,6 +247,45 @@ export function MCPServerForm({
   };
 
   const watchAuthType = form.watch("auth_type");
+  const watchTransport = form.watch("transport_type");
+  const isRestTransport = watchTransport === "rest";
+
+  const importFromCurl = () => {
+    try {
+      const { server: parsedServer, tool } = curlToRestTool(curlInput);
+      form.setValue("server_url", parsedServer.baseUrl);
+      form.setValue("transport_type", "rest");
+      if (parsedServer.authorizationHeader) {
+        form.setValue("auth_type", "basic");
+        form.setValue("auth_basic_header", parsedServer.authorizationHeader);
+      }
+      setRestTools([tool]);
+      setCurlInput("");
+      toast.success("Imported curl command — review the tool fields and save.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to parse curl command");
+    }
+  };
+
+  const addRestTool = () => {
+    setRestTools([
+      ...restTools,
+      {
+        name: "",
+        description: "",
+        httpConfig: { method: "POST", path: "" },
+        parameters: [],
+      },
+    ]);
+  };
+
+  const addActiveCollabTemplate = () => {
+    setRestTools([ACTIVECOLLAB_CREATE_TASK_TEMPLATE]);
+    if (!form.getValues("server_url")) {
+      form.setValue("server_url", "https://activecollab-api.managedcoder.com");
+    }
+    form.setValue("transport_type", "rest");
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -311,15 +376,21 @@ export function MCPServerForm({
                   name="server_url"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Server URL</FormLabel>
+                      <FormLabel>{isRestTransport ? "Base URL" : "Server URL"}</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="http://localhost:3001/mcp"
+                          placeholder={
+                            isRestTransport
+                              ? "https://activecollab-api.managedcoder.com"
+                              : "https://mcp.zapier.com/api/v1/connect"
+                          }
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
-                        The endpoint URL for the MCP server
+                        {isRestTransport
+                          ? "API host only — tool paths are configured per tool below"
+                          : "The MCP server endpoint URL"}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -438,6 +509,26 @@ export function MCPServerForm({
                   <>
                     <FormField
                       control={form.control}
+                      name="auth_basic_header"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Authorization header (optional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="Basic b21rYXI..."
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Paste the full Authorization value from curl. If set, username/password below are ignored.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
                       name="auth_username"
                       render={({ field }) => (
                         <FormItem>
@@ -471,6 +562,65 @@ export function MCPServerForm({
               </TabsContent>
 
               <TabsContent value="tools" className="space-y-4 mt-4">
+                {isRestTransport ? (
+                  <>
+                    <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
+                      <Label className="text-sm">Import from curl</Label>
+                      <Textarea
+                        placeholder={`curl --location 'https://api.example.com/endpoint' \\\n--header 'Authorization: Basic ...' \\\n--data-raw '{ "key": "value" }'`}
+                        value={curlInput}
+                        onChange={(e) => setCurlInput(e.target.value)}
+                        className="font-mono text-xs min-h-[100px]"
+                      />
+                      <Button type="button" variant="secondary" size="sm" onClick={importFromCurl} disabled={!curlInput.trim()}>
+                        <Wand2 className="h-4 w-4 mr-1" />
+                        Parse curl &amp; fill form
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div>
+                        <Label>REST API Tools</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Each tool maps to one HTTP endpoint with request body fields
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={addActiveCollabTemplate}>
+                          ActiveCollab template
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={addRestTool}>
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Tool
+                        </Button>
+                      </div>
+                    </div>
+
+                    {restTools.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>No REST tools defined</p>
+                        <p className="text-xs mt-1">
+                          Paste a curl command above or add a tool manually
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {restTools.map((tool, index) => (
+                          <RESTToolEditor
+                            key={index}
+                            tool={tool}
+                            index={index}
+                            onChange={(updated) =>
+                              setRestTools(restTools.map((t, i) => (i === index ? updated : t)))
+                            }
+                            onRemove={() => setRestTools(restTools.filter((_, i) => i !== index))}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Custom Tools</Label>
@@ -534,6 +684,8 @@ export function MCPServerForm({
                       </div>
                     ))}
                   </div>
+                )}
+                  </>
                 )}
               </TabsContent>
             </Tabs>

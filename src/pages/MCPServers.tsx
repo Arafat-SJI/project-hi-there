@@ -31,19 +31,24 @@ import {
   MCPServer,
   MCPTool,
 } from "@/hooks/useMCPServers";
+import { getHttpConfigFromSchema } from "@/lib/mcp-rest-tools";
 import { MCPServerCard } from "@/components/mcp/MCPServerCard";
 import { MCPServerForm } from "@/components/mcp/MCPServerForm";
+import { MCPServerConnectionDialog } from "@/components/mcp/MCPServerConnectionDialog";
 
 export default function MCPServers() {
-  const { data: allServers, isLoading: isLoadingAll } = useMCPServers();
-  const { data: userServers, isLoading: isLoadingUser } = useUserMCPServers();
-  const { data: globalServers, isLoading: isLoadingGlobal } = useGlobalMCPServers();
+  const { data: allServers, isPending: isPendingAll } = useMCPServers();
+  const { data: userServers, isPending: isPendingUser } = useUserMCPServers();
+  const { data: globalServers, isPending: isPendingGlobal } = useGlobalMCPServers();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<MCPServer | null>(null);
   const [toolsDialogOpen, setToolsDialogOpen] = useState(false);
   const [selectedServer, setSelectedServer] = useState<MCPServer | null>(null);
+  const [connectionOpen, setConnectionOpen] = useState(false);
+  const [connectionServer, setConnectionServer] = useState<MCPServer | null>(null);
+  const [connectionIsNew, setConnectionIsNew] = useState(false);
 
   const handleEdit = (server: MCPServer) => {
     setEditingServer(server);
@@ -53,6 +58,12 @@ export default function MCPServers() {
   const handleFormClose = () => {
     setFormOpen(false);
     setEditingServer(null);
+  };
+
+  const handleViewConnection = (server: MCPServer, isNew = false) => {
+    setConnectionServer(server);
+    setConnectionIsNew(isNew);
+    setConnectionOpen(true);
   };
 
   const handleViewTools = (server: MCPServer) => {
@@ -85,7 +96,7 @@ export default function MCPServers() {
     0
   ) || 0;
 
-  const isLoading = isLoadingAll || isLoadingUser || isLoadingGlobal;
+  const isLoading = isPendingAll;
 
   return (
     <div className="space-y-6">
@@ -203,6 +214,7 @@ export default function MCPServers() {
                   server={server}
                   onEdit={handleEdit}
                   onViewTools={handleViewTools}
+                  onViewConnection={handleViewConnection}
                 />
               ))}
             </div>
@@ -210,7 +222,7 @@ export default function MCPServers() {
         </TabsContent>
 
         <TabsContent value="user">
-          {isLoadingUser ? (
+          {isPendingUser ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
@@ -229,6 +241,7 @@ export default function MCPServers() {
                   server={server}
                   onEdit={handleEdit}
                   onViewTools={handleViewTools}
+                  onViewConnection={handleViewConnection}
                 />
               ))}
             </div>
@@ -236,7 +249,7 @@ export default function MCPServers() {
         </TabsContent>
 
         <TabsContent value="global">
-          {isLoadingGlobal ? (
+          {isPendingGlobal ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
@@ -253,6 +266,7 @@ export default function MCPServers() {
                   key={server.id}
                   server={server}
                   onViewTools={handleViewTools}
+                  onViewConnection={handleViewConnection}
                   showActions={false}
                 />
               ))}
@@ -266,7 +280,17 @@ export default function MCPServers() {
         open={formOpen}
         onOpenChange={handleFormClose}
         server={editingServer}
-        onSuccess={() => handleFormClose()}
+        onSuccess={(server) => {
+          handleFormClose();
+          handleViewConnection(server, true);
+        }}
+      />
+
+      <MCPServerConnectionDialog
+        open={connectionOpen}
+        onOpenChange={setConnectionOpen}
+        server={connectionServer}
+        isNew={connectionIsNew}
       />
 
       {/* Tools Dialog */}
@@ -301,7 +325,15 @@ export default function MCPServers() {
                           {tool.name}
                         </CardTitle>
                         <Badge variant="outline" className="text-xs">
-                          {Object.keys(tool.inputSchema?.properties || {}).length} params
+                          {(() => {
+                            const http = getHttpConfigFromSchema(
+                              tool.inputSchema as Record<string, unknown>
+                            );
+                            if (http) {
+                              return `${http.method} ${http.path}`;
+                            }
+                            return `${Object.keys(tool.inputSchema?.properties || {}).length} params`;
+                          })()}
                         </Badge>
                       </div>
                     </CardHeader>
