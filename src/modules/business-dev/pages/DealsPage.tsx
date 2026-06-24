@@ -21,6 +21,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, LayoutDashboard, BarChart3, Download, RefreshCw, Grid, Users, Search, FileText, Calculator, CheckCircle, Trophy, ThumbsUp, XCircle, Loader2 } from "lucide-react";
 import { CrmConnectionBanner } from "@/components/common/CrmConnectionBanner";
 import { useZohoPipelineSync } from "@/hooks/useIntegrationSync";
+import { useCRMIntegrationDisplay } from "@/hooks/useCRMIntegrationDisplay";
+import { useCrmSync } from "@/hooks/useCrmSync";
+import { isCrmSyncProvider } from "@/lib/integration-preferences";
 import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { useDeals, useDealPipelineStats } from "../hooks/useDeals";
@@ -204,6 +207,10 @@ export default function DealsPage() {
   };
 
   const zohoPipelineSync = useZohoPipelineSync();
+  const { showOnDeals, primarySlug, destinations } = useCRMIntegrationDisplay();
+  const crmSync = useCrmSync(primarySlug ?? "", destinations);
+  const useUnifiedCrmSync =
+    showOnDeals && !!primarySlug && isCrmSyncProvider(primarySlug);
 
   const handleViewDetails = (slug: string) => {
     navigate(`/deals/${slug}`);
@@ -308,20 +315,29 @@ export default function DealsPage() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={zohoPipelineSync.isPending}
-            onClick={() => zohoPipelineSync.mutate()}
-            title="Requires Zoho CRM connected (Integrations)"
-          >
-            {zohoPipelineSync.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            Sync from Zoho
-          </Button>
+          {(useUnifiedCrmSync || !primarySlug) && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={useUnifiedCrmSync ? crmSync.isPending : zohoPipelineSync.isPending}
+              onClick={() =>
+                useUnifiedCrmSync
+                  ? crmSync.mutate({
+                      providerSlug: primarySlug!,
+                      destinations: ["deals"],
+                    })
+                  : zohoPipelineSync.mutate()
+              }
+              title="Requires Zoho CRM connected (Integrations)"
+            >
+              {(useUnifiedCrmSync ? crmSync.isPending : zohoPipelineSync.isPending) ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              {useUnifiedCrmSync ? `Sync ${primarySlug === "zoho-crm" ? "Zoho" : primarySlug}` : "Sync from Zoho"}
+            </Button>
+          )}
           <Button variant="outline" size="sm" asChild>
             <a href="/admin/integrations">Integrations</a>
           </Button>

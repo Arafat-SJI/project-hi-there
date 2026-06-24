@@ -40,6 +40,7 @@ import {
   ExternalLink,
   Eye,
 } from "lucide-react";
+import { MeetingIntegrationBanner } from "@/components/common/MeetingIntegrationBanner";
 
 interface TranscriptRow {
   meeting_id: string;
@@ -154,7 +155,8 @@ export default function MeetingTranscriptsPage() {
       </TabsList>
       <TabsContent value="pending" className="mt-4"><MeetingPendingAssignmentsPage /></TabsContent>
       <TabsContent value="ai-match" className="mt-4"><MeetingAiMatchResultsPage /></TabsContent>
-      <TabsContent value="transcripts" className="mt-4">
+      <TabsContent value="transcripts" className="mt-4 space-y-4">
+        <MeetingIntegrationBanner page="transcripts" />
         {isLoading ? (
           <div className="flex h-96 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />

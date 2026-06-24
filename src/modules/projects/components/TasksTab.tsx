@@ -96,7 +96,7 @@ export function TasksTab({ projectId, projectSlug, tasks = [], isLoading }: Task
               <ClipboardList className="h-10 w-10 mb-3" />
               <p className="text-sm font-medium">No tasks yet</p>
               <p className="text-xs">
-                Tasks can be added manually or synced from ActiveCollab/Jira
+                Tasks can be added manually or synced from ClickUp, ActiveCollab, or Jira
                 for <span className="font-mono">{projectSlug}</span>.
               </p>
             </div>

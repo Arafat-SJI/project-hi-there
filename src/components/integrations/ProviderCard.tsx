@@ -23,7 +23,13 @@ import {
   getProviderActionLabel,
 } from '@/lib/integration-utils';
 import { cn } from '@/lib/utils';
-import { Loader2, Star } from 'lucide-react';
+import { Loader2, Star, RefreshCw, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import type { IntegrationDataDestination } from '@/lib/integration-preferences';
+import { INTEGRATION_DATA_DESTINATION_LABELS } from '@/lib/integration-preferences';
+import type { PrimaryIntegrationCategorySlug } from '@/lib/integration-preferences';
+import { getIntegrationViewPath } from '@/lib/integration-display';
+import { ProviderDisplayDestinations } from '@/components/integrations/ProviderDisplayDestinations';
 
 interface ProviderCardProps {
   provider: IntegrationProvider;
@@ -41,6 +47,17 @@ interface ProviderCardProps {
   showAgentDefaultOnCard?: boolean;
   /** When false, hide star / "Use for agents" even on AI tab (user_choice mode) */
   requireAgentDefault?: boolean;
+  /** PM hub card — offer sync without opening configure page */
+  showPMSyncOnCard?: boolean;
+  onSync?: () => void;
+  isSyncing?: boolean;
+  /** Pages where this provider's synced data is shown */
+  dataDestinations?: IntegrationDataDestination[];
+  /** Show inline destination picker on the card (connected sync providers) */
+  showDisplayDestinationPicker?: boolean;
+  displayDestinationCategorySlug?: PrimaryIntegrationCategorySlug;
+  /** Save also sets this provider as org default when none is set */
+  promoteToDefaultOnSave?: boolean;
 }
 
 export function ProviderCard({
@@ -56,6 +73,13 @@ export function ProviderCard({
   isSettingDefault = false,
   showAgentDefaultOnCard = false,
   requireAgentDefault = true,
+  showPMSyncOnCard = false,
+  onSync,
+  isSyncing = false,
+  dataDestinations = [],
+  showDisplayDestinationPicker = false,
+  displayDestinationCategorySlug,
+  promoteToDefaultOnSave = false,
 }: ProviderCardProps) {
   const navigate = useNavigate();
   const Icon = getProviderIcon(provider.slug);
@@ -232,6 +256,68 @@ export function ProviderCard({
               )}
               {isDefault ? 'Agent default' : 'Use for agents'}
             </Button>
+          )}
+
+          {isConnected && showPMSyncOnCard && onSync && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              disabled={isSyncing}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSync();
+              }}
+            >
+              {isSyncing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Sync now
+            </Button>
+          )}
+
+          {isConnected &&
+            showDisplayDestinationPicker &&
+            displayDestinationCategorySlug && (
+              <ProviderDisplayDestinations
+                categorySlug={displayDestinationCategorySlug}
+                providerSlug={provider.slug}
+                promoteToDefault={promoteToDefaultOnSave}
+                onClickStopPropagation={(e) => e.stopPropagation()}
+              />
+            )}
+
+          {isConnected &&
+            showPMSyncOnCard &&
+            !showDisplayDestinationPicker &&
+            !isOrganizationDefault && (
+              <p className="text-xs text-muted-foreground w-full">
+                Star this card to choose which pages show synced data.
+              </p>
+            )}
+
+          {isConnected && dataDestinations.length > 0 && (
+            <div className="flex w-full flex-col gap-1">
+              {dataDestinations.map((dest) => (
+                <Button
+                  key={dest}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  asChild
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Link to={getIntegrationViewPath(dest, provider.slug)}>
+                    <ExternalLink className="mr-1 h-3 w-3" />
+                    View in {INTEGRATION_DATA_DESTINATION_LABELS[dest]}
+                  </Link>
+                </Button>
+              ))}
+            </div>
           )}
 
           {/* Action Button */}

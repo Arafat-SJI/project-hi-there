@@ -4,8 +4,8 @@
  * Main "My Tasks" page matching reference: subtitle, search, tabs with icons,
  * empty states per tab, This Week calendar view with week navigation.
  */
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, startOfWeek, endOfWeek, addWeeks, addDays, isToday, isSameDay } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,22 @@ import type { TaskView, TaskFilters, TaskStatus } from "../types/tasks";
 import type { Task } from "../types/tasks";
 import { cn } from "@/lib/utils";
 import { useSyncTasks } from "@/hooks/useIntegrationSync";
+import { usePMIntegrationDisplay } from "@/hooks/usePMIntegrationDisplay";
+import { usePMSync } from "@/hooks/usePMSync";
+import { isPMSyncProvider } from "@/lib/integration-preferences";
+import type { IntegrationTaskTab } from "../components/TaskViewTabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plug } from "lucide-react";
+
+const INTEGRATION_TAB_CONFIG: Record<
+  string,
+  { label: string; statsKey: IntegrationTaskTab["statsKey"] }
+> = {
+  jira: { label: "Jira", statsKey: "jiraCount" },
+  clickup: { label: "ClickUp", statsKey: "clickupCount" },
+  activecollab: { label: "ActiveCollab", statsKey: "activecollabCount" },
+  workamajig: { label: "Workamajig", statsKey: "workamajigCount" },
+};
 
 const TAB_VIEW_MAP: Record<TaskDefaultView, TaskView | "streams"> = {
   today: "today",
@@ -80,13 +96,40 @@ const EMPTY_MESSAGES: Record<TaskView | "streams", { title: string; description:
     description:
       "Sync issues from Jira after configuring the integration (Admin → Integrations → Jira) and setting JIRA_HOST, JIRA_EMAIL, and JIRA_API_TOKEN in Edge secrets.",
   },
+  clickup: {
+    title: "No ClickUp tasks yet",
+    description:
+      "Connect ClickUp in Admin → Integrations, sync your workspace, and ensure Tasks is enabled under display pages.",
+  },
+  activecollab: {
+    title: "No ActiveCollab tasks yet",
+    description:
+      "Connect ActiveCollab in Admin → Integrations or Settings, then sync projects and tasks.",
+  },
+  workamajig: {
+    title: "No Workamajig tasks yet",
+    description: "Sync from Admin → Integrations after configuring Workamajig credentials.",
+  },
 };
 
 export default function TasksPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const { showOnTasks, primarySlug } = usePMIntegrationDisplay();
+  const pmSync = usePMSync(primarySlug ?? "");
   const { defaultView, setDefaultView } = useTaskViewPreference();
-  const [view, setView] = useState<TaskView | "streams">(() => TAB_VIEW_MAP[defaultView] ?? "allMine");
+  const initialViewParam = searchParams.get("view");
+  const [view, setView] = useState<TaskView | "streams">(() => {
+    if (
+      initialViewParam &&
+      (initialViewParam === "streams" ||
+        Object.keys(EMPTY_MESSAGES).includes(initialViewParam))
+    ) {
+      return initialViewParam as TaskView | "streams";
+    }
+    return TAB_VIEW_MAP[defaultView] ?? "allMine";
+  });
   const [filters, setFilters] = useState<TaskFilters>({});
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -95,6 +138,29 @@ export default function TasksPage() {
   useEffect(() => {
     setView(TAB_VIEW_MAP[defaultView] ?? "allMine");
   }, [defaultView]);
+
+  useEffect(() => {
+    const viewParam = searchParams.get("view");
+    if (
+      viewParam &&
+      viewParam !== "streams" &&
+      Object.keys(EMPTY_MESSAGES).includes(viewParam)
+    ) {
+      setView(viewParam as TaskView);
+    }
+  }, [searchParams]);
+
+  const integrationTabs = useMemo((): IntegrationTaskTab[] => {
+    if (!showOnTasks) return [];
+    const slugs = primarySlug ? [primarySlug] : Object.keys(INTEGRATION_TAB_CONFIG);
+    return slugs
+      .filter((slug) => INTEGRATION_TAB_CONFIG[slug])
+      .map((slug) => ({
+        value: slug as TaskView,
+        label: INTEGRATION_TAB_CONFIG[slug].label,
+        statsKey: INTEGRATION_TAB_CONFIG[slug].statsKey,
+      }));
+  }, [showOnTasks, primarySlug]);
 
   const showWeekView = view === "this_week";
   const now = new Date();
@@ -129,6 +195,17 @@ export default function TasksPage() {
         (k) => TAB_VIEW_MAP[k] === v
       );
       if (pref) setDefaultView(pref);
+      if (
+        v === "jira" ||
+        v === "clickup" ||
+        v === "activecollab" ||
+        v === "workamajig"
+      ) {
+        setSearchParams({ view: v }, { replace: true });
+      } else {
+        searchParams.delete("view");
+        setSearchParams(searchParams, { replace: true });
+      }
     }
   };
 
@@ -234,16 +311,28 @@ export default function TasksPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => syncJiraTasks.mutate(undefined)}
-            disabled={syncJiraTasks.isPending}
-            title="Requires JIRA_* secrets on sync-tasks-jira"
+            onClick={() => {
+              if (showOnTasks && primarySlug && isPMSyncProvider(primarySlug)) {
+                pmSync.mutate(primarySlug);
+              } else {
+                syncJiraTasks.mutate(undefined);
+              }
+            }}
+            disabled={pmSync.isPending || syncJiraTasks.isPending}
+            title={
+              showOnTasks && primarySlug
+                ? `Sync tasks from ${INTEGRATION_TAB_CONFIG[primarySlug]?.label ?? primarySlug}`
+                : "Requires JIRA_* secrets on sync-tasks-jira"
+            }
           >
-            {syncJiraTasks.isPending ? (
+            {(pmSync.isPending || syncJiraTasks.isPending) ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <RefreshCw className="mr-2 h-4 w-4" />
             )}
-            Sync Jira
+            {showOnTasks && primarySlug
+              ? `Sync ${INTEGRATION_TAB_CONFIG[primarySlug]?.label ?? primarySlug}`
+              : "Sync Jira"}
           </Button>
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -251,6 +340,17 @@ export default function TasksPage() {
           </Button>
         </div>
       </div>
+
+      {showOnTasks && primarySlug && (
+        <Alert>
+          <Plug className="h-4 w-4" />
+          <AlertDescription>
+            Synced tasks from{" "}
+            <strong>{INTEGRATION_TAB_CONFIG[primarySlug]?.label ?? primarySlug}</strong>{" "}
+            appear in the integration tab below. Sync from here or from Admin → Integrations.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="relative w-full">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -266,6 +366,7 @@ export default function TasksPage() {
         currentView={view}
         onViewChange={handleViewChange}
         stats={stats}
+        integrationTabs={integrationTabs}
       />
 
       {showStreamsGrid ? (

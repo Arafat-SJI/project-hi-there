@@ -25,8 +25,15 @@ import {
 import {
   isCategoryAdminDefaultOnly,
   resolvePrimaryCategorySlug,
+  getDataDestinationsForProvider,
+  isCategorySyncProvider,
+  type PrimaryIntegrationCategorySlug,
 } from '@/lib/integration-preferences';
 import { usePrimaryByCategorySettings } from '@/hooks/useIntegrationSettings';
+import { usePMSync } from '@/hooks/usePMSync';
+import { useCrmSync } from '@/hooks/useCrmSync';
+import { useMeetingSync } from '@/hooks/useMeetingSync';
+import { useSyncTeamsMeetings } from '@/hooks/useSyncTeamsMeetings';
 
 export default function Integrations() {
   const navigate = useNavigate();
@@ -35,6 +42,11 @@ export default function Integrations() {
   const { data: primaryByCategory } = usePrimaryByCategorySettings();
   const setProviderAsDefault = useSetProviderAsDefault();
   const [settingDefaultSlug, setSettingDefaultSlug] = useState<string | null>(null);
+  const [syncingSlug, setSyncingSlug] = useState<string | null>(null);
+  const pmSync = usePMSync();
+  const crmSync = useCrmSync();
+  const meetingSync = useMeetingSync();
+  const teamsSync = useSyncTeamsMeetings();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<string>('');
@@ -183,6 +195,45 @@ export default function Integrations() {
               }
             };
 
+            const isPMTab = resolvedCategorySlug === 'project-management';
+            const isCRMTab = resolvedCategorySlug === 'crm-systems';
+            const isMeetingTab = resolvedCategorySlug === 'meeting-providers';
+            const isDataDestinationTab = isPMTab || isCRMTab || isMeetingTab;
+
+            const handleSyncProvider = async (
+              providerSlug: string,
+              category: PrimaryIntegrationCategorySlug | null
+            ) => {
+              setSyncingSlug(providerSlug);
+              try {
+                if (category === 'crm-systems') {
+                  const pref = categoryPref;
+                  const destinations = getDataDestinationsForProvider(
+                    pref,
+                    providerSlug,
+                    'crm-systems'
+                  );
+                  await crmSync.mutateAsync({ providerSlug, destinations });
+                } else if (category === 'meeting-providers') {
+                  const pref = categoryPref;
+                  const destinations = getDataDestinationsForProvider(
+                    pref,
+                    providerSlug,
+                    'meeting-providers'
+                  );
+                  if (providerSlug === 'microsoft-teams') {
+                    await teamsSync.mutateAsync({ source: 'both' });
+                  } else {
+                    await meetingSync.mutateAsync({ providerSlug, destinations });
+                  }
+                } else {
+                  await pmSync.mutateAsync(providerSlug);
+                }
+              } finally {
+                setSyncingSlug(null);
+              }
+            };
+
             return (
               <TabsContent
                 key={group.category.slug}
@@ -216,6 +267,20 @@ export default function Integrations() {
                       const isOrgDefault = isAITab
                         ? isAiDefault && isCategoryLocked
                         : isPrimary && isCategoryLocked;
+                      const isConnected =
+                        (
+                          provider as IntegrationProvider & {
+                            orgIntegration?: OrganizationIntegration;
+                          }
+                        ).orgIntegration?.connection_status === 'connected';
+
+                      const destinations = isDataDestinationTab && resolvedCategorySlug
+                        ? getDataDestinationsForProvider(
+                            pref,
+                            provider.slug,
+                            resolvedCategorySlug
+                          )
+                        : [];
 
                       return (
                         <ProviderCard
@@ -239,6 +304,36 @@ export default function Integrations() {
                           isOrganizationDefault={isOrgDefault}
                           isSettingDefault={settingDefaultSlug === provider.slug}
                           onSetAsDefault={() => handleSetDefault(provider.slug)}
+                          showPMSyncOnCard={
+                            isDataDestinationTab &&
+                            isConnected &&
+                            resolvedCategorySlug != null &&
+                            isCategorySyncProvider(resolvedCategorySlug, provider.slug)
+                          }
+                          onSync={() =>
+                            handleSyncProvider(provider.slug, resolvedCategorySlug)
+                          }
+                          isSyncing={syncingSlug === provider.slug}
+                          dataDestinations={
+                            isConnected && isPrimary ? destinations : []
+                          }
+                          showDisplayDestinationPicker={
+                            isDataDestinationTab &&
+                            isConnected &&
+                            resolvedCategorySlug != null &&
+                            isCategorySyncProvider(resolvedCategorySlug, provider.slug) &&
+                            (isPrimary ||
+                              (!categoryPref?.primary_slug &&
+                                tabConnectedProviders.length === 1))
+                          }
+                          displayDestinationCategorySlug={
+                            isDataDestinationTab ? resolvedCategorySlug ?? undefined : undefined
+                          }
+                          promoteToDefaultOnSave={
+                            !categoryPref?.primary_slug &&
+                            tabConnectedProviders.length === 1 &&
+                            tabConnectedProviders[0]?.slug === provider.slug
+                          }
                         />
                       );
                     })}

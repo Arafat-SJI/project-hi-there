@@ -28,6 +28,11 @@ export function useProjects(filters?: ProjectFilters) {
       if (filters?.owner_id) query = query.eq("owner_id", filters.owner_id);
       if (filters?.client_id) query = query.eq("client_id", filters.client_id);
       if (filters?.search) query = query.ilike("name", `%${filters.search}%`);
+      if (filters?.external_provider === "internal") {
+        query = query.is("external_provider", null);
+      } else if (filters?.external_provider) {
+        query = query.eq("external_provider", filters.external_provider);
+      }
       if (filters?.date_from) query = query.gte("start_date", filters.date_from);
       if (filters?.date_to) query = query.lte("end_date", filters.date_to);
 

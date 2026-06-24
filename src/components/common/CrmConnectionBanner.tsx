@@ -6,13 +6,15 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link2, Package, X, RefreshCw } from "lucide-react";
+import { Link2, Package, X, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useCRMIntegrationDisplay } from "@/hooks/useCRMIntegrationDisplay";
+import { useCrmSync } from "@/hooks/useCrmSync";
+import { isCrmSyncProvider } from "@/lib/integration-preferences";
 
 const CRM_SLUGS = ["hubspot", "salesforce", "zoho", "zoho-crm", "pipedrive"] as const;
-type CrmSlug = (typeof CRM_SLUGS)[number];
 
 const DISMISS_KEY = "hide-crm-banner";
 
@@ -54,11 +56,13 @@ export function CrmConnectionBanner() {
   const [dismissed, setDismissed] = useState<boolean>(
     () => !!localStorage.getItem(DISMISS_KEY)
   );
+  const { primarySlug, destinations } = useCRMIntegrationDisplay();
+  const crmSync = useCrmSync(primarySlug ?? "", destinations);
 
   const { data: crmConnection, isLoading } = useQuery({
     queryKey: ["crm-connection-status"],
     queryFn: fetchCrmConnection,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   if (dismissed || isLoading) return null;
@@ -70,6 +74,9 @@ export function CrmConnectionBanner() {
     localStorage.setItem(DISMISS_KEY, "1");
     setDismissed(true);
   }
+
+  const syncSlug = primarySlug ?? crmConnection?.integration_providers.slug;
+  const canSync = !!syncSlug && isCrmSyncProvider(syncSlug);
 
   if (isConnected) {
     const providerName = crmConnection.integration_providers.name;
@@ -85,16 +92,34 @@ export function CrmConnectionBanner() {
           {lastSync && (
             <span className="text-blue-600"> · Last sync: {lastSync}</span>
           )}
+          {destinations.length > 0 && (
+            <span className="text-blue-600">
+              {" "}
+              · Showing on: {destinations.join(", ")}
+            </span>
+          )}
         </span>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-blue-300 text-blue-700 hover:bg-blue-100"
-          disabled
-        >
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Sync Now
-        </Button>
+        {canSync && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-blue-300 text-blue-700 hover:bg-blue-100"
+            disabled={crmSync.isPending}
+            onClick={() =>
+              crmSync.mutate({
+                providerSlug: syncSlug,
+                destinations,
+              })
+            }
+          >
+            {crmSync.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            )}
+            Sync Now
+          </Button>
+        )}
         <button
           onClick={handleDismiss}
           className="text-blue-400 hover:text-blue-600 transition-colors flex-shrink-0"

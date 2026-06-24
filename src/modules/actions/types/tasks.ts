@@ -77,7 +77,10 @@ export type TaskView =
   | "delegated"
   | "my_tasks"
   | "allMine"
-  | "jira";
+  | "jira"
+  | "clickup"
+  | "activecollab"
+  | "workamajig";
 
 // ========================
 // Task Stream
@@ -181,4 +184,8 @@ export interface TaskStats {
   thisWeekCount?: number;
   delegatedCount?: number;
   allMineCount?: number;
+  jiraCount?: number;
+  clickupCount?: number;
+  activecollabCount?: number;
+  workamajigCount?: number;
 }

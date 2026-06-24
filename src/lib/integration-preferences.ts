@@ -310,12 +310,140 @@ export async function buildValidationContext(): Promise<ValidationContext> {
   };
 }
 
+/** Pages where synced integration data can be shown to users */
+export const PM_DATA_DESTINATIONS = ['projects', 'tasks'] as const;
+export const CRM_DATA_DESTINATIONS = ['clients', 'deals', 'contacts'] as const;
+export const MEETING_DATA_DESTINATIONS = ['schedule', 'transcripts'] as const;
+
+export const INTEGRATION_DATA_DESTINATIONS = [
+  ...PM_DATA_DESTINATIONS,
+  ...CRM_DATA_DESTINATIONS,
+  ...MEETING_DATA_DESTINATIONS,
+] as const;
+
+export type IntegrationDataDestination =
+  (typeof INTEGRATION_DATA_DESTINATIONS)[number];
+
+export const CATEGORY_DATA_DESTINATION_OPTIONS: Partial<
+  Record<PrimaryIntegrationCategorySlug, readonly IntegrationDataDestination[]>
+> = {
+  'project-management': PM_DATA_DESTINATIONS,
+  'crm-systems': CRM_DATA_DESTINATIONS,
+  'meeting-providers': MEETING_DATA_DESTINATIONS,
+};
+
+export function getDefaultDataDestinationsForCategory(
+  category: PrimaryIntegrationCategorySlug
+): IntegrationDataDestination[] {
+  const options = CATEGORY_DATA_DESTINATION_OPTIONS[category];
+  return options ? [...options] : [];
+}
+
+export function categorySupportsDataDestinations(
+  category: PrimaryIntegrationCategorySlug
+): boolean {
+  return Boolean(CATEGORY_DATA_DESTINATION_OPTIONS[category]?.length);
+}
+
+/** Keep only destinations valid for a category (strips cross-category leaks from saved settings) */
+export function filterDestinationsForCategory(
+  category: PrimaryIntegrationCategorySlug,
+  destinations: IntegrationDataDestination[]
+): IntegrationDataDestination[] {
+  const allowed = new Set(
+    CATEGORY_DATA_DESTINATION_OPTIONS[category] ??
+      getDefaultDataDestinationsForCategory(category)
+  );
+  return destinations.filter((d) => allowed.has(d));
+}
+
+export const DEFAULT_PM_DATA_DESTINATIONS: IntegrationDataDestination[] = [
+  'projects',
+  'tasks',
+];
+
+export const DEFAULT_CRM_DATA_DESTINATIONS: IntegrationDataDestination[] = [
+  'clients',
+  'deals',
+  'contacts',
+];
+
+export const DEFAULT_MEETING_DATA_DESTINATIONS: IntegrationDataDestination[] = [
+  'schedule',
+  'transcripts',
+];
+
+export const INTEGRATION_DATA_DESTINATION_LABELS: Record<
+  IntegrationDataDestination,
+  string
+> = {
+  projects: 'Projects',
+  tasks: 'Tasks',
+  clients: 'Clients',
+  deals: 'Deals',
+  contacts: 'Contacts',
+  schedule: 'Meeting Schedule',
+  transcripts: 'Transcripts',
+};
+
+/** PM providers that sync into projects and/or tasks tables */
+export const PM_SYNC_PROVIDER_SLUGS = [
+  'clickup',
+  'jira',
+  'activecollab',
+  'workamajig',
+] as const;
+
+export type PMSyncProviderSlug = (typeof PM_SYNC_PROVIDER_SLUGS)[number];
+
+export function isPMSyncProvider(slug: string): slug is PMSyncProviderSlug {
+  return (PM_SYNC_PROVIDER_SLUGS as readonly string[]).includes(slug);
+}
+
+/** CRM providers with implemented sync in this app */
+export const CRM_SYNC_PROVIDER_SLUGS = ['zoho-crm'] as const;
+
+export type CrmSyncProviderSlug = (typeof CRM_SYNC_PROVIDER_SLUGS)[number];
+
+export function isCrmSyncProvider(slug: string): slug is CrmSyncProviderSlug {
+  return (CRM_SYNC_PROVIDER_SLUGS as readonly string[]).includes(slug);
+}
+
+/** Meeting providers with implemented sync in this app */
+export const MEETING_SYNC_PROVIDER_SLUGS = [
+  'zoom',
+  'microsoft-teams',
+  'google-meet',
+] as const;
+
+export type MeetingSyncProviderSlug = (typeof MEETING_SYNC_PROVIDER_SLUGS)[number];
+
+export function isMeetingSyncProvider(slug: string): slug is MeetingSyncProviderSlug {
+  return (MEETING_SYNC_PROVIDER_SLUGS as readonly string[]).includes(slug);
+}
+
+export function isCategorySyncProvider(
+  category: PrimaryIntegrationCategorySlug,
+  slug: string
+): boolean {
+  if (category === 'project-management') return isPMSyncProvider(slug);
+  if (category === 'crm-systems') return isCrmSyncProvider(slug);
+  if (category === 'meeting-providers') return isMeetingSyncProvider(slug);
+  return false;
+}
+
 /** Per-category primary integration + multi-source preferences */
 export interface CategoryIntegrationPreference {
   primary_slug: string | null;
   active_slugs: string[];
   /** When true, only one provider is active and used across the app for this category */
   single_active_only: boolean;
+  /** Default pages where synced data appears for this category */
+  data_destinations?: IntegrationDataDestination[];
+  /** Per-provider page overrides (e.g. ClickUp → projects+tasks, Float → future page) */
+  provider_data_destinations?: Partial<
+    Record<string, IntegrationDataDestination[]>
+  >;
 }
 
 export type PrimaryByCategory = Record<
@@ -323,8 +451,18 @@ export type PrimaryByCategory = Record<
   CategoryIntegrationPreference
 >;
 
-function emptyCategoryPreference(): CategoryIntegrationPreference {
-  return { primary_slug: null, active_slugs: [], single_active_only: false };
+function emptyCategoryPreference(
+  category?: PrimaryIntegrationCategorySlug
+): CategoryIntegrationPreference {
+  return {
+    primary_slug: null,
+    active_slugs: [],
+    single_active_only: false,
+    data_destinations: category
+      ? getDefaultDataDestinationsForCategory(category)
+      : [],
+    provider_data_destinations: {},
+  };
 }
 
 const PRIMARY_CATEGORY_MATCHERS: {
@@ -411,6 +549,66 @@ export function shouldShowProviderForCategory(
   return pref.active_slugs.includes(providerSlug);
 }
 
+function normalizeDataDestinations(
+  raw: unknown
+): IntegrationDataDestination[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const valid = raw.filter(
+    (d): d is IntegrationDataDestination =>
+      typeof d === 'string' &&
+      (INTEGRATION_DATA_DESTINATIONS as readonly string[]).includes(d)
+  );
+  return valid.length > 0 ? valid : undefined;
+}
+
+function normalizeProviderDataDestinations(
+  raw: unknown
+): Partial<Record<string, IntegrationDataDestination[]>> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const result: Partial<Record<string, IntegrationDataDestination[]>> = {};
+  for (const [slug, destinations] of Object.entries(
+    raw as Record<string, unknown>
+  )) {
+    const normalized = normalizeDataDestinations(destinations);
+    if (normalized?.length) result[slug] = normalized;
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/** Resolve which app pages show synced data for a provider in a category */
+export function getDataDestinationsForProvider(
+  pref: CategoryIntegrationPreference | null | undefined,
+  providerSlug: string | null | undefined,
+  category?: PrimaryIntegrationCategorySlug
+): IntegrationDataDestination[] {
+  const fallback = category
+    ? getDefaultDataDestinationsForCategory(category)
+    : [...DEFAULT_PM_DATA_DESTINATIONS];
+
+  if (!pref) return fallback;
+  if (providerSlug && pref.provider_data_destinations?.[providerSlug]?.length) {
+    const perProvider = pref.provider_data_destinations[providerSlug]!;
+    return category
+      ? filterDestinationsForCategory(category, perProvider)
+      : perProvider;
+  }
+  if (pref.data_destinations?.length) {
+    return category
+      ? filterDestinationsForCategory(category, pref.data_destinations)
+      : pref.data_destinations;
+  }
+  return fallback;
+}
+
+export function shouldShowSyncedDataOnPage(
+  pref: CategoryIntegrationPreference | null | undefined,
+  providerSlug: string | null | undefined,
+  page: IntegrationDataDestination,
+  category?: PrimaryIntegrationCategorySlug
+): boolean {
+  return getDataDestinationsForProvider(pref, providerSlug, category).includes(page);
+}
+
 export function normalizePrimaryByCategory(
   raw: unknown
 ): Partial<PrimaryByCategory> {
@@ -430,7 +628,17 @@ export function normalizePrimaryByCategory(
         : null;
     const single_active_only =
       e.single_active_only === true || isCategoryAdminDefaultOnly(category);
-    result[category] = { primary_slug, active_slugs, single_active_only };
+    const data_destinations = normalizeDataDestinations(e.data_destinations);
+    const provider_data_destinations = normalizeProviderDataDestinations(
+      e.provider_data_destinations
+    );
+    result[category] = {
+      primary_slug,
+      active_slugs,
+      single_active_only,
+      ...(data_destinations ? { data_destinations } : {}),
+      ...(provider_data_destinations ? { provider_data_destinations } : {}),
+    };
   }
 
   return result;
@@ -444,9 +652,9 @@ function sanitizePrimaryByCategory(
   const value = {} as PrimaryByCategory;
 
   for (const category of PRIMARY_INTEGRATION_CATEGORY_SLUGS) {
-    const entry = input[category] ?? emptyCategoryPreference();
+    const entry = input[category] ?? emptyCategoryPreference(category);
 
-    const active_slugs = entry.active_slugs.filter((slug) => {
+    let active_slugs = entry.active_slugs.filter((slug) => {
       if (!context.availableProviderSlugs.has(slug)) {
         warnings.push(`"${slug}" is not a valid integration.`);
         return false;
@@ -459,6 +667,15 @@ function sanitizePrimaryByCategory(
     });
 
     let primary_slug = entry.primary_slug;
+
+    if (
+      primary_slug &&
+      context.connectedProviderSlugs.has(primary_slug) &&
+      !active_slugs.includes(primary_slug)
+    ) {
+      active_slugs = [primary_slug, ...active_slugs];
+    }
+
     if (primary_slug && !active_slugs.includes(primary_slug)) {
       warnings.push(
         `Primary integration "${primary_slug}" for ${category} must also be an active source.`
@@ -466,11 +683,31 @@ function sanitizePrimaryByCategory(
       primary_slug = active_slugs[0] ?? null;
     }
 
+    const rawDestinations =
+      normalizeDataDestinations(entry.data_destinations) ??
+      getDefaultDataDestinationsForCategory(category);
+    const data_destinations = filterDestinationsForCategory(category, rawDestinations);
+
+    const rawProviderDestinations =
+      normalizeProviderDataDestinations(entry.provider_data_destinations) ?? {};
+    const provider_data_destinations: Partial<
+      Record<string, IntegrationDataDestination[]>
+    > = {};
+    for (const [slug, dests] of Object.entries(rawProviderDestinations)) {
+      const filtered = filterDestinationsForCategory(category, dests ?? []);
+      if (filtered.length) provider_data_destinations[slug] = filtered;
+    }
+
     value[category] = {
       primary_slug,
       active_slugs,
       single_active_only:
         entry.single_active_only === true || isCategoryAdminDefaultOnly(category),
+      data_destinations:
+        data_destinations.length > 0
+          ? data_destinations
+          : getDefaultDataDestinationsForCategory(category),
+      provider_data_destinations,
     };
   }
 
