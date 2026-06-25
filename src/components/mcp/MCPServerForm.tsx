@@ -259,9 +259,16 @@ export function MCPServerForm({
         form.setValue("auth_type", "basic");
         form.setValue("auth_basic_header", parsedServer.authorizationHeader);
       }
-      setRestTools([tool]);
+      const duplicateName = restTools.some(
+        (existing) => existing.name.trim() && existing.name === tool.name
+      );
+      setRestTools([...restTools, tool]);
       setCurlInput("");
-      toast.success("Imported curl command — review the tool fields and save.");
+      toast.success(
+        duplicateName
+          ? `Imported "${tool.name}" as a new tool (duplicate name — rename before saving).`
+          : `Imported "${tool.name}" — added as Tool #${restTools.length + 1}. Review fields and save.`
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to parse curl command");
     }
@@ -574,7 +581,7 @@ export function MCPServerForm({
                       />
                       <Button type="button" variant="secondary" size="sm" onClick={importFromCurl} disabled={!curlInput.trim()}>
                         <Wand2 className="h-4 w-4 mr-1" />
-                        Parse curl &amp; fill form
+                        Parse curl &amp; add tool
                       </Button>
                     </div>
 

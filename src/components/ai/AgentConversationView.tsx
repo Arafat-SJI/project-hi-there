@@ -289,6 +289,25 @@ export function AgentConversationView({
                         )}
                       </div>
                     )}
+
+                  {message.role === "assistant" &&
+                    message.metadata &&
+                    (message.metadata.mcp_tool_error ||
+                      message.metadata.mcp_tools_called) && (
+                      <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                        {Array.isArray(message.metadata.mcp_tools_called) &&
+                        message.metadata.mcp_tools_called.length > 0 ? (
+                          <span>
+                            MCP: {message.metadata.mcp_tools_called.join(", ")}
+                          </span>
+                        ) : null}
+                        {typeof message.metadata.mcp_tool_error === "string" ? (
+                          <span className="block truncate">
+                            {message.metadata.mcp_tool_error}
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
                 </div>
 
                 {message.role === "user" && (

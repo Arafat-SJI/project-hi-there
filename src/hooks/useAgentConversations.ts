@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/cache";
 import { API } from "@/shared/config/api";
+import { toast } from "sonner";
 
 // Type-bridge: tables exist in DB but not yet in generated types
 const db = supabase as any;
@@ -231,8 +232,26 @@ export function useSendMessage() {
         tokens_output?: number;
         latency_ms?: number;
         error?: string;
+        metadata?: {
+          mcp_enabled?: boolean;
+          mcp_path_used?: boolean;
+          mcp_tools_available?: number;
+          mcp_tools_called?: string[];
+          mcp_tool_error?: string | null;
+          mcp_server_ids?: string[];
+        };
       };
       if (result?.error) throw new Error(typeof result.error === "string" ? result.error : "Chat failed");
+
+      const mcpMeta = result.metadata;
+      if (mcpMeta?.mcp_enabled && !mcpMeta.mcp_path_used) {
+        const reason =
+          mcpMeta.mcp_tool_error ||
+          (mcpMeta.mcp_tools_available === 0
+            ? "No enabled tools on attached MCP servers"
+            : "MCP tools were not invoked — check OpenAI API key in Supabase secrets");
+        console.warn("Agent MCP not used:", reason, mcpMeta);
+      }
 
       // 4. Insert assistant message
       const { error: insertAssistantError } = await db.from("agent_messages").insert({
@@ -244,6 +263,7 @@ export function useSendMessage() {
         tokens_input: result.tokens_input ?? null,
         tokens_output: result.tokens_output ?? null,
         latency_ms: result.latency_ms ?? null,
+        metadata: mcpMeta ?? {},
       });
       if (insertAssistantError) throw insertAssistantError;
 
@@ -266,6 +286,18 @@ export function useSendMessage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.messages(conversation_id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversation(conversation_id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(agent_id) });
+
+      if (mcpMeta?.mcp_tool_error) {
+        toast.warning("MCP tool issue", {
+          description: mcpMeta.mcp_tool_error.slice(0, 200),
+        });
+      } else if (mcpMeta?.mcp_enabled && (mcpMeta.mcp_tools_called?.length ?? 0) === 0) {
+        toast.warning("MCP tools were not called", {
+          description: "Re-save the agent with ActiveCollab checked under MCP Servers, then redeploy agent-conversation-chat.",
+        });
+      }
+
+      return { ...result, metadata: mcpMeta };
     },
   });
 }
