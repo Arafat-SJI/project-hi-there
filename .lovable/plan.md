@@ -1,35 +1,40 @@
+## Landing Page — Control Tower
 
-## Goal
+Build a new public landing page at `/` (replacing the current Index route) based on the pitch deck. Single long-scroll page with 10 sections mirroring the deck, plus a sticky top nav and footer.
 
-Author a Control Tower design-token spec (modeled after the attached Cal.com `DESIGN-cal.md`) and surface it inside the admin panel as a new **Documentation** section with a first page at `/admin/design-tokens`.
+### Sections (in order)
+1. **Hero** — "One Control Tower for every tool your team already uses." Subhead from p.1. Primary CTA "Book a 20-min demo" → `https://collabai.software/book-demo`, secondary "Sign in" → `/login`. Animated logo cloud strip beneath.
+2. **Problem** — "Your data lives in 10+ tools. None of them talk to each other." Grid of 14 tool name chips. Big stat: "6+ apps to answer one question."
+3. **The Fix** — "One place to see everything." Two-column: left bulleted categories (CRM / Trackers / Meetings / Docs / Comms), right Control Tower feature card list.
+4. **Differentiators** — 3 numbered cards: Unified View, Knowledge Base, Agentic Action.
+5. **It Does the Work** — 6-card bento grid (Unified Analytics, Semantic Search, Auto-Indexed Meetings, Generated Artifacts, Agent-Ready Context, MCP & Integrations).
+6. **Model-Agnostic** — "One Knowledge Base. Every model." OpenAI / Anthropic / Gemini badges over shared pgVector strip.
+7. **Connected** — 16 integration tiles (HubSpot, Salesforce, Zoho, Pipedrive, Jira, Confluence, ClickUp, ActiveCollab, Zoom, Teams, Meet, Slack, Drive, SharePoint, Outlook, MCP).
+8. **Agents** — "24+ specialized agents" with 8 named agent cards + "+16 more" tag.
+9. **Trust** — 6 enterprise cards (SSO, Audit Logs, Signed-URL Storage, Multi-tenant RLS, Private Deployment, BYOK).
+10. **Final CTA** — "See your scattered tools become one Control Tower." Book demo button.
+11. **Footer** — CollabAI · Control Tower, links to Login, Demo, Terms.
 
-## Deliverables
+### Design direction
+- Dark, agentic aesthetic aligned with existing tokens (HSL 199 primary, HSL 187 accent, pulsing indicators per project memory).
+- Distinctive typography pair (e.g., Space Grotesk display + Inter body) — not generic.
+- Subtle animated gradient mesh in hero, layered glass cards, pulsing dots on "live" indicators.
+- All colors via semantic tokens in `index.css` / `tailwind.config.ts` — no hardcoded hex in components.
+- Framer-motion fade/slide-in on scroll for section reveals.
 
-1. **`docs/design/control-tower-design-tokens.md`** — full Control Tower design-token spec following the Cal.md structure (metadata, colors, typography, spacing, radii, shadows, motion, components, layout, accessibility, voice). Tokens derived from the existing Control Tower brand (HSL 199 primary / HSL 187 accent, white "agentic" canvas, pulsing indicators) — not a copy of Cal's black/white system.
+### Files
+- **New**: `src/pages/LandingPage.tsx` (composes section components)
+- **New**: `src/components/landing/sections/` — `Hero.tsx`, `Problem.tsx`, `Fix.tsx`, `Differentiators.tsx`, `Capabilities.tsx`, `ModelAgnostic.tsx`, `Integrations.tsx`, `Agents.tsx`, `Trust.tsx`, `FinalCta.tsx`, `LandingNav.tsx`, `LandingFooter.tsx`
+- **Edit**: `src/components/routing/AppRoutes.tsx` — route `/` to new `LandingPage` for unauthenticated users; authenticated users continue to dashboard
+- **Edit**: `index.css` / `tailwind.config.ts` — add any missing landing-only tokens (gradient mesh, glow)
+- **Edit**: `index.html` — SEO title (<60), meta description (<160), OG tags
 
-2. **`/admin/design-tokens` page** (`src/pages/admin/DesignTokens.tsx`) — a living, in-app reference that renders the token spec visually:
-   - Color swatches grouped by role (brand, surface, text, status, badge) with hex + CSS-var name + copy-to-clipboard.
-   - Typography scale rendered live (display-xl → caption) with font-family / size / weight / line-height shown.
-   - Spacing scale, radius scale, shadow scale shown as visual chips.
-   - Motion tokens (durations + easings) listed.
-   - "Source spec" tab/link that opens the raw `.md` for download.
-   - Read-only — no edit UI in this pass.
+### Out of scope
+- No backend/database changes, no new edge functions, no auth changes.
+- Existing `src/components/landing/*` (Hero/FeatureGrid/etc.) left untouched; new sections live under `sections/` subfolder to avoid breaking other consumers.
+- No PDF images copied into the app — icons rendered with lucide-react + simple SVG monograms.
 
-3. **Admin nav: new "Documentation" section** in `src/components/layout/AdminSidebar.tsx` with one child item "Design Tokens" → `/admin/design-tokens`. Icon: `BookOpen` (section) / `Palette` (item). Section collapses like existing groups and persists open state via localStorage.
-
-4. **Route wiring** in the admin routes file (under `src/modules/admin/` or wherever `adminNavigation` resolves routes) so `/admin/design-tokens` renders inside `AdminLayout` behind `AdminRoute`.
-
-## Technical notes
-
-- Pure frontend / presentation. No DB tables, no edge functions, no migrations.
-- Tokens shown on the page are sourced from a single TS constant (`src/shared/design/tokens.ts`) so the `.md` and the page stay aligned — page imports the constant; `.md` is the human-readable mirror.
-- Reuse existing shadcn `Card`, `Tabs`, `Badge`, `Button`, `ScrollArea`, `useToast` (for copy feedback). No new deps.
-- All colors expressed as HSL tokens consistent with `index.css` conventions; no hardcoded Tailwind color classes in components on the page (uses semantic classes + inline style for swatch fills only).
-- Gated by `AdminRoute` (admin role required).
-
-## Out of scope
-
-- Rewriting `index.css` / `tailwind.config.ts` to adopt new tokens.
-- Editing or theming any other admin/user pages.
-- Versioning, diff view, or import/export of tokens.
-- Multiple doc pages — only "Design Tokens" lands in this pass; the section is structured so more docs can be added later.
+### How to test
+- Visit `/` while signed out → see new landing page.
+- All CTAs land correctly (`/login`, external demo link).
+- Lighthouse: single H1, alt text, semantic landmarks, mobile responsive.
