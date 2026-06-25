@@ -133,7 +133,13 @@ export function MCPServerConnectionDialog({
                   <li>Open Cursor → Settings → MCP</li>
                   <li>Click Add new MCP server or edit mcp.json</li>
                   <li>Paste the JSON (merge with existing mcpServers if needed)</li>
-                  <li>Restart Cursor</li>
+                  <li>Restart Cursor or toggle the server off and on</li>
+                  <li>
+                    If you see <span className="font-medium">Error — connect_failure</span> after a while:
+                    log into Control Tower, reopen this dialog, copy fresh JSON, update mcp.json, then
+                    redeploy <span className="font-mono text-xs">control-tower-mcp</span> if you have not
+                    recently
+                  </li>
                 </ol>
               )}
             </TabsContent>

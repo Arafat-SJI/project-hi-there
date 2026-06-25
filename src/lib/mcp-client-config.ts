@@ -143,7 +143,7 @@ export function generateMcpClientConfigs(
   if (server.transport_type === "rest" || server.server_url.startsWith("internal://")) {
     if (server.transport_type === "rest") {
       const tokenNotice = accessToken
-        ? "Your current session token is included. It expires after ~1 hour — reopen this dialog to refresh."
+        ? "Your session token is included for the first connection. After connect, the gateway issues a 7-day MCP session — you usually do not need to refresh hourly. If Cursor shows Error, open this dialog while logged in and copy fresh JSON, then toggle the MCP server off/on."
         : "Replace YOUR_SUPABASE_ACCESS_TOKEN with your session token from Control Tower (log in, open browser DevTools → Application → localStorage → supabase auth token).";
 
       configs.push({
