@@ -39,7 +39,8 @@ export default function ZoomIntegration() {
   // Organization-level integration hooks
   const { data: zoomProvider, isLoading: providerLoading } = useIntegrationProvider("zoom");
   const { data: integrationFields, isLoading: fieldsLoading } = useIntegrationFields(zoomProvider?.id || "");
-  const { data: orgIntegration, isLoading: orgIntegrationLoading } = useOrganizationIntegration(zoomProvider?.id || "");
+  const { data: orgIntegrationData, isLoading: orgIntegrationLoading } = useOrganizationIntegration(zoomProvider?.id || "");
+  const orgIntegration = orgIntegrationData?.integration;
   const updateIntegration = useUpdateIntegration();
 
   // Check if org-level integration is configured

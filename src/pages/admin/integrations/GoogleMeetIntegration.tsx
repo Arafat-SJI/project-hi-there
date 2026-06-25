@@ -39,7 +39,8 @@ export default function GoogleMeetIntegration() {
   // Organization-level integration hooks
   const { data: googleMeetProvider, isLoading: providerLoading } = useIntegrationProvider("google-meet");
   const { data: integrationFields, isLoading: fieldsLoading } = useIntegrationFields(googleMeetProvider?.id || "");
-  const { data: orgIntegration, isLoading: orgIntegrationLoading } = useOrganizationIntegration(googleMeetProvider?.id || "");
+  const { data: orgIntegrationData, isLoading: orgIntegrationLoading } = useOrganizationIntegration(googleMeetProvider?.id || "");
+  const orgIntegration = orgIntegrationData?.integration;
   const updateIntegration = useUpdateIntegration();
 
   // Check if org-level integration is configured

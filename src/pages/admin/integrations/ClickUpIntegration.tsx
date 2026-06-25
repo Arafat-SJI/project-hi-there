@@ -59,7 +59,8 @@ export default function ClickUpIntegration() {
   // Integration metadata
   const { data: provider, isLoading: providerLoading } = useIntegrationProvider("clickup");
   const { data: integrationFields, isLoading: fieldsLoading } = useIntegrationFields(provider?.id || "");
-  const { data: orgIntegration, isLoading: orgIntegrationLoading } = useOrganizationIntegration(provider?.id || "");
+  const { data: orgIntegrationData, isLoading: orgIntegrationLoading } = useOrganizationIntegration(provider?.id || "");
+  const orgIntegration = orgIntegrationData?.integration;
   const updateIntegration = useUpdateIntegration();
 
   // User-level connection

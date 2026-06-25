@@ -37,7 +37,8 @@ export default function GoogleDriveIntegration() {
   // Organization-level integration hooks
   const { data: googleDriveProvider, isLoading: providerLoading } = useIntegrationProvider("google-drive");
   const { data: integrationFields, isLoading: fieldsLoading } = useIntegrationFields(googleDriveProvider?.id || "");
-  const { data: orgIntegration, isLoading: orgIntegrationLoading } = useOrganizationIntegration(googleDriveProvider?.id || "");
+  const { data: orgIntegrationData, isLoading: orgIntegrationLoading } = useOrganizationIntegration(googleDriveProvider?.id || "");
+  const orgIntegration = orgIntegrationData?.integration;
   const updateIntegration = useUpdateIntegration();
 
   // Check if org-level integration is configured

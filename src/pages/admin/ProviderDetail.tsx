@@ -55,7 +55,9 @@ export default function ProviderDetail() {
   // Fetch provider data
   const { data: provider, isLoading, error } = useIntegrationProvider(slug || '');
   const { data: fields = [], isLoading: fieldsLoading } = useIntegrationFields(provider?.id || '');
-  const { data: orgIntegration } = useOrganizationIntegration(provider?.id || '');
+  const { data: orgIntegrationResult } = useOrganizationIntegration(provider?.id || '');
+  const orgIntegration = orgIntegrationResult?.integration;
+  const [configuredSensitiveFields, setConfiguredSensitiveFields] = useState<string[]>([]);
   const { data: services = [] } = useIntegrationServices(provider?.id || '');
   const { data: usageStats, isLoading: statsLoading } = useProviderUsageStats(
     provider?.id || '',
@@ -133,6 +135,7 @@ export default function ProviderDetail() {
 
   // Initialize form values from org integration config
   useEffect(() => {
+    setConfiguredSensitiveFields(orgIntegrationResult?.configured_sensitive_fields ?? []);
     if (orgIntegration?.config) {
       setFormValues(orgIntegration.config as Record<string, string>);
     } else if (normalizedFields && normalizedFields.length > 0) {
@@ -145,7 +148,7 @@ export default function ProviderDetail() {
       });
       setFormValues(defaults);
     }
-  }, [orgIntegration, normalizedFields]);
+  }, [orgIntegration, orgIntegrationResult, normalizedFields]);
 
   // Handle field change
   const handleFieldChange = (fieldKey: string, value: string) => {
@@ -158,7 +161,7 @@ export default function ProviderDetail() {
     if (!provider) return;
 
     // Validate required fields
-    if (!areRequiredFieldsFilled(normalizedFields, formValues)) {
+    if (!areRequiredFieldsFilled(normalizedFields, formValues, configuredSensitiveFields)) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -166,11 +169,12 @@ export default function ProviderDetail() {
     setIsSaving(true);
 
     try {
-      await updateIntegration.mutateAsync({
+      const result = await updateIntegration.mutateAsync({
         providerId: provider.id,
         config: formValues,
         enabled: true,
       });
+      setConfiguredSensitiveFields(result.configured_sensitive_fields);
 
       toast.success(`${provider.name} configuration has been saved successfully.`);
       setHasChanges(false);

@@ -210,9 +210,9 @@ export default function CreateMeetingDialog({
   const isGoogleMeetConnected = !!googleMeetToken && googleMeetValid.hasValidToken;
 
   const platformConnectionState = {
-    zoom: { isOrgEnabled: !!zoomOrg.data?.enabled && zoomOrg.data?.connection_status === "connected", isConnected: isZoomConnected },
-    "microsoft-teams": { isOrgEnabled: !!teamsOrg.data?.enabled && teamsOrg.data?.connection_status === "connected", isConnected: isTeamsConnected },
-    "google-meet": { isOrgEnabled: !!googleMeetOrg.data?.enabled && googleMeetOrg.data?.connection_status === "connected", isConnected: isGoogleMeetConnected },
+    zoom: { isOrgEnabled: !!zoomOrg.data?.integration?.enabled && zoomOrg.data?.integration?.connection_status === "connected", isConnected: isZoomConnected },
+    "microsoft-teams": { isOrgEnabled: !!teamsOrg.data?.integration?.enabled && teamsOrg.data?.integration?.connection_status === "connected", isConnected: isTeamsConnected },
+    "google-meet": { isOrgEnabled: !!googleMeetOrg.data?.integration?.enabled && googleMeetOrg.data?.integration?.connection_status === "connected", isConnected: isGoogleMeetConnected },
   };
 
   const handleConnect = async (providerSlug: string) => {
