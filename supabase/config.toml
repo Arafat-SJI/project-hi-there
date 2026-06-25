@@ -250,6 +250,9 @@ verify_jwt = false
 [functions.integration-settings]
 verify_jwt = true
 
+[functions.integration-config]
+verify_jwt = true
+
 [functions.log-activity]
 verify_jwt = false
 
@@ -462,19 +465,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.validate-guardrails]
-verify_jwt = false
-
-# ClickUp & Workamajig integration functions
-[functions.clickup-oauth-exchange]
-verify_jwt = false
-
-[functions.sync-clickup]
-verify_jwt = false
-
-[functions.sync-workamajig]
-verify_jwt = false
-
-[functions.user-integration-clear-data]
 verify_jwt = false
 
 [functions.clickup-api-proxy]

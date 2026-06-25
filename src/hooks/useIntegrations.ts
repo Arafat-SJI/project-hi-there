@@ -164,24 +164,35 @@ export function useOrganizationIntegrations() {
 }
 
 /**
- * Fetch organization integration for a specific provider
+ * Fetch organization integration for a specific provider (masked sensitive credentials)
  */
 export function useOrganizationIntegration(providerId: string) {
   return useQuery({
     queryKey: integrationKeys.orgIntegration(providerId),
-    queryFn: async (): Promise<OrganizationIntegration | null> => {
+    queryFn: async (): Promise<{
+      integration: OrganizationIntegration | null;
+      configured_sensitive_fields: string[];
+    }> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .from('organization_integrations')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('provider_id', providerId)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke('integration-config', {
+        body: {
+          action: 'get',
+          provider_id: providerId,
+        },
+      });
 
       if (error) throw error;
-      return data as OrganizationIntegration | null;
+      const payload = data as {
+        integration: OrganizationIntegration | null;
+        configured_sensitive_fields?: string[];
+      };
+
+      return {
+        integration: payload.integration,
+        configured_sensitive_fields: payload.configured_sensitive_fields ?? [],
+      };
     },
     staleTime: 5 * 60 * 1000,
     enabled: !!providerId,
@@ -189,7 +200,7 @@ export function useOrganizationIntegration(providerId: string) {
 }
 
 /**
- * Save or update integration configuration
+ * Save or update integration configuration (encrypts sensitive fields server-side)
  */
 export function useUpdateIntegration() {
   const queryClient = useQueryClient();
@@ -203,32 +214,42 @@ export function useUpdateIntegration() {
       providerId: string;
       config: Record<string, any>;
       enabled?: boolean;
-    }): Promise<OrganizationIntegration> => {
+    }): Promise<{
+      integration: OrganizationIntegration;
+      configured_sensitive_fields: string[];
+    }> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .from('organization_integrations')
-        .upsert({
-          user_id: user.id,
+      const { data, error } = await supabase.functions.invoke('integration-config', {
+        body: {
           provider_id: providerId,
           config,
           enabled,
-          connection_status: 'connected',
-          last_tested_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id,provider_id',
-        })
-        .select()
-        .single();
+        },
+      });
 
       if (error) throw error;
-      return data as OrganizationIntegration;
+      const payload = data as {
+        integration: OrganizationIntegration;
+        configured_sensitive_fields?: string[];
+        error?: string;
+        message?: string;
+      };
+
+      if (payload?.error) {
+        throw new Error(payload.message || payload.error);
+      }
+
+      return {
+        integration: payload.integration,
+        configured_sensitive_fields: payload.configured_sensitive_fields ?? [],
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: integrationKeys.orgIntegrations() });
       queryClient.invalidateQueries({
-        queryKey: integrationKeys.orgIntegration(data.provider_id),
+        queryKey: integrationKeys.orgIntegration(data.integration.provider_id),
       });
     },
   });

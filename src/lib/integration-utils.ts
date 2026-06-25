@@ -334,8 +334,13 @@ export function formatCost(cost: number): string {
 /**
  * Mask sensitive values (e.g., API keys)
  */
+export const CONFIGURED_CREDENTIAL_PLACEHOLDER = '__CONFIGURED__';
+
 export function maskSensitiveValue(value: string): string {
-  if (!value || value.length < 8) {
+  if (!value || value === CONFIGURED_CREDENTIAL_PLACEHOLDER) {
+    return '••••••••';
+  }
+  if (value.length < 8) {
     return '••••••••';
   }
 
@@ -398,11 +403,17 @@ export function validateFieldValue(
  */
 export function areRequiredFieldsFilled(
   fields: IntegrationField[],
-  config: Record<string, any>
+  config: Record<string, any>,
+  configuredSensitiveFields: string[] = [],
 ): boolean {
+  const configured = new Set(configuredSensitiveFields);
   return fields
     .filter((field) => field.is_required)
-    .every((field) => config[field.field_key]);
+    .every((field) => {
+      const value = config[field.field_key];
+      if (value && String(value).trim()) return true;
+      return configured.has(field.field_key);
+    });
 }
 
 // ============================================
