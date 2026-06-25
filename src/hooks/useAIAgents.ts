@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { queryKeys, invalidateKeys } from "@/lib/cache";
+import { syncAgentMcpServers } from "@/lib/agent-mcp-sync";
 
 export interface AIAgent {
   id: string;
@@ -148,6 +149,8 @@ export function useCreateAgent() {
   return useMutation({
     mutationFn: async (data: AgentFormData) => {
       const slug = data.slug || data.name.toLowerCase().replace(/\s+/g, "-");
+      const mcpServerIds = data.mcp_server_ids || [];
+      const mcpEnabled = mcpServerIds.length > 0 || (data.tool_mcp ?? false);
 
       const { data: agent, error } = await supabase
         .from("ai_agents")
@@ -169,14 +172,21 @@ export function useCreateAgent() {
           tool_file_search: data.tool_file_search ?? true,
           tool_web_search: data.tool_web_search ?? false,
           tool_image_generation: data.tool_image_generation ?? false,
-          tool_mcp: data.tool_mcp ?? false,
-          mcp_server_ids: data.mcp_server_ids || [],
+          tool_mcp: mcpEnabled,
+          mcp_server_ids: mcpServerIds,
           tools_config: data.tools_config || [],
         } as never)
         .select()
         .single();
 
       if (error) throw error;
+
+      await syncAgentMcpServers(
+        agent.id,
+        mcpServerIds,
+        mcpEnabled
+      );
+
       return agent as unknown as AIAgent;
     },
     onSuccess: () => {
@@ -221,7 +231,12 @@ export function useUpdateAgent() {
       if (data.tool_web_search !== undefined) updateData.tool_web_search = data.tool_web_search;
       if (data.tool_image_generation !== undefined) updateData.tool_image_generation = data.tool_image_generation;
       if (data.tool_mcp !== undefined) updateData.tool_mcp = data.tool_mcp;
-      if (data.mcp_server_ids !== undefined) updateData.mcp_server_ids = data.mcp_server_ids || [];
+      if (data.mcp_server_ids !== undefined) {
+        updateData.mcp_server_ids = data.mcp_server_ids || [];
+        if ((data.mcp_server_ids || []).length > 0) {
+          updateData.tool_mcp = true;
+        }
+      }
       if (data.tools_config !== undefined) updateData.tools_config = data.tools_config || [];
 
       const { data: agent, error } = await supabase
@@ -232,11 +247,13 @@ export function useUpdateAgent() {
         .single();
 
       if (error) throw error;
+
+      const mcpEnabled = data.tool_mcp ?? (agent as unknown as AIAgent).tool_mcp ?? false;
+      const serverIds =
+        data.mcp_server_ids ?? (agent as unknown as AIAgent).mcp_server_ids ?? [];
+      await syncAgentMcpServers(agent.id, serverIds, mcpEnabled);
+
       return agent as unknown as AIAgent;
-    },
-    onSuccess: () => {
-      invalidateKeys.ai(queryClient);
-      toast.success("Agent updated successfully!");
     },
     onError: (error: unknown) => {
       console.error("Error updating agent:", error);

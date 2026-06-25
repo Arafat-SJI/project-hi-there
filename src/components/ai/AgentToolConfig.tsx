@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
   TooltipContent,
@@ -18,7 +19,10 @@ import {
   Plug,
   Info,
   Sparkles,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
+import { useMCPServers } from "@/hooks/useMCPServers";
 
 export interface ToolConfig {
   tool_code_interpreter: boolean;
@@ -202,15 +206,17 @@ export function AgentToolConfig({
         </TooltipProvider>
 
         {config.tool_mcp && (
-          <div className="mt-4 p-3 rounded-lg border border-dashed">
-            <p className="text-sm text-muted-foreground">
-              MCP Server configuration will be available in the Integrations
-              page. Connect external tool servers to extend agent capabilities.
-            </p>
-            <Button variant="outline" size="sm" className="mt-2" disabled>
-              Configure MCP Servers
-            </Button>
-          </div>
+          <McpServerPicker
+            selectedIds={config.mcp_server_ids}
+            disabled={disabled}
+            onChange={(ids) =>
+              onChange({
+                ...config,
+                mcp_server_ids: ids,
+                tool_mcp: ids.length > 0 ? true : config.tool_mcp,
+              })
+            }
+          />
         )}
       </CardContent>
     </Card>
@@ -228,4 +234,109 @@ export function getDefaultToolConfig(): ToolConfig {
     mcp_server_ids: [],
     tools_config: [],
   };
+}
+
+function McpServerPicker({
+  selectedIds,
+  onChange,
+  disabled,
+}: {
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  disabled?: boolean;
+}) {
+  const { data: servers, isLoading } = useMCPServers();
+
+  const activeServers = (servers ?? []).filter((s) => s.is_active);
+
+  const toggleServer = (serverId: string, checked: boolean) => {
+    const nextIds = checked
+      ? [...selectedIds, serverId]
+      : selectedIds.filter((id) => id !== serverId);
+    onChange(nextIds);
+  };
+
+  return (
+    <div className="mt-4 space-y-3 rounded-lg border border-dashed p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium">Attached MCP servers</p>
+          <p className="text-xs text-muted-foreground">
+            Select which MCP servers this agent can call during chat and runs.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/admin/mcp-servers">
+            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+            Manage
+          </Link>
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading MCP servers...
+        </div>
+      ) : activeServers.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No MCP servers yet. Create one (e.g. ActiveCollab) on the MCP Servers page first.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {activeServers.map((server) => {
+            const checked = selectedIds.includes(server.id);
+            const toolCount = server.available_tools?.length ?? 0;
+
+            return (
+              <label
+                key={server.id}
+                className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors ${
+                  checked ? "border-primary/50 bg-primary/5" : "border-border"
+                } ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
+              >
+                <Checkbox
+                  checked={checked}
+                  disabled={disabled}
+                  onCheckedChange={(value) => toggleServer(server.id, value === true)}
+                  className="mt-0.5"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium">
+                      {server.icon ? `${server.icon} ` : ""}
+                      {server.name}
+                    </span>
+                    <Badge variant="outline" className="text-xs">
+                      {server.transport_type}
+                    </Badge>
+                    {server.is_verified && (
+                      <Badge variant="secondary" className="text-xs">
+                        Verified
+                      </Badge>
+                    )}
+                  </div>
+                  {server.description && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {server.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {toolCount} tool{toolCount === 1 ? "" : "s"} available
+                  </p>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      )}
+
+      {selectedIds.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {selectedIds.length} server{selectedIds.length === 1 ? "" : "s"} attached. The agent
+          will automatically use these tools when answering relevant questions.
+        </p>
+      )}
+    </div>
+  );
 }

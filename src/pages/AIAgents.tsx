@@ -56,6 +56,11 @@ import {
   MultiAgentCollaborationInfo,
   HITLApprovalInfo,
 } from "@/components/admin/AgentConfigurationGuide";
+import {
+  AgentToolConfig,
+  getDefaultToolConfig,
+  type ToolConfig,
+} from "@/components/ai/AgentToolConfig";
 
 export default function AIAgents() {
   const navigate = useNavigate();
@@ -85,6 +90,7 @@ export default function AIAgents() {
     is_enabled: true,
     memory_enabled: false,
     rag_enabled: false,
+    ...getDefaultToolConfig(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,6 +124,13 @@ export default function AIAgents() {
       is_enabled: agent.is_enabled,
       memory_enabled: agent.memory_enabled,
       rag_enabled: agent.rag_enabled,
+      tool_code_interpreter: agent.tool_code_interpreter ?? false,
+      tool_file_search: agent.tool_file_search ?? true,
+      tool_web_search: agent.tool_web_search ?? false,
+      tool_image_generation: agent.tool_image_generation ?? false,
+      tool_mcp: agent.tool_mcp ?? false,
+      mcp_server_ids: agent.mcp_server_ids ?? [],
+      tools_config: (agent.tools_config as unknown[]) ?? [],
     });
     setDialogOpen(true);
   };
@@ -182,8 +195,16 @@ export default function AIAgents() {
       is_enabled: true,
       memory_enabled: false,
       rag_enabled: false,
+      ...getDefaultToolConfig(),
     });
     setEditingAgent(null);
+  };
+
+  const handleToolConfigChange = (toolConfig: ToolConfig) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...toolConfig,
+    }));
   };
 
   const getCategoryBadge = (category: string | null) => {
@@ -367,6 +388,22 @@ export default function AIAgents() {
 
                 <Separator className="my-4" />
 
+                <AgentToolConfig
+                  config={{
+                    tool_code_interpreter: formData.tool_code_interpreter ?? false,
+                    tool_file_search: formData.tool_file_search ?? true,
+                    tool_web_search: formData.tool_web_search ?? false,
+                    tool_image_generation: formData.tool_image_generation ?? false,
+                    tool_mcp: formData.tool_mcp ?? false,
+                    mcp_server_ids: formData.mcp_server_ids ?? [],
+                    tools_config: formData.tools_config ?? [],
+                  }}
+                  onChange={handleToolConfigChange}
+                  disabled={isProcessing}
+                />
+
+                <Separator className="my-4" />
+
                 <div className="space-y-4">
                   <MultiAgentCollaborationInfo />
                   <HITLApprovalInfo />
@@ -491,6 +528,11 @@ export default function AIAgents() {
                   )}
                   {agent.rag_enabled && (
                     <Badge variant="secondary">RAG</Badge>
+                  )}
+                  {agent.tool_mcp && (agent.mcp_server_ids?.length ?? 0) > 0 && (
+                    <Badge variant="outline">
+                      MCP ({agent.mcp_server_ids.length})
+                    </Badge>
                   )}
                 </div>
 
