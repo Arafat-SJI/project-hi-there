@@ -11,6 +11,7 @@ import { notificationRoutes } from "@/modules/notifications/routes";
 
 // Public pages
 import Index from "@/pages/Index";
+import LandingPage from "@/pages/LandingPage";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import AuthCallback from "@/pages/AuthCallback";
@@ -41,7 +42,7 @@ import PersonalKnowledge from "@/modules/knowledge/pages/PersonalKnowledge";
  */
 export const publicRoutes = (
   <>
-    <Route path="/" element={<Login />} />
+    <Route path="/" element={<LandingPage />} />
     <Route path="/home" element={<Index />} />
     <Route path="/login" element={<Login />} />
     <Route path="/signup" element={<Signup />} />
