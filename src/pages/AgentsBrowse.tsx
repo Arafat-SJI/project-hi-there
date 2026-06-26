@@ -129,7 +129,7 @@ function AgentBrowseCard({
         <div className="flex items-start justify-between">
           <div>
             <h4 className="text-lg font-semibold text-foreground leading-tight">{agent.name}</h4>
-            <p className="text-xs text-muted-foreground mt-0.5">By CollabAi</p>
+            <p className="text-xs text-muted-foreground mt-0.5">By Control Tower</p>
           </div>
           {agent.category ? (
             <Badge variant="secondary" className={cn("text-[10px] px-2 py-0.5 font-medium", style.badge)}>

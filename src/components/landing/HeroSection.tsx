@@ -40,7 +40,7 @@ export function HeroSection() {
           {/* Description */}
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
             Stop switching between ChatGPT, Excel, Slack, and scattered notes.
-            CollabAI brings intelligent AI agents directly into your workflow—
+            Control Tower brings intelligent AI agents directly into your workflow—
             with your data staying <strong className="text-foreground">100% behind your firewall</strong>.
           </p>
 
@@ -51,7 +51,7 @@ export function HeroSection() {
               className="btn-primary-bold h-14 rounded-full px-10 text-base font-bold text-white border-0" 
               asChild
             >
-              <a href="https://collabai.software/try-demo" target="_blank" rel="noopener noreferrer">
+              <a href="/login" target="_blank" rel="noopener noreferrer">
                 <Sparkles className="mr-2 h-5 w-5" />
                 Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4" />

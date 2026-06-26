@@ -21,7 +21,7 @@ import {
   Check,
 } from "lucide-react";
 
-const BOOK_DEMO_URL = "https://collabai.software/book-demo";
+const BOOK_DEMO_URL = "/login";
 
 const tools = [
   "HubSpot", "Salesforce", "Zoho CRM", "Pipedrive",
@@ -105,7 +105,7 @@ function Nav() {
             <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-pulse rounded-full bg-accent ring-2 ring-background" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="font-display text-lg font-bold tracking-tight text-foreground">CollabAI</span>
+            <span className="font-display text-lg font-bold tracking-tight text-foreground">Control Tower</span>
             <span className="text-sm font-semibold text-primary">Control Tower</span>
           </div>
         </Link>
@@ -148,7 +148,7 @@ function Hero() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
             </span>
-            COLLABAI · CONTROL TOWER
+            CONTROL TOWER · CONTROL TOWER
           </div>
 
           <h1 className="font-display text-5xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
@@ -175,7 +175,7 @@ function Hero() {
             </Button>
           </div>
 
-          <p className="mt-6 text-xs text-muted-foreground">collabai.software/book-demo</p>
+          <p className="mt-6 text-xs text-muted-foreground"></p>
         </div>
 
         {/* Tool strip */}
@@ -463,7 +463,7 @@ function FinalCta() {
             </a>
           </Button>
         </div>
-        <p className="mt-6 text-sm text-muted-foreground">collabai.software/book-demo</p>
+        <p className="mt-6 text-sm text-muted-foreground"></p>
       </div>
     </section>
   );
@@ -475,7 +475,7 @@ function Footer() {
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="font-semibold text-foreground">CollabAI</span> · Control Tower
+          <span className="font-semibold text-foreground">Control Tower</span> · Control Tower
         </div>
         <div className="flex items-center gap-6 text-sm">
           <Link to="/login" className="text-muted-foreground hover:text-foreground">Sign in</Link>

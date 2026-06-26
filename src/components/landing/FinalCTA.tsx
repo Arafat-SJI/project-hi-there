@@ -36,7 +36,7 @@ export function FinalCTA() {
               className="btn-primary-bold h-14 rounded-full px-10 text-base font-bold text-white border-0"
               asChild
             >
-              <a href="https://collabai.software/try-demo" target="_blank" rel="noopener noreferrer">
+              <a href="/login" target="_blank" rel="noopener noreferrer">
                 <Sparkles className="mr-2 h-5 w-5" />
                 Schedule a Demo
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -48,7 +48,7 @@ export function FinalCTA() {
               className="h-14 rounded-full px-10 text-base font-semibold bg-background/80 backdrop-blur-sm border-2"
               asChild
             >
-              <a href="https://collabai.software/contact" target="_blank" rel="noopener noreferrer">
+              <a href="/login" target="_blank" rel="noopener noreferrer">
                 Talk to Sales
               </a>
             </Button>
