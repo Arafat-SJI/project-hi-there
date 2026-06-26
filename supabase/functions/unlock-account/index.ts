@@ -104,126 +104,91 @@ serve(async (req) => {
     });
     const serviceClient = createClient(supabaseUrl, serviceKey);
 
-    const authResult = await requirePermission(req, userClient, corsHeaders, "org.manage_mfa_policy");
+    const authResult = await requirePermission(req, userClient, corsHeaders, "users.admin");
     if (authResult instanceof Response) return authResult;
-    const { userId } = authResult;
+    const { userId: adminId } = authResult;
 
     const body = await req.json().catch(() => ({}));
-    const action = body.action ?? "list";
+    const targetUserId = body.user_id as string | undefined;
+    const targetEmail = body.email as string | undefined;
 
-    if (action === "list") {
-      const { data: profiles, error: profilesError } = await serviceClient
-        .from("profiles")
-        .select("id, email, full_name");
-      if (profilesError) throw profilesError;
-
-      const { data: statuses, error: statusError } = await serviceClient
-        .from("mfa_enrollment_status")
-        .select("*");
-      if (statusError) throw statusError;
-
-      const statusMap = new Map((statuses ?? []).map((s) => [s.user_id, s]));
-
-      const enrollment = (profiles ?? []).map((p) => {
-        const status = statusMap.get(p.id);
-        return {
-          user_id: p.id,
-          email: p.email,
-          full_name: p.full_name,
-          enrolled: status?.enrolled ?? false,
-          enrolled_at: status?.enrolled_at ?? null,
-          grace_period_ends_at: status?.grace_period_ends_at ?? null,
-          last_reminded_at: status?.last_reminded_at ?? null,
-        };
-      });
-
-      return new Response(JSON.stringify({ enrollment }), {
+    if (!targetUserId && !targetEmail) {
+      return new Response(JSON.stringify({ error: "user_id or email is required" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (action === "remind") {
-      const { target_user_id } = body;
+    let profileQuery = serviceClient
+      .from("profiles")
+      .select("id, email, failed_login_count, locked_until");
 
-      let targetIds: string[];
-      if (target_user_id) {
-        targetIds = [target_user_id];
-      } else {
-        const { data: unenrolled } = await serviceClient
-          .from("mfa_enrollment_status")
-          .select("user_id")
-          .eq("enrolled", false);
-        targetIds = (unenrolled ?? []).map((u) => u.user_id);
-      }
+    if (targetUserId) {
+      profileQuery = profileQuery.eq("id", targetUserId);
+    } else {
+      profileQuery = profileQuery.ilike("email", targetEmail!);
+    }
 
-      if (targetIds.length) {
-        await serviceClient
-          .from("mfa_enrollment_status")
-          .update({ last_reminded_at: new Date().toISOString() })
-          .in("user_id", targetIds);
-      }
+    const { data: profile, error: profileError } = await profileQuery.maybeSingle();
+    if (profileError) throw profileError;
 
-      await serviceClient.from("activity_logs").insert({
-        user_id: userId,
-        action: "mfa.reminder_sent",
-        resource_type: "mfa_enrollment_status",
-        resource_id: target_user_id ?? null,
-        details: { reminded_count: targetIds.length },
-      });
-
-      return new Response(JSON.stringify({ success: true, reminded_count: targetIds.length }), {
+    if (!profile) {
+      return new Response(JSON.stringify({ error: "User not found" }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (action === "reset") {
-      const { target_user_id } = body;
-      if (!target_user_id) {
-        return new Response(JSON.stringify({ error: "target_user_id is required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const previousState = {
+      failed_login_count: profile.failed_login_count,
+      locked_until: profile.locked_until,
+    };
 
-      const { data: factors, error: factorsError } = await serviceClient.auth.admin.mfa.listFactors({
-        userId: target_user_id,
+    const { data: updated, error: updateError } = await serviceClient
+      .from("profiles")
+      .update({ failed_login_count: 0, locked_until: null })
+      .eq("id", profile.id)
+      .select("id, email, failed_login_count, locked_until")
+      .single();
+
+    if (updateError) throw updateError;
+
+    await serviceClient.from("activity_logs").insert({
+      user_id: adminId,
+      action: "security.account_unlocked",
+      resource_type: "profile",
+      resource_id: profile.id,
+      details: { target_email: profile.email, previous_state: previousState },
+      ip_address: req.headers.get("x-forwarded-for") ?? "unknown",
+      user_agent: req.headers.get("user-agent") ?? "unknown",
+    });
+
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/audit-log-writer`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: adminId,
+          action: "security.account_unlocked",
+          resource_type: "profile",
+          resource_id: profile.id,
+          details: { target_user_id: profile.id, previous_state: previousState },
+          write_activity_log: false,
+        }),
       });
-      if (factorsError) throw factorsError;
-
-      for (const factor of factors?.factors ?? []) {
-        await serviceClient.auth.admin.mfa.deleteFactor({
-          userId: target_user_id,
-          id: factor.id,
-        });
-      }
-
-      await serviceClient
-        .from("mfa_enrollment_status")
-        .upsert(
-          { user_id: target_user_id, enrolled: false, enrolled_at: null },
-          { onConflict: "user_id" }
-        );
-
-      await serviceClient.from("activity_logs").insert({
-        user_id: userId,
-        action: "mfa.reset",
-        resource_type: "user",
-        resource_id: target_user_id,
-        details: { factors_removed: factors?.factors?.length ?? 0 },
-      });
-
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    } catch (auditError) {
+      console.warn("Failed to write chained audit log:", auditError);
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }), {
-      status: 400,
+    return new Response(JSON.stringify({ success: true, profile: updated }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    console.error("mfa-enrollment error:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

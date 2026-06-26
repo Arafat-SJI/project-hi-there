@@ -1,14 +1,101 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { requirePermission } from "../_shared/permission-auth.ts";
-import { validateAuth, authErrorResponse, type AuthError } from "../_shared/auth-middleware.ts";
-import { getCorsHeaders } from "../../cors.ts";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Self-contained helpers for Supabase dashboard deploy (single-file bundle).
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const isLovablePreview =
+    origin?.endsWith(".lovableproject.com") || origin?.endsWith(".lovable.app");
+  const isSJInnovationCom =
+    origin?.endsWith(".sjinnovation.com") || origin === "https://sjinnovation.com";
+  const isSJInnovationUs =
+    origin?.endsWith(".sjinnovation.us") || origin === "https://sjinnovation.us";
+  const isLocalhost =
+    origin?.startsWith("http://localhost:") || origin?.startsWith("http://127.0.0.1:");
+  const isAllowed =
+    origin &&
+    (isLovablePreview || isSJInnovationCom || isSJInnovationUs || isLocalhost);
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : "http://localhost:8080",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "Access-Control-Max-Age": "3600",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
+
+interface AuthError {
+  status: number;
+  code: string;
+  message: string;
+}
+
+async function validateAuth(req: Request, supabase: SupabaseClient) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw {
+      status: 401,
+      code: "missing_auth_header",
+      message: "Authorization header is required",
+    } as AuthError;
+  }
+  const token = authHeader.replace("Bearer ", "").trim();
+  if (!token) {
+    throw { status: 401, code: "empty_token", message: "Bearer token cannot be empty" } as AuthError;
+  }
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) {
+    throw {
+      status: 401,
+      code: "invalid_token",
+      message: error?.message || "Invalid or expired token",
+    } as AuthError;
+  }
+  return { user: { id: user.id, email: user.email }, token };
+}
+
+function authErrorResponse(error: AuthError, corsHeaders: Record<string, string>) {
+  return new Response(
+    JSON.stringify({ error: error.code, message: error.message, status: "error" }),
+    { status: error.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+async function requirePermission(
+  req: Request,
+  supabase: SupabaseClient,
+  corsHeaders: Record<string, string>,
+  permissionKey: string
+): Promise<{ userId: string } | Response> {
+  try {
+    const auth = await validateAuth(req, supabase);
+    const { data: allowed, error } = await supabase.rpc("has_permission", {
+      _user_id: auth.user.id,
+      _permission_key: permissionKey,
+    });
+    if (error) {
+      return new Response(JSON.stringify({ error: "Permission check failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: `Permission required: ${permissionKey}` }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return { userId: auth.user.id };
+  } catch (err) {
+    return authErrorResponse(err as AuthError, corsHeaders);
+  }
+}
 
 const DEFAULT_TENANT = "00000000-0000-0000-0000-000000000001";
 
 serve(async (req) => {
-  const origin = req.headers.get("Origin");
-  const corsHeaders = getCorsHeaders(origin);
+  const corsHeaders = getCorsHeaders(req.headers.get("Origin"));
 
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -28,7 +115,6 @@ serve(async (req) => {
     const action = body.action ?? "get_policy";
 
     if (action === "get_policy") {
-      // Any authenticated user may read the policy — needed to enforce the grace gate client-side.
       try {
         await validateAuth(req, userClient);
       } catch (err) {
@@ -49,7 +135,12 @@ serve(async (req) => {
     }
 
     if (action === "update_policy") {
-      const authResult = await requirePermission(req, userClient, corsHeaders, "org.manage_mfa_policy");
+      const authResult = await requirePermission(
+        req,
+        userClient,
+        corsHeaders,
+        "org.manage_mfa_policy"
+      );
       if (authResult instanceof Response) return authResult;
       const { userId } = authResult;
 
@@ -94,7 +185,6 @@ serve(async (req) => {
 
       if (updateError) throw updateError;
 
-      // When enforcement is turned on, stamp a grace deadline for everyone not yet enrolled.
       if (required && !previous?.required) {
         const graceDays = updated.grace_period_days ?? 7;
         const graceEndsAt = new Date(Date.now() + graceDays * 24 * 60 * 60 * 1000).toISOString();

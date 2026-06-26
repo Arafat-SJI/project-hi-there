@@ -432,6 +432,11 @@ export const adminNavigation: NavGroup[] = [
             href: "/admin/security/sso",
             icon: "Shield",
           },
+          {
+            title: "Security Analytics",
+            href: "/admin/security/analytics",
+            icon: "Activity",
+          },
         ],
       },
     ],
