@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Brain } from "lucide-react";
+import { Loader2, Brain, Mail } from "lucide-react";
 import { checkSignupDomainAllowed } from "@/hooks/useSignupWhitelist";
 import { EmailValidatorWidget } from "@/components/security/EmailValidatorWidget";
 import { PasswordStrengthMeter } from "@/components/security/PasswordStrengthMeter";
@@ -23,7 +23,9 @@ export default function Signup() {
   const [validationError, setValidationError] = useState("");
   const [emailValid, setEmailValid] = useState(false);
   const [passwordValid, setPasswordValid] = useState(false);
-  const { signUp, signInWithGoogle } = useAuth();
+  const [awaitingVerification, setAwaitingVerification] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const { signUp, signInWithGoogle, resendVerificationEmail } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,8 +48,8 @@ export default function Signup() {
       return;
     }
 
-    if (password.length < 12) {
-      setError("Password must be at least 12 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
 
@@ -65,7 +67,15 @@ export default function Signup() {
         return;
       }
 
-      await signUp(email, password, fullName);
+      const result = await signUp(email, password, fullName);
+      if (result.alreadyRegistered) {
+        setError("An account with this email may already exist. Try signing in instead.");
+        return;
+      }
+      if (result.needsEmailConfirmation) {
+        setAwaitingVerification(result.email);
+        return;
+      }
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -92,7 +102,93 @@ export default function Signup() {
     }
   };
 
-  const isFormValid = termsAccepted && privacyAccepted && emailValid && passwordValid;
+  const passwordsMatch = password.length > 0 && password === confirmPassword;
+
+  const isFormValid =
+    termsAccepted &&
+    privacyAccepted &&
+    fullName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    passwordsMatch &&
+    emailValid &&
+    passwordValid;
+
+  const handleResendVerification = async () => {
+    if (!awaitingVerification) return;
+    setResending(true);
+    setError("");
+    try {
+      await resendVerificationEmail(awaitingVerification);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to resend verification email";
+      setError(message);
+    } finally {
+      setResending(false);
+    }
+  };
+
+  if (awaitingVerification) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md space-y-6">
+          <div className="flex flex-col items-center space-y-2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-sm">
+              <Brain className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <h1 className="text-xl font-semibold text-foreground">Control Tower</h1>
+          </div>
+
+          <Card className="shadow-premium">
+            <CardHeader className="space-y-1 pb-4 text-center">
+              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <Mail className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-xl font-semibold">Check your email</CardTitle>
+              <CardDescription>
+                We sent a verification link to{" "}
+                <span className="font-medium text-foreground">{awaitingVerification}</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground">
+                Click the link in the email to verify your account, then sign in. Check your spam folder if you do not see it within a few minutes.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 w-full"
+                onClick={handleResendVerification}
+                disabled={resending}
+              >
+                {resending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Resend verification email"
+                )}
+              </Button>
+            </CardContent>
+            <CardFooter className="flex-col space-y-2 pt-2">
+              <p className="text-center text-sm text-muted-foreground">
+                Already verified?{" "}
+                <Link to="/login" className="font-medium text-primary hover:underline">
+                  Sign in
+                </Link>
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -150,12 +246,12 @@ export default function Signup() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="At least 12 characters"
+                  placeholder="At least 8 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={loading}
-                  minLength={12}
+                  minLength={8}
                   className="h-10"
                 />
                 <PasswordStrengthMeter
@@ -175,6 +271,9 @@ export default function Signup() {
                   disabled={loading}
                   className="h-10"
                 />
+                {confirmPassword && !passwordsMatch ? (
+                  <p className="text-xs text-destructive">Passwords do not match</p>
+                ) : null}
               </div>
 
               {/* Terms and Privacy Checkboxes */}

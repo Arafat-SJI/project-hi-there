@@ -36,7 +36,7 @@ export function EmailValidatorWidget({
   }, [value]);
 
   useEffect(() => {
-    if (!debouncedValue || !touched) {
+    if (!debouncedValue) {
       onValidChange?.(false);
       return;
     }
@@ -46,10 +46,10 @@ export function EmailValidatorWidget({
       onError: () => onValidChange?.(false),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedValue, touched]);
+  }, [debouncedValue]);
 
   const result = validate.data;
-  const showFeedback = touched && debouncedValue.length > 0;
+  const showFeedback = debouncedValue.length > 0 && (touched || !!result);
 
   return (
     <div className={cn("space-y-2", className)}>

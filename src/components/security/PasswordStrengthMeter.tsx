@@ -47,6 +47,9 @@ export function PasswordStrengthMeter({
       onSuccess: (result) => {
         onValidationChange?.(result.valid);
       },
+      onError: () => {
+        onValidationChange?.(false);
+      },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedPassword]);
