@@ -3,6 +3,7 @@ import { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { logLogin, logLogout } from "@/lib/activity-logger";
+import { recordLoginAttempt } from "@/hooks/useSecurityHardening";
 
 interface Profile {
   id: string;
@@ -11,6 +12,10 @@ interface Profile {
   avatar_url?: string;
   role?: string;
   is_active?: boolean;
+  password_expires_at?: string | null;
+  failed_login_count?: number;
+  locked_until?: string | null;
+  requires_password_change?: boolean;
   // Agency role for dashboard routing (owner | pm | ic)
   agencyRole?: "owner" | "pm" | "ic" | "bd";
   // EOS flag: owner sees EOS-enhanced dashboard when true
@@ -33,6 +38,8 @@ interface AuthContextType {
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   /** Re-fetches agency_role + is_eos_user and patches local profile state. */
   refreshAgencyPreferences: () => Promise<void>;
+  /** Re-fetches full profile including security hardening fields. */
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -221,15 +228,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign in with email/password
   const signIn = async (email: string, password: string) => {
     try {
+      const { data: isLocked, error: lockError } = await supabase.rpc("is_account_locked", {
+        p_email: email,
+      });
+
+      if (!lockError && isLocked) {
+        throw {
+          message: "Account is temporarily locked due to too many failed login attempts.",
+        } as AuthError;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
-      
+      if (error) {
+        void recordLoginAttempt(email, false);
+        throw error;
+      }
+
+      void recordLoginAttempt(email, true);
+
       // Log login activity
       logLogin("email");
-      
+
       toast({
         title: "Welcome back!",
         description: "You've successfully signed in.",
@@ -500,6 +522,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile((prev) => (prev ? { ...prev, ...prefs } : null));
   };
 
+  const refreshProfile = async () => {
+    if (!user) return;
+    await fetchProfile(user.id, { silent: true });
+  };
+
   const value = {
     user,
     profile,
@@ -514,6 +541,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     updateProfile,
     refreshAgencyPreferences,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

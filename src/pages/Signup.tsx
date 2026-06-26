@@ -8,6 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Brain } from "lucide-react";
 import { checkSignupDomainAllowed } from "@/hooks/useSignupWhitelist";
+import { EmailValidatorWidget } from "@/components/security/EmailValidatorWidget";
+import { PasswordStrengthMeter } from "@/components/security/PasswordStrengthMeter";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -19,6 +21,8 @@ export default function Signup() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const [emailValid, setEmailValid] = useState(false);
+  const [passwordValid, setPasswordValid] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
@@ -27,13 +31,23 @@ export default function Signup() {
     setError("");
     setValidationError("");
 
+    if (!emailValid) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (!passwordValid) {
+      setError("Password does not meet security requirements");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 12) {
+      setError("Password must be at least 12 characters");
       return;
     }
 
@@ -78,7 +92,7 @@ export default function Signup() {
     }
   };
 
-  const isFormValid = termsAccepted && privacyAccepted;
+  const isFormValid = termsAccepted && privacyAccepted && emailValid && passwordValid;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -125,31 +139,28 @@ export default function Signup() {
                   className="h-10"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                  className="h-10"
-                />
-              </div>
+              <EmailValidatorWidget
+                value={email}
+                onChange={setEmail}
+                onValidChange={setEmailValid}
+                disabled={loading}
+              />
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="At least 6 characters"
+                  placeholder="At least 12 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={loading}
-                  minLength={6}
+                  minLength={12}
                   className="h-10"
+                />
+                <PasswordStrengthMeter
+                  password={password}
+                  onValidationChange={setPasswordValid}
                 />
               </div>
               <div className="space-y-2">

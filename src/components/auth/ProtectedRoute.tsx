@@ -32,6 +32,13 @@ export function ProtectedRoute() {
     return <Navigate to="/mfa/enroll" replace />;
   }
 
+  if (
+    profile?.requires_password_change === true &&
+    location.pathname !== "/auth/password-expired"
+  ) {
+    return <Navigate to="/auth/password-expired" replace />;
+  }
+
   return <Outlet />;
 }
 

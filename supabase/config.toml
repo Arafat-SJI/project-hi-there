@@ -527,6 +527,27 @@ verify_jwt = false
 [functions.rbac-manage]
 verify_jwt = false
 
+[functions.validate-email]
+verify_jwt = false
+
+[functions.validate-password]
+verify_jwt = false
+
+[functions.change-password]
+verify_jwt = false
+
+[functions.password-expiry-cron]
+verify_jwt = false
+
+[functions.verify-audit-chain]
+verify_jwt = false
+
+[functions.unlock-account]
+verify_jwt = false
+
+[functions.security-analytics]
+verify_jwt = false
+
 [functions.mfa-policy]
 verify_jwt = false
 

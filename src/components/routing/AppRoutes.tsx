@@ -18,6 +18,7 @@ import { adminRoutes } from "@/modules/admin";
 import ClientPortalDashboard from "@/pages/client/ClientPortalDashboard";
 import ProjectDashboard from "@/pages/client/ProjectDashboard";
 import MFAEnroll from "@/pages/MFAEnroll";
+import PasswordExpired from "@/pages/PasswordExpired";
 
 /**
  * Full application route tree. Must render <Route> elements as direct children
@@ -37,6 +38,7 @@ export function AppRoutes() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/mfa/enroll" element={<MFAEnroll />} />
+        <Route path="/auth/password-expired" element={<PasswordExpired />} />
 
         {/* Four Spaces URLs → legacy routes (feature disabled) */}
         <Route path="/sales/*" element={<SpacePathRedirect />} />

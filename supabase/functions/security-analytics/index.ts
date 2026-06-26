@@ -87,6 +87,9 @@ async function requirePermission(
   }
 }
 
+const DEFAULT_ORG = "00000000-0000-0000-0000-000000000001";
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("Origin"));
 
@@ -104,126 +107,108 @@ serve(async (req) => {
     });
     const serviceClient = createClient(supabaseUrl, serviceKey);
 
-    const authResult = await requirePermission(req, userClient, corsHeaders, "org.manage_mfa_policy");
-    if (authResult instanceof Response) return authResult;
-    const { userId } = authResult;
-
     const body = await req.json().catch(() => ({}));
-    const action = body.action ?? "list";
+    const days = Math.min(Math.max(Number(body.days ?? 30), 1), 90);
 
-    if (action === "list") {
-      const { data: profiles, error: profilesError } = await serviceClient
-        .from("profiles")
-        .select("id, email, full_name");
-      if (profilesError) throw profilesError;
-
-      const { data: statuses, error: statusError } = await serviceClient
-        .from("mfa_enrollment_status")
-        .select("*");
-      if (statusError) throw statusError;
-
-      const statusMap = new Map((statuses ?? []).map((s) => [s.user_id, s]));
-
-      const enrollment = (profiles ?? []).map((p) => {
-        const status = statusMap.get(p.id);
-        return {
-          user_id: p.id,
-          email: p.email,
-          full_name: p.full_name,
-          enrolled: status?.enrolled ?? false,
-          enrolled_at: status?.enrolled_at ?? null,
-          grace_period_ends_at: status?.grace_period_ends_at ?? null,
-          last_reminded_at: status?.last_reminded_at ?? null,
-        };
-      });
-
-      return new Response(JSON.stringify({ enrollment }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (body.action !== "record_login_attempt") {
+      const authResult = await requirePermission(req, userClient, corsHeaders, "settings.admin");
+      if (authResult instanceof Response) return authResult;
     }
 
-    if (action === "remind") {
-      const { target_user_id } = body;
-
-      let targetIds: string[];
-      if (target_user_id) {
-        targetIds = [target_user_id];
-      } else {
-        const { data: unenrolled } = await serviceClient
-          .from("mfa_enrollment_status")
-          .select("user_id")
-          .eq("enrolled", false);
-        targetIds = (unenrolled ?? []).map((u) => u.user_id);
-      }
-
-      if (targetIds.length) {
-        await serviceClient
-          .from("mfa_enrollment_status")
-          .update({ last_reminded_at: new Date().toISOString() })
-          .in("user_id", targetIds);
-      }
-
-      await serviceClient.from("activity_logs").insert({
-        user_id: userId,
-        action: "mfa.reminder_sent",
-        resource_type: "mfa_enrollment_status",
-        resource_id: target_user_id ?? null,
-        details: { reminded_count: targetIds.length },
-      });
-
-      return new Response(JSON.stringify({ success: true, reminded_count: targetIds.length }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (action === "reset") {
-      const { target_user_id } = body;
-      if (!target_user_id) {
-        return new Response(JSON.stringify({ error: "target_user_id is required" }), {
+    if (body.action === "record_login_attempt") {
+      const email = String(body.email ?? "").trim().toLowerCase();
+      if (!email) {
+        return new Response(JSON.stringify({ error: "email is required" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const { data: factors, error: factorsError } = await serviceClient.auth.admin.mfa.listFactors({
-        userId: target_user_id,
-      });
-      if (factorsError) throw factorsError;
-
-      for (const factor of factors?.factors ?? []) {
-        await serviceClient.auth.admin.mfa.deleteFactor({
-          userId: target_user_id,
-          id: factor.id,
-        });
-      }
-
-      await serviceClient
-        .from("mfa_enrollment_status")
-        .upsert(
-          { user_id: target_user_id, enrolled: false, enrolled_at: null },
-          { onConflict: "user_id" }
-        );
-
-      await serviceClient.from("activity_logs").insert({
-        user_id: userId,
-        action: "mfa.reset",
-        resource_type: "user",
-        resource_id: target_user_id,
-        details: { factors_removed: factors?.factors?.length ?? 0 },
+      const { data: attemptId, error: rpcError } = await serviceClient.rpc("record_login_attempt", {
+        p_email: email,
+        p_ip_address: req.headers.get("x-forwarded-for") ?? null,
+        p_was_successful: body.was_successful === true,
       });
 
-      return new Response(JSON.stringify({ success: true }), {
+      if (rpcError) throw rpcError;
+
+      return new Response(JSON.stringify({ success: true, attempt_id: attemptId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("mfa-enrollment error:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    const since = new Date(Date.now() - days * DAY_MS).toISOString();
+
+    const [
+      { data: loginAttempts, error: loginError },
+      { data: lockedProfiles, error: lockedError },
+      { data: anomalies, error: anomalyError },
+      { data: passwordViolations, error: pwError },
+      { count: blockedSignupCount },
+    ] = await Promise.all([
+      serviceClient
+        .from("login_attempts")
+        .select("id, email, ip_address, attempted_at, was_successful")
+        .gte("attempted_at", since)
+        .order("attempted_at", { ascending: false })
+        .limit(500),
+      serviceClient
+        .from("profiles")
+        .select("id, email, full_name, failed_login_count, locked_until")
+        .not("locked_until", "is", null)
+        .gt("locked_until", new Date().toISOString()),
+      serviceClient
+        .from("security_anomalies")
+        .select("*")
+        .eq("org_id", DEFAULT_ORG)
+        .gte("detected_at", since)
+        .order("detected_at", { ascending: false })
+        .limit(200),
+      serviceClient
+        .from("activity_logs")
+        .select("id, user_id, action, details, created_at")
+        .eq("action", "security.password_policy_violation")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      serviceClient
+        .from("login_attempts")
+        .select("id", { count: "exact", head: true })
+        .eq("was_successful", false)
+        .gte("attempted_at", since),
+    ]);
+
+    if (loginError) throw loginError;
+    if (lockedError) throw lockedError;
+    if (anomalyError) throw anomalyError;
+    if (pwError) throw pwError;
+
+    const failedAttempts = (loginAttempts ?? []).filter((a) => !a.was_successful);
+    const successfulAttempts = (loginAttempts ?? []).filter((a) => a.was_successful);
+
+    return new Response(
+      JSON.stringify({
+        generated_at: new Date().toISOString(),
+        period_days: days,
+        metrics: {
+          total_lockouts: lockedProfiles?.length ?? 0,
+          blocked_signups: blockedSignupCount ?? failedAttempts.length,
+          password_violations: passwordViolations?.length ?? 0,
+          failed_login_attempts: failedAttempts.length,
+          successful_logins: successfulAttempts.length,
+          unique_failed_emails: new Set(failedAttempts.map((a) => a.email)).size,
+          audit_anomalies: anomalies?.length ?? 0,
+        },
+        locked_accounts: lockedProfiles ?? [],
+        recent_failed_attempts: failedAttempts.slice(0, 50),
+        password_violations: passwordViolations ?? [],
+        security_anomalies: anomalies ?? [],
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
