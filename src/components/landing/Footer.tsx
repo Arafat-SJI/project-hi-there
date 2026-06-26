@@ -17,10 +17,10 @@ const resources = [
 ];
 
 const company = [
-  { name: "About", href: "https://collabai.software/about" },
-  { name: "Blog", href: "https://collabai.software/blog" },
-  { name: "Careers", href: "https://collabai.software/careers" },
-  { name: "Contact", href: "https://collabai.software/contact" },
+  { name: "About", href: "/login" },
+  { name: "Blog", href: "/login" },
+  { name: "Careers", href: "/login" },
+  { name: "Contact", href: "/login" },
 ];
 
 export function Footer() {
@@ -38,7 +38,7 @@ export function Footer() {
                 </div>
               </div>
               <div>
-                <span className="text-lg font-bold text-foreground">CollabAI</span>
+                <span className="text-lg font-bold text-foreground">Control Tower</span>
                 <span className="ml-1 text-lg font-semibold text-primary">Control Tower</span>
               </div>
             </Link>
@@ -47,12 +47,12 @@ export function Footer() {
               Private, compliant, and powerful.
             </p>
             <a 
-              href="https://collabai.software" 
+              href="/login" 
               target="_blank" 
               rel="noopener noreferrer"
               className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
             >
-              Visit collabai.software →
+              Visit Control Tower →
             </a>
           </div>
 
@@ -113,13 +113,13 @@ export function Footer() {
         {/* Bottom */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} CollabAI. All rights reserved.
+            © {new Date().getFullYear()} Control Tower. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground">
-            <a href="https://collabai.software/privacy" className="hover:text-primary transition-colors">
+            <a href="/login" className="hover:text-primary transition-colors">
               Privacy Policy
             </a>
-            <a href="https://collabai.software/terms" className="hover:text-primary transition-colors">
+            <a href="/login" className="hover:text-primary transition-colors">
               Terms of Service
             </a>
           </div>

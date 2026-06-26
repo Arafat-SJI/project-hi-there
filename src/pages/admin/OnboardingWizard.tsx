@@ -112,7 +112,7 @@ interface OnboardingData {
 const defaultData: OnboardingData = {
   organizationName: '',
   adminEmail: '',
-  platformName: 'CollabAI',
+  platformName: 'Control Tower',
   primaryColor: '#3b82f6',
   logoUrl: '',
   enableAIChat: true,
@@ -383,7 +383,7 @@ export default function OnboardingWizard() {
               <Label htmlFor="platformName">Platform Name *</Label>
               <Input
                 id="platformName"
-                placeholder="e.g., CollabAI"
+                placeholder="e.g., Control Tower"
                 value={data.platformName}
                 onChange={(e) => updateData({ platformName: e.target.value })}
               />

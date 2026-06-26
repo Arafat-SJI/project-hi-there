@@ -183,14 +183,14 @@ export function useResetAppConfig() {
     mutationFn: async () => {
       const defaultConfig: AppConfig = {
         branding: {
-          companyName: "CollabAi",
+          companyName: "Control Tower",
           tagline: "AI-Powered Collaboration Platform",
-          supportEmail: "support@collabai.software",
+          supportEmail: "support@control-tower.app",
           logoUrl: "",
           faviconUrl: "",
           primaryColor: "#6366f1",
           secondaryColor: "",
-          emailFromName: "CollabAi",
+          emailFromName: "Control Tower",
           replyToEmail: "",
           loginMessage: "Welcome to Control Tower",
           loginBackgroundUrl: "",
@@ -214,8 +214,8 @@ export function useResetAppConfig() {
         },
         email: {
           enableEmailNotifications: true,
-          fromName: "CollabAi",
-          fromEmail: "noreply@collabai.software",
+          fromName: "Control Tower",
+          fromEmail: "noreply@control-tower.app",
         },
         system: {
           maintenanceMode: false,

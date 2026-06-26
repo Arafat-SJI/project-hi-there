@@ -227,7 +227,7 @@ export default function AgentDetail() {
             <CardContent className="p-5 space-y-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Built by</p>
-                <p className="text-sm font-semibold text-foreground">CollabAi</p>
+                <p className="text-sm font-semibold text-foreground">Control Tower</p>
               </div>
 
               {team && (
