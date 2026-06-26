@@ -201,7 +201,11 @@ export default function UserManagement() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Permanently delete this user? Their account, profile, and related data will be removed from the database. This cannot be undone."
+      )
+    ) {
       return;
     }
 
@@ -219,7 +223,7 @@ export default function UserManagement() {
         return;
       }
 
-      toast.success("User removed successfully");
+      toast.success("User permanently deleted");
       fetchUsers();
     } catch (error: any) {
       console.error("Error removing user:", error);
@@ -531,8 +535,8 @@ export default function UserManagement() {
                             : "Cannot suspend the last remaining admin";
                           const removeDisabled = isSelf || isLastAdmin;
                           const removeReason = isSelf
-                            ? "You cannot remove your own account"
-                            : "Cannot remove the last remaining admin";
+                            ? "You cannot delete your own account"
+                            : "Cannot delete the last remaining admin";
 
                           return (
                             <TooltipProvider>
@@ -597,7 +601,7 @@ export default function UserManagement() {
                                         <div>
                                           <DropdownMenuItem disabled className="text-destructive">
                                             <Trash2 className="mr-2 h-4 w-4" />
-                                            Remove
+                                            Delete user
                                           </DropdownMenuItem>
                                         </div>
                                       </TooltipTrigger>
@@ -609,7 +613,7 @@ export default function UserManagement() {
                                       className="text-destructive"
                                     >
                                       <Trash2 className="mr-2 h-4 w-4" />
-                                      Remove
+                                      Delete user
                                     </DropdownMenuItem>
                                   )}
                                 </DropdownMenuContent>

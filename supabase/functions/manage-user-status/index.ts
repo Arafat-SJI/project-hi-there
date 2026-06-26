@@ -114,29 +114,68 @@ serve(async (req) => {
     }
 
     if (action === "remove") {
-      const { error: roleDeleteError } = await serviceClient
-        .from("user_roles")
-        .delete()
-        .eq("user_id", target_user_id);
+      const { data: ownerRole } = await serviceClient
+        .from("roles")
+        .select("id")
+        .eq("slug", "owner")
+        .maybeSingle();
 
-      if (roleDeleteError) {
-        if (roleDeleteError.message?.includes("last remaining Owner")) {
-          return new Response(
-            JSON.stringify({ error: "last_owner", message: "Cannot remove the last remaining Owner" }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+      if (ownerRole?.id) {
+        const { data: targetOwnerRow } = await serviceClient
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", target_user_id)
+          .eq("role_id", ownerRole.id)
+          .maybeSingle();
+
+        if (targetOwnerRow) {
+          const { count: ownerCount } = await serviceClient
+            .from("user_roles")
+            .select("user_id", { count: "exact", head: true })
+            .eq("role_id", ownerRole.id);
+
+          if ((ownerCount ?? 0) <= 1) {
+            return new Response(
+              JSON.stringify({ error: "last_owner", message: "Cannot delete the last remaining Owner" }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
         }
-        throw roleDeleteError;
       }
-
-      await serviceClient.from("department_users").delete().eq("user_id", target_user_id);
 
       await serviceClient.from("activity_logs").insert({
         user_id: actorId,
-        action: "user.removed",
+        action: "user.deleted",
         resource_type: "user",
         resource_id: target_user_id,
+        details: { hard_delete: true },
       });
+
+      // Clear references that would block profile/auth deletion
+      await serviceClient
+        .from("profiles")
+        .update({ deactivated_by: null })
+        .eq("deactivated_by", target_user_id);
+      await serviceClient
+        .from("departments")
+        .update({ head_user_id: null })
+        .eq("head_user_id", target_user_id);
+      await serviceClient
+        .from("user_invites")
+        .update({ invited_by: null })
+        .eq("invited_by", target_user_id);
+
+      const { error: deleteError } = await serviceClient.auth.admin.deleteUser(target_user_id);
+      if (deleteError) {
+        console.error("auth.admin.deleteUser failed:", deleteError);
+        return new Response(
+          JSON.stringify({
+            error: "delete_failed",
+            message: deleteError.message || "Failed to permanently delete user",
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
