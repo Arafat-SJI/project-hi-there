@@ -193,6 +193,15 @@ export const queryKeys = {
     allConversations: ["ai", "allConversations"] as const,
     promptTemplates: ["ai", "promptTemplates"] as const,
     promptTemplate: (id: string) => ["ai", "promptTemplate", id] as const,
+    agentCatalog: ["ai", "agentCatalog"] as const,
+    runAuditLog: (filters?: Record<string, unknown>) =>
+      ["ai", "runAuditLog", filters] as const,
+    promptVersions: (agentId: string) => ["ai", "promptVersions", agentId] as const,
+    learningEvents: (agentId: string) => ["ai", "learningEvents", agentId] as const,
+    agentMemoriesAdmin: (agentId: string, userId?: string) =>
+      ["ai", "agentMemoriesAdmin", agentId, userId] as const,
+    costDashboard: (days: number) => ["ai", "costDashboard", days] as const,
+    activeThreads: (userId: string) => ["ai", "activeThreads", userId] as const,
   },
 
   // Admin
@@ -399,6 +408,8 @@ export const invalidateKeys = {
   },
   ai: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agents });
+    queryClient.invalidateQueries({ queryKey: queryKeys.ai.agentCatalog });
+    queryClient.invalidateQueries({ queryKey: ["ai", "agent"] });
     queryClient.invalidateQueries({ queryKey: queryKeys.ai.agentCategories });
   },
   promptTemplates: (queryClient: any) => {

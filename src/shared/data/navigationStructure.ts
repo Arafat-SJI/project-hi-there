@@ -356,6 +356,8 @@ export const adminNavigation: NavGroup[] = [
         headerOnly: true,
         children: [
           { title: "All Agents", href: "/admin/ai/agents", icon: "Bot" },
+          { title: "Cost Dashboard", href: "/admin/ai/cost-dashboard", icon: "DollarSign" },
+          { title: "Run Audit Log", href: "/admin/ai/run-audit-log", icon: "History" },
           { title: "Deal Coaching", href: "/admin/ai/deal-coaching", icon: "Target" },
           { title: "Email Drafting", href: "/admin/ai/email-drafting", icon: "MessageSquare" },
         ],

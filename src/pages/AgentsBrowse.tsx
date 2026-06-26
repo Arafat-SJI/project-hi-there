@@ -4,11 +4,12 @@
  */
 
 import { useNavigate } from "react-router-dom";
-import { icons, Sparkles, ArrowRight } from "lucide-react";
+import { icons, Sparkles, ArrowRight, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { allTeams, type AgentTeamDef } from "@/components/ai/agentTeamConfig";
 import { useAIAgents } from "@/hooks/useAIAgents";
+import { useActiveAgentThreads, type ActiveAgentThread } from "@/hooks/useActiveAgentThreads";
 import { cn } from "@/lib/utils";
 
 /* ─── Team Card ─── */
@@ -32,7 +33,6 @@ function TeamCard({ team }: { team: AgentTeamDef }) {
       }}
     >
       <div className="p-6">
-        {/* Overlapping icons */}
         <div className="flex -space-x-3 mb-5">
           {previewIcons.map(({ Icon, name }, i) => (
             <div
@@ -63,8 +63,6 @@ function TeamCard({ team }: { team: AgentTeamDef }) {
   );
 }
 
-/* ─── Individual Agent Card (for browse grid) ─── */
-
 const CATEGORY_COLORS: Record<string, { from: string; to: string; badge: string }> = {
   sales: { from: "280 70% 50%", to: "330 80% 55%", badge: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300" },
   meetings: { from: "190 80% 45%", to: "210 85% 55%", badge: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
@@ -82,24 +80,44 @@ function getCategoryStyle(category: string | null) {
   return CATEGORY_COLORS.general;
 }
 
-function AgentBrowseCard({ agent }: { agent: { name: string; slug: string; description: string | null; category: string | null } }) {
+function AgentBrowseCard({
+  agent,
+  activeThread,
+}: {
+  agent: { name: string; slug: string; description: string | null; category: string | null };
+  activeThread?: ActiveAgentThread;
+}) {
   const navigate = useNavigate();
   const style = getCategoryStyle(agent.category);
-
-  // Pick an icon based on slug heuristics
   const iconName = getIconForSlug(agent.slug);
   const IconComponent = icons[iconName as keyof typeof icons] || icons["Bot"];
 
+  const continueChat = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!activeThread) return;
+    navigate(
+      `/admin/ai/chat?agent=${activeThread.agentId}&conversation=${activeThread.conversationId}`
+    );
+  };
+
   return (
     <div className="group relative flex flex-col rounded-2xl border border-border bg-card shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden">
-      {/* Gradient header */}
+      {activeThread ? (
+        <div className="absolute top-3 right-3 z-10">
+          <Badge className="gap-1 bg-primary text-primary-foreground shadow-sm">
+            <MessageCircle className="h-3 w-3" />
+            Continue chat
+          </Badge>
+        </div>
+      ) : null}
+
       <div
-        className="h-24 relative"
+        className="h-24 relative cursor-pointer"
         style={{
           background: `linear-gradient(135deg, hsl(${style.from}), hsl(${style.to}))`,
         }}
+        onClick={() => navigate(`/agents/${agent.slug}`)}
       >
-        {/* Icon circle */}
         <div className="absolute -bottom-6 left-5 w-12 h-12 rounded-full bg-foreground/90 dark:bg-card flex items-center justify-center shadow-lg ring-3 ring-background">
           {IconComponent && (
             <IconComponent className="h-6 w-6 text-primary-foreground dark:text-foreground" />
@@ -107,26 +125,44 @@ function AgentBrowseCard({ agent }: { agent: { name: string; slug: string; descr
         </div>
       </div>
 
-      {/* Body */}
       <div className="pt-10 px-5 pb-5 flex flex-col flex-1 gap-2">
         <div className="flex items-start justify-between">
           <div>
             <h4 className="text-lg font-semibold text-foreground leading-tight">{agent.name}</h4>
             <p className="text-xs text-muted-foreground mt-0.5">By CollabAi</p>
           </div>
-          {agent.category && (
+          {agent.category ? (
             <Badge variant="secondary" className={cn("text-[10px] px-2 py-0.5 font-medium", style.badge)}>
               {agent.category}
             </Badge>
-          )}
+          ) : null}
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 flex-1 mt-1">
           {agent.description || "An AI agent ready to assist you."}
         </p>
-        <div className="mt-3">
+
+        {activeThread ? (
+          <p className="text-xs text-primary font-medium">
+            {activeThread.messageCount} message{activeThread.messageCount !== 1 ? "s" : ""} in
+            active thread
+            {activeThread.title ? ` · ${activeThread.title}` : ""}
+          </p>
+        ) : null}
+
+        <div className="mt-3 flex flex-col gap-2">
+          {activeThread ? (
+            <Button
+              size="sm"
+              className="w-full font-medium"
+              onClick={continueChat}
+            >
+              <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
+              Continue conversation
+            </Button>
+          ) : null}
           <Button
             size="sm"
-            variant="outline"
+            variant={activeThread ? "outline" : "outline"}
             className="w-full font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
             onClick={() => navigate(`/agents/${agent.slug}`)}
           >
@@ -161,9 +197,13 @@ function getIconForSlug(slug: string): string {
   return map[slug] || "Bot";
 }
 
-/* ─── Team Detail Section ─── */
-
-function TeamDetailSection({ team }: { team: AgentTeamDef }) {
+function TeamDetailSection({
+  team,
+  threadBySlug,
+}: {
+  team: AgentTeamDef;
+  threadBySlug: Map<string, ActiveAgentThread>;
+}) {
   return (
     <section id={`team-${team.id}`} className="scroll-mt-24">
       <div className="flex items-center gap-3 mb-4">
@@ -185,6 +225,7 @@ function TeamDetailSection({ team }: { team: AgentTeamDef }) {
           <AgentBrowseCard
             key={agent.slug}
             agent={{ ...agent, category: team.id, description: agent.description }}
+            activeThread={threadBySlug.get(agent.slug)}
           />
         ))}
       </div>
@@ -192,18 +233,17 @@ function TeamDetailSection({ team }: { team: AgentTeamDef }) {
   );
 }
 
-/* ─── Main Page ─── */
-
 export default function AgentsBrowse() {
   const { data: dbAgents = [] } = useAIAgents();
+  const { data: activeThreads } = useActiveAgentThreads();
 
-  // Agents not already in a team config
+  const threadBySlug = activeThreads ?? new Map();
+
   const teamSlugs = new Set(allTeams.flatMap((t) => t.agents.map((a) => a.slug)));
   const otherAgents = dbAgents.filter((a) => a.is_enabled && !teamSlugs.has(a.slug));
 
   return (
     <div className="space-y-10">
-      {/* Page header */}
       <div>
         <div className="flex items-center gap-3 mb-1">
           <Sparkles className="h-7 w-7 text-primary" />
@@ -214,7 +254,6 @@ export default function AgentsBrowse() {
         </p>
       </div>
 
-      {/* Agent Teams grid */}
       <section>
         <h2 className="text-lg font-bold text-foreground mb-4">Agent Teams</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -224,12 +263,10 @@ export default function AgentsBrowse() {
         </div>
       </section>
 
-      {/* Team detail sections */}
       {allTeams.map((team) => (
-        <TeamDetailSection key={team.id} team={team} />
+        <TeamDetailSection key={team.id} team={team} threadBySlug={threadBySlug} />
       ))}
 
-      {/* Other agents from DB */}
       {otherAgents.length > 0 && (
         <section>
           <h2 className="text-xl font-bold text-foreground mb-4">More Agents</h2>
@@ -243,6 +280,7 @@ export default function AgentsBrowse() {
                   description: agent.description,
                   category: agent.category,
                 }}
+                activeThread={threadBySlug.get(agent.slug)}
               />
             ))}
           </div>

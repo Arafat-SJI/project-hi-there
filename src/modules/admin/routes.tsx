@@ -72,7 +72,10 @@ import ApiKeys from "@/pages/admin/ApiKeys";
 import StreamsPage from "@/modules/actions/pages/StreamsPage";
 import StreamTasksPage from "@/modules/actions/pages/StreamTasksPage";
 import PromptTemplateManagement from "@/pages/admin/ai/PromptTemplateManagement";
-import AIAgents from "@/pages/AIAgents";
+import AIAgentsAdmin from "@/pages/admin/ai/AIAgentsAdmin";
+import AgentDetailsTabs from "@/pages/admin/ai/AgentDetailsTabs";
+import AICostDashboard from "@/pages/admin/ai/AICostDashboard";
+import AIRunAuditLog from "@/pages/admin/ai/AIRunAuditLog";
 import AIChat from "@/pages/AIChat";
 import AgentCategories from "@/pages/admin/ai/AgentCategories";
 import EmailDraftingPerformance from "@/pages/admin/ai/EmailDraftingPerformance";
@@ -92,7 +95,10 @@ export const adminRoutes = (
     <Route path="/admin" element={<Admin />} />
     <Route path="/admin/design-tokens" element={<DesignTokens />} />
     <Route path="/admin/ai/agent-categories" element={<AgentCategories />} />
-    <Route path="/admin/ai/agents" element={<AIAgents />} />
+    <Route path="/admin/ai/agents" element={<AIAgentsAdmin />} />
+    <Route path="/admin/ai/agents/:agentId" element={<AgentDetailsTabs />} />
+    <Route path="/admin/ai/cost-dashboard" element={<AICostDashboard />} />
+    <Route path="/admin/ai/run-audit-log" element={<AIRunAuditLog />} />
     <Route path="/admin/ai/chat" element={<AIChat />} />
     <Route path="/admin/ai/prompt-templates" element={<PromptTemplateManagement />} />
     <Route path="/admin/ai/email-drafting" element={<EmailDraftingPerformance />} />

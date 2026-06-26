@@ -286,6 +286,7 @@ export function useSendMessage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.messages(conversation_id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversation(conversation_id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.ai.conversations(agent_id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.agentCatalog });
 
       if (mcpMeta?.mcp_tool_error) {
         toast.warning("MCP tool issue", {
