@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { format } from "date-fns";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,6 +26,13 @@ import {
   persistAgentChatModelChoice,
 } from "@/hooks/useAIModelPolicy";
 import { ModelSelect } from "@/components/ai/ModelSelect";
+import { MemoryCitationPill, parseMemoryCitations } from "@/components/ai/MemoryCitationPill";
+import { AgentResponseMarkdown } from "@/components/ai/AgentResponseMarkdown";
+import { MessageFeedbackRow } from "@/components/ai/MessageFeedbackRow";
+import {
+  ChatTimeoutAlert,
+  isNetworkOrTimeoutError,
+} from "@/components/ai/ChatTimeoutAlert";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -44,11 +49,13 @@ export function AgentConversationView({
   const [input, setInput] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [timeoutError, setTimeoutError] = useState<string | null>(null);
+  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: conversation, isLoading: conversationLoading } =
+  const { data: conversation, isLoading: conversationLoading, isError: conversationError, refetch: refetchConversation } =
     useAgentConversation(conversationId);
-  const { data: messages, isLoading: messagesLoading } =
+  const { data: messages, isLoading: messagesLoading, isError: messagesError, refetch: refetchMessages } =
     useAgentMessages(conversationId);
   const sendMessage = useSendMessage();
 
@@ -73,17 +80,17 @@ export function AgentConversationView({
     }
   };
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, sendMessage.isPending, timeoutError]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || sendMessage.isPending) return;
+  const agent = conversation?.ai_agents;
+  const conversationStarters = agent?.conversation_starters || [];
+  const welcomeMessage = agent?.welcome_message;
 
-    const messageContent = input;
-    setInput("");
+  const submitMessage = async (messageContent: string) => {
+    setTimeoutError(null);
+    setLastFailedMessage(null);
 
     try {
       await sendMessage.mutateAsync({
@@ -91,14 +98,36 @@ export function AgentConversationView({
         agent_id: agentId,
         content: messageContent,
         model_id: selectedModel || resolvedModelId || undefined,
-        memory_enabled: (agent as any)?.memory_enabled ?? false,
+        memory_enabled: agent?.memory_enabled ?? false,
       });
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to send message. Please try again.";
-      toast.error(message);
-      setInput(messageContent);
+      if (isNetworkOrTimeoutError(err)) {
+        setTimeoutError(
+          err instanceof Error ? err.message : "Network request failed"
+        );
+        setLastFailedMessage(messageContent);
+      } else {
+        const message =
+          err instanceof Error ? err.message : "Failed to send message. Please try again.";
+        toast.error(message);
+        setInput(messageContent);
+      }
     }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || sendMessage.isPending) return;
+    const messageContent = input;
+    setInput("");
+    await submitMessage(messageContent);
+  };
+
+  const handleRetry = async () => {
+    if (!lastFailedMessage || sendMessage.isPending) return;
+    const messageContent = lastFailedMessage;
+    setLastFailedMessage(null);
+    await submitMessage(messageContent);
   };
 
   const handleCopyMessage = async (message: AgentMessage) => {
@@ -111,19 +140,34 @@ export function AgentConversationView({
     setInput(starter);
   };
 
-  const agent = conversation?.ai_agents;
-  const conversationStarters = (agent as any)?.conversation_starters || [];
-  const welcomeMessage = (agent as any)?.welcome_message;
-
   const isLoading = conversationLoading || messagesLoading || modelsLoading;
   const hasMessages = messages && messages.length > 0;
+  const loadError = conversationError || messagesError;
   const activeModel =
     visibleModels.find((m) => m.id === selectedModel) ??
     visibleModels.find((m) => m.id === resolvedModelId);
 
+  if (loadError) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
+        <p className="text-sm text-muted-foreground text-center">
+          Could not load this conversation.
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => {
+            refetchConversation();
+            refetchMessages();
+          }}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
       <div className="border-b p-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -134,31 +178,30 @@ export function AgentConversationView({
             </Avatar>
             <div className="min-w-0">
               <h2 className="font-semibold">{agent?.name || "AI Assistant"}</h2>
-              {conversation?.title && (
+              {conversation?.title ? (
                 <p className="text-sm text-muted-foreground truncate max-w-[300px]">
                   {conversation.title}
                 </p>
-              )}
+              ) : null}
             </div>
           </div>
 
-          {showPicker && selectedModel && (
+          {showPicker && selectedModel ? (
             <ModelSelect
               models={visibleModels}
               value={selectedModel}
               onChange={handleModelChange}
             />
-          )}
+          ) : null}
 
-          {!showPicker && activeModel && (
+          {!showPicker && activeModel ? (
             <p className="text-sm text-muted-foreground shrink-0">
               Using {activeModel.provider_name} — {activeModel.name}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* Messages */}
       <ScrollArea className="flex-1 p-4">
         {isLoading ? (
           <div className="space-y-4">
@@ -174,8 +217,7 @@ export function AgentConversationView({
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Welcome message if no messages yet */}
-            {!hasMessages && (
+            {!hasMessages ? (
               <div className="flex flex-col items-center justify-center py-8">
                 <Avatar className="h-16 w-16 mb-4">
                   <AvatarFallback className="bg-primary/10 text-primary text-2xl">
@@ -185,19 +227,18 @@ export function AgentConversationView({
                 <h3 className="text-lg font-semibold mb-2">
                   {agent?.name || "AI Assistant"}
                 </h3>
-                {welcomeMessage && (
+                {welcomeMessage ? (
                   <p className="text-muted-foreground text-center max-w-md mb-6">
                     {welcomeMessage}
                   </p>
-                )}
-                {agent?.description && !welcomeMessage && (
+                ) : null}
+                {agent?.description && !welcomeMessage ? (
                   <p className="text-muted-foreground text-center max-w-md mb-6">
                     {agent.description}
                   </p>
-                )}
+                ) : null}
 
-                {/* Conversation starters */}
-                {conversationStarters.length > 0 && (
+                {conversationStarters.length > 0 ? (
                   <div className="flex flex-wrap gap-2 justify-center max-w-lg">
                     {conversationStarters.map((starter: string, i: number) => (
                       <Button
@@ -212,139 +253,136 @@ export function AgentConversationView({
                       </Button>
                     ))}
                   </div>
-                )}
+                ) : null}
               </div>
-            )}
+            ) : null}
 
-            {/* Message list */}
-            {messages?.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "group flex gap-3",
-                  message.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
-                {message.role === "assistant" && (
-                  <Avatar className="h-8 w-8 flex-shrink-0">
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {agent?.avatar || <Bot className="h-4 w-4" />}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
+            {messages?.map((message) => {
+              const memoryCitations = parseMemoryCitations(
+                message.metadata,
+                message.citations
+              );
 
+              return (
                 <div
+                  key={message.id}
                   className={cn(
-                    "relative max-w-[80%] rounded-lg p-3",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                    "group flex gap-3",
+                    message.role === "user" ? "justify-end" : "justify-start"
                   )}
                 >
                   {message.role === "assistant" ? (
-                    <div className="text-sm prose prose-sm prose-slate dark:prose-invert max-w-none prose-p:my-1.5 prose-ul:my-1.5 prose-table:text-xs prose-headings:mb-1 prose-headings:mt-2 prose-strong:font-semibold">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  )}
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {agent?.avatar || <Bot className="h-4 w-4" />}
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : null}
 
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-xs opacity-70">
-                      {format(new Date(message.created_at), "h:mm a")}
-                    </p>
-
-                    {message.role === "assistant" && (
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => handleCopyMessage(message)}
-                        >
-                          {copiedMessageId === message.id ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
+                  <div
+                    className={cn(
+                      "relative max-w-[80%] rounded-lg p-3 space-y-2",
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
                     )}
+                  >
+                    {message.role === "assistant" ? (
+                      <AgentResponseMarkdown content={message.content} />
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    )}
+
+                    {message.role === "assistant" && memoryCitations.length > 0 ? (
+                      <MemoryCitationPill citations={memoryCitations} />
+                    ) : null}
+
+                    <div className="flex items-center justify-between mt-2 gap-2">
+                      <p className="text-xs opacity-70">
+                        {format(new Date(message.created_at), "h:mm a")}
+                      </p>
+
+                      {message.role === "assistant" ? (
+                        <div className="flex items-center gap-1">
+                          <MessageFeedbackRow
+                            messageId={message.id}
+                            agentId={agentId}
+                            conversationId={conversationId}
+                          />
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleCopyMessage(message)}
+                            >
+                              {copiedMessageId === message.id ? (
+                                <Check className="h-3 w-3" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {message.role === "assistant" &&
+                    (message.tokens_output || message.latency_ms) ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {message.tokens_output ? (
+                          <span>{message.tokens_output} tokens</span>
+                        ) : null}
+                        {message.tokens_output && message.latency_ms ? (
+                          <span>·</span>
+                        ) : null}
+                        {message.latency_ms ? (
+                          <span>{(message.latency_ms / 1000).toFixed(1)}s</span>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
 
-                  {/* Token/latency info for assistant messages */}
-                  {message.role === "assistant" &&
-                    (message.tokens_output || message.latency_ms) && (
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        {message.tokens_output && (
-                          <span>{message.tokens_output} tokens</span>
-                        )}
-                        {message.tokens_output && message.latency_ms && (
-                          <span>·</span>
-                        )}
-                        {message.latency_ms && (
-                          <span>{(message.latency_ms / 1000).toFixed(1)}s</span>
-                        )}
-                      </div>
-                    )}
-
-                  {message.role === "assistant" &&
-                    message.metadata &&
-                    (message.metadata.mcp_tool_error ||
-                      message.metadata.mcp_tools_called) && (
-                      <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                        {Array.isArray(message.metadata.mcp_tools_called) &&
-                        message.metadata.mcp_tools_called.length > 0 ? (
-                          <span>
-                            MCP: {message.metadata.mcp_tools_called.join(", ")}
-                          </span>
-                        ) : null}
-                        {typeof message.metadata.mcp_tool_error === "string" ? (
-                          <span className="block truncate">
-                            {message.metadata.mcp_tool_error}
-                          </span>
-                        ) : null}
-                      </div>
-                    )}
+                  {message.role === "user" ? (
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarFallback>
+                        {getInitials(profile?.full_name || "U")}
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : null}
                 </div>
+              );
+            })}
 
-                {message.role === "user" && (
-                  <Avatar className="h-8 w-8 flex-shrink-0">
-                    <AvatarFallback>
-                      {getInitials(profile?.full_name || "U")}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            ))}
-
-            {/* Loading indicator for pending message */}
-            {sendMessage.isPending && (
+            {sendMessage.isPending ? (
               <div className="flex gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary/10 text-primary">
                     {agent?.avatar || <Bot className="h-4 w-4" />}
                   </AvatarFallback>
                 </Avatar>
-                <div className="rounded-lg bg-muted p-3">
+                <div className="rounded-lg bg-muted p-3 max-w-[80%]">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">
-                      Thinking...
-                    </span>
+                    <span className="text-sm text-muted-foreground">Thinking…</span>
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
+
+            {timeoutError ? (
+              <ChatTimeoutAlert
+                message={timeoutError}
+                onRetry={handleRetry}
+                retrying={sendMessage.isPending}
+              />
+            ) : null}
 
             <div ref={messagesEndRef} />
           </div>
         )}
       </ScrollArea>
 
-      {/* Input */}
       <div className="border-t p-4">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
@@ -354,10 +392,7 @@ export function AgentConversationView({
             disabled={sendMessage.isPending}
             className="flex-1"
           />
-          <Button
-            type="submit"
-            disabled={sendMessage.isPending || !input.trim()}
-          >
+          <Button type="submit" disabled={sendMessage.isPending || !input.trim()}>
             {sendMessage.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (

@@ -384,7 +384,8 @@ async function logUsage(
   inputTokens: number,
   outputTokens: number,
   embeddingTokens: number,
-  estimatedCost: number
+  estimatedCost: number,
+  metadata?: Record<string, unknown>
 ): Promise<void> {
   const { error } = await supabase.from('ai_usage_logs').insert({
     user_id: userId,
@@ -394,6 +395,7 @@ async function logUsage(
     output_tokens: outputTokens,
     embedding_tokens: embeddingTokens,
     estimated_cost: estimatedCost,
+    metadata: metadata ?? {},
   })
   if (error) console.error('Failed to log AI usage:', error)
 }
@@ -720,6 +722,330 @@ function coerceToolParameters(
   return coerced;
 }
 
+const AC_PM_BASE_URL = "https://pm.sjinnovation.us";
+
+function parseAcTasks(payload: unknown): Record<string, unknown>[] {
+  if (Array.isArray(payload)) return payload as Record<string, unknown>[];
+  if (!payload || typeof payload !== "object") return [];
+  const record = payload as Record<string, unknown>;
+  if (Array.isArray(record.tasks)) return record.tasks as Record<string, unknown>[];
+  if (Array.isArray(record.data)) return record.data as Record<string, unknown>[];
+  if (record.data && typeof record.data === "object") {
+    const inner = record.data as Record<string, unknown>;
+    if (Array.isArray(inner.tasks)) return inner.tasks as Record<string, unknown>[];
+  }
+  return [];
+}
+
+function normalizeAcDisplayStatus(raw: unknown, isCompleted?: boolean): string {
+  if (isCompleted) return "Completed";
+  const s = String(raw ?? "").toUpperCase().trim();
+  if (!s || s === "NOT SET" || s === "NEW") return "Open";
+  if (["ASSIGNED", "IN PROGRESS", "PM REVIEW", "ACTIVE"].includes(s)) return "In Progress";
+  if (s === "ON HOLD") return "On Hold";
+  if (["LOG", "COMPLETED", "DONE", "CLOSED"].includes(s)) return "Completed";
+  return s.charAt(0) + s.slice(1).toLowerCase();
+}
+
+function isOpenOrInProgressAcStatus(raw: unknown, isCompleted?: boolean): boolean {
+  if (isCompleted) return false;
+  const s = String(raw ?? "").toUpperCase().trim();
+  if (["LOG", "COMPLETED", "DONE", "CLOSED"].includes(s)) return false;
+  if (s === "ON HOLD") return false;
+  return true;
+}
+
+function assigneeNamesMatch(assignee: string, filter: string): boolean {
+  const normalize = (v: string) =>
+    v.toLowerCase().replace(/\./g, " ").split(/\s+/).filter(Boolean);
+  const a = normalize(assignee);
+  const f = normalize(filter);
+  if (!f.length) return true;
+  if (!a.length) return false;
+  return f.every((ft) =>
+    a.some((at) => at.startsWith(ft) || ft.startsWith(at) || at.includes(ft))
+  );
+}
+
+function extractAssigneeFilter(message: string): string | null {
+  const patterns = [
+    /\b(?:for|assigned to|assignee)\s+([A-Za-z][A-Za-z.\s'-]{1,48}?)(?:\s+format|\s+with\s+columns|[.,]|$)/i,
+    /\btasks?\s+for\s+([A-Za-z][A-Za-z.\s'-]{1,48}?)(?:\s+format|\s+with|[.,]|$)/i,
+  ];
+  for (const pattern of patterns) {
+    const m = message.match(pattern);
+    if (m?.[1]) return m[1].trim().replace(/\s+/g, " ");
+  }
+  return null;
+}
+
+function extractProjectIdFromMessage(
+  message: string,
+  tasks: Record<string, unknown>[]
+): number | null {
+  const m =
+    message.match(/project[_\s-]*id\s*[=:]?\s*(\d+)/i) ??
+    message.match(/\bproject\s+(\d+)\b/i);
+  if (m) return Number(m[1]);
+  const fromTask = tasks[0]?.project_id;
+  return typeof fromTask === "number" ? fromTask : Number(fromTask) || null;
+}
+
+function getTaskAssigneeLabel(task: Record<string, unknown>): string {
+  const candidates = [
+    task.assignee_name,
+    task.assignee,
+    task.assignee_display_name,
+    task.assignee_full_name,
+    task.user_name,
+    task.assigned_to_name,
+    task.assigned_to,
+    task.responsible,
+    task.responsible_name,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c.trim();
+  }
+  return "";
+}
+
+function hasHumanAssigneeLabel(assignee: string): boolean {
+  return Boolean(assignee) && !assignee.startsWith("user_id:");
+}
+
+function acTaskDedupeKey(task: {
+  id?: unknown;
+  name?: unknown;
+  assignee?: string;
+  assignee_id?: unknown;
+  project_id?: unknown;
+}): string {
+  const id = task.id;
+  if (id != null && id !== "") return `id:${id}`;
+  const name = String(task.name ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+  const assignee = String(task.assignee_id ?? task.assignee ?? "")
+    .toLowerCase()
+    .trim();
+  const projectId = String(task.project_id ?? "");
+  return `fallback:${projectId}|${name}|${assignee}`;
+}
+
+function dedupeAcTaskRecords(
+  tasks: Record<string, unknown>[]
+): Record<string, unknown>[] {
+  const seen = new Set<string>();
+  const result: Record<string, unknown>[] = [];
+  for (const task of tasks) {
+    const id = task.id ?? task.task_id;
+    const key = acTaskDedupeKey({
+      id,
+      name: task.name ?? task.title ?? task.task_name,
+      assignee: getTaskAssigneeLabel(task),
+      assignee_id: task.assignee_id,
+      project_id: task.project_id,
+    });
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(task);
+  }
+  return result;
+}
+
+function dedupeEnrichedAcTasks<T extends {
+  id?: unknown;
+  name?: unknown;
+  assignee?: string;
+  assignee_id?: unknown;
+  project_id?: unknown;
+}>(tasks: T[], seenAcrossCalls?: Set<string>): T[] {
+  const seen = seenAcrossCalls ?? new Set<string>();
+  const result: T[] = [];
+  for (const task of tasks) {
+    const key = acTaskDedupeKey(task);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(task);
+  }
+  return result;
+}
+
+interface EnrichedAcTaskRow {
+  id: unknown;
+  name: unknown;
+  raw_status: unknown;
+  display_status: string;
+  assignee: string;
+  assignee_id: unknown;
+  due_on: unknown;
+  project_id: unknown;
+  url: string | null;
+  duplicate_count?: number;
+  related_task_ids?: unknown[];
+}
+
+function normalizeAcTaskTitle(name: unknown): string {
+  return String(name ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function collapseSameTitleAcTasks(tasks: EnrichedAcTaskRow[]): EnrichedAcTaskRow[] {
+  const groups = new Map<string, EnrichedAcTaskRow[]>();
+
+  for (const task of tasks) {
+    const key = [
+      String(task.project_id ?? ""),
+      normalizeAcTaskTitle(task.name),
+      String(task.assignee ?? "").toLowerCase().trim(),
+    ].join("|");
+    const bucket = groups.get(key) ?? [];
+    bucket.push(task);
+    groups.set(key, bucket);
+  }
+
+  const collapsed: EnrichedAcTaskRow[] = [];
+
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      collapsed.push(group[0]);
+      continue;
+    }
+
+    const sorted = [...group].sort((a, b) => {
+      const aHasDue = a.due_on != null && a.due_on !== "" && a.due_on !== "-";
+      const bHasDue = b.due_on != null && b.due_on !== "" && b.due_on !== "-";
+      if (aHasDue !== bHasDue) return aHasDue ? -1 : 1;
+      return Number(b.id) - Number(a.id);
+    });
+
+    const primary = sorted[0];
+    const related = sorted.slice(1);
+    const baseName = String(primary.name ?? "").trim();
+    collapsed.push({
+      ...primary,
+      name: `${baseName} (×${group.length})`,
+      duplicate_count: group.length,
+      related_task_ids: related.map((t) => t.id),
+    });
+  }
+
+  return collapsed;
+}
+
+function enrichActiveCollabToolResult(
+  toolName: string,
+  raw: string,
+  userMessage: string,
+  seenTaskKeys?: Set<string>
+): string {
+  const isTaskTool =
+    toolName.includes("get-all-tasks") || toolName.includes("get_all_tasks");
+  const isUserTool =
+    toolName.includes("get-user") || toolName.includes("get_user");
+
+  if (!isTaskTool && !isUserTool) return raw;
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    if (isUserTool) {
+      return JSON.stringify(
+        {
+          ...((typeof parsed === "object" && parsed) || {}),
+          hint: "Match assignee using partial names (e.g. Omkar Shinde matches omkar s.)",
+        },
+        null,
+        2
+      );
+    }
+
+    const tasks = dedupeAcTaskRecords(parseAcTasks(parsed));
+    if (!tasks.length) return raw;
+
+    const projectId = extractProjectIdFromMessage(userMessage, tasks);
+    const assigneeFilter = extractAssigneeFilter(userMessage);
+    const wantsOpenInProgress =
+      /\bopen\b/i.test(userMessage) ||
+      /\bin[- ]?progress\b/i.test(userMessage) ||
+      /\bactive\b/i.test(userMessage);
+
+    const enriched = tasks.map((t) => {
+      const id = t.id ?? t.task_id;
+      const pid = (t.project_id as number) ?? projectId;
+      const rawStatus = t.status ?? t.task_status ?? t.label ?? t.state ?? "";
+      const isCompleted = Boolean(t.is_completed) ||
+        ["LOG", "COMPLETED", "DONE", "CLOSED"].includes(
+          String(rawStatus).toUpperCase()
+        );
+      const assignee = getTaskAssigneeLabel(t);
+      return {
+        id,
+        name: t.name ?? t.title ?? t.task_name,
+        raw_status: rawStatus,
+        display_status: normalizeAcDisplayStatus(rawStatus, isCompleted),
+        assignee: assignee || (t.assignee_id != null ? `user_id:${t.assignee_id}` : ""),
+        assignee_id: t.assignee_id ?? null,
+        due_on: t.due_on ?? t.due_date ?? null,
+        project_id: pid,
+        url:
+          pid && id ? `${AC_PM_BASE_URL}/projects/${pid}/tasks/${id}` : null,
+      };
+    });
+
+    let filtered = enriched.filter(
+      (t) => normalizeAcDisplayStatus(t.raw_status) !== "Completed"
+    );
+    if (wantsOpenInProgress) {
+      filtered = filtered.filter((t) =>
+        isOpenOrInProgressAcStatus(t.raw_status)
+      );
+    }
+    if (assigneeFilter) {
+      const withNames = filtered.filter((t) => hasHumanAssigneeLabel(t.assignee));
+      if (withNames.length > 0) {
+        const byName = withNames.filter((t) =>
+          assigneeNamesMatch(t.assignee, assigneeFilter)
+        );
+        filtered = byName.length > 0 ? byName : [];
+      }
+    }
+
+    const uniqueFiltered = dedupeEnrichedAcTasks(filtered, seenTaskKeys);
+    const idDuplicatesRemoved = filtered.length - uniqueFiltered.length;
+    const collapsedTasks = collapseSameTitleAcTasks(uniqueFiltered);
+    const titleDuplicatesCollapsed = uniqueFiltered.length - collapsedTasks.length;
+
+    return JSON.stringify(
+      {
+        summary: {
+          total_from_api: tasks.length,
+          matching_tasks: collapsedTasks.length,
+          id_duplicates_removed: idDuplicatesRemoved,
+          same_title_collapsed: titleDuplicatesCollapsed,
+          project_id: projectId,
+          assignee_filter: assigneeFilter,
+          status_filter: wantsOpenInProgress ? "open_and_in_progress" : "all_non_completed",
+          status_mapping:
+            "ASSIGNED/NOT SET/NEW → Open; ASSIGNED/PM REVIEW → In Progress; ON HOLD excluded unless asked",
+        },
+        tasks: collapsedTasks,
+        hint:
+          collapsedTasks.length === 0 && tasks.length > 0
+            ? "API returned tasks but filters removed all rows. ASSIGNED and NOT SET count as open/in-progress. Match assignee with partial names."
+            : "Use the tasks array for your table — one row per task. When duplicate_count > 1, show ONE row for that title; append (×N) to the task name and link to the primary task id only.",
+      },
+      null,
+      2
+    );
+  } catch {
+    return raw;
+  }
+}
+
 async function chatWithMcpToolsOpenAI(
   apiKey: string,
   model: string,
@@ -731,6 +1057,7 @@ async function chatWithMcpToolsOpenAI(
     temperature?: number;
     max_rounds?: number;
     require_tool_use?: boolean;
+    user_query?: string;
   }
 ): Promise<{
   content: string;
@@ -755,6 +1082,7 @@ async function chatWithMcpToolsOpenAI(
   const maxRounds = options?.max_rounds ?? 5;
   const toolsCalled: string[] = [];
   let lastToolError: string | null = null;
+  const seenAcTaskKeys = new Set<string>();
 
   for (let round = 0; round < maxRounds; round++) {
     const toolChoice =
@@ -819,6 +1147,14 @@ async function chatWithMcpToolsOpenAI(
         } else {
           toolsCalled.push(def.tool_name);
           toolResult = await executeTool(def.tool_id, args);
+          if (options?.user_query) {
+            toolResult = enrichActiveCollabToolResult(
+              def.tool_name,
+              toolResult,
+              options.user_query,
+              seenAcTaskKeys
+            );
+          }
           if (toolResult.startsWith("Error:")) {
             lastToolError = toolResult;
           }
@@ -905,8 +1241,28 @@ function buildMcpToolSystemPrompt(toolDefs: AgentMcpToolDef[]): string {
   return [
     "MCP TOOLS — you MUST use these when the user asks for live ActiveCollab or API data:",
     toolLines,
-    "Call the matching tool with parameters from the user message (e.g. project_id).",
-    "Never say you cannot access the service — call the tool first, then summarize the result.",
+    "Call the matching tool with parameters from the user message (project_id must be a number).",
+    "For ac-get-all-tasks always pass limit: 100 (or higher) so assignee filters are not missed on large projects.",
+    "For ac-get-user, pass emp_name with the person's name (partial match OK, e.g. \"Omkar\" or \"Omkar Shinde\").",
+    "Tool results include a pre-filtered tasks array and summary — use those counts and rows for your table.",
+    "",
+    "ACTIVECOLLAB STATUS MAPPING (this instance — NOT literal open/in-progress):",
+    "- Open: NOT SET, NEW",
+    "- In Progress: ASSIGNED, PM REVIEW, IN PROGRESS",
+    "- On Hold: ON HOLD (exclude unless user asks for on-hold)",
+    "- Completed: LOG, COMPLETED, DONE",
+    "- When user asks for open/in-progress, include ASSIGNED and NOT SET tasks — NOT only rows labeled open",
+    "- Assignee match is partial/case-insensitive: \"Omkar Shinde\" matches \"omkar s.\"",
+    "",
+    "OUTPUT FORMAT (required for task list responses):",
+    "1. Start with one summary line: Found {N} tasks for project {id} (filtered by {criteria}). N = matching_tasks from tool summary (already collapsed).",
+    "2. Then a markdown table with columns: | Task | Status | Assignee | Due date |",
+    "3. Task column MUST use markdown links: [Task Name](https://pm.sjinnovation.us/projects/{project_id}/tasks/{task_id})",
+    "4. When duplicate_count > 1 on a task, show ONE row: [Title (×N)](primary url) — do not list each related_task_id as separate rows.",
+    "5. Use display_status from tool results (Open, In Progress, On Hold, Completed).",
+    "6. Sort by status (Open first, then In Progress), then by due date.",
+    "7. Response = summary line + table only. No tool names, JSON, or extra paragraphs.",
+    "Never say you cannot access the service — call the tool first, then format as above.",
     "If a tool returns an error, show the error details and suggest what parameter might be missing.",
   ].join("\n");
 }
@@ -971,12 +1327,27 @@ serve(async (req) => {
       additionalContext = personalization.additional_prompt
     }
 
-    // 3. Get RAG context if agent has RAG enabled OR include_rag was explicitly requested
+    const serverIds = await resolveAgentMcpServerIds(
+      supabaseClient,
+      agent_id,
+      Array.isArray(agent.mcp_server_ids) ? (agent.mcp_server_ids as string[]) : []
+    )
+    const mcpEnabled = serverIds.length > 0
+    const liveMcpQuery = shouldRequireMcpToolUse(message)
+
+    // 3. Get RAG context (skip when MCP will fetch live integration data)
     let ragContext = ''
     let ragResultCount = 0
     let hadClickUpTaskSummary = false
     const integrationTaskQuery = isIntegrationTaskQuery(message)
-    const shouldDoRag = agent.rag_enabled === true || include_rag || integrationTaskQuery
+    const shouldDoRag =
+      (agent.rag_enabled === true || include_rag || integrationTaskQuery) &&
+      !(mcpEnabled && liveMcpQuery)
+
+    if (mcpEnabled && liveMcpQuery) {
+      console.log('Skipping RAG — live MCP tool query will fetch authoritative data')
+    }
+
     if (shouldDoRag) {
       try {
         const baseUrl = Deno.env.get('SUPABASE_URL')
@@ -1076,19 +1447,25 @@ serve(async (req) => {
       { role: 'system', content: systemPrompt }
     ]
 
-    // Add conversation history
+    // Add conversation history (user message was already inserted by the client)
     if (history && history.length > 0) {
-      messages.push(...history
-        .filter((h: any) => h.role !== 'system')
-        .map((h: any) => ({
-          role: h.role as 'user' | 'assistant',
-          content: h.content
-        }))
+      messages.push(
+        ...history
+          .filter((h: { role: string }) => h.role !== 'system')
+          .map((h: { role: string; content: string }) => ({
+            role: h.role as 'user' | 'assistant',
+            content: h.content,
+          }))
       )
     }
 
-    // Add current user message
-    messages.push({ role: 'user', content: message })
+    const lastMessage = history?.[history.length - 1]
+    const userMessageAlreadyInHistory =
+      lastMessage?.role === 'user' && lastMessage?.content === message
+
+    if (!userMessageAlreadyInHistory) {
+      messages.push({ role: 'user', content: message })
+    }
 
     // 6. Get provider config from agent or use defaults
     const providerConfig = agent.provider_config || {}
@@ -1097,12 +1474,6 @@ serve(async (req) => {
 
     const effectiveModelId = await resolveEffectiveModelId(supabaseClient, model_id)
 
-    const serverIds = await resolveAgentMcpServerIds(
-      supabaseClient,
-      agent_id,
-      Array.isArray(agent.mcp_server_ids) ? (agent.mcp_server_ids as string[]) : []
-    )
-    const mcpEnabled = serverIds.length > 0
     let mcpToolsUsed = 0
     let mcpPathUsed = false
     let mcpToolError: string | null = null
@@ -1137,6 +1508,7 @@ serve(async (req) => {
               max_tokens: maxTokens,
               temperature,
               require_tool_use: shouldRequireMcpToolUse(message),
+              user_query: message,
             }
           )
 
@@ -1209,7 +1581,8 @@ serve(async (req) => {
       response.input_tokens,
       response.output_tokens,
       0,
-      cost
+      cost,
+      { agent_id, conversation_id }
     )
 
     // 11. Update agent usage count

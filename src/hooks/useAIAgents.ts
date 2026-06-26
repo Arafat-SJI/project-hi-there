@@ -278,13 +278,70 @@ export function useToggleAgent() {
 
       if (error) throw error;
     },
+    onMutate: async ({ id, is_enabled }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.ai.agents });
+      await queryClient.cancelQueries({ queryKey: queryKeys.ai.agentCatalog });
+      await queryClient.cancelQueries({ queryKey: queryKeys.ai.agent(id) });
+
+      const previousAgents = queryClient.getQueryData<AIAgent[]>(queryKeys.ai.agents);
+      const previousCatalog = queryClient.getQueryData<
+        Array<{ agent: AIAgent; stats?: unknown; health: string }>
+      >(queryKeys.ai.agentCatalog);
+      const previousAgent = queryClient.getQueryData<AIAgent>(queryKeys.ai.agent(id));
+
+      if (previousAgents) {
+        queryClient.setQueryData(
+          queryKeys.ai.agents,
+          previousAgents.map((a) => (a.id === id ? { ...a, is_enabled } : a))
+        );
+      }
+
+      if (previousCatalog) {
+        queryClient.setQueryData(
+          queryKeys.ai.agentCatalog,
+          previousCatalog.map((item) => {
+            if (item.agent.id !== id) return item;
+            const agent = { ...item.agent, is_enabled };
+            const health = is_enabled
+              ? item.health === "inactive"
+                ? "active"
+                : item.health
+              : "inactive";
+            return { ...item, agent, health };
+          })
+        );
+      }
+
+      if (previousAgent) {
+        queryClient.setQueryData(queryKeys.ai.agent(id), {
+          ...previousAgent,
+          is_enabled,
+        });
+      }
+
+      return { previousAgents, previousCatalog, previousAgent };
+    },
     onSuccess: (_, variables) => {
-      invalidateKeys.ai(queryClient);
       toast.success(`Agent ${variables.is_enabled ? "enabled" : "disabled"}`);
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, variables, context) => {
+      if (context?.previousAgents) {
+        queryClient.setQueryData(queryKeys.ai.agents, context.previousAgents);
+      }
+      if (context?.previousCatalog) {
+        queryClient.setQueryData(queryKeys.ai.agentCatalog, context.previousCatalog);
+      }
+      if (context?.previousAgent) {
+        queryClient.setQueryData(
+          queryKeys.ai.agent(variables.id),
+          context.previousAgent
+        );
+      }
       console.error("Error toggling agent:", error);
       toast.error("Failed to update agent status");
+    },
+    onSettled: () => {
+      invalidateKeys.ai(queryClient);
     },
   });
 }
@@ -382,7 +439,8 @@ export function useRunAgent() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ai", "runs"] });
+      invalidateKeys.ai(queryClient);
+      queryClient.invalidateQueries({ queryKey: queryKeys.ai.agentCatalog });
       toast.success("Agent executed successfully!");
     },
     onError: (error: unknown) => {
