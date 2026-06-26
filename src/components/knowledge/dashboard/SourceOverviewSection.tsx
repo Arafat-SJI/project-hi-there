@@ -1,5 +1,9 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { useKnowledgeSourcesOverview } from "@/modules/knowledge/hooks/useKnowledgeDashboard";
+import { useKbSourceConfigs } from "@/hooks/useKbSourceConfig";
+import { PipelineConfigurationModal } from "@/components/knowledge/PipelineConfigurationModal";
+import { SlackDataSourcePanel } from "@/components/knowledge/SlackDataSourcePanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +23,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  Settings2,
 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
@@ -46,7 +51,16 @@ const INTEGRATION_LINKS = [
 
 export function SourceOverviewSection() {
   const { data, isLoading } = useKnowledgeSourcesOverview();
+  const { data: sourceConfigs } = useKbSourceConfigs();
   const sources = data?.sources ?? [];
+  const [pipelineSource, setPipelineSource] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const configBySourceId = new Map(
+    (sourceConfigs ?? []).map(({ source, config }) => [source.id, config])
+  );
 
   if (isLoading) {
     return (
@@ -109,6 +123,7 @@ export function SourceOverviewSection() {
                   <TableHead>Sync Status</TableHead>
                   <TableHead>Files</TableHead>
                   <TableHead>Last Synced</TableHead>
+                  <TableHead className="w-[100px]">Pipeline</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -141,6 +156,19 @@ export function SourceOverviewSection() {
                           ? formatDateTime(source.last_synced_at)
                           : "Never"}
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1"
+                          onClick={() =>
+                            setPipelineSource({ id: source.id, name: source.name })
+                          }
+                        >
+                          <Settings2 className="h-3.5 w-3.5" />
+                          Configure
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -149,6 +177,18 @@ export function SourceOverviewSection() {
           )}
         </CardContent>
       </Card>
+
+      <SlackDataSourcePanel />
+
+      {pipelineSource ? (
+        <PipelineConfigurationModal
+          open={!!pipelineSource}
+          onOpenChange={(open) => !open && setPipelineSource(null)}
+          sourceId={pipelineSource.id}
+          sourceName={pipelineSource.name}
+          config={configBySourceId.get(pipelineSource.id) ?? null}
+        />
+      ) : null}
     </div>
   );
 }

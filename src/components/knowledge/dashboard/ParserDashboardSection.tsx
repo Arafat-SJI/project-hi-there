@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useParserDashboard, type ParsedDocRow } from "@/hooks/useParserDashboard";
+import { OcrQualitySection } from "@/components/knowledge/dashboard/OcrQualitySection";
 
 function formatDuration(ms: number | null): string {
   if (ms === null) return "—";
@@ -197,6 +198,8 @@ export function ParserDashboardSection() {
           </CardContent>
         </Card>
       </div>
+
+      <OcrQualitySection />
 
       {/* Format Breakdown + Failure Log side by side */}
       <div className="grid gap-4 lg:grid-cols-2">

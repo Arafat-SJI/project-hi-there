@@ -8,8 +8,10 @@ export interface SearchResult {
   entity_type: string;
   entity_id: string;
   content: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   similarity: number;
+  rerank_score?: number;
+  reranked?: boolean;
 }
 
 export interface SemanticSearchOptions {

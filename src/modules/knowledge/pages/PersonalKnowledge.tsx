@@ -40,6 +40,10 @@ import {
   useUserKnowledgeStats,
   useProcessAllPendingFiles,
 } from "../hooks/useUserKnowledge";
+import { RecentSearchesTable } from "@/components/knowledge/personal/RecentSearchesTable";
+import { MemoryDecaySparkline } from "@/components/knowledge/personal/MemoryDecaySparkline";
+import { useMemoryDecayTrends } from "@/hooks/useMemoryDecayTrend";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 export default function PersonalKnowledge() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -53,6 +57,8 @@ export default function PersonalKnowledge() {
   const deleteFile = useDeleteUserKnowledgeFile();
   const deleteUnified = useDeleteUnifiedDocument();
   const processPending = useProcessAllPendingFiles();
+  const org = useOrganization();
+  const { data: memoryDecaySeries = [] } = useMemoryDecayTrends();
 
   const allFiles = [
     ...unifiedDocs.map((d) => ({
@@ -218,6 +224,50 @@ export default function PersonalKnowledge() {
           </Card>
         </div>
       )}
+
+      <RecentSearchesTable />
+
+      {org.features.enableKbMemoryDecay && memoryDecaySeries.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Memory decay trends</CardTitle>
+            <CardDescription>
+              7-point importance decay per stored memory (lower trend = fading relevance)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Memory</TableHead>
+                  <TableHead className="w-[120px]">Trend</TableHead>
+                  <TableHead>Current</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {memoryDecaySeries.map((series) => {
+                  const latest = series.points[series.points.length - 1];
+                  return (
+                    <TableRow key={series.memory_id}>
+                      <TableCell className="text-sm max-w-md truncate">
+                        {series.label}
+                      </TableCell>
+                      <TableCell>
+                        <MemoryDecaySparkline points={series.points} />
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {latest
+                          ? `${(latest.importance_score * 100).toFixed(0)}%`
+                          : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Upload Area */}
       <Card>
