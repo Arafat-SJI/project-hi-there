@@ -11,7 +11,7 @@ export interface PasswordPolicyResult {
   hibpCount?: number;
 }
 
-const MIN_LENGTH = 12;
+const MIN_LENGTH = 8;
 
 export function validatePasswordPolicy(password: string): PasswordPolicyResult {
   const errors: string[] = [];

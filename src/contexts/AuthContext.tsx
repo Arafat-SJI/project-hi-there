@@ -22,6 +22,12 @@ interface Profile {
   isEosUser?: boolean;
 }
 
+export interface SignUpResult {
+  needsEmailConfirmation: boolean;
+  email: string;
+  alreadyRegistered?: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
@@ -30,7 +36,8 @@ interface AuthContextType {
   /** True while fetchProfile (including role resolution) is in flight. */
   profileLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName?: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<SignUpResult>;
+  resendVerificationEmail: (email: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithMicrosoft: () => Promise<void>;
   signInWithSSO: (provider: 'google' | 'azure', scopes?: string[]) => Promise<void>;
@@ -267,23 +274,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const authRedirectUrl = () => `${window.location.origin}/auth/callback`;
+
   // Sign up with email/password
-  const signUp = async (email: string, password: string, fullName?: string) => {
+  const signUp = async (email: string, password: string, fullName?: string): Promise<SignUpResult> => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: authRedirectUrl(),
           data: {
             full_name: fullName,
           },
         },
       });
       if (error) throw error;
-      toast({
-        title: "Account created!",
-        description: "Please check your email to verify your account.",
-      });
+
+      const alreadyRegistered =
+        !!data.user && (!data.user.identities || data.user.identities.length === 0);
+      const needsEmailConfirmation = !data.session && !!data.user && !alreadyRegistered;
+
+      if (alreadyRegistered) {
+        toast({
+          title: "Account may already exist",
+          description: "Try signing in or use password reset if you forgot your password.",
+          variant: "destructive",
+        });
+        return { needsEmailConfirmation: false, email, alreadyRegistered: true };
+      }
+
+      if (needsEmailConfirmation) {
+        toast({
+          title: "Account created!",
+          description: "Check your email for a verification link.",
+        });
+      } else {
+        toast({
+          title: "Account created!",
+          description: "You're signed in and ready to go.",
+        });
+      }
+
+      return { needsEmailConfirmation, email };
     } catch (error) {
       const authError = error as AuthError;
       toast({
@@ -293,6 +326,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       throw error;
     }
+  };
+
+  const resendVerificationEmail = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: authRedirectUrl(),
+      },
+    });
+    if (error) throw error;
+    toast({
+      title: "Verification email sent",
+      description: "Check your inbox and spam folder for the confirmation link.",
+    });
   };
 
   // Sign in with Google
@@ -535,6 +583,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profileLoading,
     signIn,
     signUp,
+    resendVerificationEmail,
     signInWithGoogle,
     signInWithMicrosoft,
     signInWithSSO,

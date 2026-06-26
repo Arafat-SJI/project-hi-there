@@ -27,7 +27,7 @@ function validatePasswordPolicy(password: string) {
   const errors: string[] = [];
   const warnings: string[] = [];
   let score = 0;
-  if (!password || password.length < 12) errors.push("Password must be at least 12 characters");
+  if (!password || password.length < 8) errors.push("Password must be at least 8 characters");
   else score += 20;
   if (/[a-z]/.test(password)) score += 15;
   else errors.push("Password must include a lowercase letter");
