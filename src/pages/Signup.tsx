@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Brain, Mail } from "lucide-react";
 import { checkSignupDomainAllowed } from "@/hooks/useSignupWhitelist";
-import { EmailValidatorWidget } from "@/components/security/EmailValidatorWidget";
+import { EmailValidationIndicator } from "@/components/auth/EmailValidationIndicator";
 import { PasswordStrengthMeter } from "@/components/security/PasswordStrengthMeter";
 
 export default function Signup() {
@@ -235,12 +235,25 @@ export default function Signup() {
                   className="h-10"
                 />
               </div>
-              <EmailValidatorWidget
-                value={email}
-                onChange={setEmail}
-                onValidChange={setEmailValid}
-                disabled={loading}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="h-10"
+                />
+                <EmailValidationIndicator
+                  email={email}
+                  onValidationChange={(result) => setEmailValid(result.isValid)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                 <Input
