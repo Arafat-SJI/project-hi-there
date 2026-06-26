@@ -32,7 +32,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
   const value: BrandingContextType = {
     companyName: config?.branding?.companyName || "Control Tower",
     tagline: config?.branding?.tagline || "AI-Powered Collaboration Platform",
-    supportEmail: config?.branding?.supportEmail || "support@collabai.software",
+    supportEmail: config?.branding?.supportEmail || "support@control-tower.app",
     logoUrl: config?.branding?.logoUrl || undefined,
     faviconUrl: config?.branding?.faviconUrl || undefined,
     primaryColor,
