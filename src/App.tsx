@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BrandingProvider } from "@/contexts/BrandingContext";
+import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ThemeSync } from "@/components/ThemeSync";
 import { AppRoutes } from "@/components/routing/AppRoutes";
 
@@ -17,6 +18,7 @@ const App = () => (
       <AuthProvider>
         <ThemeSync />
         <BrandingProvider>
+          <OrganizationProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -24,6 +26,7 @@ const App = () => (
               <AppRoutes />
             </BrowserRouter>
           </TooltipProvider>
+          </OrganizationProvider>
         </BrandingProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -27,6 +27,11 @@ import {
 } from "@/hooks/useAIModelPolicy";
 import { ModelSelect } from "@/components/ai/ModelSelect";
 import { MemoryCitationPill, parseMemoryCitations } from "@/components/ai/MemoryCitationPill";
+import {
+  KnowledgeCitationBlock,
+  parseKnowledgeCitations,
+} from "@/components/ai/KnowledgeCitationBlock";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { AgentResponseMarkdown } from "@/components/ai/AgentResponseMarkdown";
 import { MessageFeedbackRow } from "@/components/ai/MessageFeedbackRow";
 import {
@@ -58,6 +63,7 @@ export function AgentConversationView({
   const { data: messages, isLoading: messagesLoading, isError: messagesError, refetch: refetchMessages } =
     useAgentMessages(conversationId);
   const sendMessage = useSendMessage();
+  const org = useOrganization();
 
   const {
     visibleModels,
@@ -262,6 +268,13 @@ export function AgentConversationView({
                 message.metadata,
                 message.citations
               );
+              const knowledgeCitations = parseKnowledgeCitations(
+                message.metadata,
+                message.citations
+              );
+              const responseReranked =
+                org.features.enableKbCohere &&
+                message.metadata?.reranked === true;
 
               return (
                 <div
@@ -295,6 +308,13 @@ export function AgentConversationView({
 
                     {message.role === "assistant" && memoryCitations.length > 0 ? (
                       <MemoryCitationPill citations={memoryCitations} />
+                    ) : null}
+
+                    {message.role === "assistant" && knowledgeCitations.length > 0 ? (
+                      <KnowledgeCitationBlock
+                        citations={knowledgeCitations}
+                        reranked={responseReranked}
+                      />
                     ) : null}
 
                     <div className="flex items-center justify-between mt-2 gap-2">

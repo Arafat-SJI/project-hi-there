@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, FlaskConical, Save } from "lucide-react";
 import { useKbRagPlayground } from "@/hooks/useKbRagPlayground";
 import { useKbSourceConfigs } from "@/hooks/useKbSourceConfig";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { KbSearchResultSnippet } from "@/components/knowledge/search/KbSearchResultSnippet";
+import { KbRerankBadge } from "@/components/knowledge/search/KbRerankBadge";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 export default function KnowledgePlayground() {
   const [query, setQuery] = useState("");
@@ -17,6 +18,7 @@ export default function KnowledgePlayground() {
   const [expectedAnswer, setExpectedAnswer] = useState("");
   const playground = useKbRagPlayground();
   const { data: sources } = useKbSourceConfigs();
+  const org = useOrganization();
   const result = playground.data;
 
   const runQuery = (saveRun = false, saveTest = false) => {
@@ -91,28 +93,33 @@ export default function KnowledgePlayground() {
           </div>
 
           <Card>
-            <CardHeader><CardTitle>Retrieved Chunks</CardTitle></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Chunk</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Similarity</TableHead>
-                    <TableHead>Rerank</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {result.retrieved_chunks.map((c) => (
-                    <TableRow key={c.chunk_id}>
-                      <TableCell className="max-w-md truncate">{c.content}</TableCell>
-                      <TableCell><Badge variant="outline">{c.source}</Badge></TableCell>
-                      <TableCell>{c.similarity_score.toFixed(3)}</TableCell>
-                      <TableCell>{c.rerank_score?.toFixed(3) ?? "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardHeader>
+              <CardTitle className="flex flex-wrap items-center gap-2">
+                Retrieved Chunks
+                {org.features.enableKbCohere && result.reranked_results?.length ? (
+                  <KbRerankBadge reranked />
+                ) : null}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {result.retrieved_chunks.map((c) => (
+                <KbSearchResultSnippet
+                  key={c.chunk_id}
+                  result={{
+                    id: c.chunk_id,
+                    content: c.content,
+                    similarity: c.similarity_score,
+                    rerank_score: c.rerank_score,
+                    reranked: org.features.enableKbCohere && !!c.rerank_score,
+                    metadata: {
+                      title: c.source,
+                      chunk_layout_type: (c as { metadata?: { chunk_layout_type?: string } }).metadata?.chunk_layout_type,
+                    },
+                  }}
+                  reranked={org.features.enableKbCohere && !!c.rerank_score}
+                  maxContentLength={400}
+                />
+              ))}
             </CardContent>
           </Card>
 

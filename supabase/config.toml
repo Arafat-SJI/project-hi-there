@@ -515,6 +515,9 @@ verify_jwt = false
 [functions.kb-reprocess]
 verify_jwt = false
 
+[functions.kb-sync-slack]
+verify_jwt = false
+
 [functions.accept-user-invite]
 verify_jwt = false
 

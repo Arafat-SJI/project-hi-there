@@ -97,6 +97,12 @@ export const queryKeys = {
     bulkReembed: (jobId: string) => ["knowledge", "bulkReembed", jobId] as const,
     permissions: ["knowledge", "permissions"] as const,
     health: ["knowledge", "health"] as const,
+    ocrQuality: ["knowledge", "ocrQuality"] as const,
+    slackChannels: ["knowledge", "slackChannels"] as const,
+    slackSyncLedger: (limit: number) => ["knowledge", "slackSyncLedger", limit] as const,
+    userSearchHistory: (userId: string, limit: number) =>
+      ["knowledge", "userSearchHistory", userId, limit] as const,
+    memoryDecay: (userId: string) => ["knowledge", "memoryDecay", userId] as const,
     memoryAdmin: (action: string, ...args: (string | undefined)[]) =>
       ["knowledge", "memoryAdmin", action, ...args.filter(Boolean)] as const,
   },

@@ -34,6 +34,11 @@ export interface AppConfig {
     useGenericMeetings: boolean;
     enableFourSpaces: boolean;
     enableAutomations: boolean;
+    enableKbCohere: boolean;
+    enableKbSlack: boolean;
+    enableKbOcr: boolean;
+    enableKbParserAdvanced: boolean;
+    enableKbMemoryDecay: boolean;
   };
   // Email
   email: {
@@ -211,6 +216,11 @@ export function useResetAppConfig() {
           useGenericMeetings: false,
           enableFourSpaces: false,
           enableAutomations: true,
+          enableKbCohere: false,
+          enableKbSlack: false,
+          enableKbOcr: false,
+          enableKbParserAdvanced: false,
+          enableKbMemoryDecay: false,
         },
         email: {
           enableEmailNotifications: true,

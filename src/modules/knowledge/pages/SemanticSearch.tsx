@@ -12,11 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search,
   Brain,
-  FileText,
   Loader2,
   ArrowRight,
   Sparkles,
@@ -25,32 +24,27 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useKnowledgeSearch } from "../hooks/useKnowledge";
-import { formatDate, truncateText } from "@/lib/utils";
+import { useRecordKbSearch } from "@/hooks/useKbUserSearchHistory";
+import { KbSearchResultSnippet } from "@/components/knowledge/search/KbSearchResultSnippet";
+import { getConfidenceScore } from "@/lib/kb-confidence";
+import type { KbSearchResultBase } from "@/types/knowledgeV2";
 
-interface SemanticResult {
-  id: string;
-  content: string;
-  similarity: number;
-  metadata: {
-    entity_type?: string;
-    entity_id?: string;
-    title?: string;
-    chunk_index?: number;
-    [key: string]: any;
-  };
+interface SemanticResult extends KbSearchResultBase {
+  entity_type?: string;
+  entity_id?: string;
 }
 
 export default function SemanticSearch() {
   const [query, setQuery] = useState("");
   const [searchMode, setSearchMode] = useState<"text" | "semantic">("semantic");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [lastReranked, setLastReranked] = useState(false);
+  const recordSearch = useRecordKbSearch();
 
-  // Text-based search using existing hook
   const { data: textResults = [], isLoading: textLoading } = useKnowledgeSearch(
     searchMode === "text" ? query : ""
   );
 
-  // Semantic search via edge function
   const semanticSearch = useMutation({
     mutationFn: async (searchQuery: string) => {
       const { data, error } = await supabase.functions.invoke("semantic-search", {
@@ -62,7 +56,18 @@ export default function SemanticSearch() {
       });
 
       if (error) throw error;
-      return (data?.results || []) as SemanticResult[];
+      return {
+        results: (data?.results || []) as SemanticResult[],
+        reranked: Boolean(data?.reranked),
+      };
+    },
+    onSuccess: (data, searchQuery) => {
+      setLastReranked(data.reranked);
+      recordSearch.mutate({
+        query: searchQuery,
+        platform: "web",
+        result_count: data.results.length,
+      });
     },
   });
 
@@ -71,9 +76,14 @@ export default function SemanticSearch() {
 
     if (searchMode === "semantic") {
       semanticSearch.mutate(query);
+    } else {
+      recordSearch.mutate({
+        query: query.trim(),
+        platform: "web",
+        result_count: textResults.length,
+      });
     }
 
-    // Track search history (deduplicated, last 10)
     setSearchHistory((prev) => {
       const filtered = prev.filter((h) => h !== query);
       return [query, ...filtered].slice(0, 10);
@@ -85,27 +95,15 @@ export default function SemanticSearch() {
   };
 
   const isLoading = searchMode === "text" ? textLoading : semanticSearch.isPending;
-  const semanticResults = semanticSearch.data || [];
+  const semanticResults = semanticSearch.data?.results ?? [];
   const hasResults = searchMode === "text" ? textResults.length > 0 : semanticResults.length > 0;
-  const hasSearched = searchMode === "text" ? query.length >= 2 : semanticSearch.isSuccess || semanticSearch.isError;
-
-  const getSimilarityColor = (score: number) => {
-    if (score >= 0.85) return "text-green-600 bg-green-50 border-green-200";
-    if (score >= 0.7) return "text-blue-600 bg-blue-50 border-blue-200";
-    if (score >= 0.55) return "text-yellow-600 bg-yellow-50 border-yellow-200";
-    return "text-gray-600 bg-gray-50 border-gray-200";
-  };
-
-  const getSimilarityLabel = (score: number) => {
-    if (score >= 0.85) return "Highly Relevant";
-    if (score >= 0.7) return "Relevant";
-    if (score >= 0.55) return "Somewhat Relevant";
-    return "Low Match";
-  };
+  const hasSearched =
+    searchMode === "text"
+      ? query.length >= 2
+      : semanticSearch.isSuccess || semanticSearch.isError;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -124,7 +122,6 @@ export default function SemanticSearch() {
         </Button>
       </div>
 
-      {/* Search Section */}
       <Card>
         <CardHeader>
           <Tabs value={searchMode} onValueChange={(v) => setSearchMode(v as "text" | "semantic")}>
@@ -171,7 +168,6 @@ export default function SemanticSearch() {
             </Button>
           </div>
 
-          {/* Search History */}
           {searchHistory.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Clock className="h-3 w-3 text-muted-foreground" />
@@ -195,7 +191,6 @@ export default function SemanticSearch() {
         </CardContent>
       </Card>
 
-      {/* Results */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
           <div className="text-center space-y-3">
@@ -209,7 +204,6 @@ export default function SemanticSearch() {
         </div>
       )}
 
-      {/* Semantic Results */}
       {searchMode === "semantic" && !isLoading && hasSearched && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -220,7 +214,14 @@ export default function SemanticSearch() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <BarChart3 className="h-4 w-4" />
                 <span>
-                  Top score: {(semanticResults[0]?.similarity * 100).toFixed(1)}%
+                  Top score:{" "}
+                  {(
+                    getConfidenceScore({
+                      similarity: semanticResults[0]?.similarity ?? 0,
+                      rerank_score: semanticResults[0]?.rerank_score,
+                    }) * 100
+                  ).toFixed(1)}
+                  %
                 </span>
               </div>
             )}
@@ -238,54 +239,25 @@ export default function SemanticSearch() {
           ) : (
             <div className="space-y-3">
               {semanticResults.map((result, idx) => (
-                <Card key={result.id || idx} className="hover:shadow-md transition-all">
-                  <CardContent className="pt-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                          {result.metadata?.title ? (
-                            <Link
-                              to={`/knowledge/${result.metadata.entity_id}`}
-                              className="font-medium hover:text-primary hover:underline"
-                            >
-                              {result.metadata.title}
-                            </Link>
-                          ) : (
-                            <span className="font-medium text-muted-foreground">
-                              {result.metadata?.entity_type || "Knowledge"} chunk
-                            </span>
-                          )}
-                          {result.metadata?.chunk_index !== undefined && (
-                            <Badge variant="outline" className="text-xs">
-                              Chunk {result.metadata.chunk_index + 1}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground line-clamp-3">
-                          {truncateText(result.content, 300)}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div
-                          className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold ${getSimilarityColor(result.similarity)}`}
-                        >
-                          {(result.similarity * 100).toFixed(1)}%
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {getSimilarityLabel(result.similarity)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <KbSearchResultSnippet
+                  key={result.id || idx}
+                  result={{
+                    ...result,
+                    metadata: {
+                      ...result.metadata,
+                      entity_id: result.metadata?.entity_id ?? result.entity_id,
+                      title: result.metadata?.title,
+                    },
+                    reranked: lastReranked,
+                  }}
+                  reranked={lastReranked}
+                />
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* Text Search Results */}
       {searchMode === "text" && !textLoading && query.length >= 2 && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">
@@ -319,11 +291,8 @@ export default function SemanticSearch() {
                     </CardHeader>
                     <CardContent>
                       <p className="line-clamp-3 text-sm text-muted-foreground">
-                        {truncateText(entry.summary || entry.content, 150)}
+                        {entry.summary || entry.content}
                       </p>
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {formatDate(entry.created_at)}
-                      </div>
                     </CardContent>
                   </Card>
                 </Link>
@@ -333,7 +302,6 @@ export default function SemanticSearch() {
         </div>
       )}
 
-      {/* Info Card when no search has been performed */}
       {!hasSearched && !isLoading && query.length < 2 && (
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
@@ -371,7 +339,7 @@ export default function SemanticSearch() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Each result shows a similarity score so you can assess relevance at a glance.
+                Each result shows a confidence tier (High / Medium / Low) at a glance.
               </p>
             </CardContent>
           </Card>
