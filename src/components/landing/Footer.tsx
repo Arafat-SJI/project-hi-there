@@ -52,7 +52,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
             >
-              Visit collabai.software →
+              Visit Control Tower →
             </a>
           </div>
 

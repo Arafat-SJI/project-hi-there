@@ -185,7 +185,7 @@ export function useResetAppConfig() {
         branding: {
           companyName: "Control Tower",
           tagline: "AI-Powered Collaboration Platform",
-          supportEmail: "support@collabai.software",
+          supportEmail: "support@control-tower.app",
           logoUrl: "",
           faviconUrl: "",
           primaryColor: "#6366f1",
@@ -215,7 +215,7 @@ export function useResetAppConfig() {
         email: {
           enableEmailNotifications: true,
           fromName: "Control Tower",
-          fromEmail: "noreply@collabai.software",
+          fromEmail: "noreply@control-tower.app",
         },
         system: {
           maintenanceMode: false,
