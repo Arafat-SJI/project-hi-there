@@ -1202,6 +1202,70 @@ function isIntegrationTaskQuery(message: string): boolean {
   return mentionsTask && mentionsIntegration
 }
 
+interface GraphContextNode {
+  entity_type?: string
+  display_name?: string
+}
+
+function formatAgentGraphContext(nodes: GraphContextNode[]): string {
+  if (!nodes.length) return ''
+  const meetings = nodes.filter((n) => n.entity_type === 'meeting' && n.display_name)
+  const others = nodes.filter((n) => n.entity_type !== 'meeting' && n.display_name)
+  const lines: string[] = []
+  if (meetings.length > 0) {
+    lines.push('Meetings (authoritative — use ONLY these exact titles):')
+    for (const m of meetings) {
+      lines.push(`- ${m.display_name}`)
+    }
+  }
+  for (const o of others) {
+    lines.push(`- ${o.entity_type}: ${o.display_name}`)
+  }
+  return `[Graph Context]\n${lines.join('\n')}`
+}
+
+const GRAPH_PRIORITY_NOTE =
+  '\n\nGRAPH RETRIEVAL RULE: The [Graph Context] block is authoritative for entity names (meetings, clients, contacts). List those exact display names. Never invent meeting titles or client names not listed in [Graph Context].\n'
+
+async function fetchGraphContextForAgent(
+  baseUrl: string,
+  anonKey: string,
+  authHeader: string,
+  query: string
+): Promise<{ block: string; nodeCount: number }> {
+  const graphRes = await fetch(`${baseUrl}/functions/v1/graphify-query`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: authHeader,
+      ...(anonKey ? { apikey: anonKey } : {}),
+    },
+    body: JSON.stringify({ query, limit: 10 }),
+  })
+  if (!graphRes.ok) {
+    const errText = await graphRes.text().catch(() => '')
+    console.warn('graphify-query returned non-OK:', graphRes.status, errText.slice(0, 200))
+    return { block: '', nodeCount: 0 }
+  }
+  const graphBody = await graphRes.json()
+  const nodes = [
+    ...(Array.isArray(graphBody.context_nodes) ? graphBody.context_nodes : []),
+    ...(Array.isArray(graphBody.entities) ? graphBody.entities : []),
+  ] as GraphContextNode[]
+  const seen = new Set<string>()
+  const deduped = nodes.filter((n) => {
+    const key = `${n.entity_type ?? ''}:${n.display_name ?? ''}`
+    if (!n.display_name || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  const formatted = formatAgentGraphContext(deduped)
+  return {
+    block: formatted ? `\n\n${formatted}\n` : '',
+    nodeCount: deduped.length,
+  }
+}
+
 function shouldRequireMcpToolUse(message: string): boolean {
   if (isIntegrationTaskQuery(message)) return true
   const normalized = message.toLowerCase()
@@ -1364,21 +1428,51 @@ serve(async (req) => {
           // When agent has rag_enabled, search ALL embeddings (org-wide data like ClickUp tasks)
           // Only scope to user when explicitly not using all knowledge AND agent doesn't have rag_enabled
           const searchUserId = (agent.rag_enabled === true || personalization?.use_all_knowledge) ? null : user_id
-          console.log(`RAG search: query="${message.substring(0, 80)}", threshold=${ragThreshold}, count=${ragCount}, rag_enabled=${agent.rag_enabled}, searchUserId=${searchUserId}`)
+          const useGraphify = agent.graphify_enabled === true
+          console.log(`RAG search: query="${message.substring(0, 80)}", threshold=${ragThreshold}, count=${ragCount}, rag_enabled=${agent.rag_enabled}, graphify=${useGraphify}, searchUserId=${searchUserId}`)
+          const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+          const incomingAuth = req.headers.get('Authorization')
+
+          let graphContextBlock = ''
+          let graphPriorityNote = ''
+          if (useGraphify && incomingAuth && baseUrl) {
+            const graph = await fetchGraphContextForAgent(baseUrl, anonKey, incomingAuth, message)
+            graphContextBlock = graph.block
+            graphPriorityNote = graphContextBlock ? GRAPH_PRIORITY_NOTE : ''
+            console.log(`RAG graph (graphify-query): nodes=${graph.nodeCount}, context_chars=${graphContextBlock.length}`)
+          }
+
           const semRes = await fetch(`${baseUrl}/functions/v1/semantic-search`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: incomingAuth ?? `Bearer ${serviceKey}`,
+              ...(anonKey ? { apikey: anonKey } : {}),
+            },
             body: JSON.stringify({
               query: message,
               match_threshold: ragThreshold,
               match_count: ragCount,
               entity_type: integrationTaskQuery ? 'task' : null,
               user_id: searchUserId,
+              acting_user_id: user_id,
+              // Graph context loaded via graphify-query (user JWT); vector-only here
+              use_graphify: useGraphify && !graphContextBlock,
             }),
           })
           if (semRes.ok) {
             const semBody = await semRes.json()
             const rawDocs = semBody.results ?? []
+            if (!graphContextBlock && semBody.graph_context) {
+              graphContextBlock = `\n\n${semBody.graph_context}\n`
+              graphPriorityNote = GRAPH_PRIORITY_NOTE
+              const graphEntityCount = Array.isArray(semBody.graph_entities)
+                ? semBody.graph_entities.length
+                : 0
+              console.log(
+                `RAG graph (semantic-search fallback): entities=${graphEntityCount}, context_chars=${graphContextBlock.length}`
+              )
+            }
             const relevantDocs = integrationTaskQuery
               ? rawDocs.filter((doc: { metadata?: { source?: string } }) => {
                   const source = doc.metadata?.source?.toLowerCase()
@@ -1409,7 +1503,9 @@ serve(async (req) => {
             }
 
             if (relevantDocs.length > 0 || ragSummary) {
-              ragContext = '\n\nRELEVANT CONTEXT (from knowledge base):\nYou MUST answer from the retrieved context below when it is relevant. Treat the retrieved records and summaries as authoritative. If a summary includes an exact total, use that total directly in your answer. Only say the context is insufficient when there is truly no relevant context.\n\n'
+              ragContext = graphContextBlock
+                + graphPriorityNote
+                + '\n\nRELEVANT CONTEXT (from knowledge base):\nYou MUST answer from the retrieved context below when it is relevant. Treat the retrieved records and summaries as authoritative. If a summary includes an exact total, use that total directly in your answer. Only say the context is insufficient when there is truly no relevant context.\n\n'
                 + (ragSummary ? `${ragSummary}\n\n` : '')
                 + relevantDocs
                   .map((doc: { content?: string; entity_type?: string; similarity?: number; metadata?: { source?: string } }, i: number) => {
@@ -1417,6 +1513,10 @@ serve(async (req) => {
                     return `[${i + 1}] (${source}, relevance: ${(doc.similarity ?? 0).toFixed(2)})\n${doc.content ?? ''}`
                   })
                   .join('\n\n')
+            } else if (graphContextBlock) {
+              ragContext = graphContextBlock
+                + graphPriorityNote
+                + '\n\nINSTRUCTIONS: Answer using the [Graph Context] entities above. List meeting, client, and contact names exactly as shown. Do not invent entities that are not in the graph context.\n'
             }
           } else {
             console.warn('RAG semantic search returned non-OK:', semRes.status)

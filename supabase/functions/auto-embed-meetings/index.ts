@@ -63,8 +63,15 @@ serve(async (req) => {
     }
 
     let processedCount = 0
+    let graphifySynced = 0
 
     for (const file of files) {
+      const metadata = {
+        meeting_topic: file.meeting_topic,
+        meeting_date: file.meeting_start_time,
+        meeting_id: file.meeting_id ?? undefined,
+      }
+
       // Call generate-embeddings function
       const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-embeddings`, {
         method: 'POST',
@@ -76,14 +83,16 @@ serve(async (req) => {
           entity_type: 'meeting_transcript',
           entity_id: file.id,
           content: file.transcript_text,
-          metadata: {
-            meeting_topic: file.meeting_topic,
-            meeting_date: file.meeting_start_time,
-          },
+          metadata,
         }),
       })
 
       if (response.ok) {
+        const result = await response.json().catch(() => ({}))
+        if (result?.graphify && !result.graphify.skipped) {
+          graphifySynced++
+        }
+
         await supabaseClient
           .from('zoom_files')
           .update({ has_embeddings: true, processing_status: 'completed' })
@@ -106,6 +115,7 @@ serve(async (req) => {
         success: true,
         processed_count: processedCount,
         total_found: files.length,
+        graphify_synced: graphifySynced,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )

@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { generateEmbedding, getModel, logUsage, calculateCost } from '../_shared/ai-provider-routing.ts'
 import { chunkText } from '../_shared/chunking/index.ts'
 import { loadSourceConfig } from '../_shared/kb-source-config.ts'
+import { syncGraphOnIngest } from '../_shared/graphify-ingest.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -119,6 +120,14 @@ serve(async (req) => {
 
     if (error) throw error
 
+    const graphify = await syncGraphOnIngest(supabaseClient, {
+      entity_type,
+      entity_id,
+      content,
+      metadata,
+      user_id,
+    })
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -128,6 +137,7 @@ serve(async (req) => {
         estimated_cost: totalCost,
         model_used: model.name,
         chunk_strategy: chunkingConfig.chunk_strategy,
+        graphify,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )

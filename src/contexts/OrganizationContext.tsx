@@ -29,6 +29,7 @@ const DEFAULT_FEATURES: OrganizationFeatures = {
   enableKbOcr: false,
   enableKbParserAdvanced: false,
   enableKbMemoryDecay: false,
+  enableGraphify: false,
 }
 
 const OrganizationContext = createContext<OrganizationContextValue>({

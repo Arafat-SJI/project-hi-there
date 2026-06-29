@@ -55,6 +55,7 @@ serve(async (req) => {
     }
 
     let processedCount = 0;
+    let graphifySynced = 0;
     const results = [];
 
     // Get the default embedding model from ai_models table
@@ -124,12 +125,16 @@ serve(async (req) => {
             .eq("id", entry.id);
 
           processedCount++;
+          if (result.graphify && !result.graphify.skipped) {
+            graphifySynced++;
+          }
           results.push({
             entry_id: entry.id,
             title: entry.title,
             success: true,
             chunks_created: result.embeddings_created,
             model_used: result.model_used,
+            graphify: result.graphify,
           });
         } else {
           throw new Error(
@@ -171,6 +176,7 @@ serve(async (req) => {
         success: true,
         processed_count: processedCount,
         total_found: entries.length,
+        graphify_synced: graphifySynced,
         results,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -14,6 +14,7 @@ import { eosRoutes } from "@/modules/eos";
 import { projectsRoutes } from "@/modules/projects";
 import { productivityRoutes } from "@/modules/productivity";
 import { automationRoutes } from "@/modules/automation";
+import { graphifyRoutes } from "@/modules/graphify";
 import { adminRoutes } from "@/modules/admin";
 import ClientPortalDashboard from "@/pages/client/ClientPortalDashboard";
 import ProjectDashboard from "@/pages/client/ProjectDashboard";
@@ -55,6 +56,7 @@ export function AppRoutes() {
           {projectsRoutes}
           {productivityRoutes}
           {automationRoutes}
+          {graphifyRoutes}
         </Route>
 
         <Route element={<AdminRoute />}>

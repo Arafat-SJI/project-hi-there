@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS public.user_invites (
 ALTER TABLE public.user_invites ENABLE ROW LEVEL SECURITY;
 
 -- Only admins can manage invites
+DROP POLICY IF EXISTS "Admins can manage invites" ON public.user_invites;
 CREATE POLICY "Admins can manage invites"
   ON public.user_invites
   FOR ALL

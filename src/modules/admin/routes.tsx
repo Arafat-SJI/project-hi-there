@@ -84,6 +84,11 @@ import AIAnalytics from "@/pages/admin/ai/AIAnalytics";
 import KnowledgeSearch from "@/pages/admin/ai-hub/KnowledgeSearch";
 import Memory from "@/pages/admin/ai-hub/Memory";
 import { adminNotificationRoutes } from "@/modules/notifications/adminRoutes";
+import GraphifyDashboard from "@/pages/admin/graphify/GraphifyDashboard";
+import GraphifyConfig from "@/pages/admin/graphify/GraphifyConfig";
+import GraphifySyncStatus from "@/pages/admin/graphify/GraphifySyncStatus";
+import GraphifyAnalytics from "@/pages/admin/graphify/GraphifyAnalytics";
+import GraphifyCoverage from "@/pages/admin/graphify/GraphifyCoverage";
 import DesignTokens from "@/pages/admin/DesignTokens";
 
 /**
@@ -229,5 +234,12 @@ export const adminRoutes = (
     <Route path="/admin/oauth-clients" element={<OAuthClients />} />
     <Route path="/admin/api-keys" element={<ApiKeys />} />
     <Route path="/admin/meeting-analytics" element={<Navigate to="/meetings/analytics" replace />} />
+
+    {/* Graphify Admin */}
+    <Route path="/admin/graphify" element={<GraphifyDashboard />} />
+    <Route path="/admin/graphify/analytics" element={<GraphifyAnalytics />} />
+    <Route path="/admin/graphify/coverage" element={<GraphifyCoverage />} />
+    <Route path="/admin/graphify/config" element={<GraphifyConfig />} />
+    <Route path="/admin/graphify/sync" element={<GraphifySyncStatus />} />
   </>
 );

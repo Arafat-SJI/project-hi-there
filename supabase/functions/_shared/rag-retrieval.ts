@@ -30,6 +30,14 @@ export interface RetrievalOptions {
   client_name?: string | null
   skip_rerank?: boolean
   model_id?: string
+  /** When set with features.enableGraphify, delegates to performGraphAwareRetrieval */
+  graphify?: {
+    enabled?: boolean
+    tenant_id?: string
+    depth?: number
+    seed_entity_types?: string[] | null
+    max_nodes?: number
+  }
 }
 
 export interface RetrievalResponse {

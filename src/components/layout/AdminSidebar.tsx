@@ -65,6 +65,7 @@ import {
   Mail,
   FolderKanban,
   ListChecks,
+  HeartPulse,
   type LucideIcon,
 } from "lucide-react";
 
@@ -104,6 +105,7 @@ const iconMap: Record<string, LucideIcon> = {
   Mail,
   FolderKanban,
   ListChecks,
+  HeartPulse,
 };
 
 function resolveIcon(name: string): LucideIcon {

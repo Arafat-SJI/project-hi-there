@@ -580,3 +580,21 @@ verify_jwt = false
 
 [functions.automation-webhook-receiver]
 verify_jwt = false
+
+[functions.graphify-query]
+verify_jwt = false
+
+[functions.graphify-backfill]
+verify_jwt = false
+
+[functions.graphify-sync-relationships]
+verify_jwt = false
+
+[functions.graphify-extract-entities]
+verify_jwt = false
+
+[functions.graphify-analytics]
+verify_jwt = false
+
+[functions.graphify-coverage]
+verify_jwt = false
