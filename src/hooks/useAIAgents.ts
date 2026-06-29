@@ -18,6 +18,7 @@ export interface AIAgent {
   is_enabled: boolean;
   memory_enabled: boolean;
   rag_enabled: boolean;
+  graphify_enabled: boolean;
   metadata: unknown;
   created_at: string;
   updated_at: string;
@@ -76,6 +77,7 @@ export interface AgentFormData {
   mcp_server_ids?: string[];
   tools_config?: unknown[];
   rag_enabled: boolean;
+  graphify_enabled?: boolean;
 }
 
 // Fetch all agents
@@ -163,6 +165,7 @@ export function useCreateAgent() {
           is_enabled: data.is_enabled,
           memory_enabled: data.memory_enabled,
           rag_enabled: data.rag_enabled ?? false,
+          graphify_enabled: data.graphify_enabled ?? false,
           // Conversation fields
           avatar: data.avatar || null,
           welcome_message: data.welcome_message || null,
@@ -221,6 +224,7 @@ export function useUpdateAgent() {
       if (data.is_enabled !== undefined) updateData.is_enabled = data.is_enabled;
       if (data.memory_enabled !== undefined) updateData.memory_enabled = data.memory_enabled;
       if (data.rag_enabled !== undefined) updateData.rag_enabled = data.rag_enabled;
+      if (data.graphify_enabled !== undefined) updateData.graphify_enabled = data.graphify_enabled;
       // Conversation fields
       if (data.avatar !== undefined) updateData.avatar = data.avatar || null;
       if (data.welcome_message !== undefined) updateData.welcome_message = data.welcome_message || null;

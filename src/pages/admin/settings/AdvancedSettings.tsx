@@ -75,6 +75,7 @@ export default function AdvancedSettings() {
               ["enableNotifications", "Notifications", "Enable notification system"],
               ["enableAutomations", "Automation Engine", "Enable workflow automation engine"],
               ["enableSemanticSearch", "Semantic Search", "Enable AI-powered semantic search"],
+              ["enableGraphify", "Graphify", "Enable knowledge graph and hybrid graph-aware retrieval"],
               ["enableClients", "Clients Module", "Enable client/CRM management"],
               ["enableAIAgents", "AI Agents", "Enable AI agents management"],
               ["enablePersonalKnowledge", "Personal Knowledge", "Enable user personal file uploads"],

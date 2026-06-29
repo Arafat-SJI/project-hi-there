@@ -27,6 +27,7 @@ export type ModuleId =
   | "business-dev"
   | "lead-followup"
   | "knowledge"
+  | "graphify"
   | "productivity"
   | "automation"
   | "admin";
@@ -102,6 +103,17 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     dependencies: ["platform"],
     defaultEnabled: true,
     featureFlags: ["enableKnowledgeBase", "enablePersonalKnowledge", "enableSemanticSearch"],
+  },
+  graphify: {
+    id: "graphify",
+    name: "Graphify",
+    description: "Knowledge graph intelligence with relationship-based retrieval and hybrid RAG context",
+    icon: "Network",
+    category: "intelligence",
+    isCore: false,
+    dependencies: ["platform", "knowledge"],
+    defaultEnabled: true,
+    featureFlags: ["enableGraphify"],
   },
   projects: {
     id: "projects",
@@ -187,6 +199,7 @@ export function isModuleBundled(moduleId: ModuleId): boolean {
     actions: env.modules.actions,
     "business-dev": env.modules.businessDev,
     knowledge: env.modules.knowledge,
+    graphify: env.modules.graphify,
     productivity: env.modules.productivity,
     automation: env.modules.automation,
   };

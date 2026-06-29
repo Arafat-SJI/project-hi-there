@@ -73,6 +73,7 @@ export function useModuleAccess(): ModuleAccessResult {
       meetings: "enableMeetings",
       knowledge: "enableKnowledgeBase",
       "business-dev": "enableClients",
+      graphify: "enableGraphify",
     };
 
     const primaryFlag = primaryFlagMap[moduleId];

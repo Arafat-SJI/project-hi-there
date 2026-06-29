@@ -71,6 +71,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { formatCostMicro } from "@/hooks/useAgentAnalytics";
 import {
   QuickStartWizard,
@@ -132,6 +133,8 @@ function CatalogSkeleton() {
 
 export default function AIAgentsAdmin() {
   const navigate = useNavigate();
+  const { features } = useOrganization();
+  const graphifyAvailable = features.enableGraphify;
   const { data: catalog, isLoading, isError, error, refetch, isFetching } =
     useAgentCatalog();
   const createAgent = useCreateAgent();
@@ -158,6 +161,7 @@ export default function AIAgentsAdmin() {
     is_enabled: true,
     memory_enabled: false,
     rag_enabled: false,
+    graphify_enabled: false,
     ...getDefaultToolConfig(),
   });
 
@@ -203,6 +207,7 @@ export default function AIAgentsAdmin() {
       is_enabled: true,
       memory_enabled: false,
       rag_enabled: false,
+      graphify_enabled: false,
       ...getDefaultToolConfig(),
     });
   };
@@ -414,10 +419,31 @@ export default function AIAgentsAdmin() {
                   <Switch
                     checked={!!formData.rag_enabled}
                     onCheckedChange={(checked) =>
-                      setFormData({ ...formData, rag_enabled: checked })
+                      setFormData({
+                        ...formData,
+                        rag_enabled: checked,
+                        graphify_enabled: checked ? formData.graphify_enabled : false,
+                      })
                     }
                   />
                 </div>
+                {graphifyAvailable ? (
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                      <Label>Enable Graphify</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Graph-aware hybrid retrieval (requires RAG)
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!!formData.graphify_enabled}
+                      disabled={!formData.rag_enabled}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, graphify_enabled: checked })
+                      }
+                    />
+                  </div>
+                ) : null}
                 <Separator />
                 <AgentToolConfig
                   config={{
@@ -726,6 +752,7 @@ function AgentCatalogCard({
           ) : null}
           {agent.memory_enabled ? <Badge variant="outline">Memory</Badge> : null}
           {agent.rag_enabled ? <Badge variant="outline">RAG</Badge> : null}
+          {agent.graphify_enabled ? <Badge variant="outline">Graphify</Badge> : null}
           {agent.tool_mcp && (agent.mcp_server_ids?.length ?? 0) > 0 ? (
             <Badge variant="outline">MCP ({agent.mcp_server_ids.length})</Badge>
           ) : null}

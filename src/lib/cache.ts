@@ -107,6 +107,25 @@ export const queryKeys = {
       ["knowledge", "memoryAdmin", action, ...args.filter(Boolean)] as const,
   },
 
+  graphify: {
+    all: ["graphify"] as const,
+    search: (query: string) => ["graphify", "search", query] as const,
+    suggestions: (query: string) => ["graphify", "suggestions", query] as const,
+    traverse: (
+      seedIds: string[],
+      depth: number,
+      entityTypes: string[] = [],
+      relationshipTypes: string[] = []
+    ) => ["graphify", "traverse", seedIds, depth, entityTypes, relationshipTypes] as const,
+    entity: (id: string) => ["graphify", "entity", id] as const,
+    neighbors: (id: string) => ["graphify", "neighbors", id] as const,
+    config: ["graphify", "config"] as const,
+    stats: ["graphify", "stats"] as const,
+    analytics: (days: number) => ["graphify", "analytics", days] as const,
+    coverage: ["graphify", "coverage"] as const,
+    syncJobs: ["graphify", "syncJobs"] as const,
+  },
+
   // Zoho CRM (deal-scoped cache)
   // EOS Module
   eos: {
@@ -378,6 +397,9 @@ export const invalidateKeys = {
   },
   knowledge: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.all });
+  },
+  graphify: (queryClient: any) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.graphify.all });
   },
   deals: (queryClient: any) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });

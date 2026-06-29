@@ -58,6 +58,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   AgentCategoryGuide,
   SystemPromptGuide,
@@ -74,6 +75,8 @@ export default function AgentDetailsTabs() {
   const { agentId = "" } = useParams<{ agentId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { features } = useOrganization();
+  const graphifyAvailable = features.enableGraphify;
   const { data: agent, isLoading, isError, error, refetch } = useAIAgent(agentId);
   const updateAgent = useUpdateAgent();
 
@@ -124,6 +127,7 @@ export default function AgentDetailsTabs() {
         is_enabled: config.is_enabled ?? agent.is_enabled,
         memory_enabled: config.memory_enabled ?? agent.memory_enabled,
         rag_enabled: config.rag_enabled ?? agent.rag_enabled,
+        graphify_enabled: config.graphify_enabled ?? agent.graphify_enabled ?? false,
         tool_code_interpreter:
           config.tool_code_interpreter ?? agent.tool_code_interpreter ?? false,
         tool_file_search: config.tool_file_search ?? agent.tool_file_search ?? true,
@@ -229,6 +233,8 @@ export default function AgentDetailsTabs() {
             {agent.is_enabled ? "Enabled" : "Disabled"}
           </Badge>
           {agent.memory_enabled ? <Badge variant="outline">Memory</Badge> : null}
+          {agent.rag_enabled ? <Badge variant="outline">RAG</Badge> : null}
+          {agent.graphify_enabled ? <Badge variant="outline">Graphify</Badge> : null}
           {agent.tool_mcp && (agent.mcp_server_ids?.length ?? 0) > 0 ? (
             <Badge variant="outline">MCP ({agent.mcp_server_ids.length})</Badge>
           ) : null}
@@ -356,10 +362,32 @@ export default function AgentDetailsTabs() {
                 <Switch
                   checked={!!effectiveConfig?.rag_enabled}
                   onCheckedChange={(checked) =>
-                    setConfig((c) => ({ ...c, rag_enabled: checked }))
+                    setConfig((c) => ({
+                      ...c,
+                      rag_enabled: checked,
+                      graphify_enabled: checked ? c.graphify_enabled : false,
+                    }))
                   }
                 />
               </div>
+
+              {graphifyAvailable ? (
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <Label>Enable Graphify</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Hybrid graph + vector retrieval for richer context (requires RAG)
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!effectiveConfig?.graphify_enabled}
+                    disabled={!effectiveConfig?.rag_enabled}
+                    onCheckedChange={(checked) =>
+                      setConfig((c) => ({ ...c, graphify_enabled: checked }))
+                    }
+                  />
+                </div>
+              ) : null}
 
               <Separator />
 

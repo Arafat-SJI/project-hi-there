@@ -77,6 +77,14 @@ export const API = {
     VERIFY_SERVER: "verify-mcp-server",
   },
 
+  // Graphify
+  GRAPHIFY: {
+    QUERY: "graphify-query",
+    BACKFILL: "graphify-backfill",
+    SYNC_RELATIONSHIPS: "graphify-sync-relationships",
+    EXTRACT_ENTITIES: "graphify-extract-entities",
+  },
+
   // System
   SYSTEM: {
     SEED_TEMPLATES: "seed-template-data",

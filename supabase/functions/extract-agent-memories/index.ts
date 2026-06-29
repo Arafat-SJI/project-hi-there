@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { syncMemoryGraphLinks } from '../_shared/graphify-extraction.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -219,6 +220,19 @@ Return ONLY valid JSON, no other text. Example format:
 
       if (!storeError && storedMemory) {
         storedMemories.push(storedMemory)
+
+        try {
+          await syncMemoryGraphLinks(supabaseClient, {
+            memoryId: storedMemory.id,
+            memoryContent: memory.content,
+            userId: user_id,
+            agentId: agent_id,
+            sourceType: 'conversation',
+            sourceId: conversation_id,
+          })
+        } catch (graphErr) {
+          console.error('Graphify memory link error:', graphErr)
+        }
       } else {
         console.error('Failed to store memory:', storeError)
       }

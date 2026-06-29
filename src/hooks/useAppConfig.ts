@@ -39,6 +39,7 @@ export interface AppConfig {
     enableKbOcr: boolean;
     enableKbParserAdvanced: boolean;
     enableKbMemoryDecay: boolean;
+    enableGraphify: boolean;
   };
   // Email
   email: {
@@ -221,6 +222,7 @@ export function useResetAppConfig() {
           enableKbOcr: false,
           enableKbParserAdvanced: false,
           enableKbMemoryDecay: false,
+          enableGraphify: false,
         },
         email: {
           enableEmailNotifications: true,

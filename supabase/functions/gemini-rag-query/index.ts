@@ -1,10 +1,13 @@
 /**
- * Gemini RAG Query Edge Function — uses shared retrieval pipeline with optional reranking.
+ * Gemini RAG Query Edge Function — shared retrieval pipeline with optional Graphify hybrid search.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { chatCompletion, logUsage } from '../_shared/ai-provider-routing.ts'
 import { performRetrieval, logVectorSearch } from '../_shared/rag-retrieval.ts'
+import { performGraphAwareRetrieval } from '../_shared/graphify-context.ts'
+import { isGraphifyFeatureEnabled } from '../_shared/graphify-store.ts'
+import { resolveGraphAuthClient } from '../_shared/graphify-auth-client.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,6 +34,8 @@ serve(async (req) => {
       generate_answer = true,
       entity_type,
       source_id,
+      use_graphify,
+      graphify,
     } = await req.json()
 
     if (!query) {
@@ -41,16 +46,35 @@ serve(async (req) => {
     }
 
     const start = Date.now()
-    const retrieval = await performRetrieval(supabaseClient, {
-      query,
-      match_threshold,
-      match_count,
-      entity_type,
-      user_id,
-      source_id,
-    })
+    const graphifyEnabled = await isGraphifyFeatureEnabled(supabaseClient)
+    const useGraph = graphifyEnabled && (use_graphify === true || graphify?.enabled === true)
+    const graphAuthClient = resolveGraphAuthClient(req, supabaseClient)
+
+    const retrieval = useGraph
+      ? await performGraphAwareRetrieval(supabaseClient, {
+          query,
+          match_threshold,
+          match_count,
+          entity_type,
+          user_id,
+          source_id,
+          graphify: {
+            enabled: true,
+            auth_client: graphAuthClient,
+            ...(graphify ?? {}),
+          },
+        })
+      : await performRetrieval(supabaseClient, {
+          query,
+          match_threshold,
+          match_count,
+          entity_type,
+          user_id,
+          source_id,
+        })
 
     const results = retrieval.results
+    const graphContext = 'graph_context' in retrieval ? retrieval.graph_context : ''
     let answer: string | undefined
     let answerTokens = { input: 0, output: 0 }
 
@@ -62,13 +86,15 @@ serve(async (req) => {
         })
         .join('\n\n---\n\n')
 
+      const graphBlock = graphContext ? `\n\nKnowledge graph context:\n${graphContext}\n` : ''
+
       const chatResult = await chatCompletion(supabaseClient, {
         messages: [
           {
             role: 'system',
-            content: `You are a helpful knowledge assistant. Answer based ONLY on the provided context. Cite chunk numbers [1], [2], etc.`,
+            content: `You are a helpful knowledge assistant. Answer based ONLY on the provided context. Cite chunk numbers [1], [2], etc. When graph context lists related entities, use it to improve relevance but still cite document chunks.`,
           },
-          { role: 'user', content: `Question: ${query}\n\nContext:\n${contextChunks}` },
+          { role: 'user', content: `Question: ${query}${graphBlock}\n\nContext:\n${contextChunks}` },
         ],
         temperature: 0.3,
         max_tokens: 1500,
@@ -94,6 +120,8 @@ serve(async (req) => {
         reranked: retrieval.reranked,
         retrieval_latency_ms: retrieval.retrieval_latency_ms,
         rerank_latency_ms: retrieval.rerank_latency_ms,
+        graphify: useGraph,
+        graph_latency_ms: 'graph_latency_ms' in retrieval ? retrieval.graph_latency_ms : undefined,
       },
     })
 
@@ -127,6 +155,9 @@ serve(async (req) => {
         retrieval_latency_ms: retrieval.retrieval_latency_ms,
         rerank_latency_ms: retrieval.rerank_latency_ms,
         reranked: retrieval.reranked,
+        graph_context: graphContext || undefined,
+        graph_entities: 'graph_entities' in retrieval ? retrieval.graph_entities : undefined,
+        graph_latency_ms: 'graph_latency_ms' in retrieval ? retrieval.graph_latency_ms : undefined,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
