@@ -1207,10 +1207,23 @@ interface GraphContextNode {
   display_name?: string
 }
 
+function normalizeEntityType(type?: string): string {
+  return (type ?? '').toLowerCase()
+}
+
+function isMeetingEntity(type?: string): boolean {
+  return normalizeEntityType(type) === 'meeting'
+}
+
+function isContactLikeEntity(type?: string): boolean {
+  const t = normalizeEntityType(type)
+  return t === 'customer' || t === 'contact' || t === 'client' || t === 'user'
+}
+
 function formatAgentGraphContext(nodes: GraphContextNode[]): string {
   if (!nodes.length) return ''
-  const meetings = nodes.filter((n) => n.entity_type === 'meeting' && n.display_name)
-  const others = nodes.filter((n) => n.entity_type !== 'meeting' && n.display_name)
+  const meetings = nodes.filter((n) => isMeetingEntity(n.entity_type) && n.display_name)
+  const others = nodes.filter((n) => !isMeetingEntity(n.entity_type) && n.display_name)
   const lines: string[] = []
   if (meetings.length > 0) {
     lines.push('Meetings (authoritative — use ONLY these exact titles):')
@@ -1224,15 +1237,149 @@ function formatAgentGraphContext(nodes: GraphContextNode[]): string {
   return `[Graph Context]\n${lines.join('\n')}`
 }
 
+/** When graph has entities, build the answer in code so the LLM cannot hallucinate titles. */
+function buildAnswerFromGraphNodes(nodes: GraphContextNode[], query: string): string | null {
+  const meetings = nodes.filter((n) => isMeetingEntity(n.entity_type) && n.display_name)
+  const related = nodes.filter((n) => isContactLikeEntity(n.entity_type) && n.display_name)
+  if (meetings.length === 0 && related.length === 0) return null
+
+  const q = query.toLowerCase()
+  const wantsMeetings = /\bmeeting/.test(q)
+  const wantsPeople = /\b(who is|contact|customer|connected|relationship|summarize)\b/.test(q)
+  if (!wantsMeetings && !wantsPeople) return null
+
+  const parts: string[] = []
+  if (meetings.length > 0 && (wantsMeetings || wantsPeople)) {
+    parts.push('### Meetings', ...meetings.map((m) => `- **${m.display_name}**`))
+  }
+  if (related.length > 0 && wantsPeople) {
+    parts.push(
+      '### Relationships',
+      ...related.map((r) => `- **${r.display_name}** (${r.entity_type})`)
+    )
+  }
+  if (parts.length === 0) return null
+  parts.push('', '_Sourced from Graphify knowledge graph._')
+  return parts.join('\n')
+}
+
 const GRAPH_PRIORITY_NOTE =
   '\n\nGRAPH RETRIEVAL RULE: The [Graph Context] block is authoritative for entity names (meetings, clients, contacts). List those exact display names. Never invent meeting titles or client names not listed in [Graph Context].\n'
+
+const DEFAULT_GRAPH_TENANT_ID = '00000000-0000-0000-0000-000000000001'
+
+async function isGraphifyOrgEnabled(supabaseClient: SupabaseClient): Promise<boolean> {
+  const { data: flag } = await supabaseClient
+    .from('app_config')
+    .select('value')
+    .eq('key', 'features.enableGraphify')
+    .maybeSingle()
+  const flagOn =
+    flag?.value === true ||
+    (typeof flag?.value === 'string' && ['true', '1', 'yes'].includes(flag.value.toLowerCase()))
+  if (!flagOn) return false
+  const { data: cfg } = await supabaseClient
+    .from('graphify_config')
+    .select('enabled')
+    .eq('tenant_id', DEFAULT_GRAPH_TENANT_ID)
+    .maybeSingle()
+  return cfg?.enabled === true
+}
+
+async function fetchGraphContextDirect(
+  supabaseClient: SupabaseClient,
+  userId: string,
+  query: string,
+  tenantId: string = DEFAULT_GRAPH_TENANT_ID
+): Promise<{ block: string; nodeCount: number; meetingCount: number; nodes: GraphContextNode[] }> {
+  const rpcArgs = {
+    p_tenant_id: tenantId,
+    p_query: query,
+    p_entity_types: null,
+    p_limit: 10,
+    p_caller_user_id: userId,
+  }
+  let matched: unknown[] | null = null
+  let matchError: { message: string } | null = null
+  {
+    const res = await supabaseClient.rpc('graphify_match_entities', rpcArgs)
+    matched = res.data as unknown[] | null
+    matchError = res.error
+  }
+  if (matchError?.message?.includes('p_caller_user_id')) {
+    const res = await supabaseClient.rpc('graphify_match_entities', {
+      p_tenant_id: tenantId,
+      p_query: query,
+      p_entity_types: null,
+      p_limit: 10,
+    })
+    matched = res.data as unknown[] | null
+    matchError = res.error
+  }
+  if (matchError) {
+    console.error('graphify_match_entities RPC error:', matchError.message)
+    return { block: '', nodeCount: 0, meetingCount: 0, nodes: [] }
+  }
+  const seeds = (matched ?? []) as Array<{ id: string }>
+  if (!seeds.length) {
+    console.log('graphify_match_entities: 0 seed entities')
+    return { block: '', nodeCount: 0, meetingCount: 0, nodes: [] }
+  }
+
+  const traverseArgs = {
+    p_tenant_id: tenantId,
+    p_seed_entity_ids: seeds.map((s) => s.id),
+    p_max_depth: 2,
+    p_relationship_types: null,
+    p_max_nodes: 50,
+    p_caller_user_id: userId,
+  }
+  let traversed: unknown[] | null = null
+  let traverseError: { message: string } | null = null
+  {
+    const res = await supabaseClient.rpc('graphify_traverse', traverseArgs)
+    traversed = res.data as unknown[] | null
+    traverseError = res.error
+  }
+  if (traverseError?.message?.includes('p_caller_user_id')) {
+    const res = await supabaseClient.rpc('graphify_traverse', {
+      p_tenant_id: tenantId,
+      p_seed_entity_ids: seeds.map((s) => s.id),
+      p_max_depth: 2,
+      p_relationship_types: null,
+      p_max_nodes: 50,
+    })
+    traversed = res.data as unknown[] | null
+    traverseError = res.error
+  }
+  if (traverseError) {
+    console.error('graphify_traverse RPC error:', traverseError.message)
+  }
+
+  const nodes = (traversed ?? []) as GraphContextNode[]
+  const seen = new Set<string>()
+  const deduped = nodes.filter((n) => {
+    const key = `${n.entity_type ?? ''}:${n.display_name ?? ''}`
+    if (!n.display_name || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  const meetingCount = deduped.filter((n) => isMeetingEntity(n.entity_type)).length
+  const formatted = formatAgentGraphContext(deduped)
+  return {
+    block: formatted ? `\n\n${formatted}\n` : '',
+    nodeCount: deduped.length,
+    meetingCount,
+    nodes: deduped,
+  }
+}
 
 async function fetchGraphContextForAgent(
   baseUrl: string,
   anonKey: string,
   authHeader: string,
   query: string
-): Promise<{ block: string; nodeCount: number }> {
+): Promise<{ block: string; nodeCount: number; meetingCount: number; nodes: GraphContextNode[] }> {
   const graphRes = await fetch(`${baseUrl}/functions/v1/graphify-query`, {
     method: 'POST',
     headers: {
@@ -1245,7 +1392,7 @@ async function fetchGraphContextForAgent(
   if (!graphRes.ok) {
     const errText = await graphRes.text().catch(() => '')
     console.warn('graphify-query returned non-OK:', graphRes.status, errText.slice(0, 200))
-    return { block: '', nodeCount: 0 }
+    return { block: '', nodeCount: 0, meetingCount: 0, nodes: [] }
   }
   const graphBody = await graphRes.json()
   const nodes = [
@@ -1259,11 +1406,24 @@ async function fetchGraphContextForAgent(
     seen.add(key)
     return true
   })
+  const meetingCount = deduped.filter((n) => isMeetingEntity(n.entity_type)).length
   const formatted = formatAgentGraphContext(deduped)
   return {
     block: formatted ? `\n\n${formatted}\n` : '',
     nodeCount: deduped.length,
+    meetingCount,
+    nodes: deduped,
   }
+}
+
+function graphQueryFromMessage(message: string): string {
+  const forMatch = message.match(/\bfor\s+(.+?)\s*\??\s*$/i)
+  if (forMatch?.[1]?.trim()) return forMatch[1].trim()
+  const aboutMatch = message.match(/\babout\s+(.+?)\s*\??\s*$/i)
+  if (aboutMatch?.[1]?.trim()) return aboutMatch[1].trim()
+  const whoMatch = message.match(/\bwho is\s+(.+?)\s*\??\s*$/i)
+  if (whoMatch?.[1]?.trim()) return whoMatch[1].trim()
+  return message
 }
 
 function shouldRequireMcpToolUse(message: string): boolean {
@@ -1399,6 +1559,48 @@ serve(async (req) => {
     const mcpEnabled = serverIds.length > 0
     const liveMcpQuery = shouldRequireMcpToolUse(message)
 
+    // Graph retrieval — runs whenever agent has Graphify on (not gated on RAG or MCP)
+    let graphContextBlock = ''
+    let graphPriorityNote = ''
+    let graphMeetingCount = 0
+    let graphPrefilledResponse: string | null = null
+
+    if (agent.graphify_enabled === true && user_id) {
+      const baseUrlForGraph = Deno.env.get('SUPABASE_URL')
+      const anonKeyForGraph = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      const incomingAuthForGraph = req.headers.get('Authorization')
+
+      let graph = await fetchGraphContextDirect(
+        supabaseClient,
+        user_id,
+        graphQueryFromMessage(message)
+      )
+      if (graph.nodeCount === 0 && incomingAuthForGraph && baseUrlForGraph) {
+        const httpGraph = await fetchGraphContextForAgent(
+          baseUrlForGraph,
+          anonKeyForGraph,
+          incomingAuthForGraph,
+          graphQueryFromMessage(message)
+        )
+        if (httpGraph.nodeCount > 0) {
+          graph = httpGraph
+          console.log(`RAG graph (graphify-query fallback): nodes=${httpGraph.nodeCount}`)
+        }
+      }
+
+      graphContextBlock = graph.block
+      graphMeetingCount = graph.meetingCount
+      graphPriorityNote = graphContextBlock ? GRAPH_PRIORITY_NOTE : ''
+      graphPrefilledResponse = buildAnswerFromGraphNodes(graph.nodes, message)
+      console.log(
+        `RAG graph: nodes=${graph.nodeCount}, meetings=${graph.meetingCount}, prefilled=${Boolean(graphPrefilledResponse)}, agent.graphify_enabled=${agent.graphify_enabled}`
+      )
+    } else {
+      console.warn(
+        `Graphify skipped: agent.graphify_enabled=${agent.graphify_enabled}, user_id=${Boolean(user_id)}`
+      )
+    }
+
     // 3. Get RAG context (skip when MCP will fetch live integration data)
     let ragContext = ''
     let ragResultCount = 0
@@ -1433,15 +1635,6 @@ serve(async (req) => {
           const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
           const incomingAuth = req.headers.get('Authorization')
 
-          let graphContextBlock = ''
-          let graphPriorityNote = ''
-          if (useGraphify && incomingAuth && baseUrl) {
-            const graph = await fetchGraphContextForAgent(baseUrl, anonKey, incomingAuth, message)
-            graphContextBlock = graph.block
-            graphPriorityNote = graphContextBlock ? GRAPH_PRIORITY_NOTE : ''
-            console.log(`RAG graph (graphify-query): nodes=${graph.nodeCount}, context_chars=${graphContextBlock.length}`)
-          }
-
           const semRes = await fetch(`${baseUrl}/functions/v1/semantic-search`, {
             method: 'POST',
             headers: {
@@ -1473,12 +1666,22 @@ serve(async (req) => {
                 `RAG graph (semantic-search fallback): entities=${graphEntityCount}, context_chars=${graphContextBlock.length}`
               )
             }
-            const relevantDocs = integrationTaskQuery
+            let relevantDocs = integrationTaskQuery
               ? rawDocs.filter((doc: { metadata?: { source?: string } }) => {
                   const source = doc.metadata?.source?.toLowerCase()
                   return source === 'clickup' || source === 'activecollab'
                 })
               : rawDocs
+
+            // When graph lists meetings, vector snippets often cause title hallucinations — trust graph names
+            const isGraphEntityQuestion =
+              graphMeetingCount > 0 &&
+              /\b(meeting|client|contact|customer|who is|connected|relationship|richardson)\b/i.test(message)
+            if (isGraphEntityQuestion) {
+              console.log('RAG: omitting vector docs — graph has authoritative meeting entities')
+              relevantDocs = []
+            }
+
             ragResultCount = relevantDocs.length
             console.log(`RAG search returned ${relevantDocs.length} results`)
 
@@ -1520,6 +1723,11 @@ serve(async (req) => {
             }
           } else {
             console.warn('RAG semantic search returned non-OK:', semRes.status)
+            if (graphContextBlock) {
+              ragContext = graphContextBlock
+                + graphPriorityNote
+                + '\n\nINSTRUCTIONS: Answer using the [Graph Context] entities above. List meeting, client, and contact names exactly as shown. Do not invent entities that are not in the graph context.\n'
+            }
           }
         }
       } catch (ragError) {
@@ -1580,7 +1788,15 @@ serve(async (req) => {
     let mcpToolsCalled: string[] = []
     let response: Awaited<ReturnType<typeof chatCompletion>>
 
-    if (mcpEnabled) {
+    if (graphPrefilledResponse) {
+      console.log('Returning deterministic Graphify answer (bypassing LLM/MCP)')
+      response = {
+        content: graphPrefilledResponse,
+        input_tokens: 0,
+        output_tokens: 0,
+        model: 'graphify-direct',
+      }
+    } else if (mcpEnabled) {
       const toolDefs = await loadAgentMcpToolDefs(supabaseClient, serverIds)
       mcpToolsUsed = toolDefs.length
       const openaiCreds = await resolveOpenAiCredentials(supabaseClient, effectiveModelId)
@@ -1649,7 +1865,6 @@ serve(async (req) => {
         )
       }
     } else {
-      // 7. Call AI provider
       response = await chatCompletion(
         supabaseClient,
         {
