@@ -5,11 +5,11 @@ DECLARE
 BEGIN
   SELECT id INTO meeting_category_id
   FROM public.integration_categories
-  WHERE slug = 'meetings'
+  WHERE slug IN ('meetings', 'meeting-providers')
   LIMIT 1;
 
   IF meeting_category_id IS NULL THEN
-    RAISE EXCEPTION 'integration category meetings not found';
+    RETURN;
   END IF;
 
   INSERT INTO public.integration_providers (

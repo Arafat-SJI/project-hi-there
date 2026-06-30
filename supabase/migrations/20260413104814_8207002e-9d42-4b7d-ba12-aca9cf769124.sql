@@ -9,7 +9,7 @@ BEGIN
   LIMIT 1;
 
   IF pm_category_id IS NULL THEN
-    RAISE EXCEPTION 'integration category project-management not found';
+    RETURN;
   END IF;
 
   INSERT INTO public.integration_providers (

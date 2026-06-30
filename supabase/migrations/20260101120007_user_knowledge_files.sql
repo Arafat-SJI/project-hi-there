@@ -97,3 +97,8 @@ BEGIN
   RETURN COALESCE(v_stats, '{}'::jsonb);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Link to user_knowledge_sources (sources migration runs earlier alphabetically)
+ALTER TABLE public.user_knowledge_files
+  ADD COLUMN IF NOT EXISTS knowledge_source_id UUID REFERENCES public.user_knowledge_sources(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_user_knowledge_files_source_id ON public.user_knowledge_files(knowledge_source_id);

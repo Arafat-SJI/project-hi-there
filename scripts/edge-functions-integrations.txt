@@ -1,0 +1,63 @@
+# Optional integration packs — deploy only what you use (stays under 100 total with essentials)
+#
+# Zoho CRM (6) — business-dev / CRM sync
+zoho-crm-sync
+zoho-deal-attachments-sync
+zoho-deal-engagements-sync
+zoho-deal-events-sync
+zoho-deal-contact-enrichment-sync
+zoho-deal-account-enrichment-sync
+
+# Project management
+sync-projects-activecollab
+sync-projects-jira
+sync-tasks-jira
+sync-clickup
+clickup-api-proxy
+clickup-oauth-exchange
+update-clickup-task
+openai-embeddings-proxy
+sync-workamajig
+
+# Knowledge sources
+sync-confluence-knowledge
+sync-sharepoint-knowledge
+kb-sync-slack
+kb-bulk-reembed
+kb-chunk-preview
+kb-rag-playground
+admin-memory-actions
+
+# Graphify module
+graphify-query
+graphify-backfill
+graphify-sync-relationships
+graphify-extract-entities
+
+# Automation engine (background)
+automation-executor
+automation-scheduler
+automation-trigger-evaluator
+automation-webhook-receiver
+
+# Other integrations
+fellow-api
+sync-float-schedule
+outlook-send-test-email
+azure-auth-login
+azure-auth-logout
+validate-sso-domain
+
+# Advanced AI / admin
+orchestrate-agent-team
+deal-coach
+quarterly-digest
+discover-meeting-relationships
+ai-match-meeting-client
+extract-meeting-issues
+generate-business-doc
+restore-projects-from-backup
+team-productivity-metrics
+team-productivity-list
+notification-digest
+notification-router

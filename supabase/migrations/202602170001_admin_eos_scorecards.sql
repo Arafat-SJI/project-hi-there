@@ -31,29 +31,12 @@ CREATE TRIGGER update_eos_scorecard_metrics_updated_at
 -- Drop permissive "authenticated can manage" policies
 DROP POLICY IF EXISTS "Authenticated users can manage scorecards" ON eos_scorecards;
 DROP POLICY IF EXISTS "Authenticated users can manage metrics" ON eos_scorecard_metrics;
-
--- Scorecards: SELECT for authenticated; INSERT/UPDATE/DELETE for admins only
-CREATE POLICY "Admins can manage scorecards"
-  ON eos_scorecards
-  FOR ALL
-  TO authenticated
-  USING (
-    (auth.uid() IS NOT NULL)
-    AND (
-      -- SELECT: any authenticated user
-      (TG_OP IS NULL OR current_setting('request.jwt.claim.role', true) IS NOT NULL)
-      OR public.is_admin()
-    )
-  )
-  WITH CHECK (public.is_admin());
-
--- Simpler approach: separate SELECT (authenticated) from INSERT/UPDATE/DELETE (admin)
--- Re-create: SELECT for authenticated (keep existing)
--- The existing "Authenticated users can view scorecards" handles SELECT.
--- We only need to replace the "manage" with admin-only for INSERT/UPDATE/DELETE.
-
--- Drop the complex policy we just created and do it properly:
 DROP POLICY IF EXISTS "Admins can manage scorecards" ON eos_scorecards;
+
+-- Scorecards: SELECT for authenticated (existing view policy); INSERT/UPDATE/DELETE admin-only
+DROP POLICY IF EXISTS "Admins can insert scorecards" ON eos_scorecards;
+DROP POLICY IF EXISTS "Admins can update scorecards" ON eos_scorecards;
+DROP POLICY IF EXISTS "Admins can delete scorecards" ON eos_scorecards;
 
 CREATE POLICY "Admins can insert scorecards"
   ON eos_scorecards FOR INSERT TO authenticated
@@ -69,6 +52,10 @@ CREATE POLICY "Admins can delete scorecards"
   USING (public.is_admin());
 
 -- Scorecard metrics: SELECT for authenticated; INSERT/UPDATE/DELETE for admins
+DROP POLICY IF EXISTS "Admins can insert scorecard metrics" ON eos_scorecard_metrics;
+DROP POLICY IF EXISTS "Admins can update scorecard metrics" ON eos_scorecard_metrics;
+DROP POLICY IF EXISTS "Admins can delete scorecard metrics" ON eos_scorecard_metrics;
+
 CREATE POLICY "Admins can insert scorecard metrics"
   ON eos_scorecard_metrics FOR INSERT TO authenticated
   WITH CHECK (public.is_admin());

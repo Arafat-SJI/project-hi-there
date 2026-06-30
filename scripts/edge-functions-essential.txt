@@ -1,0 +1,109 @@
+# Essential Edge Functions for CT-framework (Free tier: max 100)
+# Scanned from src/ — excludes optional integrations (Zoho, Graphify, Fellow, etc.)
+#
+# Deploy:  powershell -File scripts/deploy-essential-edge-functions.ps1
+# Tier 2:  scripts/edge-functions-integrations.txt (add after essentials)
+
+# --- Platform & admin ---
+promote-first-admin
+promote-to-admin
+check-environment
+seed-template-data
+run-seed
+accept-user-invite
+send-user-invite
+signup-domain-whitelist
+rbac-manage
+manage-user-status
+validate-api-key
+integration-config
+log-activity
+audit-log-writer
+webhook-handler
+
+# --- Notifications & email ---
+send-notification
+send-email
+send-feedback-notification
+sendgrid-validate
+
+# --- OAuth ---
+oauth-exchange-token
+oauth-refresh-token
+oauth-revoke-token
+user-oauth-connect
+user-oauth-disconnect
+user-oauth-callback
+user-oauth-refresh
+# user-oauth-store-token — not in repo (frontend references it; OAuth uses user-oauth-callback)
+
+# --- AI core ---
+sync-ai-models
+ai-chat-assistant
+ai-chat
+run-ai-agent
+agent-conversation-chat
+agent-chat-stream
+semantic-search
+unified-knowledge-search
+validate-guardrails
+enforce-guardrails
+retrieve-agent-memories
+extract-agent-memories
+execute-mcp-tool
+verify-mcp-server
+generate-embeddings
+
+# --- Meetings ---
+categorize-meeting
+smart-categorize-meetings
+sync-zoom-files
+sync-google-meet
+zoom-transcript-processing
+generate-meeting-summary-v2
+send-meeting-notification
+auto-embed-meetings
+extract-meeting-tasks
+create-zoom-meeting
+
+# --- Knowledge ---
+user-knowledge-upload
+user-knowledge-process
+user-knowledge-drive-sync
+auto-embed-knowledge-files
+auto-embed-knowledge-entry
+google-drive-sync
+google-drive-upload
+kb-reprocess
+kb-sync-action
+
+# --- Security ---
+mfa-enrollment
+security-analytics
+unlock-account
+validate-email
+validate-password
+change-password
+
+# --- Business / EOS ---
+request-approval
+respond-to-approval
+suggest-okrs
+create-client-access
+client-dashboard-api
+# task-attachment-url — not in repo (task attachments use storage directly)
+
+# --- Automation (UI only; cron functions optional) ---
+automation-manage
+
+# --- User integrations helpers ---
+user-drive-list
+user-integration-clear-data
+user-memory-stats
+
+# --- APIs (external consumers) ---
+api-v1-clients
+api-v1-meetings
+
+# --- Microsoft Teams (if VITE_MICROSOFT_* configured) ---
+microsoft-graph-subscribe

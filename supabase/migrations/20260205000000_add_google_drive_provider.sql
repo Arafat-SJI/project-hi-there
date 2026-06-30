@@ -1,3 +1,6 @@
+-- Ensure integration_fields has is_sensitive (older DBs)
+ALTER TABLE public.integration_fields ADD COLUMN IF NOT EXISTS is_sensitive BOOLEAN DEFAULT false;
+
 -- ============================================
 -- Add Google Drive Provider for Storage Integration
 -- Enables Google Drive file sync and management

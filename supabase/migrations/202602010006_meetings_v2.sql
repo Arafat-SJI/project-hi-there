@@ -114,6 +114,18 @@ CREATE TABLE IF NOT EXISTS meeting_participants (
 -- ========================
 -- Transcripts
 -- ========================
+-- Extend legacy meeting_transcripts (20260101120004) if present
+ALTER TABLE meeting_transcripts ADD COLUMN IF NOT EXISTS content TEXT;
+ALTER TABLE meeting_transcripts ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual';
+ALTER TABLE meeting_transcripts ADD COLUMN IF NOT EXISTS duration_seconds INTEGER;
+ALTER TABLE meeting_transcripts ADD COLUMN IF NOT EXISTS speakers JSONB DEFAULT '[]';
+ALTER TABLE meeting_transcripts ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;
+ALTER TABLE meeting_transcripts ADD COLUMN IF NOT EXISTS ai_summary TEXT;
+
+UPDATE meeting_transcripts
+SET content = full_transcript
+WHERE content IS NULL AND full_transcript IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS meeting_transcripts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   meeting_id UUID NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
@@ -133,6 +145,21 @@ CREATE TABLE IF NOT EXISTS meeting_transcripts (
 -- ========================
 -- Categorizations
 -- ========================
+-- Extend legacy meeting_categorizations (20260101120003) if present
+ALTER TABLE meeting_categorizations ADD COLUMN IF NOT EXISTS meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE;
+ALTER TABLE meeting_categorizations ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE meeting_categorizations ADD COLUMN IF NOT EXISTS confidence NUMERIC(3,2) DEFAULT 1.0;
+ALTER TABLE meeting_categorizations ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual';
+ALTER TABLE meeting_categorizations ADD COLUMN IF NOT EXISTS rule_id UUID;
+ALTER TABLE meeting_categorizations ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+UPDATE meeting_categorizations mc
+SET meeting_id = zf.meeting_id,
+    category = COALESCE(mc.category, mc.primary_category)
+FROM zoom_files zf
+WHERE mc.meeting_file_id = zf.id
+  AND mc.meeting_id IS NULL;
+
 CREATE TABLE IF NOT EXISTS meeting_categorizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   meeting_id UUID NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,

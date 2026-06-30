@@ -47,14 +47,19 @@ $$;
 -- TRIGGER: Execute on user creation
 -- =====================================================
 
--- Drop existing trigger if it exists
-DROP TRIGGER IF EXISTS on_auth_user_created_assign_role ON auth.users;
-
--- Create trigger on auth.users table
-CREATE TRIGGER on_auth_user_created_assign_role
-  AFTER INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION public.auto_assign_first_admin();
+-- Create trigger on auth.users (requires sufficient privileges on hosted Supabase)
+DO $trigger$
+BEGIN
+  DROP TRIGGER IF EXISTS on_auth_user_created_assign_role ON auth.users;
+  CREATE TRIGGER on_auth_user_created_assign_role
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.auto_assign_first_admin();
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'Skipping auth.users trigger creation: insufficient privileges';
+END;
+$trigger$;
 
 -- =====================================================
 -- BACKFILL: Assign roles to existing users
@@ -106,31 +111,9 @@ BEGIN
 END $$;
 
 -- =====================================================
--- VERIFICATION QUERY (comment out in production)
--- =====================================================
-
--- Show all users and their roles
-SELECT
-  u.id,
-  u.email,
-  ur.role,
-  u.created_at,
-  CASE
-    WHEN ur.role IS NULL THEN '⚠️  NO ROLE'
-    WHEN ur.role = 'admin' THEN '✅ ADMIN'
-    WHEN ur.role = 'moderator' THEN '✅ MODERATOR'
-    ELSE '👤 USER'
-  END as status
-FROM auth.users u
-LEFT JOIN public.user_roles ur ON u.id = ur.user_id
-ORDER BY u.created_at ASC;
-
--- =====================================================
 -- COMMENTS
 -- =====================================================
 
 COMMENT ON FUNCTION public.auto_assign_first_admin() IS
   'Automatically assigns admin role to first user, user role to subsequent users';
 
-COMMENT ON TRIGGER on_auth_user_created_assign_role ON auth.users IS
-  'Triggers role assignment when new user signs up';

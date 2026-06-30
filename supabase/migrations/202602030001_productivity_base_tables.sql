@@ -10,19 +10,6 @@
 -- HELPER: get_current_user_title for RLS
 -- Framework profiles may not have title; use user_roles.role as proxy.
 -- ============================================================================
-CREATE OR REPLACE FUNCTION public.get_current_user_title()
-RETURNS TEXT
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT COALESCE(
-    (SELECT role FROM user_roles WHERE user_id = auth.uid() LIMIT 1),
-    (SELECT title FROM profiles WHERE id = auth.uid() LIMIT 1),
-    'user'
-  );
-$$;
 
 -- Add title to profiles if missing (for get_current_user_title compatibility)
 DO $$
@@ -34,6 +21,20 @@ BEGIN
     ALTER TABLE public.profiles ADD COLUMN title TEXT;
   END IF;
 END $$;
+
+CREATE OR REPLACE FUNCTION public.get_current_user_title()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    (SELECT role::text FROM user_roles WHERE user_id = auth.uid() LIMIT 1),
+    (SELECT title FROM profiles WHERE id = auth.uid() LIMIT 1),
+    'user'
+  );
+$$;
 
 -- ============================================================================
 -- EMPLOYEE TABLE (base project - PascalCase)

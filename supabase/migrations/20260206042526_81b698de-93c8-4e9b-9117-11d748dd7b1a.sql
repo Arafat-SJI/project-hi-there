@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS agent_memories (
   summary TEXT, -- Short summary for quick lookup
 
   -- Embedding for semantic search
-  embedding vector(1536), -- OpenAI ada-002 dimension
+  embedding extensions.vector(1536), -- OpenAI ada-002 dimension
 
   -- Source context
   source_type TEXT, -- 'conversation', 'feedback', 'observation', 'explicit'
@@ -253,7 +253,7 @@ CREATE POLICY "System can create learning events"
 CREATE OR REPLACE FUNCTION get_relevant_memories(
   p_agent_id UUID,
   p_user_id UUID,
-  p_query_embedding vector(1536),
+  p_query_embedding extensions.vector(1536),
   p_memory_types TEXT[] DEFAULT ARRAY['short_term', 'long_term', 'episodic'],
   p_limit INTEGER DEFAULT 10,
   p_similarity_threshold FLOAT DEFAULT 0.7

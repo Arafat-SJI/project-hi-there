@@ -64,18 +64,54 @@ CREATE TABLE IF NOT EXISTS mcp_servers (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Extend legacy mcp_servers (202601260002) when table already exists without v2 columns
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS icon_url TEXT;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS supports_tools BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS supports_resources BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS supports_prompts BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS supports_sampling BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS version TEXT;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS homepage_url TEXT;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS documentation_url TEXT;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS organization_id UUID;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS verification_status TEXT;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS verification_error TEXT;
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS total_tool_calls INTEGER DEFAULT 0;
+
+UPDATE public.mcp_servers
+SET slug = lower(regexp_replace(name, '[^a-zA-Z0-9]+', '-', 'g'))
+WHERE slug IS NULL AND name IS NOT NULL;
+
+UPDATE public.mcp_servers SET is_global = COALESCE(is_global, false);
+UPDATE public.mcp_servers SET is_enabled = COALESCE(is_enabled, is_active, true) WHERE is_enabled IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_mcp_servers_slug ON public.mcp_servers(slug) WHERE slug IS NOT NULL;
+
 -- Indexes
-CREATE INDEX idx_mcp_servers_slug ON mcp_servers(slug);
-CREATE INDEX idx_mcp_servers_created_by ON mcp_servers(created_by);
-CREATE INDEX idx_mcp_servers_is_global ON mcp_servers(is_global);
-CREATE INDEX idx_mcp_servers_is_enabled ON mcp_servers(is_enabled);
-CREATE INDEX idx_mcp_servers_transport ON mcp_servers(transport_type);
+DO $slug_idx$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'mcp_servers' AND column_name = 'slug'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_mcp_servers_slug ON public.mcp_servers(slug);
+  END IF;
+END;
+$slug_idx$;
+CREATE INDEX IF NOT EXISTS idx_mcp_servers_created_by ON mcp_servers(created_by);
+CREATE INDEX IF NOT EXISTS idx_mcp_servers_is_global ON mcp_servers(is_global);
+CREATE INDEX IF NOT EXISTS idx_mcp_servers_is_enabled ON mcp_servers(is_enabled);
+CREATE INDEX IF NOT EXISTS idx_mcp_servers_transport ON mcp_servers(transport_type);
 
 -- RLS Policies
 ALTER TABLE mcp_servers ENABLE ROW LEVEL SECURITY;
 
 -- Users can view global servers and their own servers
-CREATE POLICY "Users can view accessible MCP servers"
+DROP POLICY IF EXISTS "Users can view accessible MCP servers" ON mcp_servers; CREATE POLICY "Users can view accessible MCP servers"
   ON mcp_servers
   FOR SELECT
   USING (
@@ -157,9 +193,9 @@ CREATE TABLE IF NOT EXISTS mcp_tools (
 );
 
 -- Indexes
-CREATE INDEX idx_mcp_tools_server_id ON mcp_tools(server_id);
-CREATE INDEX idx_mcp_tools_name ON mcp_tools(name);
-CREATE INDEX idx_mcp_tools_is_enabled ON mcp_tools(is_enabled);
+CREATE INDEX IF NOT EXISTS idx_mcp_tools_server_id ON mcp_tools(server_id);
+CREATE INDEX IF NOT EXISTS idx_mcp_tools_name ON mcp_tools(name);
+CREATE INDEX IF NOT EXISTS idx_mcp_tools_is_enabled ON mcp_tools(is_enabled);
 
 -- RLS Policies
 ALTER TABLE mcp_tools ENABLE ROW LEVEL SECURITY;
@@ -231,24 +267,51 @@ CREATE TABLE IF NOT EXISTS mcp_tool_executions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
-CREATE INDEX idx_mcp_executions_tool_id ON mcp_tool_executions(tool_id);
-CREATE INDEX idx_mcp_executions_server_id ON mcp_tool_executions(server_id);
-CREATE INDEX idx_mcp_executions_agent_id ON mcp_tool_executions(agent_id);
-CREATE INDEX idx_mcp_executions_user_id ON mcp_tool_executions(user_id);
-CREATE INDEX idx_mcp_executions_status ON mcp_tool_executions(status);
-CREATE INDEX idx_mcp_executions_created_at ON mcp_tool_executions(created_at DESC);
+
+-- Extend legacy mcp_tool_executions (202601260002)
+ALTER TABLE mcp_tool_executions ADD COLUMN IF NOT EXISTS tool_id UUID;
+ALTER TABLE mcp_tool_executions ADD COLUMN IF NOT EXISTS input_parameters JSONB;
+ALTER TABLE mcp_tool_executions ADD COLUMN IF NOT EXISTS output_result JSONB;
+ALTER TABLE mcp_tool_executions ADD COLUMN IF NOT EXISTS error_code TEXT;
+ALTER TABLE mcp_tool_executions ADD COLUMN IF NOT EXISTS execution_time_ms INTEGER;
+ALTER TABLE mcp_tool_executions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+-- Indexes (skip if legacy schema lacks columns)
+DO $mcp_exec_idx$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mcp_tool_executions' AND column_name='tool_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_mcp_executions_tool_id ON mcp_tool_executions(tool_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mcp_tool_executions' AND column_name='server_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_mcp_executions_server_id ON mcp_tool_executions(server_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mcp_tool_executions' AND column_name='agent_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_mcp_executions_agent_id ON mcp_tool_executions(agent_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mcp_tool_executions' AND column_name='user_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_mcp_executions_user_id ON mcp_tool_executions(user_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mcp_tool_executions' AND column_name='status') THEN
+    CREATE INDEX IF NOT EXISTS idx_mcp_executions_status ON mcp_tool_executions(status);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mcp_tool_executions' AND column_name='created_at') THEN
+    CREATE INDEX IF NOT EXISTS idx_mcp_executions_created_at ON mcp_tool_executions(created_at DESC);
+  END IF;
+END;
+$mcp_exec_idx$;
 
 -- RLS Policies
 ALTER TABLE mcp_tool_executions ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own tool executions
+DROP POLICY IF EXISTS "Users can view their MCP tool executions" ON mcp_tool_executions;
 CREATE POLICY "Users can view their MCP tool executions"
   ON mcp_tool_executions
   FOR SELECT
   USING (user_id = auth.uid());
 
 -- Admins can view all executions
+DROP POLICY IF EXISTS "Admins can view all MCP tool executions" ON mcp_tool_executions;
 CREATE POLICY "Admins can view all MCP tool executions"
   ON mcp_tool_executions
   FOR SELECT
@@ -261,12 +324,22 @@ CREATE POLICY "Admins can view all MCP tool executions"
   );
 
 -- System can insert execution records
+DROP POLICY IF EXISTS "System can create MCP tool executions" ON mcp_tool_executions;
 CREATE POLICY "System can create MCP tool executions"
   ON mcp_tool_executions
   FOR INSERT
   WITH CHECK (user_id = auth.uid());
 
 -- ============================================================================
+
+-- Align legacy mcp_tool_executions (202601260002) with v2 schema
+ALTER TABLE public.mcp_tool_executions ADD COLUMN IF NOT EXISTS tool_id UUID REFERENCES public.mcp_tools(id) ON DELETE CASCADE;
+ALTER TABLE public.mcp_tool_executions ADD COLUMN IF NOT EXISTS input_parameters JSONB;
+ALTER TABLE public.mcp_tool_executions ADD COLUMN IF NOT EXISTS output_result JSONB;
+ALTER TABLE public.mcp_tool_executions ADD COLUMN IF NOT EXISTS error_code TEXT;
+ALTER TABLE public.mcp_tool_executions ADD COLUMN IF NOT EXISTS execution_time_ms INTEGER;
+ALTER TABLE public.mcp_tool_executions ADD COLUMN IF NOT EXISTS execution_context JSONB;
+
 -- Helper Functions
 -- ============================================================================
 
@@ -306,6 +379,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_mcp_tool_stats_trigger ON mcp_tool_executions;
 CREATE TRIGGER update_mcp_tool_stats_trigger
   AFTER UPDATE OF status ON mcp_tool_executions
   FOR EACH ROW
@@ -313,11 +387,13 @@ CREATE TRIGGER update_mcp_tool_stats_trigger
   EXECUTE FUNCTION update_mcp_tool_stats();
 
 -- Auto-update updated_at timestamp
+DROP TRIGGER IF EXISTS update_mcp_servers_updated_at ON mcp_servers;
 CREATE TRIGGER update_mcp_servers_updated_at
   BEFORE UPDATE ON mcp_servers
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_mcp_tools_updated_at ON mcp_tools;
 CREATE TRIGGER update_mcp_tools_updated_at
   BEFORE UPDATE ON mcp_tools
   FOR EACH ROW
@@ -340,7 +416,8 @@ INSERT INTO mcp_servers (
   is_global,
   is_verified,
   verification_status
-) VALUES (
+) 
+SELECT
   'Control Tower Tools',
   'control-tower-tools',
   'Built-in tools for managing tasks, meetings, projects, deals, knowledge, and EOS workflows',
@@ -352,7 +429,7 @@ INSERT INTO mcp_servers (
   TRUE,
   TRUE,
   'success'
-) ON CONFLICT (slug) DO NOTHING;
+WHERE NOT EXISTS (SELECT 1 FROM mcp_servers WHERE slug = 'control-tower-tools');
 
 -- Get the server ID for inserting tools
 DO $$

@@ -143,43 +143,57 @@ CREATE INDEX IF NOT EXISTS idx_vector_search_logs_user ON vector_search_logs(use
 -- RLS Policies
 -- ========================
 ALTER TABLE knowledge_sources ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated users can view sources" ON knowledge_sources;
 CREATE POLICY "Authenticated users can view sources" ON knowledge_sources
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can manage sources" ON knowledge_sources;
 CREATE POLICY "Authenticated users can manage sources" ON knowledge_sources
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 ALTER TABLE knowledge_files ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated users can view files" ON knowledge_files;
 CREATE POLICY "Authenticated users can view files" ON knowledge_files
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can manage files" ON knowledge_files;
 CREATE POLICY "Authenticated users can manage files" ON knowledge_files
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 ALTER TABLE knowledge_embeddings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated users can view embeddings" ON knowledge_embeddings;
 CREATE POLICY "Authenticated users can view embeddings" ON knowledge_embeddings
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can manage embeddings" ON knowledge_embeddings;
 CREATE POLICY "Authenticated users can manage embeddings" ON knowledge_embeddings
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 ALTER TABLE user_knowledge_files ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view own knowledge" ON user_knowledge_files;
 CREATE POLICY "Users can view own knowledge" ON user_knowledge_files
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can manage own knowledge" ON user_knowledge_files;
 CREATE POLICY "Users can manage own knowledge" ON user_knowledge_files
   FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 ALTER TABLE embedding_queue ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated users can view queue" ON embedding_queue;
 CREATE POLICY "Authenticated users can view queue" ON embedding_queue
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can manage queue" ON embedding_queue;
 CREATE POLICY "Authenticated users can manage queue" ON embedding_queue
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 ALTER TABLE common_knowledge ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated users can view common knowledge" ON common_knowledge;
 CREATE POLICY "Authenticated users can view common knowledge" ON common_knowledge
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can manage common knowledge" ON common_knowledge;
 CREATE POLICY "Authenticated users can manage common knowledge" ON common_knowledge
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 ALTER TABLE vector_search_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated users can view search logs" ON vector_search_logs;
 CREATE POLICY "Authenticated users can view search logs" ON vector_search_logs
   FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Users can create search logs" ON vector_search_logs;
 CREATE POLICY "Users can create search logs" ON vector_search_logs
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);

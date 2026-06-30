@@ -28,9 +28,39 @@ CREATE INDEX idx_meeting_transcripts_zoom_file ON public.meeting_transcripts(zoo
 CREATE INDEX idx_meeting_transcripts_has_embeddings ON public.meeting_transcripts(has_embeddings);
 CREATE INDEX idx_meeting_transcripts_created ON public.meeting_transcripts(created_at DESC);
 
--- Enable RLS (policies already exist in migration 20251231214950)
--- This migration must run before that one or the RLS migration will fail
+-- Enable RLS
 ALTER TABLE public.meeting_transcripts ENABLE ROW LEVEL SECURITY;
+
+-- Users can view transcripts for meetings they organized
+DROP POLICY IF EXISTS "Users can view transcripts for their meetings" ON public.meeting_transcripts;
+CREATE POLICY "Users can view transcripts for their meetings"
+  ON public.meeting_transcripts FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.meetings
+      WHERE meetings.id = meeting_transcripts.meeting_id
+      AND meetings.organizer_id = auth.uid()
+    )
+  );
+
+-- Users can insert transcripts for meetings they organized
+DROP POLICY IF EXISTS "Users can insert transcripts for their meetings" ON public.meeting_transcripts;
+CREATE POLICY "Users can insert transcripts for their meetings"
+  ON public.meeting_transcripts FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.meetings
+      WHERE meetings.id = meeting_transcripts.meeting_id
+      AND meetings.organizer_id = auth.uid()
+    )
+  );
+
+-- Admins can manage all transcripts
+DROP POLICY IF EXISTS "Admins can manage all transcripts" ON public.meeting_transcripts;
+CREATE POLICY "Admins can manage all transcripts"
+  ON public.meeting_transcripts FOR ALL
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
 -- Create trigger for updated_at timestamp
 CREATE TRIGGER update_meeting_transcripts_updated_at

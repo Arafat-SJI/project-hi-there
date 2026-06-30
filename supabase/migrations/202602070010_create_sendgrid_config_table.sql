@@ -27,7 +27,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_sendgrid_config_single ON sendgrid_config 
 ALTER TABLE sendgrid_config ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated users can view config" ON sendgrid_config FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Only admins can manage config" ON sendgrid_config FOR ALL TO authenticated
-  USING (has_role('admin'::app_role)) WITH CHECK (has_role('admin'::app_role));
+  USING (public.has_role(auth.uid(), 'admin'::app_role)) WITH CHECK (public.has_role(auth.uid(), 'admin'::app_role));
 
 -- Create function to get or create default config
 CREATE OR REPLACE FUNCTION get_or_create_sendgrid_config()

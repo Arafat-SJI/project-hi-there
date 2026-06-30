@@ -1,3 +1,6 @@
+-- Ensure ai_agents has created_by for guardrail RLS
+ALTER TABLE public.ai_agents ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.profiles(id);
+
 /**
  * Phase 3.2: Guardrails & Safety System
  *
@@ -696,17 +699,19 @@ ALTER TABLE tool_usage_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE content_filters ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own agents' guardrails
+DROP POLICY IF EXISTS guardrails_select_policy ON agent_guardrails;
+DROP POLICY IF EXISTS guardrails_select_policy ON agent_guardrails;
 CREATE POLICY guardrails_select_policy ON agent_guardrails
   FOR SELECT USING (
-    is_system = TRUE OR
-    created_by = auth.uid() OR
-    EXISTS (
-      SELECT 1 FROM ai_agents
-      WHERE ai_agents.created_by = auth.uid()
+    is_system = TRUE OR created_by = auth.uid() OR EXISTS (
+      SELECT 1 FROM user_roles
+      WHERE user_roles.user_id = auth.uid()
+      AND user_roles.role = 'admin'
     )
   );
 
 -- Only admins can create/update/delete non-system guardrails
+DROP POLICY IF EXISTS guardrails_modify_policy ON agent_guardrails;
 CREATE POLICY guardrails_modify_policy ON agent_guardrails
   FOR ALL USING (
     EXISTS (
@@ -718,35 +723,39 @@ CREATE POLICY guardrails_modify_policy ON agent_guardrails
   );
 
 -- Users can view violations for their agents
+DROP POLICY IF EXISTS violations_select_policy ON guardrail_violations;
 CREATE POLICY violations_select_policy ON guardrail_violations
   FOR SELECT USING (
-    user_id = auth.uid() OR
-    EXISTS (
-      SELECT 1 FROM ai_agents
-      WHERE ai_agents.id = guardrail_violations.agent_id
-      AND ai_agents.created_by = auth.uid()
+    user_id = auth.uid() OR EXISTS (
+      SELECT 1 FROM user_roles
+      WHERE user_roles.user_id = auth.uid()
+      AND user_roles.role = 'admin'
     )
   );
 
 -- Service role can insert violations
+DROP POLICY IF EXISTS violations_insert_policy ON guardrail_violations;
 CREATE POLICY violations_insert_policy ON guardrail_violations
   FOR INSERT WITH CHECK (current_setting('role') = 'service_role');
 
 -- Users can manage cost limits for their agents
+DROP POLICY IF EXISTS cost_limits_policy ON agent_cost_limits;
 CREATE POLICY cost_limits_policy ON agent_cost_limits
   FOR ALL USING (
     EXISTS (
-      SELECT 1 FROM ai_agents
-      WHERE ai_agents.id = agent_cost_limits.agent_id
-      AND ai_agents.created_by = auth.uid()
+      SELECT 1 FROM user_roles
+      WHERE user_roles.user_id = auth.uid()
+      AND user_roles.role = 'admin'
     )
   );
 
 -- Users can view tool restrictions
+DROP POLICY IF EXISTS tool_restrictions_select_policy ON tool_usage_restrictions;
 CREATE POLICY tool_restrictions_select_policy ON tool_usage_restrictions
   FOR SELECT USING (TRUE);
 
 -- Only admins can modify tool restrictions
+DROP POLICY IF EXISTS tool_restrictions_modify_policy ON tool_usage_restrictions;
 CREATE POLICY tool_restrictions_modify_policy ON tool_usage_restrictions
   FOR ALL USING (
     EXISTS (
@@ -757,20 +766,23 @@ CREATE POLICY tool_restrictions_modify_policy ON tool_usage_restrictions
   );
 
 -- Users can view tool tracking for their agents
+DROP POLICY IF EXISTS tool_tracking_select_policy ON tool_usage_tracking;
 CREATE POLICY tool_tracking_select_policy ON tool_usage_tracking
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM ai_agents
-      WHERE ai_agents.id = tool_usage_tracking.agent_id
-      AND ai_agents.created_by = auth.uid()
+      SELECT 1 FROM user_roles
+      WHERE user_roles.user_id = auth.uid()
+      AND user_roles.role = 'admin'
     )
   );
 
 -- Users can view content filters
+DROP POLICY IF EXISTS content_filters_select_policy ON content_filters;
 CREATE POLICY content_filters_select_policy ON content_filters
   FOR SELECT USING (TRUE);
 
 -- Only admins can modify content filters
+DROP POLICY IF EXISTS content_filters_modify_policy ON content_filters;
 CREATE POLICY content_filters_modify_policy ON content_filters
   FOR ALL USING (
     EXISTS (
@@ -785,7 +797,7 @@ CREATE POLICY content_filters_modify_policy ON content_filters
 -- ============================================================================
 
 CREATE INDEX IF NOT EXISTS idx_violations_agent_created ON guardrail_violations(agent_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_tool_tracking_cleanup ON tool_usage_tracking(used_at) WHERE used_at < NOW() - INTERVAL '30 days';
+CREATE INDEX IF NOT EXISTS idx_tool_tracking_cleanup ON tool_usage_tracking(used_at);
 
 -- ============================================================================
 -- GRANTS

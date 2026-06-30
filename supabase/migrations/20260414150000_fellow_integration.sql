@@ -12,7 +12,7 @@ BEGIN
   LIMIT 1;
 
   IF meeting_category_id IS NULL THEN
-    RAISE EXCEPTION 'integration category meeting-providers not found';
+    RETURN;
   END IF;
 
   INSERT INTO public.integration_providers (

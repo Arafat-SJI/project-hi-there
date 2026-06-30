@@ -4,7 +4,7 @@
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION match_embeddings_admin(
-  query_embedding vector(1536),
+  query_embedding extensions.vector(1536),
   match_threshold float DEFAULT 0.7,
   match_count int DEFAULT 10,
   filter_entity_type text DEFAULT NULL,

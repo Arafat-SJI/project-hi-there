@@ -14,7 +14,8 @@ INSERT INTO public.integration_categories (name, slug, description, icon, displa
   ('CRM Systems', 'crm-systems', 'Customer relationship management platforms', 'Users', 40, true),
   ('Project Management', 'project-management', 'Task and project tracking tools', 'Kanban', 50, true),
   ('Storage & Productivity', 'storage-productivity', 'Cloud storage and productivity suites', 'Cloud', 60, true),
-  ('Authentication', 'authentication', 'SSO and identity providers', 'Shield', 70, false); -- Disabled for now
+  ('Authentication', 'authentication', 'SSO and identity providers', 'Shield', 70, false) -- Disabled for now
+ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================
 -- SEED: Integration Providers
@@ -94,7 +95,7 @@ BEGIN
       '{"authorize_url": "https://app.hubspot.com/oauth/authorize", "token_url": "https://api.hubapi.com/oauth/v1/token", "scopes": ["crm.objects.contacts.read", "crm.objects.contacts.write"]}'::jsonb,
       'https://developers.hubspot.com/docs/api-reference/overview', false, true, 20),
 
-    (cat_crm, 'Pipedrive', 'pipedrive', 'Sales-focused CRM with simple interface', 'api_key', 'https://developers.pipedrive.com/docs/api/v1', false, true, 30),
+    (cat_crm, 'Pipedrive', 'pipedrive', 'Sales-focused CRM with simple interface', 'api_key', NULL::jsonb, 'https://developers.pipedrive.com/docs/api/v1', false, true, 30),
 
     (cat_crm, 'Zoho CRM', 'zoho-crm', 'Affordable CRM for small to medium businesses', 'oauth2',
       '{"authorize_url": "https://accounts.zoho.com/oauth/v2/auth", "token_url": "https://accounts.zoho.com/oauth/v2/token", "scopes": ["ZohoCRM.modules.ALL"]}'::jsonb,
@@ -112,9 +113,9 @@ BEGIN
       '{"authorize_url": "https://app.asana.com/-/oauth_authorize", "token_url": "https://app.asana.com/-/oauth_token", "scopes": ["default"]}'::jsonb,
       'https://developers.asana.com/docs/authentication', false, true, 20),
 
-    (cat_pm, 'Monday.com', 'monday', 'Visual work operating system', 'api_key', 'https://developer.monday.com/api-reference', false, true, 30),
+    (cat_pm, 'Monday.com', 'monday', 'Visual work operating system', 'api_key', NULL::jsonb, 'https://developer.monday.com/api-reference', false, true, 30),
 
-    (cat_pm, 'Trello', 'trello', 'Simple kanban-style project management', 'api_key', 'https://developer.atlassian.com/cloud/trello/guides/rest-api/authorization', false, true, 40),
+    (cat_pm, 'Trello', 'trello', 'Simple kanban-style project management', 'api_key', NULL::jsonb, 'https://developer.atlassian.com/cloud/trello/guides/rest-api/authorization', false, true, 40),
 
     (cat_pm, 'ClickUp', 'clickup', 'All-in-one productivity platform', 'oauth2',
       '{"authorize_url": "https://app.clickup.com/api", "token_url": "https://api.clickup.com/api/v2/oauth/token", "scopes": ["task:read", "task:write"]}'::jsonb,

@@ -1,6 +1,7 @@
 -- Extend match_embeddings to support optional entity_type and user_id filters
+DROP FUNCTION IF EXISTS public.match_embeddings(extensions.vector, double precision, integer);
 CREATE OR REPLACE FUNCTION match_embeddings(
-  query_embedding vector(1536),
+  query_embedding extensions.vector(1536),
   match_threshold float DEFAULT 0.7,
   match_count int DEFAULT 10,
   filter_entity_type text DEFAULT NULL,
@@ -39,4 +40,4 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION match_embeddings IS 'Vector similarity search with optional entity_type and user_id filters';
+COMMENT ON FUNCTION match_embeddings(extensions.vector, double precision, integer, text, uuid, uuid) IS 'Vector similarity search with optional entity_type and user_id filters';

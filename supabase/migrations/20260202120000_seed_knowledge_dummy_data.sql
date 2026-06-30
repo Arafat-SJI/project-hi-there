@@ -54,31 +54,31 @@ BEGIN
         color = EXCLUDED.color;
 END $$;
 
--- 2) Seed knowledge_sources (admin-managed) – schema has no slug; use name + WHERE NOT EXISTS
+-- 2) Seed knowledge_sources (admin-managed)
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.knowledge_sources WHERE name = 'Internal Handbook') THEN
-    INSERT INTO public.knowledge_sources (name, source_type, config, is_active, last_synced_at, created_at, updated_at)
+  IF NOT EXISTS (SELECT 1 FROM public.knowledge_sources WHERE slug = 'internal-handbook') THEN
+    INSERT INTO public.knowledge_sources (name, slug, description, source_type, source_url, sync_enabled, metadata)
     VALUES (
       'Internal Handbook',
-      'url',
-      jsonb_build_object('demo', true, 'url', 'https://example.com/docs/handbook', 'description', 'Core internal handbook and company policies.'),
-      true,
-      NULL,
-      now(),
-      now()
+      'internal-handbook',
+      'Core internal handbook and company policies.',
+      'other',
+      'https://example.com/docs/handbook',
+      false,
+      jsonb_build_object('demo', true)
     );
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.knowledge_sources WHERE name = 'Client Templates') THEN
-    INSERT INTO public.knowledge_sources (name, source_type, config, is_active, last_synced_at, created_at, updated_at)
+  IF NOT EXISTS (SELECT 1 FROM public.knowledge_sources WHERE slug = 'client-templates') THEN
+    INSERT INTO public.knowledge_sources (name, slug, description, source_type, source_url, sync_enabled, metadata)
     VALUES (
       'Client Templates',
+      'client-templates',
+      'Proposal, SOW, and onboarding templates.',
       'google_drive',
-      jsonb_build_object('demo', true, 'url', 'https://drive.google.com/demo-client-templates', 'description', 'Proposal, SOW, and onboarding templates.'),
-      true,
-      NULL,
-      now(),
-      now()
+      'https://drive.google.com/demo-client-templates',
+      false,
+      jsonb_build_object('demo', true)
     );
   END IF;
 END $$;

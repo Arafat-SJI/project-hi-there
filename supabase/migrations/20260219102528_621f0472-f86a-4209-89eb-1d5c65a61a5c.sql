@@ -34,25 +34,29 @@ CREATE TABLE IF NOT EXISTS public.agent_messages (
 );
 
 -- Indexes
-CREATE INDEX idx_agent_conversations_agent_user ON public.agent_conversations(agent_id, user_id);
-CREATE INDEX idx_agent_conversations_last_message ON public.agent_conversations(last_message_at DESC NULLS LAST);
-CREATE INDEX idx_agent_messages_conversation ON public.agent_messages(conversation_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_agent_conversations_agent_user ON public.agent_conversations(agent_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_agent_conversations_last_message ON public.agent_conversations(last_message_at DESC NULLS LAST);
+CREATE INDEX IF NOT EXISTS idx_agent_messages_conversation ON public.agent_messages(conversation_id, created_at);
 
 -- RLS for agent_conversations
 ALTER TABLE public.agent_conversations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own conversations" ON public.agent_conversations;
 CREATE POLICY "Users can view own conversations"
   ON public.agent_conversations FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own conversations" ON public.agent_conversations;
 CREATE POLICY "Users can insert own conversations"
   ON public.agent_conversations FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own conversations" ON public.agent_conversations;
 CREATE POLICY "Users can update own conversations"
   ON public.agent_conversations FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own conversations" ON public.agent_conversations;
 CREATE POLICY "Users can delete own conversations"
   ON public.agent_conversations FOR DELETE
   USING (auth.uid() = user_id);
@@ -60,6 +64,7 @@ CREATE POLICY "Users can delete own conversations"
 -- RLS for agent_messages (scoped through conversation ownership)
 ALTER TABLE public.agent_messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view messages in own conversations" ON public.agent_messages;
 CREATE POLICY "Users can view messages in own conversations"
   ON public.agent_messages FOR SELECT
   USING (EXISTS (
@@ -67,6 +72,7 @@ CREATE POLICY "Users can view messages in own conversations"
     WHERE c.id = conversation_id AND c.user_id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "Users can insert messages in own conversations" ON public.agent_messages;
 CREATE POLICY "Users can insert messages in own conversations"
   ON public.agent_messages FOR INSERT
   WITH CHECK (EXISTS (
@@ -74,6 +80,7 @@ CREATE POLICY "Users can insert messages in own conversations"
     WHERE c.id = conversation_id AND c.user_id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "Users can delete messages in own conversations" ON public.agent_messages;
 CREATE POLICY "Users can delete messages in own conversations"
   ON public.agent_messages FOR DELETE
   USING (EXISTS (
@@ -82,6 +89,7 @@ CREATE POLICY "Users can delete messages in own conversations"
   ));
 
 -- Trigger: auto-update updated_at on conversations
+DROP TRIGGER IF EXISTS update_agent_conversations_updated_at ON public.agent_conversations;
 CREATE TRIGGER update_agent_conversations_updated_at
   BEFORE UPDATE ON public.agent_conversations
   FOR EACH ROW
@@ -104,6 +112,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_update_conversation_on_message ON public.agent_messages;
 CREATE TRIGGER trg_update_conversation_on_message
   AFTER INSERT ON public.agent_messages
   FOR EACH ROW

@@ -3,6 +3,8 @@
 -- Migration: Add tool configuration and memory system
 -- =============================================
 
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
 -- ============================================
 -- PHASE 2: Tool Configuration
 -- ============================================
@@ -61,7 +63,7 @@ CREATE TABLE IF NOT EXISTS public.agent_memory (
 
   -- Content
   content TEXT NOT NULL,
-  embedding vector(1536),  -- For semantic search
+  embedding extensions.vector(1536),  -- For semantic search
 
   -- Source tracking
   source_conversation_id UUID REFERENCES public.agent_conversations(id) ON DELETE SET NULL,
@@ -140,7 +142,7 @@ CREATE TRIGGER update_agent_memory_updated_at
 
 -- Function to match memories by semantic similarity
 CREATE OR REPLACE FUNCTION public.match_agent_memories(
-  query_embedding vector,
+  query_embedding extensions.vector,
   p_agent_id UUID,
   p_user_id UUID,
   match_count INTEGER DEFAULT 5,
@@ -234,7 +236,7 @@ CREATE OR REPLACE FUNCTION public.store_agent_memory(
   p_user_id UUID,
   p_memory_type VARCHAR,
   p_content TEXT,
-  p_embedding vector DEFAULT NULL,
+  p_embedding extensions.vector DEFAULT NULL,
   p_source_conversation_id UUID DEFAULT NULL,
   p_source_message_id UUID DEFAULT NULL,
   p_relevance_score DECIMAL DEFAULT 0.8,
@@ -304,10 +306,10 @@ END;
 $$;
 
 -- Grant execute permissions
-GRANT EXECUTE ON FUNCTION public.match_agent_memories(vector, UUID, UUID, INTEGER, FLOAT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.match_agent_memories(extensions.vector, UUID, UUID, INTEGER, FLOAT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_recent_memories(UUID, UUID, VARCHAR, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_memory_access(UUID[]) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.store_agent_memory(UUID, UUID, VARCHAR, TEXT, vector, UUID, UUID, DECIMAL, JSONB) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.store_agent_memory(UUID, UUID, VARCHAR, TEXT, extensions.vector, UUID, UUID, DECIMAL, JSONB) TO authenticated;
 
 -- ============================================
 -- PHASE 3: Streaming Support

@@ -1,9 +1,9 @@
--- Enable pgvector extension if not already enabled
-CREATE EXTENSION IF NOT EXISTS vector;
+-- Enable pgvector extension if not already enabled (Supabase: extensions schema)
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
 
 -- Create match_embeddings function for semantic search
 CREATE OR REPLACE FUNCTION match_embeddings(
-  query_embedding vector(1536),
+  query_embedding extensions.vector(1536),
   match_threshold float DEFAULT 0.7,
   match_count int DEFAULT 10
 )
@@ -35,10 +35,9 @@ BEGIN
 END;
 $$;
 
--- Create index on embeddings for faster vector search
+-- Create index on embeddings for faster vector search (idempotent)
 CREATE INDEX IF NOT EXISTS idx_embeddings_vector ON embeddings
-USING ivfflat (embedding vector_cosine_ops)
+USING ivfflat (embedding extensions.vector_cosine_ops)
 WITH (lists = 100);
 
--- Add comment
 COMMENT ON FUNCTION match_embeddings IS 'Performs vector similarity search on embeddings table using cosine similarity';

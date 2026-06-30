@@ -11,6 +11,8 @@
  * This is Phase 1 of the Agentic Evolution Roadmap - Memory & Context.
  */
 
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
 -- ============================================================================
 -- Agent Memories Table
 -- Stores all types of agent memories with vector embeddings
@@ -32,7 +34,7 @@ CREATE TABLE IF NOT EXISTS agent_memories (
   summary TEXT, -- Short summary for quick lookup
 
   -- Embedding for semantic search
-  embedding vector(1536), -- OpenAI ada-002 dimension
+  embedding extensions.vector(1536), -- OpenAI ada-002 dimension
 
   -- Source context
   source_type TEXT, -- 'conversation', 'feedback', 'observation', 'explicit'
@@ -70,8 +72,8 @@ CREATE INDEX idx_agent_memories_active ON agent_memories(is_active) WHERE is_act
 CREATE INDEX idx_agent_memories_created_at ON agent_memories(created_at DESC);
 
 -- Vector similarity search index (using ivfflat)
-CREATE INDEX idx_agent_memories_embedding ON agent_memories
-  USING ivfflat (embedding vector_cosine_ops)
+CREATE INDEX IF NOT EXISTS idx_agent_memories_embedding ON agent_memories
+  USING ivfflat (embedding extensions.vector_cosine_ops)
   WITH (lists = 100);
 
 -- RLS Policies
@@ -244,7 +246,7 @@ CREATE POLICY "System can create learning events"
 CREATE OR REPLACE FUNCTION get_relevant_memories(
   p_agent_id UUID,
   p_user_id UUID,
-  p_query_embedding vector(1536),
+  p_query_embedding extensions.vector(1536),
   p_memory_types TEXT[] DEFAULT ARRAY['short_term', 'long_term', 'episodic'],
   p_limit INTEGER DEFAULT 10,
   p_similarity_threshold FLOAT DEFAULT 0.7
