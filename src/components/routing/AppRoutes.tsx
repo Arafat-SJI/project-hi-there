@@ -15,6 +15,7 @@ import { projectsRoutes } from "@/modules/projects";
 import { productivityRoutes } from "@/modules/productivity";
 import { automationRoutes } from "@/modules/automation";
 import { graphifyRoutes } from "@/modules/graphify";
+import { launchLabRoutes } from "@/modules/launch-lab";
 import { adminRoutes } from "@/modules/admin";
 import ClientPortalDashboard from "@/pages/client/ClientPortalDashboard";
 import ProjectDashboard from "@/pages/client/ProjectDashboard";
@@ -57,6 +58,7 @@ export function AppRoutes() {
           {productivityRoutes}
           {automationRoutes}
           {graphifyRoutes}
+          {launchLabRoutes}
         </Route>
 
         <Route element={<AdminRoute />}>

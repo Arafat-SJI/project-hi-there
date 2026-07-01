@@ -80,6 +80,12 @@ export const navigationGroups: NavGroup[] = [
         icon: "MessageSquare",
         featureFlag: "enableAIAgents",
       },
+      {
+        title: "Launch Lab",
+        href: "/launch-lab",
+        icon: "Rocket",
+        badge: "New",
+      },
     ],
   },
   {

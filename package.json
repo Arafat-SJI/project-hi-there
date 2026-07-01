@@ -15,7 +15,9 @@
     "migrations:hook": "bash scripts/setup-migration-hook.sh",
     "graphify:phase0": "node scripts/phase0-graphify-setup.mjs",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "launch-lab:deploy": "supabase functions deploy launch-lab-agent",
+    "launch-lab:secret": "supabase secrets set GOOGLE_AI_API_KEY"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.27.0",

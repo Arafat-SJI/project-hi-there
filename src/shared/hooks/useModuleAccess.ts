@@ -60,7 +60,8 @@ export function useModuleAccess(): ModuleAccessResult {
 
     if (userModules !== null && userModules !== undefined && userModules.length > 0) {
       const entry = userModules.find((m) => m.slug === moduleId);
-      return entry ? entry.is_active : false;
+      if (entry) return entry.is_active;
+      // Module not returned by RPC (e.g. new module not yet seeded in app_modules) — fall through
     }
 
     if (dbModules !== null && dbModules !== undefined) {
