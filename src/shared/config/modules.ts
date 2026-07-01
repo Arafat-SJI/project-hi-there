@@ -30,6 +30,7 @@ export type ModuleId =
   | "graphify"
   | "productivity"
   | "automation"
+  | "launch-lab"
   | "admin";
 
 export interface ModuleDefinition {
@@ -170,6 +171,17 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultEnabled: true,
     featureFlags: ["enableAutomations"],
   },
+  "launch-lab": {
+    id: "launch-lab",
+    name: "Launch Lab",
+    description: "Hackathon feature — Pitch Coach and Idea Canvas for startup launch planning",
+    icon: "Rocket",
+    category: "intelligence",
+    isCore: false,
+    dependencies: ["platform"],
+    defaultEnabled: true,
+    featureFlags: [],
+  },
   admin: {
     id: "admin",
     name: "Admin",
@@ -202,6 +214,7 @@ export function isModuleBundled(moduleId: ModuleId): boolean {
     graphify: env.modules.graphify,
     productivity: env.modules.productivity,
     automation: env.modules.automation,
+    "launch-lab": env.modules.launchLab,
   };
 
   return envMap[moduleId] ?? mod.defaultEnabled;

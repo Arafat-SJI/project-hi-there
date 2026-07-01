@@ -598,3 +598,6 @@ verify_jwt = false
 
 [functions.graphify-coverage]
 verify_jwt = false
+
+[functions.launch-lab-agent]
+verify_jwt = false

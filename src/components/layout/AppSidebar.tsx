@@ -74,6 +74,7 @@ import {
   Monitor,
   HelpCircle,
   ClipboardCheck,
+  Rocket,
   type LucideIcon,
 } from "lucide-react";
 
@@ -113,6 +114,7 @@ const iconMap: Record<string, LucideIcon> = {
   Monitor,
   HelpCircle,
   ClipboardCheck,
+  Rocket,
 };
 
 function resolveIcon(iconName: string): LucideIcon {
