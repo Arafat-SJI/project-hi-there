@@ -121,7 +121,10 @@ curl "https://YOUR_PROJECT.supabase.co/functions/v1/launch-lab-agent" \
 | `src/modules/launch-lab/components/LaunchLabToolbar.tsx` | Export / history / reset |
 | `src/modules/launch-lab/components/SessionHistorySheet.tsx` | Saved sessions drawer |
 | `src/modules/launch-lab/lib/pitch-metrics.ts` | Word count, grades |
-| `src/modules/launch-lab/lib/export-launch-lab.ts` | Markdown export |
+| `src/modules/launch-lab/components/LaunchLabSessionSidebar.tsx` | Session list sidebar (New + saved sessions) |
+| `src/modules/launch-lab/lib/session-storage.ts` | Unified session list persistence + migration |
+| `src/modules/launch-lab/hooks/useLaunchLabHealth.ts` | Edge function deploy/key health check |
+| `src/modules/launch-lab/components/LaunchLabDeployAlert.tsx` | Deploy + API key setup alerts |
 
 ## Files modified
 
@@ -215,10 +218,10 @@ Response: `clusters` (problems, ideas, risks, next_steps), `synthesis` (markdown
 ## Next steps (office PC — start here)
 
 ### Priority 1 — Make it work end-to-end
-1. Pull latest code from git
+1. ~~Pull latest code from git~~ ✅ (audit on office PC)
 2. Run `supabase secrets set GOOGLE_AI_API_KEY=...`
 3. Run `supabase functions deploy launch-lab-agent`
-4. Test `/launch-lab` with each sample pitch
+4. Test `/launch-lab` with each sample pitch (UI shows deploy alert until step 2–3 done)
 
 ### Priority 2 — Polish for judging (optional)
 - [x] Rich UI + demo-ready interactions (see UI enhancements)
@@ -247,7 +250,155 @@ Response: `clusters` (problems, ideas, risks, next_steps), `synthesis` (markdown
 
 ---
 
+## Hackathon alignment (SJ Innovation AI Hackathon June 2026)
+
+| Criterion | How Launch Lab addresses it |
+|-----------|----------------------------|
+| **AI agent (min. 1)** | `launch-lab-agent` Edge Function — two agent modes: **Pitch Coach** + **Idea Canvas** |
+| **Business value** | Cuts pitch review + launch planning from hours to minutes; structured output (scores, plan, KPIs, checklist) |
+| **Automation** | Auto-generates canvas on step 2; context-aware Gemini prompts; session auto-save |
+| **Enhance Control Tower** | Standalone module on existing SJ framework — auth, sidebar, edge functions, shadcn UI |
+| **Personal environment** | Own Supabase project + `GOOGLE_AI_API_KEY` secret; no production access |
+| **Submission package** | Repo ✅ · Live URL ⏳ · Demo video ⏳ · Architecture ✅ (this doc) · Setup ✅ |
+
+**Judging focus:** Innovation + measurable impact over code volume. Launch Lab = one workflow, two AI agents, demo-ready UI.
+
+---
+
+## Project alignment (Control Tower framework)
+
+Launch Lab was reviewed against the full SJ Control Tower patterns — not only its own folder.
+
+### Aligned with project conventions ✅
+
+| Pattern | How Launch Lab follows it |
+|---------|---------------------------|
+| **Module system** | Registered in `MODULE_REGISTRY`, `env.ts` (`VITE_MODULE_LAUNCH_LAB`), `AppRoutes.tsx` inside `DashboardLayout` |
+| **Module folder layout** | `src/modules/launch-lab/` — `routes.tsx`, `pages/`, `components/`, `hooks/`, `types.ts`, `constants.ts`, `lib/` (same shape as `graphify`, `automation`) |
+| **Routing** | `ModuleRoute` wrapper + `ProtectedRoute` → `DashboardLayout` (standard app shell) |
+| **Sidebar** | Item in `navigationStructure.ts` under **AI Agents**; `Rocket` in `AppSidebar` `iconMap` |
+| **Data fetching** | No Supabase in components — hooks call `invokeEdgeFunction` via `@/lib/edge-functions` |
+| **Mutations** | `useMutation` + `toast.error` on failure (matches `useAutomationTemplates`, etc.) |
+| **Edge function** | `supabase/functions/launch-lab-agent/` — CORS headers, `config.toml` entry, `verify_jwt = false` |
+| **AI provider** | Uses `GOOGLE_AI_API_KEY` — same secret name documented in `.env.example` for Google AI routing |
+| **UI kit** | shadcn/ui (`Card`, `Tabs`, `Button`, etc.) + shared `AICard` from `@/components/ui/ai-indicator` |
+| **Isolation** | No reads/writes to CRM, meetings, EOS, or `ai_agents` tables — safe hackathon sandbox |
+| **Build** | Bundled via module registry; `npm run build:dev` passes |
+
+### Intentional deviations (hackathon-appropriate) ⚠️
+
+| Area | Platform norm | Launch Lab choice | Why |
+|------|---------------|-------------------|-----|
+| **Module gate** | `ModuleRoute module="graphify"` + `featureFlag` | Auth-only `ModuleRoute` (no `module` prop) | Works before `app_modules` migration; avoids redirect bug |
+| **AI agent registry** | `ai_agents` table + `run-ai-agent` Edge Function | Dedicated `launch-lab-agent` with `pitch` / `canvas` modes | Standalone demo workflow; not mixed into admin agent config |
+| **Persistence** | Supabase tables + RLS | `localStorage` session + history | Fast hackathon delivery; no migration dependency |
+| **Cache keys** | Centralized in `src/lib/cache.ts` | Inline `["launch-lab", "health"]` | Stateless wizard; only health check uses React Query |
+| **Activity logging** | `logCrud()` from `activity-logger.ts` | Not wired | No DB entities to log yet |
+
+### Optional alignments (if polishing for judges)
+
+- [ ] Add `queryKeys.launchLab` to `cache.ts` for consistency
+- [ ] Register in `ai_agents` admin UI (show as pre-built agent) — **only if** you want deeper platform integration
+- [ ] `launch_lab_sessions` table + RLS + `logCrud` — moves persistence in line with rest of platform
+- [ ] Add `module="launch-lab"` to route + sidebar once migration is applied on Supabase
+
+### Compared to similar modules
+
+| Module | Launch Lab similarity |
+|--------|----------------------|
+| **graphify** | Same module/route/hook structure; graphify uses `module` gate + `enableGraphify` flag |
+| **automation** | Same `invokeEdgeFunction` hook pattern; automation has DB tables + permissions |
+| **AI Agents (`/agents`)** | Platform agents are DB-driven, multi-tool, conversational; Launch Lab is a fixed two-step wizard agent |
+
+**Verdict:** Launch Lab is a **valid hackathon module** on top of Control Tower — it reuses auth, layout, routing, edge-function infra, and UI kit without breaking existing modules. Deviations are deliberate for speed and demo isolation, not accidental shortcuts.
+
+---
+
+## Current status (office PC audit — 2026-07-02)
+
+| Area | Status |
+|------|--------|
+| Frontend module (`src/modules/launch-lab/`) | ✅ 35 files — pages, 24 components, 3 hooks, 2 lib utils |
+| Edge function (`launch-lab-agent`) | ✅ Code ready · ⏳ deploy + secret on your Supabase |
+| Module registry + routes + sidebar | ✅ Wired; route uses auth-only `ModuleRoute` (no module gate) |
+| `useModuleAccess` fall-through | ✅ New modules work before DB seed |
+| Migration `20260702120000_register_launch_lab_module.sql` | ✅ Present · run when convenient |
+| `npm run build:dev` | ✅ Passes on this machine |
+| Git working tree | ✅ Clean at audit time |
+| Deploy health UI | ✅ `LaunchLabDeployAlert` + `useLaunchLabHealth` detect missing function/key |
+
+**Blockers before live demo:** Deploy `launch-lab-agent` + set `GOOGLE_AI_API_KEY` on Supabase project `hvonjbgyszponjlynpos` (see deploy alert in UI).
+
+**Remaining polish (optional for judging):**
+- DB persistence (`launch_lab_sessions` table)
+- PDF export of launch plan
+- Retry UI on malformed Gemini JSON
+
+---
+
 ## Session log
+
+### 2026-07-02 — Fix blank Launch Lab page ✅
+
+**Cause:** Corrupted/partial `localStorage` session data (e.g. `rawPitch: null`) caused `.trim()` crashes on render.
+
+**Fix:** `normalizeSession` / `normalizeEntry` on load; null-safe string access in page + PitchCoachStep; simplified layout width; try/catch fallback in `loadLaunchLabWorkspace`.
+
+### 2026-07-02 — Session sidebar hide + smart New Launch Lab ✅
+
+- **Hide sidebar:** Panel icon in sidebar header; preference saved in localStorage. **Show sessions** button in toolbar when hidden.
+- **New Launch Lab:** Reuses existing empty Untitled session instead of creating duplicates.
+
+### 2026-07-02 — Launch Lab session sidebar ✅
+
+**Added:** Secondary sidebar to the right of the main app sidebar on `/launch-lab`:
+- **New Launch Lab** button at top (creates blank session)
+- Scrollable list of all sessions (auto-saved as you work)
+- Click to switch sessions; hover delete per item
+- Mobile: **Sessions** button opens left sheet
+
+**Storage:** Unified `launch-lab-sessions-v1` (migrates old history + active session).
+
+### 2026-07-02 — Fix pitch score gauge label overlap ✅
+
+**Problem:** Radial score circles overlapped their labels (Clarity, Structure, etc.) due to `-mt-16` negative margin hack.
+
+**Fix:** Center score inside ring via absolute positioning; labels sit below the chart in a separate row with `gap-2` and `min-h` for two-line labels like "Call to action".
+
+### 2026-07-02 — Fix Gemini API 400 (pitch analysis) ✅
+
+**Error:** `Unknown name "systemInstruction"` / `responseMimeType` on Google AI API.
+
+**Cause:** `launch-lab-agent` called `v1/models/...` with fields only supported on newer/v1beta payloads.
+
+**Fix:** Switched to `v1beta/models/gemini-2.5-flash` and prepended system prompt as a user turn (same pattern as `supabase/ai-provider-routing.ts`).
+
+**Action required:** Redeploy edge function:
+```bash
+npx supabase functions deploy launch-lab-agent
+```
+
+### 2026-07-02 — Office PC (project alignment review) ✅
+
+**Scope:** Full Control Tower framework review — not only `launch-lab/` folder.
+
+**Checked:** `AppRoutes.tsx`, `MODULE_REGISTRY`, `navigationStructure.ts`, `ModuleRoute`, `useModuleAccess`, `invokeEdgeFunction`, `cache.ts`, `graphify`/`automation` modules, `run-ai-agent`, `config.toml`, `.env.example`, AI Agents system.
+
+**Conclusion:** Feature aligns with project architecture. Intentional deviations documented in "Project alignment" section above.
+
+### 2026-07-02 — Office PC (full audit) ✅
+
+**Reviewed:**
+- Hackathon PDF requirements (individual, Control Tower enhancement, AI agent, personal Supabase, submission package)
+- Entire `launch-lab` module (35 files), edge function, module registry, routing, sidebar, migration
+- `hackathon-feature.md` handoff doc vs actual codebase — aligned
+
+**Verified:**
+- Build green (`npm run build:dev`)
+- Architecture matches doc (Pitch Coach → Idea Canvas, single `launch-lab-agent` with `pitch` / `canvas` modes)
+- Sidebar: **AI Agents → Launch Lab** (Rocket icon, "New" badge, no module gate)
+
+**Agent handoff:** From this session onward, any Launch Lab work will update this file.
 
 ### 2026-07-02 — Home PC (initial implementation) ✅
 
@@ -311,6 +462,7 @@ Response: `clusters` (problems, ideas, risks, next_steps), `synthesis` (markdown
 | Sidebar item missing | Restart dev server after pull; item is under **AI Agents** → **Launch Lab** (no module gate) |
 | Page flashes then redirects to dashboard | Fixed in `useModuleAccess` + routes; pull latest and restart dev server |
 | Empty canvas | Check function logs in Supabase; verify pitch text length |
+| `Invalid JSON payload… systemInstruction` / `responseMimeType` | Fixed: use `v1beta` + system-as-user message (redeploy `launch-lab-agent`) |
 | Build errors | Run `npm install` then `npm run build:dev` |
 
 ---

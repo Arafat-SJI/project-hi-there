@@ -12,13 +12,14 @@ interface StickyClusterProps {
 
 export function StickyCluster({ clusterKey, notes, className }: StickyClusterProps) {
   const meta = CLUSTER_META[clusterKey];
+  const items = notes ?? [];
 
   return (
     <div className={cn("flex flex-col gap-2 min-h-[200px]", className)}>
       <h3 className="text-sm font-semibold uppercase tracking-wide flex items-center gap-1.5">
         <span>{meta.emoji}</span>
         {meta.label}
-        <span className="text-foreground">({notes.length})</span>
+        <span className="text-foreground">({items.length})</span>
       </h3>
       <div
         className={cn(
@@ -27,12 +28,12 @@ export function StickyCluster({ clusterKey, notes, className }: StickyClusterPro
           "to-transparent",
         )}
       >
-        {notes.length === 0 ? (
+        {items.length === 0 ? (
           <p className="text-sm text-muted-foreground italic p-3 rounded-lg border border-dashed">
             No items yet
           </p>
         ) : (
-          notes.map((note, index) => (
+          items.map((note, index) => (
             <div
               key={note.id}
               className={cn(

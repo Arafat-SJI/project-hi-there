@@ -174,7 +174,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
   "launch-lab": {
     id: "launch-lab",
     name: "Launch Lab",
-    description: "Hackathon feature — Pitch Coach and Idea Canvas for startup launch planning",
+    description: "Pitch Coach and Idea Canvas for startup launch planning",
     icon: "Rocket",
     category: "intelligence",
     isCore: false,

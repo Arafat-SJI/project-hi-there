@@ -24,7 +24,7 @@ export function DashboardLayout() {
         <div className="flex flex-1 flex-col min-w-0">
           <TopNav />
           <MfaGraceBanner />
-          <main className="flex-1 min-w-0 overflow-auto p-6 lg:p-8">
+          <main className="flex-1 min-w-0 overflow-auto pt-4 pl-2">
             <Outlet />
           </main>
         </div>

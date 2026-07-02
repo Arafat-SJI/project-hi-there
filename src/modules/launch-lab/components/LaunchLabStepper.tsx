@@ -5,36 +5,57 @@ import type { LaunchLabStep } from "../types";
 interface LaunchLabStepperProps {
   step: LaunchLabStep;
   canAccessStep2: boolean;
+  canAccessStep3: boolean;
+  onStepClick?: (step: LaunchLabStep) => void;
 }
 
 const STEPS = [
-  { id: 1 as const, title: "Pitch Coach", description: "Score & refine your pitch" },
+  { id: 1 as const, title: "Idea Coach", description: "Score & refine your input" },
   { id: 2 as const, title: "Idea Canvas", description: "Build your launch plan" },
+  { id: 3 as const, title: "Launch Command", description: "Graphical launch overview" },
 ];
 
-export function LaunchLabStepper({ step, canAccessStep2 }: LaunchLabStepperProps) {
+export function LaunchLabStepper({
+  step,
+  canAccessStep2,
+  canAccessStep3,
+  onStepClick,
+}: LaunchLabStepperProps) {
+  const canAccess = (target: LaunchLabStep) => {
+    if (target === 1) return true;
+    if (target === 2) return canAccessStep2;
+    return canAccessStep3;
+  };
+
   return (
     <div className="w-full">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-1 sm:gap-2 mb-2">
         {STEPS.map((s, index) => {
           const isComplete = step > s.id;
           const isActive = step === s.id;
-          const isLocked = s.id === 2 && !canAccessStep2 && step < 2;
+          const isLocked = !canAccess(s.id) && step < s.id;
+          const isClickable = !!onStepClick && canAccess(s.id) && !isActive;
 
           return (
-            <div key={s.id} className="flex flex-1 items-center gap-2">
-              <div
+            <div key={s.id} className="flex flex-1 items-center gap-1 sm:gap-2 min-w-0">
+              <button
+                type="button"
+                disabled={!isClickable}
+                onClick={() => isClickable && onStepClick?.(s.id)}
                 className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors",
                   isComplete && "border-primary bg-primary text-primary-foreground",
                   isActive && !isComplete && "border-primary bg-primary/10 text-primary",
                   !isActive && !isComplete && "border-muted-foreground/30 text-muted-foreground",
                   isLocked && "opacity-50",
+                  isClickable && "hover:border-primary/70 cursor-pointer",
+                  !isClickable && "cursor-default",
                 )}
+                aria-label={`Go to ${s.title}`}
               >
                 {isComplete ? <Check className="h-4 w-4" /> : s.id}
-              </div>
-              <div className="min-w-0 hidden sm:block">
+              </button>
+              <div className="min-w-0 hidden lg:block">
                 <p
                   className={cn(
                     "text-sm font-medium truncate",
@@ -48,7 +69,7 @@ export function LaunchLabStepper({ step, canAccessStep2 }: LaunchLabStepperProps
               {index < STEPS.length - 1 && (
                 <div
                   className={cn(
-                    "h-0.5 flex-1 mx-2 rounded",
+                    "h-0.5 flex-1 mx-1 sm:mx-2 rounded min-w-[8px]",
                     step > s.id ? "bg-primary" : "bg-muted",
                   )}
                 />
@@ -57,8 +78,8 @@ export function LaunchLabStepper({ step, canAccessStep2 }: LaunchLabStepperProps
           );
         })}
       </div>
-      <p className="text-xs text-muted-foreground sm:hidden">
-        Step {step} of 2 — {STEPS[step - 1].title}
+      <p className="text-xs text-muted-foreground lg:hidden">
+        Step {step} of 3 — {STEPS[step - 1].title}
       </p>
     </div>
   );

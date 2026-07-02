@@ -2,7 +2,15 @@ import type { PitchAudience, PitchIndustry, PitchType } from "./types";
 
 export const SAMPLE_PITCHES = [
   {
-    label: "SaaS productivity",
+    label: "Project idea",
+    productName: "FlowStack",
+    text: `FlowStack is a project management platform for remote agencies.
+We want to unify client work, tasks, and billable hours in one workspace.
+Target users are 10–50 person creative and dev agencies.
+Next step: validate with 5 agency interviews and a clickable prototype.`,
+  },
+  {
+    label: "SaaS pitch",
     productName: "FlowStack",
     text: `We're building FlowStack, a project management tool for remote agencies. 
 It helps teams track client work and billable hours in one place. 
@@ -31,6 +39,9 @@ Pilot with 3 accounting firms, $12k ARR. Seeking $750k seed to expand sales.`,
 ] as const;
 
 export const PITCH_TYPES: { value: PitchType; label: string; description: string }[] = [
+  { value: "project_idea", label: "Project idea", description: "Early concept or product vision" },
+  { value: "business_plan", label: "Business plan", description: "Strategy, market, and goals" },
+  { value: "product_plan", label: "Product plan", description: "Roadmap and feature direction" },
   { value: "elevator", label: "Elevator", description: "30–60 second hook" },
   { value: "investor", label: "Investor", description: "Fundraising narrative" },
   { value: "customer", label: "Customer", description: "Buyer-focused value" },
@@ -84,6 +95,11 @@ export const CLUSTER_META = {
 export const PITCH_READY_THRESHOLD = 60;
 export const LAUNCH_LAB_STORAGE_KEY = "launch-lab-session-v2";
 export const LAUNCH_LAB_HISTORY_KEY = "launch-lab-history-v1";
+export const LAUNCH_LAB_SESSIONS_KEY = "launch-lab-sessions-v1";
+export const LAUNCH_LAB_ACTIVE_ID_KEY = "launch-lab-active-id-v1";
+export const LAUNCH_LAB_SIDEBAR_VISIBLE_KEY = "launch-lab-sidebar-visible-v1";
+export const LAUNCH_LAB_SIDEBAR_WIDTH = 260;
+export const MAX_LAUNCH_LAB_SESSIONS = 20;
 
 export const DEFAULT_CONTEXT = {
   pitchType: "investor" as PitchType,

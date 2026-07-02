@@ -1,5 +1,4 @@
-import { useRef } from "react";
-import { ArrowLeft, Loader2, Sparkles, LayoutGrid, PartyPopper } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, LayoutGrid, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +26,8 @@ interface IdeaCanvasStepProps {
   onToggleStep: (id: string) => void;
   onBack: () => void;
   onGenerate: () => void;
+  onContinue: () => void;
+  canContinue: boolean;
 }
 
 export function IdeaCanvasStep({
@@ -37,9 +38,9 @@ export function IdeaCanvasStep({
   onToggleStep,
   onBack,
   onGenerate,
+  onContinue,
+  canContinue,
 }: IdeaCanvasStepProps) {
-  const planRef = useRef<HTMLDivElement>(null);
-
   const checklistSteps =
     canvas?.clusters?.next_steps?.map((n) => ({
       id: n.id,
@@ -47,16 +48,12 @@ export function IdeaCanvasStep({
     })) ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6 min-h-[320px] pb-16">
       {isGenerating && !canvas && (
-        <AnalyzeLoadingOverlay message="Building your idea canvas and 30-day launch plan…" />
+        <AnalyzeLoadingOverlay scoped message="Building your idea canvas and 30-day launch plan…" />
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Pitch Coach
-        </Button>
+      <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={onGenerate} disabled={isGenerating}>
           {isGenerating ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -73,7 +70,7 @@ export function IdeaCanvasStep({
         <Card className="border-dashed">
           <CollapsibleTrigger className="w-full">
             <div className="flex flex-row items-center justify-between p-4 cursor-pointer hover:bg-muted/50 rounded-t-lg">
-              <span className="font-medium text-sm">Source pitch</span>
+              <span className="font-medium text-sm">Source input</span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </div>
           </CollapsibleTrigger>
@@ -124,9 +121,7 @@ export function IdeaCanvasStep({
 
         <TabsContent value="plan" className="mt-4">
           {canvas?.synthesis ? (
-            <div ref={planRef}>
-              <LaunchPlanCard synthesis={canvas.synthesis} />
-            </div>
+            <LaunchPlanCard synthesis={canvas.synthesis} />
           ) : (
             <EmptyTab message="Launch plan will appear after canvas generation." />
           )}
@@ -166,14 +161,23 @@ export function IdeaCanvasStep({
         </TabsContent>
       </Tabs>
 
-      {canvas?.synthesis && (
-        <div className="flex justify-center">
-          <Button variant="outline" onClick={() => planRef.current?.scrollIntoView({ behavior: "smooth" })}>
-            <Sparkles className="h-4 w-4 mr-1" />
-            Jump to launch plan
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onBack}
+          className="shadow-sm bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to Idea Coach
+        </Button>
+        {canContinue ? (
+          <Button size="lg" className="shadow-lg" onClick={onContinue}>
+            Open Launch Command
+            <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
-        </div>
-      )}
+        ) : null}
+      </div>
     </div>
   );
 }

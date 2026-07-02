@@ -14,6 +14,13 @@ async function extractErrorMessage(error: EdgeFunctionError, functionName?: stri
   try {
     const body = await error.context?.clone().json();
     const apiMessage = body?.message || body?.error;
+    const errorCode = body?.code as string | undefined;
+
+    if (status === 429 || errorCode === "GEMINI_QUOTA_EXCEEDED") {
+      return typeof apiMessage === "string" && apiMessage.length < 400
+        ? apiMessage
+        : "AI API free-tier quota reached. Try again tomorrow, or enable billing at ai.google.dev. The agent will automatically try fallback models when available.";
+    }
 
     if (status === 404 || body?.code === "NOT_FOUND") {
       return functionName
@@ -40,7 +47,14 @@ export async function invokeEdgeFunction<T = unknown>(name: string, body?: unkno
   const { data, error } = await supabase.functions.invoke(name, { body });
   if (error) throw new Error(await extractErrorMessage(error, name));
   if (data && typeof data === "object" && "error" in data && (data as { error?: unknown }).error) {
-    const { message, error: errMessage } = data as { message?: string; error?: string };
+    const payload = data as { message?: string; error?: string; code?: string };
+    if (payload.code === "GEMINI_QUOTA_EXCEEDED") {
+      throw new Error(
+        payload.error ||
+          "AI API free-tier quota reached. Try again tomorrow, or enable billing at ai.google.dev.",
+      );
+    }
+    const { message, error: errMessage } = payload;
     throw new Error(message || errMessage || "Request failed");
   }
   return data as T;

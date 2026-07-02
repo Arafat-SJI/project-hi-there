@@ -1,4 +1,4 @@
-import { Download, FileText, History, RotateCcw } from "lucide-react";
+import { Download, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,11 +12,9 @@ import type { LaunchLabSessionState } from "../types";
 interface LaunchLabToolbarProps {
   session: LaunchLabSessionState;
   onReset: () => void;
-  onOpenHistory: () => void;
-  onSaveHistory: () => void;
 }
 
-export function LaunchLabToolbar({ session, onReset, onOpenHistory, onSaveHistory }: LaunchLabToolbarProps) {
+export function LaunchLabToolbar({ session, onReset }: LaunchLabToolbarProps) {
   const exportMd = () => {
     const md = buildLaunchLabMarkdown(session);
     const name = session.context.productName || "launch-lab";
@@ -24,18 +22,10 @@ export function LaunchLabToolbar({ session, onReset, onOpenHistory, onSaveHistor
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button variant="outline" size="sm" onClick={onOpenHistory}>
-        <History className="h-3.5 w-3.5 mr-1.5" />
-        History
-      </Button>
-      <Button variant="outline" size="sm" onClick={onSaveHistory}>
-        <FileText className="h-3.5 w-3.5 mr-1.5" />
-        Save session
-      </Button>
+    <div className="flex items-center justify-end gap-2 shrink-0">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="h-8">
             <Download className="h-3.5 w-3.5 mr-1.5" />
             Export
           </Button>
@@ -44,7 +34,7 @@ export function LaunchLabToolbar({ session, onReset, onOpenHistory, onSaveHistor
           <DropdownMenuItem onClick={exportMd}>Download Markdown</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Button variant="ghost" size="sm" onClick={onReset} className="text-muted-foreground">
+      <Button variant="outline" size="sm" onClick={onReset} className="h-8">
         <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
         Reset
       </Button>

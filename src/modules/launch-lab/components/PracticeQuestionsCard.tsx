@@ -13,8 +13,11 @@ export function PracticeQuestionsCard({ questions }: PracticeQuestionsCardProps)
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <HelpCircle className="h-4 w-4 text-primary" />
-          Practice Q&A
+          Question outcomes
         </CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Questions your audience is likely to ask — and what to prepare for.
+        </p>
       </CardHeader>
       <CardContent>
         <ol className="space-y-2 list-decimal list-inside">

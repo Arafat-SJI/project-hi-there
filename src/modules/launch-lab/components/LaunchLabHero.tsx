@@ -1,14 +1,27 @@
-import { Sparkles, Target, Zap, TrendingUp } from "lucide-react";
-import { AIIndicator } from "@/components/ui/ai-indicator";
-import { Badge } from "@/components/ui/badge";
+import { Target, Zap, TrendingUp } from "lucide-react";
+import type { LaunchLabStep } from "../types";
 
 interface LaunchLabHeroProps {
-  step: 1 | 2;
+  step: LaunchLabStep;
   overall: number | null;
   productName: string;
 }
 
+const STEP_COPY: Record<LaunchLabStep, string> = {
+  1: "Share a pitch, project idea, or plan — AI scores your narrative, surfaces objections, and crafts a polished version.",
+  2: "Transform your refined idea into a visual launch board, KPIs, milestones, and a 30-day action plan.",
+  3: "Your graphical command center — readiness score, strategy map, KPIs, roadmap, and launch brief in one view.",
+};
+
+const STEP_LABEL: Record<LaunchLabStep, string> = {
+  1: "Refine",
+  2: "Canvas",
+  3: "Command",
+};
+
 export function LaunchLabHero({ step, overall, productName }: LaunchLabHeroProps) {
+  const displayName = productName.trim() && productName !== "Untitled" ? productName.trim() : "";
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-violet-500/5 to-background p-6 sm:p-8">
       <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
@@ -16,24 +29,16 @@ export function LaunchLabHero({ step, overall, productName }: LaunchLabHeroProps
 
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="bg-primary/15 text-primary border-primary/20">
-              Hackathon 2026
-            </Badge>
-            <AIIndicator variant="badge" status="active" label="Gemini 2.5 Flash" />
-          </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {productName ? `${productName} — Launch Lab` : "Launch Lab"}
+            {displayName ? `${displayName} — Launch Lab` : "Launch Lab"}
           </h1>
           <p className="text-muted-foreground max-w-xl text-sm sm:text-base">
-            {step === 1
-              ? "AI pitch coach scores your narrative, surfaces objections, and crafts a investor-ready version."
-              : "Transform your pitch into a visual launch board, KPIs, milestones, and a 30-day action plan."}
+            {STEP_COPY[step]}
           </p>
         </div>
 
         <div className="flex gap-3 shrink-0">
-          <HeroStat icon={Target} label="Step" value={step === 1 ? "Pitch" : "Canvas"} />
+          <HeroStat icon={Target} label="Step" value={STEP_LABEL[step]} />
           <HeroStat
             icon={TrendingUp}
             label="Score"
@@ -42,11 +47,6 @@ export function LaunchLabHero({ step, overall, productName }: LaunchLabHeroProps
           />
           <HeroStat icon={Zap} label="Agent" value="Live" />
         </div>
-      </div>
-
-      <div className="relative mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-        <Sparkles className="h-3.5 w-3.5 text-primary" />
-        Powered by Google Gemini · Standalone hackathon workspace
       </div>
     </div>
   );

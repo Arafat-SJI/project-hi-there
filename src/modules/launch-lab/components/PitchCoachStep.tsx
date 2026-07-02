@@ -4,7 +4,6 @@ import {
   Sparkles,
   ArrowRight,
   AlertCircle,
-  Volume2,
   Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,14 +21,15 @@ import { AICard } from "@/components/ui/ai-indicator";
 import { PitchScoreGauges } from "./PitchScoreGauges";
 import { PitchContextPanel } from "./PitchContextPanel";
 import { PitchStatsBar } from "./PitchStatsBar";
-import { PitchTimer } from "./PitchTimer";
 import { PitchHeadlineCard } from "./PitchHeadlineCard";
 import { PitchBeforeAfter } from "./PitchBeforeAfter";
 import { WeakMomentsPanel } from "./WeakMomentsPanel";
 import { StrengthsCard } from "./StrengthsCard";
 import { PracticeQuestionsCard } from "./PracticeQuestionsCard";
 import { ObjectionFlashcards } from "./ObjectionFlashcards";
+import { SpeechPlaybackButton } from "./SpeechPlaybackButton";
 import { AnalyzeLoadingOverlay } from "./AnalyzeLoadingOverlay";
+import { useSpeechPlayback } from "../hooks/useSpeechPlayback";
 import { SAMPLE_PITCHES, PITCH_READY_THRESHOLD } from "../constants";
 import type { LaunchLabContext, PitchAnalysis } from "../types";
 import { getScoreGrade } from "../lib/pitch-metrics";
@@ -56,26 +56,21 @@ export function PitchCoachStep({
   onContinue,
 }: PitchCoachStepProps) {
   const [resultsTab, setResultsTab] = useState("scores");
+  const speechPlayback = useSpeechPlayback();
+
+  const pitchText = rawPitch ?? "";
 
   const canContinue =
     analysis &&
     (analysis.ready_for_planning ||
       analysis.overall >= PITCH_READY_THRESHOLD ||
-      analysis.improved_pitch.length > 0);
-
-  const speakPitch = (text: string) => {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.95;
-    window.speechSynthesis.speak(utterance);
-  };
+      (analysis.improved_pitch?.length ?? 0) > 0);
 
   const grade = analysis ? getScoreGrade(analysis.overall) : null;
 
   return (
-    <>
-      {isAnalyzing && <AnalyzeLoadingOverlay />}
+    <div className="relative space-y-6">
+      {isAnalyzing && <AnalyzeLoadingOverlay scoped />}
 
       <PitchContextPanel context={context} onChange={onContextChange} />
 
@@ -85,7 +80,7 @@ export function PitchCoachStep({
             <div className="flex items-center justify-between gap-2 mb-3">
               <h2 className="font-semibold flex items-center gap-2">
                 <Wand2 className="h-4 w-4 text-primary" />
-                Your pitch
+                Your idea
               </h2>
               <Select
                 onValueChange={(key) => {
@@ -110,20 +105,19 @@ export function PitchCoachStep({
             </div>
 
             <Textarea
-              placeholder="Paste your startup pitch, investor intro, or product elevator speech..."
+              placeholder="Paste a pitch, new project idea, business plan, product roadmap, or any launch narrative…"
               className="min-h-[200px] resize-y font-mono text-sm"
-              value={rawPitch}
+              value={pitchText}
               onChange={(e) => onPitchChange(e.target.value)}
             />
 
             <div className="mt-3 space-y-3">
-              <PitchStatsBar text={rawPitch} />
-              <PitchTimer />
+              <PitchStatsBar text={pitchText} />
               <div className="flex gap-2">
                 <Button
                   className="flex-1"
                   onClick={onAnalyze}
-                  disabled={isAnalyzing || rawPitch.trim().length < 20}
+                  disabled={isAnalyzing || pitchText.trim().length < 20}
                 >
                   {isAnalyzing ? (
                     <>
@@ -133,19 +127,17 @@ export function PitchCoachStep({
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Analyze with Gemini
+                      Analyze with AI
                     </>
                   )}
                 </Button>
-                {rawPitch.trim().length > 20 && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    title="Read aloud"
-                    onClick={() => speakPitch(rawPitch)}
-                  >
-                    <Volume2 className="h-4 w-4" />
-                  </Button>
+                {pitchText.trim().length > 20 && (
+                  <SpeechPlaybackButton
+                    id="draft-idea"
+                    text={rawPitch}
+                    playback={speechPlayback}
+                    variant="icon"
+                  />
                 )}
               </div>
             </div>
@@ -159,10 +151,10 @@ export function PitchCoachStep({
                 <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                   <Sparkles className="h-8 w-8 text-primary opacity-70" />
                 </div>
-                <p className="font-medium text-foreground mb-2">Ready to coach your pitch</p>
+                <p className="font-medium text-foreground mb-2">Ready to refine your idea</p>
                 <p className="text-sm">
-                  Set your context above, paste at least 20 characters, and hit analyze for scores,
-                  objections, and a polished rewrite.
+                  Set your context above, paste at least 20 characters — a pitch, project idea, or
+                  plan — and analyze for scores, objections, and a polished version.
                 </p>
               </CardContent>
             </Card>
@@ -186,7 +178,7 @@ export function PitchCoachStep({
                   <TabsTrigger value="scores">Scores</TabsTrigger>
                   <TabsTrigger value="improve">Improve</TabsTrigger>
                   <TabsTrigger value="objections">Objections</TabsTrigger>
-                  <TabsTrigger value="practice">Practice</TabsTrigger>
+                  <TabsTrigger value="practice">Question outcomes</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="scores" className="space-y-4 mt-4">
@@ -197,7 +189,7 @@ export function PitchCoachStep({
                 <TabsContent value="improve" className="space-y-4 mt-4">
                   <PitchBeforeAfter original={rawPitch} improved={analysis.improved_pitch} />
                   <WeakMomentsPanel moments={analysis.weak_moments ?? []} />
-                  {analysis.fixes.length > 0 ? (
+                  {(analysis.fixes?.length ?? 0) > 0 ? (
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-base flex items-center gap-2">
@@ -223,13 +215,15 @@ export function PitchCoachStep({
                   <ObjectionFlashcards objections={analysis.objections ?? []} />
                 </TabsContent>
 
-                <TabsContent value="practice" className="space-y-4 mt-4">
+                <TabsContent value="practice" className="space-y-4 mt-4" forceMount>
                   <PracticeQuestionsCard questions={analysis.practice_questions ?? []} />
                   {analysis.improved_pitch && (
-                    <Button variant="outline" onClick={() => speakPitch(analysis.improved_pitch)}>
-                      <Volume2 className="h-4 w-4 mr-2" />
-                      Listen to polished pitch
-                    </Button>
+                    <SpeechPlaybackButton
+                      id="polished-pitch"
+                      text={analysis.improved_pitch}
+                      playback={speechPlayback}
+                      label="Listen to polished pitch"
+                    />
                   )}
                 </TabsContent>
               </Tabs>
@@ -244,6 +238,6 @@ export function PitchCoachStep({
           ) : null}
         </div>
       </div>
-    </>
+    </div>
   );
 }

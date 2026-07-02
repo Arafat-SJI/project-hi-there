@@ -26,9 +26,22 @@ export function LaunchLabDeployAlert({ health, isLoading }: LaunchLabDeployAlert
           </p>
           <p>npx supabase login</p>
           <p>npx supabase link --project-ref hvonjbgyszponjlynpos</p>
-          <p>npx supabase secrets set GOOGLE_AI_API_KEY=your-gemini-key</p>
+          <p>npx supabase secrets set GOOGLE_AI_API_KEY=your-api-key</p>
           <p>npx supabase functions deploy launch-lab-agent</p>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Free tier: ~20 requests/day per AI model. If analysis fails with quota errors, wait
+          until tomorrow or enable billing at{" "}
+          <a
+            href="https://ai.google.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            ai.google.dev
+          </a>
+          .
+        </p>
         <p className="text-xs text-muted-foreground">
           Note: <code className="bg-muted px-1 rounded">GOOGLE_AI_API_KEY</code> in{" "}
           <code className="bg-muted px-1 rounded">.env</code> is not used by Edge Functions — set it
@@ -45,7 +58,7 @@ export function LaunchLabSecretAlert({ health }: { health: LaunchLabHealth | und
   return (
     <Alert className="border-amber-500/50 bg-amber-500/10">
       <AlertTriangle className="h-4 w-4 text-amber-600" />
-      <AlertTitle>Gemini API key missing</AlertTitle>
+      <AlertTitle>AI API key missing</AlertTitle>
       <AlertDescription className="text-sm mt-1">
         Deploy succeeded but <code className="text-xs bg-muted px-1 rounded">GOOGLE_AI_API_KEY</code>{" "}
         is not set. Run:{" "}

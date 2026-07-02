@@ -23,8 +23,8 @@ export function PitchContextPanel({ context, onChange }: PitchContextPanelProps)
       <CardHeader className="py-3 px-4">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Settings2 className="h-4 w-4 text-primary" />
-          Pitch context
-          <span className="text-xs font-normal text-muted-foreground">— AI tailors feedback</span>
+          Idea context
+          <span className="text-xs font-normal text-muted-foreground">— AI tailors feedback to your goal</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 px-4 pb-4 pt-0">
@@ -38,7 +38,7 @@ export function PitchContextPanel({ context, onChange }: PitchContextPanelProps)
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Pitch type</Label>
+          <Label className="text-xs">Content type</Label>
           <Select value={context.pitchType} onValueChange={(v) => onChange({ pitchType: v as LaunchLabContext["pitchType"] })}>
             <SelectTrigger className="h-9">
               <SelectValue />

@@ -11,18 +11,15 @@ interface ObjectionFlashcardsProps {
 
 export function ObjectionFlashcards({ objections }: ObjectionFlashcardsProps) {
   const [index, setIndex] = useState(0);
-  const [flipped, setFlipped] = useState(false);
 
   if (!objections.length) return null;
 
   const obj = objections[index];
 
   const next = () => {
-    setFlipped(false);
     setIndex((i) => (i + 1) % objections.length);
   };
   const prev = () => {
-    setFlipped(false);
     setIndex((i) => (i - 1 + objections.length) % objections.length);
   };
 
@@ -38,25 +35,21 @@ export function ObjectionFlashcards({ objections }: ObjectionFlashcardsProps) {
         </Badge>
       </CardHeader>
       <CardContent className="space-y-4">
-        <button
-          type="button"
-          onClick={() => setFlipped(!flipped)}
-          className="w-full min-h-[120px] rounded-xl border-2 border-dashed border-violet-500/30 p-4 text-left transition-all hover:border-violet-500/50 hover:bg-violet-500/5"
-        >
-          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-            {flipped ? "Suggested answer" : "Investor asks"}
-          </p>
-          <p className="text-sm font-medium leading-relaxed">
-            {flipped ? obj.suggested_answer : obj.question}
-          </p>
-          <p className="text-[10px] text-muted-foreground mt-3">Tap to flip</p>
-        </button>
+        <div className="w-full rounded-xl border-2 border-dashed border-violet-500/30 p-4 text-left">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Question</p>
+          <p className="text-sm font-medium leading-relaxed">{obj.question}</p>
+
+          <div className="mt-4 border-t border-violet-500/20 pt-4">
+            <p className="text-xs uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-2">
+              Suggested answer
+            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{obj.suggested_answer}</p>
+          </div>
+        </div>
+
         <div className="flex justify-between">
           <Button variant="outline" size="sm" onClick={prev}>
             <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setFlipped(!flipped)}>
-            Flip card
           </Button>
           <Button variant="outline" size="sm" onClick={next}>
             <ChevronRight className="h-4 w-4" />

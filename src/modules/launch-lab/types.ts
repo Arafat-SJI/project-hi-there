@@ -1,6 +1,13 @@
-export type LaunchLabStep = 1 | 2;
+export type LaunchLabStep = 1 | 2 | 3;
 
-export type PitchType = "elevator" | "investor" | "customer" | "demo_day";
+export type PitchType =
+  | "project_idea"
+  | "business_plan"
+  | "product_plan"
+  | "elevator"
+  | "investor"
+  | "customer"
+  | "demo_day";
 export type PitchAudience = "investors" | "customers" | "partners" | "internal_team";
 export type PitchIndustry =
   | "saas"
@@ -89,13 +96,43 @@ export interface LaunchLabContext {
   productName: string;
 }
 
+export type LaunchFlowNodeType = "week" | "task" | "goal" | "custom";
+
+export interface LaunchFlowNodeData {
+  label: string;
+  detail?: string;
+  week?: number;
+  goals?: string[];
+  sourceId?: string;
+}
+
+export interface LaunchFlowNode {
+  id: string;
+  type: LaunchFlowNodeType;
+  position: { x: number; y: number };
+  data: LaunchFlowNodeData;
+}
+
+export interface LaunchFlowEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
+export interface LaunchBoardState {
+  nodes: LaunchFlowNode[];
+  edges: LaunchFlowEdge[];
+}
+
 export interface LaunchLabSession {
+  id: string;
   step: LaunchLabStep;
   rawPitch: string;
   pitchAnalysis: PitchAnalysis | null;
   canvas: IdeaCanvasResult | null;
   context: LaunchLabContext;
   checkedSteps: string[];
+  launchBoard: LaunchBoardState | null;
 }
 
 export interface SavedLaunchSession {
@@ -103,11 +140,13 @@ export interface SavedLaunchSession {
   savedAt: string;
   productName: string;
   overall: number | null;
+  step?: LaunchLabStep;
   rawPitch: string;
   pitchAnalysis: PitchAnalysis | null;
   canvas: IdeaCanvasResult | null;
   context: LaunchLabContext;
   checkedSteps: string[];
+  launchBoard?: LaunchBoardState | null;
 }
 
 export type LaunchLabSessionState = LaunchLabSession;
