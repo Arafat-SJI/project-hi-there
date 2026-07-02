@@ -327,7 +327,7 @@ Launch Lab was reviewed against the full SJ Control Tower patterns — not only 
 | Git working tree | ✅ Clean at audit time |
 | Deploy health UI | ✅ `LaunchLabDeployAlert` + `useLaunchLabHealth` detect missing function/key |
 
-**Blockers before live demo:** Deploy `launch-lab-agent` + set `GOOGLE_AI_API_KEY` on Supabase project `hvonjbgyszponjlynpos` (see deploy alert in UI).
+**Blockers before live demo:** Deploy `launch-lab-agent` + set `GOOGLE_AI_API_KEY` on Supabase project `boxjziuuzlgalhndlllk` (see deploy alert in UI).
 
 **Remaining polish (optional for judging):**
 - DB persistence (`launch_lab_sessions` table)

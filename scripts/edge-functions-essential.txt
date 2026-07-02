@@ -101,6 +101,9 @@ user-drive-list
 user-integration-clear-data
 user-memory-stats
 
+# --- Hackathon ---
+launch-lab-agent
+
 # --- APIs (external consumers) ---
 api-v1-clients
 api-v1-meetings

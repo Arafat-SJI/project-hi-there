@@ -234,6 +234,11 @@ export const queryKeys = {
     preferences: (userId: string) => ["spaces", "preferences", userId] as const,
   },
 
+  launchLab: {
+    workspace: (userId: string) => ["launch-lab", "workspace", userId] as const,
+    preferences: (userId: string) => ["launch-lab", "preferences", userId] as const,
+  },
+
   admin: {
     users: ["admin", "users"] as const,
     user: (id: string) => ["admin", "user", id] as const,

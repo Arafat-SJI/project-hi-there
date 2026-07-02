@@ -25,7 +25,7 @@ export function LaunchLabDeployAlert({ health, isLoading }: LaunchLabDeployAlert
             Run in terminal (one-time setup):
           </p>
           <p>npx supabase login</p>
-          <p>npx supabase link --project-ref hvonjbgyszponjlynpos</p>
+          <p>npx supabase link --project-ref boxjziuuzlgalhndlllk</p>
           <p>npx supabase secrets set GOOGLE_AI_API_KEY=your-api-key</p>
           <p>npx supabase functions deploy launch-lab-agent</p>
         </div>

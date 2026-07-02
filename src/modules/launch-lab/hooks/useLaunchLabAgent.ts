@@ -6,6 +6,8 @@ import type {
   CanvasGenerateInput,
   PitchAgentResponse,
   PitchAnalyzeInput,
+  SocialPostAgentResponse,
+  SocialPostGenerateInput,
 } from "../types";
 
 export function useAnalyzePitch() {
@@ -34,6 +36,21 @@ export function useGenerateCanvas() {
     },
     onError: (error: Error) => {
       toast.error("Canvas generation failed", { description: error.message });
+    },
+  });
+}
+
+export function useGenerateSocialPost() {
+  return useMutation({
+    mutationFn: async (input: SocialPostGenerateInput) => {
+      const data = await invokeEdgeFunction<SocialPostAgentResponse>("launch-lab-agent", {
+        mode: "social-post",
+        ...input,
+      });
+      return data;
+    },
+    onError: (error: Error) => {
+      toast.error("Could not generate post copy", { description: error.message });
     },
   });
 }

@@ -1,12 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  LAUNCH_LAB_ACTIVE_ID_KEY,
-  LAUNCH_LAB_HISTORY_KEY,
-  LAUNCH_LAB_SESSIONS_KEY,
-  LAUNCH_LAB_STORAGE_KEY,
-} from "../constants";
 
 interface Props {
   children: ReactNode;
@@ -14,14 +8,6 @@ interface Props {
 
 interface State {
   error: Error | null;
-}
-
-function clearLaunchLabStorage() {
-  localStorage.removeItem(LAUNCH_LAB_SESSIONS_KEY);
-  localStorage.removeItem(LAUNCH_LAB_ACTIVE_ID_KEY);
-  localStorage.removeItem(LAUNCH_LAB_STORAGE_KEY);
-  localStorage.removeItem(LAUNCH_LAB_HISTORY_KEY);
-  window.location.reload();
 }
 
 export class LaunchLabErrorBoundary extends Component<Props, State> {
@@ -48,8 +34,8 @@ export class LaunchLabErrorBoundary extends Component<Props, State> {
             </p>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => this.setState({ error: null })}>Try again</Button>
-              <Button variant="outline" onClick={clearLaunchLabStorage}>
-                Reset Launch Lab data
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Reload page
               </Button>
             </div>
           </CardContent>

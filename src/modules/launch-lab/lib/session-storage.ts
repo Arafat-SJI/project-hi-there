@@ -1,14 +1,15 @@
-import {
-  DEFAULT_CONTEXT,
-  LAUNCH_LAB_ACTIVE_ID_KEY,
-  LAUNCH_LAB_HISTORY_KEY,
-  LAUNCH_LAB_SESSIONS_KEY,
-  LAUNCH_LAB_SIDEBAR_VISIBLE_KEY,
-  LAUNCH_LAB_STORAGE_KEY,
-  MAX_LAUNCH_LAB_SESSIONS,
-} from "../constants";
+import { DEFAULT_CONTEXT, MAX_LAUNCH_LAB_SESSIONS } from "../constants";
 import { deriveSessionTitle } from "./session-title";
-import type { IdeaCanvasResult, LaunchBoardState, LaunchLabSession, LaunchLabStep, PitchAnalysis, PitchScores, SavedLaunchSession } from "../types";
+import { normalizeSocialBanners } from "./social-banners";
+import type {
+  IdeaCanvasResult,
+  LaunchBoardState,
+  LaunchLabSession,
+  LaunchLabStep,
+  PitchAnalysis,
+  PitchScores,
+  SavedLaunchSession,
+} from "../types";
 
 function safeStr(value: unknown): string {
   return typeof value === "string" ? value : "";
@@ -91,6 +92,7 @@ export function normalizeSession(
     },
     checkedSteps: Array.isArray(session.checkedSteps) ? session.checkedSteps : [],
     launchBoard: session.launchBoard ?? null,
+    socialBanners: normalizeSocialBanners(session.socialBanners),
   };
 }
 
@@ -104,6 +106,7 @@ export function normalizeEntry(entry: Partial<SavedLaunchSession> & { id?: strin
     context: entry.context,
     checkedSteps: entry.checkedSteps,
     launchBoard: entry.launchBoard ?? null,
+    socialBanners: entry.socialBanners,
   });
 
   return {
@@ -122,6 +125,7 @@ export function createEmptySession(id?: string): LaunchLabSession {
     context: { ...DEFAULT_CONTEXT },
     checkedSteps: [],
     launchBoard: null,
+    socialBanners: null,
   };
 }
 
@@ -138,6 +142,7 @@ export function sessionToEntry(session: LaunchLabSession, savedAt?: string): Sav
     checkedSteps: session.checkedSteps ?? [],
     step: session.step,
     launchBoard: session.launchBoard ?? null,
+    socialBanners: session.socialBanners ?? null,
   };
 }
 
@@ -151,6 +156,7 @@ export function entryToSession(entry: SavedLaunchSession): LaunchLabSession {
     context: entry.context,
     checkedSteps: entry.checkedSteps,
     launchBoard: entry.launchBoard ?? null,
+    socialBanners: normalizeSocialBanners(entry.socialBanners),
   });
 }
 
@@ -179,29 +185,6 @@ export function findEmptyUntitledSession(
   });
 }
 
-export function readSidebarVisible(): boolean {
-  try {
-    return localStorage.getItem(LAUNCH_LAB_SIDEBAR_VISIBLE_KEY) !== "false";
-  } catch {
-    return true;
-  }
-}
-
-export function persistSidebarVisible(visible: boolean) {
-  localStorage.setItem(LAUNCH_LAB_SIDEBAR_VISIBLE_KEY, visible ? "true" : "false");
-}
-
-function readSessions(): SavedLaunchSession[] {
-  try {
-    const raw = localStorage.getItem(LAUNCH_LAB_SESSIONS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Partial<SavedLaunchSession>[];
-    return parsed.map((entry) => normalizeEntry(entry));
-  } catch {
-    return [];
-  }
-}
-
 export function sessionRichness(entry: SavedLaunchSession): number {
   let score = 0;
   if (entry.pitchAnalysis) score += 100;
@@ -217,104 +200,7 @@ export function sortSessionsBySavedAt(sessions: SavedLaunchSession[]): SavedLaun
   );
 }
 
-function mergeSessionEntries(entries: SavedLaunchSession[]): SavedLaunchSession[] {
-  const map = new Map<string, SavedLaunchSession>();
-
-  for (const entry of entries) {
-    const normalized = normalizeEntry(entry);
-    const existing = map.get(normalized.id);
-    if (!existing || sessionRichness(normalized) > sessionRichness(existing)) {
-      map.set(normalized.id, normalized);
-    }
-  }
-
-  return sortSessionsBySavedAt([...map.values()]);
-}
-
-function collapseEmptyDuplicates(sessions: SavedLaunchSession[]): SavedLaunchSession[] {
-  let keeper: SavedLaunchSession | null = null;
-  const withContent: SavedLaunchSession[] = [];
-
-  for (const entry of sessions) {
-    if (isEntryEmpty(entry)) {
-      if (!keeper) keeper = entry;
-    } else {
-      withContent.push(entry);
-    }
-  }
-
-  if (!keeper) return withContent;
-  return sortSessionsBySavedAt([keeper, ...withContent]);
-}
-
-function collectLegacyHistoryEntries(): SavedLaunchSession[] {
-  try {
-    const historyRaw = localStorage.getItem(LAUNCH_LAB_HISTORY_KEY);
-    if (!historyRaw) return [];
-    const history = JSON.parse(historyRaw) as Partial<SavedLaunchSession>[];
-    return history.map((entry) => normalizeEntry(entry));
-  } catch {
-    return [];
-  }
-}
-
-function collectLegacyActiveSession(): SavedLaunchSession | null {
-  try {
-    const sessionRaw = localStorage.getItem(LAUNCH_LAB_STORAGE_KEY);
-    if (!sessionRaw) return null;
-
-    const parsed = JSON.parse(sessionRaw) as Partial<LaunchLabSession> & {
-      id?: string;
-      savedAt?: string;
-    };
-
-    const hasContent =
-      safeStr(parsed.rawPitch).trim() ||
-      parsed.pitchAnalysis ||
-      parsed.canvas ||
-      safeStr(parsed.context?.productName).trim();
-
-    if (!hasContent) return null;
-
-    return normalizeEntry({
-      id: parsed.id,
-      savedAt: parsed.savedAt,
-      rawPitch: parsed.rawPitch,
-      pitchAnalysis: parsed.pitchAnalysis ?? null,
-      canvas: parsed.canvas ?? null,
-      context: parsed.context,
-      checkedSteps: parsed.checkedSteps,
-    });
-  } catch {
-    return null;
-  }
-}
-
-function reconcileSessions(): SavedLaunchSession[] {
-  const stored = readSessions();
-  const legacyHistory = collectLegacyHistoryEntries();
-  const legacyActive = collectLegacyActiveSession();
-
-  const merged = collapseEmptyDuplicates(
-    mergeSessionEntries([
-      ...stored,
-      ...legacyHistory,
-      ...(legacyActive ? [legacyActive] : []),
-    ]),
-  );
-
-  if (merged.length > 0) {
-    persistSessions(merged);
-    return merged;
-  }
-
-  const session = createEmptySession();
-  const entry = sessionToEntry(session);
-  persistSessions([entry]);
-  return [entry];
-}
-
-function resolveActiveEntry(
+export function resolveActiveEntry(
   sessions: SavedLaunchSession[],
   activeId: string | null,
 ): SavedLaunchSession {
@@ -334,52 +220,4 @@ function resolveActiveEntry(
   }
 
   return sorted[0];
-}
-
-function migrateLegacyStorage(): SavedLaunchSession[] {
-  return reconcileSessions();
-}
-
-export function persistSessions(sessions: SavedLaunchSession[]) {
-  localStorage.setItem(
-    LAUNCH_LAB_SESSIONS_KEY,
-    JSON.stringify(sessions.slice(0, MAX_LAUNCH_LAB_SESSIONS)),
-  );
-}
-
-export function persistActiveId(id: string) {
-  localStorage.setItem(LAUNCH_LAB_ACTIVE_ID_KEY, id);
-}
-
-export function loadLaunchLabWorkspace(): {
-  session: LaunchLabSession;
-  sessions: SavedLaunchSession[];
-} {
-  try {
-    const sessions = migrateLegacyStorage();
-
-    if (sessions.length === 0) {
-      const session = createEmptySession();
-      const entry = sessionToEntry(session);
-      persistSessions([entry]);
-      persistActiveId(session.id);
-      return { session, sessions: [entry] };
-    }
-
-    const activeId = localStorage.getItem(LAUNCH_LAB_ACTIVE_ID_KEY);
-    const activeEntry = resolveActiveEntry(sessions, activeId);
-    persistActiveId(activeEntry.id);
-
-    return {
-      session: entryToSession(activeEntry),
-      sessions,
-    };
-  } catch (error) {
-    console.error("[launch-lab] Failed to load workspace, resetting:", error);
-    const session = createEmptySession();
-    const entry = sessionToEntry(session);
-    persistSessions([entry]);
-    persistActiveId(session.id);
-    return { session, sessions: [entry] };
-  }
 }

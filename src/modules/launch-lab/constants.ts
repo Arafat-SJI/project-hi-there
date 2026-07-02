@@ -93,11 +93,6 @@ export const CLUSTER_META = {
 } as const;
 
 export const PITCH_READY_THRESHOLD = 60;
-export const LAUNCH_LAB_STORAGE_KEY = "launch-lab-session-v2";
-export const LAUNCH_LAB_HISTORY_KEY = "launch-lab-history-v1";
-export const LAUNCH_LAB_SESSIONS_KEY = "launch-lab-sessions-v1";
-export const LAUNCH_LAB_ACTIVE_ID_KEY = "launch-lab-active-id-v1";
-export const LAUNCH_LAB_SIDEBAR_VISIBLE_KEY = "launch-lab-sidebar-visible-v1";
 export const LAUNCH_LAB_SIDEBAR_WIDTH = 260;
 export const MAX_LAUNCH_LAB_SESSIONS = 20;
 

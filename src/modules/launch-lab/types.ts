@@ -133,6 +133,7 @@ export interface LaunchLabSession {
   context: LaunchLabContext;
   checkedSteps: string[];
   launchBoard: LaunchBoardState | null;
+  socialBanners: SocialBannersState | null;
 }
 
 export interface SavedLaunchSession {
@@ -147,11 +148,48 @@ export interface SavedLaunchSession {
   context: LaunchLabContext;
   checkedSteps: string[];
   launchBoard?: LaunchBoardState | null;
+  socialBanners?: SocialBannersState | null;
 }
 
 export type LaunchLabSessionState = LaunchLabSession;
 
-export type LaunchLabAgentMode = "pitch" | "canvas";
+export type LaunchLabAgentMode = "pitch" | "canvas" | "social-post";
+
+export type BannerPlatform = "linkedin" | "facebook";
+
+export type BannerAspectRatio = "1.91:1" | "1.9:1" | "16:9" | "4:5" | "1:1" | "4:3" | "3:2";
+
+export interface SocialBannerItem {
+  imageUrl: string | null;
+  variantIndex: number;
+  aspectRatio: BannerAspectRatio;
+  suggestedPost: string | null;
+}
+
+export interface SocialBannersState {
+  hasGenerated: boolean;
+  initialized: boolean;
+  postsCreated: boolean;
+  linkedin: SocialBannerItem;
+  facebook: SocialBannerItem;
+}
+
+export interface SocialPostGenerateInput {
+  platform: BannerPlatform;
+  product_name?: string;
+  headline?: string;
+  tagline?: string;
+  one_liner?: string;
+  pitch_type?: PitchType;
+  audience?: PitchAudience;
+  industry?: PitchIndustry;
+}
+
+export interface SocialPostAgentResponse {
+  mode: "social-post";
+  platform: BannerPlatform;
+  post_copy: string;
+}
 
 export interface PitchAgentResponse extends PitchAnalysis {
   mode: "pitch";

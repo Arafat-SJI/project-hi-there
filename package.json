@@ -17,7 +17,9 @@
     "test": "vitest",
     "test:run": "vitest run",
     "launch-lab:deploy": "supabase functions deploy launch-lab-agent",
-    "launch-lab:secret": "supabase secrets set GOOGLE_AI_API_KEY"
+    "launch-lab:secret": "supabase secrets set GOOGLE_AI_API_KEY",
+    "supabase:migrate": "powershell -ExecutionPolicy Bypass -File scripts/migrate-to-new-supabase.ps1",
+    "supabase:deploy-functions": "powershell -ExecutionPolicy Bypass -File scripts/deploy-all-edge-functions.ps1"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.27.0",
