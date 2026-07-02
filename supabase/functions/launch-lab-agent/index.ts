@@ -107,6 +107,17 @@ Rules:
 
 const CANVAS_MAX_TOKENS = 8192
 
+const SOCIAL_POST_SYSTEM = `You write ready-to-publish social media posts for product launches.
+Respond with ONLY valid JSON: { "post_copy": "..." }
+
+Rules:
+- Plain text only. No markdown, no bullet characters, no JSON in the post body.
+- linkedin: professional B2B tone, 2-4 short paragraphs, max 3 relevant hashtags at the end, thought leadership angle.
+- facebook: warm conversational tone, 1-2 paragraphs, light emoji ok (max 2), clear call to action at the end.
+- Reference the product and value prop naturally. Do not use placeholder brackets.`
+
+const SOCIAL_POST_MAX_TOKENS = 1024
+
 function stripJsonNoise(text: string): string {
   return text
     .replace(/^\uFEFF/, "")
@@ -518,7 +529,7 @@ serve(async (req) => {
           model: models[0],
           models,
           configured: !!apiKey,
-          modes: ["pitch", "canvas"],
+          modes: ["pitch", "canvas", "social-post"],
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
       )
@@ -629,8 +640,42 @@ serve(async (req) => {
       )
     }
 
+    if (mode === "social-post") {
+      const platform = body.platform as string | undefined
+      if (platform !== "linkedin" && platform !== "facebook") {
+        return new Response(
+          JSON.stringify({ error: 'platform must be "linkedin" or "facebook"' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+        )
+      }
+
+      const productName = (body.product_name as string | undefined)?.trim() || "the product"
+      const headline = (body.headline as string | undefined)?.trim() || ""
+      const tagline = (body.tagline as string | undefined)?.trim() || ""
+      const oneLiner = (body.one_liner as string | undefined)?.trim() || ""
+
+      const userPrompt = `Platform: ${platform}
+Product: ${productName}
+Headline: ${headline || "product launch"}
+Tagline: ${tagline || oneLiner || "innovation"}${contextBlock}
+
+Write a ${platform} launch post announcing this product.`
+
+      const { text: raw } = await callGemini(apiKey, SOCIAL_POST_SYSTEM, userPrompt, SOCIAL_POST_MAX_TOKENS)
+      const parsed = parseJsonFromModel(raw) as { post_copy?: string }
+      const postCopy = parsed.post_copy?.trim()
+      if (!postCopy || postCopy.length < 20) {
+        throw new Error("Could not generate post copy. Try again.")
+      }
+
+      return new Response(
+        JSON.stringify({ mode: "social-post", platform, post_copy: postCopy }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      )
+    }
+
     return new Response(
-      JSON.stringify({ error: 'mode must be "pitch" or "canvas"' }),
+      JSON.stringify({ error: 'mode must be "pitch", "canvas", or "social-post"' }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
     )
   } catch (error: unknown) {

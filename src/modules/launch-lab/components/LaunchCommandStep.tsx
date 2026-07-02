@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Gauge,
@@ -15,26 +15,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LaunchFlowBoard } from "./LaunchFlowBoard";
 import { SocialBannerGenerator } from "./SocialBannerGenerator";
 import { resolveLaunchBoard, isLaunchBoardEmpty } from "../lib/launch-board";
-import type { IdeaCanvasResult, LaunchBoardState, PitchAnalysis } from "../types";
+import type { IdeaCanvasResult, LaunchBoardState, LaunchLabContext, PitchAnalysis, SocialBannersState } from "../types";
 import { getScoreGrade } from "../lib/pitch-metrics";
 
 interface LaunchCommandStepProps {
   productName: string;
   pitchAnalysis: PitchAnalysis;
+  userPitch: string;
   canvas: IdeaCanvasResult;
+  context: LaunchLabContext;
   checkedSteps: string[];
   launchBoard: LaunchBoardState | null;
   onLaunchBoardChange: (board: LaunchBoardState) => void;
+  socialBanners: SocialBannersState | null;
+  onSocialBannersChange: (banners: SocialBannersState) => void;
   onBack: () => void;
 }
 
 export function LaunchCommandStep({
   productName,
   pitchAnalysis,
+  userPitch,
   canvas,
+  context,
   checkedSteps,
   launchBoard,
   onLaunchBoardChange,
+  socialBanners,
+  onSocialBannersChange,
   onBack,
 }: LaunchCommandStepProps) {
   const nextStepIds = new Set(canvas.clusters.next_steps.map((step) => step.id));
@@ -61,6 +69,7 @@ export function LaunchCommandStep({
   const milestoneCount = canvas.milestones?.length ?? 0;
   const taskCount = canvas.clusters.next_steps.length;
   const kpiCount = canvas.kpis?.length ?? 0;
+  const [commandTab, setCommandTab] = useState("flow");
 
   return (
     <div className="relative space-y-6 pb-16">
@@ -106,7 +115,7 @@ export function LaunchCommandStep({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="flow" className="space-y-4">
+      <Tabs value={commandTab} onValueChange={setCommandTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="flow" className="gap-1.5 text-xs sm:text-sm">
             <GitBranch className="h-3.5 w-3.5" />
@@ -127,7 +136,15 @@ export function LaunchCommandStep({
         </TabsContent>
 
         <TabsContent value="banners" className="mt-0">
-          <SocialBannerGenerator productName={displayName} pitchAnalysis={pitchAnalysis} />
+          <SocialBannerGenerator
+            productName={displayName}
+            pitchAnalysis={pitchAnalysis}
+            userPitch={userPitch}
+            context={context}
+            socialBanners={socialBanners}
+            onSocialBannersChange={onSocialBannersChange}
+            isTabActive={commandTab === "banners"}
+          />
         </TabsContent>
 
         <TabsContent value="brief" className="mt-0 space-y-4">

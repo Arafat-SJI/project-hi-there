@@ -93,7 +93,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_memory_active
 CREATE INDEX IF NOT EXISTS idx_agent_memory_relevance
   ON public.agent_memory(agent_id, user_id, relevance_score DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_memory_embedding
-  ON public.agent_memory USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+  ON public.agent_memory USING ivfflat (embedding extensions.vector_cosine_ops) WITH (lists = 100);
 
 -- Enable RLS on agent_memory
 ALTER TABLE public.agent_memory ENABLE ROW LEVEL SECURITY;
@@ -142,7 +142,7 @@ CREATE TRIGGER update_agent_memory_updated_at
 
 -- Function to match memories by semantic similarity
 CREATE OR REPLACE FUNCTION public.match_agent_memories(
-  query_embedding extensions.vector,
+  query_embedding extensions.vector(1536),
   p_agent_id UUID,
   p_user_id UUID,
   match_count INTEGER DEFAULT 5,
@@ -157,8 +157,12 @@ RETURNS TABLE(
   source_conversation_id UUID,
   created_at TIMESTAMPTZ
 )
-LANGUAGE SQL STABLE
+LANGUAGE plpgsql
+STABLE
+SET search_path = public, extensions
 AS $$
+BEGIN
+  RETURN QUERY
   SELECT
     am.id,
     am.content,
@@ -178,6 +182,7 @@ AS $$
     am.relevance_score DESC,
     am.embedding <=> query_embedding
   LIMIT match_count;
+END;
 $$;
 
 -- Function to get recent memories by type
@@ -236,7 +241,7 @@ CREATE OR REPLACE FUNCTION public.store_agent_memory(
   p_user_id UUID,
   p_memory_type VARCHAR,
   p_content TEXT,
-  p_embedding extensions.vector DEFAULT NULL,
+  p_embedding extensions.vector(1536) DEFAULT NULL,
   p_source_conversation_id UUID DEFAULT NULL,
   p_source_message_id UUID DEFAULT NULL,
   p_relevance_score DECIMAL DEFAULT 0.8,
@@ -306,10 +311,10 @@ END;
 $$;
 
 -- Grant execute permissions
-GRANT EXECUTE ON FUNCTION public.match_agent_memories(extensions.vector, UUID, UUID, INTEGER, FLOAT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.match_agent_memories(extensions.vector(1536), UUID, UUID, INTEGER, FLOAT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_recent_memories(UUID, UUID, VARCHAR, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_memory_access(UUID[]) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.store_agent_memory(UUID, UUID, VARCHAR, TEXT, extensions.vector, UUID, UUID, DECIMAL, JSONB) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.store_agent_memory(UUID, UUID, VARCHAR, TEXT, extensions.vector(1536), UUID, UUID, DECIMAL, JSONB) TO authenticated;
 
 -- ============================================
 -- PHASE 3: Streaming Support

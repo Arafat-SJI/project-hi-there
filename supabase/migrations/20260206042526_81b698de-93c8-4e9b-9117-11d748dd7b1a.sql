@@ -71,7 +71,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_memories_created_at ON agent_memories(creat
 
 -- Vector similarity search index (using ivfflat)
 CREATE INDEX IF NOT EXISTS idx_agent_memories_embedding ON agent_memories
-  USING ivfflat (embedding vector_cosine_ops)
+  USING ivfflat (embedding extensions.vector_cosine_ops)
   WITH (lists = 100);
 
 -- RLS Policies

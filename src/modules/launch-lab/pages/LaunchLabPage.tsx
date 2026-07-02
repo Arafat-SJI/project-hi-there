@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LaunchLabStepper } from "../components/LaunchLabStepper";
 import { LaunchLabHero } from "../components/LaunchLabHero";
@@ -14,8 +15,7 @@ import { useAnalyzePitch, useGenerateCanvas } from "../hooks/useLaunchLabAgent";
 import { PITCH_READY_THRESHOLD } from "../constants";
 import { LaunchLabDeployAlert, LaunchLabSecretAlert } from "../components/LaunchLabDeployAlert";
 import { useLaunchLabHealth } from "../hooks/useLaunchLabHealth";
-import type { PitchAnalysis } from "../types";
-import { readSidebarVisible, persistSidebarVisible } from "../lib/session-storage";
+import type { PitchAnalysis, SocialBannersState } from "../types";
 import { deriveSessionTitle, suggestProductNameFromSession } from "../lib/session-title";
 import {
   Sheet,
@@ -38,10 +38,15 @@ export default function LaunchLabPage() {
   const {
     session,
     sessions,
+    isLoading,
+    isError,
+    sidebarVisible,
+    persistSidebarVisible,
     setRawPitch,
     setPitchAnalysis,
     setCanvas,
     setLaunchBoard,
+    setSocialBanners,
     setContext,
     toggleCheckedStep,
     goToStep,
@@ -49,11 +54,11 @@ export default function LaunchLabPage() {
     selectSession,
     deleteSession,
     resetSession,
+    persistSessionNow,
   } = useLaunchLabSession();
 
   const isMobile = useIsMobile();
   const [mobileSessionsOpen, setMobileSessionsOpen] = useState(false);
-  const [sidebarVisible, setSidebarVisible] = useState(readSidebarVisible);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const { data: health, isLoading: healthLoading } = useLaunchLabHealth();
   const analyzePitch = useAnalyzePitch();
@@ -61,23 +66,37 @@ export default function LaunchLabPage() {
   const canvasRequested = useRef(false);
 
   const canAccessStep2 =
-    !!session.pitchAnalysis &&
+    !!session?.pitchAnalysis &&
     (session.pitchAnalysis.ready_for_planning ||
       session.pitchAnalysis.overall >= PITCH_READY_THRESHOLD ||
       (session.pitchAnalysis.improved_pitch?.length ?? 0) > 0);
 
-  const canAccessStep3 = !!session.canvas?.clusters;
+  const canAccessStep3 = !!session?.canvas?.clusters;
 
   const improvedPitch =
-    session.pitchAnalysis?.improved_pitch?.trim() || (session.rawPitch ?? "").trim();
+    session?.pitchAnalysis?.improved_pitch?.trim() || (session?.rawPitch ?? "").trim();
+
+  const handleSocialBannersChange = useCallback(
+    (socialBanners: SocialBannersState) => {
+      if (!session) return;
+      const nextSession = { ...session, socialBanners };
+      setSocialBanners(socialBanners);
+      if (socialBanners.linkedin.imageUrl || socialBanners.facebook.imageUrl || socialBanners.postsCreated) {
+        persistSessionNow(nextSession);
+      }
+    },
+    [persistSessionNow, session, setSocialBanners],
+  );
 
   const handleStepClick = (target: 1 | 2 | 3) => {
+    if (!session) return;
     if (target === 2 && !canAccessStep2) return;
     if (target === 3 && !canAccessStep3) return;
     goToStep(target);
   };
 
   const handleAnalyze = () => {
+    if (!session) return;
     const { context, rawPitch } = session;
     analyzePitch.mutate(
       {
@@ -126,6 +145,7 @@ export default function LaunchLabPage() {
   };
 
   const handleGenerateCanvas = () => {
+    if (!session) return;
     const { context } = session;
     generateCanvas.mutate(
       {
@@ -150,12 +170,14 @@ export default function LaunchLabPage() {
   };
 
   useEffect(() => {
+    if (!session) return;
     if (session.step === 3 && !canAccessStep3) {
       goToStep(canAccessStep2 ? 2 : 1);
     }
-  }, [session.step, canAccessStep3, canAccessStep2, goToStep]);
+  }, [session, session?.step, canAccessStep3, canAccessStep2, goToStep]);
 
   useEffect(() => {
+    if (!session) return;
     if (
       session.step === 2 &&
       session.pitchAnalysis &&
@@ -170,7 +192,7 @@ export default function LaunchLabPage() {
       canvasRequested.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.step, session.id, session.pitchAnalysis, session.canvas]);
+  }, [session, session?.step, session?.id, session?.pitchAnalysis, session?.canvas]);
 
   const handleResetRequest = () => {
     setResetDialogOpen(true);
@@ -192,13 +214,31 @@ export default function LaunchLabPage() {
   };
 
   const setSidebarOpen = (open: boolean) => {
-    setSidebarVisible(open);
     persistSidebarVisible(open);
   };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarVisible);
   };
+
+  if (isError) {
+    return (
+      <div className="container max-w-6xl px-4 py-12 sm:px-6 text-center space-y-3">
+        <p className="text-muted-foreground">Could not load your Launch Lab sessions.</p>
+        <p className="text-sm text-muted-foreground">Make sure you are logged in and try refreshing the page.</p>
+      </div>
+    );
+  }
+
+  if (isLoading || !session) {
+    return (
+      <div className="container max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-12 w-full max-w-md" />
+        <Skeleton className="h-96 w-full rounded-xl" />
+      </div>
+    );
+  }
 
   const sidebarProps = {
     sessions,
@@ -270,10 +310,14 @@ export default function LaunchLabPage() {
             <LaunchCommandStep
               productName={deriveSessionTitle(session)}
               pitchAnalysis={session.pitchAnalysis}
+              userPitch={improvedPitch}
               canvas={session.canvas}
+              context={session.context}
               checkedSteps={session.checkedSteps}
               launchBoard={session.launchBoard}
               onLaunchBoardChange={setLaunchBoard}
+              socialBanners={session.socialBanners}
+              onSocialBannersChange={handleSocialBannersChange}
               onBack={() => goToStep(2)}
             />
           ) : null}

@@ -1,4 +1,4 @@
-﻿-- OAuth States table for CSRF protection during OAuth authorization
+-- OAuth States table for CSRF protection during OAuth authorization
 CREATE TABLE IF NOT EXISTS public.oauth_states (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   state TEXT NOT NULL UNIQUE,

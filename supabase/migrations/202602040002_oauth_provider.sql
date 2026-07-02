@@ -13,6 +13,8 @@
  * 6. External app calls /oauth/userinfo with access_token
  */
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 -- ============================================================================
 -- OAuth Clients Table
 -- Stores registered OAuth client applications
@@ -243,7 +245,7 @@ BEGIN
   END IF;
 
   -- Verify password using pgcrypto crypt
-  RETURN (v_stored_hash = crypt(p_secret, v_stored_hash));
+  RETURN (v_stored_hash = extensions.crypt(p_secret, v_stored_hash));
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -265,7 +267,7 @@ INSERT INTO oauth_clients (
 ) VALUES (
   'control-tower-dev-client',
   -- This is a hashed version of 'dev_secret_123' using pgcrypto
-  crypt('dev_secret_123', gen_salt('bf')),
+  extensions.crypt('dev_secret_123', extensions.gen_salt('bf')),
   'Control Tower Development',
   ARRAY['http://localhost:8080/auth/callback', 'https://dev.controltower.com/auth/callback'],
   ARRAY['openid', 'profile', 'email', 'roles'],
