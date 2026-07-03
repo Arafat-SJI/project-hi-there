@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Copy, Download, Facebook, Linkedin, RefreshCw, Sparkles, Wand2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Copy, Download, Facebook, Instagram, Linkedin, RefreshCw, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,7 +20,13 @@ import {
   generateDemoBanner,
   simulateAiGeneration,
 } from "../lib/demo-banner";
-import { createEmptySocialBanners } from "../lib/social-banners";
+import { BANNER_PLATFORMS } from "../constants";
+import {
+  createEmptySocialBanners,
+  createEmptyPlatformRecord,
+  hasAnyBannerImage,
+} from "../lib/social-banners";
+import { saveSessionBannerImage, getMemoryBannerImage, loadSessionBannerImages } from "../lib/banner-image-store";
 import type {
   BannerAspectRatio,
   BannerPlatform,
@@ -32,6 +38,23 @@ import type {
 const PLATFORM_LABELS: Record<BannerPlatform, string> = {
   linkedin: "LinkedIn",
   facebook: "Facebook",
+  instagram: "Instagram",
+  x: "X",
+};
+
+function XPlatformIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+const PLATFORM_ICONS: Record<BannerPlatform, ReactNode> = {
+  linkedin: <Linkedin className="h-3.5 w-3.5" />,
+  facebook: <Facebook className="h-3.5 w-3.5" />,
+  instagram: <Instagram className="h-3.5 w-3.5" />,
+  x: <XPlatformIcon className="h-3.5 w-3.5" />,
 };
 
 function resolvePostCopy(
@@ -62,6 +85,7 @@ function resolvePostCopy(
 }
 
 interface SocialBannerGeneratorProps {
+  sessionId: string;
   productName: string;
   pitchAnalysis: PitchAnalysis;
   userPitch: string;
@@ -163,6 +187,7 @@ function AiGeneratingOverlay({
 }
 
 export function SocialBannerGenerator({
+  sessionId,
   productName,
   pitchAnalysis,
   userPitch,
@@ -173,41 +198,84 @@ export function SocialBannerGenerator({
 }: SocialBannerGeneratorProps) {
   const generatePost = useGenerateSocialPost();
   const bannersRef = useRef<SocialBannersState>(socialBanners ?? createEmptySocialBanners());
+  const generationAbortRef = useRef<(() => void) | null>(null);
 
   const postsFetchStartedRef = useRef(false);
 
   const autoGenStartedRef = useRef(false);
 
+  useEffect(() => {
+    autoGenStartedRef.current = false;
+    postsFetchStartedRef.current = false;
+    generationAbortRef.current?.();
+    generationAbortRef.current = null;
+  }, [sessionId]);
+
+  useEffect(() => {
+    return () => {
+      generationAbortRef.current?.();
+      generationAbortRef.current = null;
+    };
+  }, []);
+
+  const [displayUrls, setDisplayUrls] = useState<Record<BannerPlatform, string | null>>(
+    createEmptyPlatformRecord(() => null),
+  );
+
   const [activePlatform, setActivePlatform] = useState<BannerPlatform>("linkedin");
-  const [generating, setGenerating] = useState<GeneratingState>({
-    linkedin: false,
-    facebook: false,
-  });
-  const [progress, setProgress] = useState<ProgressState>({
-    linkedin: { progress: 0, label: "" },
-    facebook: { progress: 0, label: "" },
-  });
-  const [postLoading, setPostLoading] = useState<Record<BannerPlatform, boolean>>({
-    linkedin: false,
-    facebook: false,
-  });
-  const [generationFailed, setGenerationFailed] = useState<Record<BannerPlatform, boolean>>({
-    linkedin: false,
-    facebook: false,
-  });
+  const [generating, setGenerating] = useState<GeneratingState>(
+    createEmptyPlatformRecord(() => false),
+  );
+  const [progress, setProgress] = useState<ProgressState>(
+    createEmptyPlatformRecord(() => ({ progress: 0, label: "" })),
+  );
+  const [postLoading, setPostLoading] = useState<Record<BannerPlatform, boolean>>(
+    createEmptyPlatformRecord(() => false),
+  );
+  const [generationFailed, setGenerationFailed] = useState<Record<BannerPlatform, boolean>>(
+    createEmptyPlatformRecord(() => false),
+  );
 
   const banners = socialBanners ?? createEmptySocialBanners();
 
+  const platformHasImage = useCallback(
+    (platform: BannerPlatform) => {
+      const url = displayUrls[platform] ?? getMemoryBannerImage(sessionId, platform);
+      return typeof url === "string" && url.length > 0;
+    },
+    [displayUrls, sessionId],
+  );
+
+  useEffect(() => {
+    if (!isTabActive) return;
+    let cancelled = false;
+
+    void loadSessionBannerImages(sessionId).then((stored) => {
+      if (cancelled) return;
+      setDisplayUrls((prev) => {
+        const next = { ...prev };
+        for (const platform of BANNER_PLATFORMS) {
+          const url = stored[platform]?.imageUrl ?? getMemoryBannerImage(sessionId, platform);
+          if (url) next[platform] = url;
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isTabActive, sessionId]);
+
   useEffect(() => {
     bannersRef.current = socialBanners ?? createEmptySocialBanners();
-    // Session loaded from DB with saved images — never auto-regenerate on refresh
-    if (socialBanners?.linkedin.imageUrl || socialBanners?.facebook.imageUrl) {
-      autoGenStartedRef.current = true;
-    }
     if (socialBanners?.postsCreated) {
       postsFetchStartedRef.current = true;
     }
-  }, [socialBanners]);
+    if (socialBanners?.hasGenerated) {
+      autoGenStartedRef.current = true;
+    }
+  }, [sessionId, socialBanners]);
 
   const patchBanners = useCallback(
     (patch: (current: SocialBannersState) => SocialBannersState) => {
@@ -245,9 +313,7 @@ export function SocialBannerGenerator({
     const state = bannersRef.current;
     if (state.postsCreated || postsFetchStartedRef.current) return;
 
-    const needsPosts = (["linkedin", "facebook"] as BannerPlatform[]).filter(
-      (platform) => !state[platform].suggestedPost,
-    );
+    const needsPosts = BANNER_PLATFORMS.filter((platform) => !state[platform].suggestedPost);
     if (needsPosts.length === 0) {
       patchBanners((current) => ({ ...current, postsCreated: true }));
       return;
@@ -293,14 +359,15 @@ export function SocialBannerGenerator({
       }));
 
       try {
-        const gimmickPromise = showGimmick
+        const gimmick = showGimmick
           ? simulateAiGeneration((percent, label) => {
               setProgress((prev) => ({
                 ...prev,
                 [platform]: { progress: percent, label },
               }));
             })
-          : Promise.resolve();
+          : null;
+        if (gimmick) generationAbortRef.current = gimmick.abort;
 
         const [imageUrl] = await Promise.all([
           generateDemoBanner({
@@ -313,26 +380,32 @@ export function SocialBannerGenerator({
             tagline: pitchAnalysis.tagline ?? "",
             oneLiner: pitchAnalysis.one_liner ?? "",
           }),
-          gimmickPromise,
+          gimmick?.promise ?? Promise.resolve(),
         ]);
 
-        patchBanners((state) => {
-          const updated = {
-            ...state,
-            initialized: true,
-            hasGenerated: true,
-            [platform]: {
-              ...state[platform],
-              imageUrl,
-              variantIndex,
-            },
-          };
-          return updated;
+        await saveSessionBannerImage(sessionId, platform, {
+          imageUrl,
+          aspectRatio: item.aspectRatio,
+          variantIndex,
         });
+
+        setDisplayUrls((prev) => ({ ...prev, [platform]: imageUrl }));
+
+        patchBanners((state) => ({
+          ...state,
+          initialized: true,
+          hasGenerated: true,
+          [platform]: {
+            ...state[platform],
+            imageUrl: null,
+            variantIndex,
+          },
+        }));
       } catch (error) {
         setGenerationFailed((prev) => ({ ...prev, [platform]: true }));
         toast.error(error instanceof Error ? error.message : "Could not compose visual");
       } finally {
+        generationAbortRef.current = null;
         setGenerating((prev) => ({ ...prev, [platform]: false }));
       }
     },
@@ -342,30 +415,35 @@ export function SocialBannerGenerator({
       pitchAnalysis.one_liner,
       pitchAnalysis.tagline,
       productName,
+      sessionId,
     ],
   );
 
-  const generateAllFirstTime = useCallback(() => {
-    void ensurePostsCreated();
-    (["linkedin", "facebook"] as BannerPlatform[]).forEach((platform) => {
-      if (!bannersRef.current[platform].imageUrl) {
-        void runImageGeneration(platform, { showGimmick: true });
-      }
-    });
-  }, [ensurePostsCreated, runImageGeneration]);
+  const generateAllFirstTime = useCallback(
+    (options?: { showGimmick?: boolean }) => {
+      const showGimmick = options?.showGimmick ?? true;
+      void ensurePostsCreated();
+      BANNER_PLATFORMS.forEach((platform) => {
+        if (!platformHasImage(platform)) {
+          void runImageGeneration(platform, { showGimmick });
+        }
+      });
+    },
+    [ensurePostsCreated, platformHasImage, runImageGeneration],
+  );
 
   useEffect(() => {
     if (!isTabActive) return;
 
-    const state = bannersRef.current;
-
-    const hasStoredImages = !!(state.linkedin.imageUrl || state.facebook.imageUrl);
-    if (hasStoredImages || state.hasGenerated) return;
+    if (hasAnyBannerImage(bannersRef.current) || BANNER_PLATFORMS.some((p) => platformHasImage(p))) {
+      autoGenStartedRef.current = true;
+      return;
+    }
 
     if (autoGenStartedRef.current) return;
     autoGenStartedRef.current = true;
-    generateAllFirstTime();
-  }, [isTabActive, socialBanners, generateAllFirstTime]);
+    generateAllFirstTime({ showGimmick: true });
+  }, [isTabActive, sessionId, socialBanners, generateAllFirstTime]);
 
   const handleAspectChange = useCallback(
     async (platform: BannerPlatform, aspectRatio: BannerAspectRatio) => {
@@ -380,12 +458,13 @@ export function SocialBannerGenerator({
       }));
 
       try {
-        const gimmickPromise = simulateAiGeneration((percent, label) => {
+        const gimmick = simulateAiGeneration((percent, label) => {
           setProgress((prev) => ({
             ...prev,
             [platform]: { progress: percent, label },
           }));
         });
+        generationAbortRef.current = gimmick.abort;
 
         const [imageUrl] = await Promise.all([
           generateDemoBanner({
@@ -398,21 +477,30 @@ export function SocialBannerGenerator({
             tagline: pitchAnalysis.tagline ?? "",
             oneLiner: pitchAnalysis.one_liner ?? "",
           }),
-          gimmickPromise,
+          gimmick.promise,
         ]);
+
+        await saveSessionBannerImage(sessionId, platform, {
+          imageUrl,
+          aspectRatio,
+          variantIndex: item.variantIndex,
+        });
+
+        setDisplayUrls((prev) => ({ ...prev, [platform]: imageUrl }));
 
         patchBanners((state) => ({
           ...state,
-          [platform]: { ...state[platform], aspectRatio, imageUrl },
+          [platform]: { ...state[platform], aspectRatio, imageUrl: null },
         }));
       } catch (error) {
         setGenerationFailed((prev) => ({ ...prev, [platform]: true }));
         toast.error(error instanceof Error ? error.message : "Could not update aspect ratio");
       } finally {
+        generationAbortRef.current = null;
         setGenerating((prev) => ({ ...prev, [platform]: false }));
       }
     },
-    [patchBanners, pitchAnalysis.headline, pitchAnalysis.one_liner, pitchAnalysis.tagline, productName],
+    [patchBanners, pitchAnalysis.headline, pitchAnalysis.one_liner, pitchAnalysis.tagline, productName, sessionId],
   );
 
   const copyPost = (platform: BannerPlatform) => {
@@ -424,7 +512,7 @@ export function SocialBannerGenerator({
   };
 
   const downloadBanner = (platform: BannerPlatform) => {
-    const imageUrl = banners[platform].imageUrl;
+    const imageUrl = displayUrls[platform] ?? getMemoryBannerImage(sessionId, platform);
     if (!imageUrl) return;
     const filename = `${productName.replace(/\s+/g, "-").toLowerCase()}-${platform}-banner.jpg`;
     downloadDataUrl(imageUrl, filename);
@@ -432,12 +520,13 @@ export function SocialBannerGenerator({
 
   const renderPreview = (platform: BannerPlatform) => {
     const item = banners[platform];
+    const imageUrl = displayUrls[platform] ?? getMemoryBannerImage(sessionId, platform);
     const { width, height } = dimensionsForAspect(item.aspectRatio);
 
-    if (item.imageUrl && !generating[platform]) {
+    if (imageUrl && !generating[platform]) {
       return (
         <img
-          src={item.imageUrl}
+          src={imageUrl}
           alt={`${productName} launch visual for ${PLATFORM_LABELS[platform]}`}
           className="w-full h-auto rounded-lg shadow-lg object-cover animate-in fade-in duration-500"
           style={{ aspectRatio: `${width}/${height}` }}
@@ -485,19 +574,18 @@ export function SocialBannerGenerator({
           value={activePlatform}
           onValueChange={(v) => setActivePlatform(v as BannerPlatform)}
         >
-          <TabsList className="mb-4">
-            <TabsTrigger value="linkedin" className="gap-1.5">
-              <Linkedin className="h-3.5 w-3.5" />
-              LinkedIn
-            </TabsTrigger>
-            <TabsTrigger value="facebook" className="gap-1.5">
-              <Facebook className="h-3.5 w-3.5" />
-              Facebook
-            </TabsTrigger>
+          <TabsList className="mb-4 grid w-full grid-cols-2 sm:grid-cols-4">
+            {BANNER_PLATFORMS.map((platform) => (
+              <TabsTrigger key={platform} value={platform} className="gap-1.5 text-xs sm:text-sm">
+                {PLATFORM_ICONS[platform]}
+                {PLATFORM_LABELS[platform]}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
-          {(["linkedin", "facebook"] as BannerPlatform[]).map((platform) => {
+          {BANNER_PLATFORMS.map((platform) => {
             const item = banners[platform];
+            const imageUrl = displayUrls[platform] ?? getMemoryBannerImage(sessionId, platform);
             const dims = dimensionsForAspect(item.aspectRatio);
             const postDisplay = resolvePostCopy(item.suggestedPost, pitchAnalysis, userPitch);
 
@@ -533,7 +621,7 @@ export function SocialBannerGenerator({
                   </Badge>
                   <Badge variant="outline">{item.aspectRatio}</Badge>
                   <Badge variant="outline">Launch visual</Badge>
-                  {item.imageUrl ? (
+                  {imageUrl ? (
                     <Badge variant="secondary">Variant {(item.variantIndex % 3) + 1}/3</Badge>
                   ) : null}
                 </div>
@@ -542,7 +630,7 @@ export function SocialBannerGenerator({
                   <Button
                     type="button"
                     onClick={() => downloadBanner(platform)}
-                    disabled={!item.imageUrl || generating[platform]}
+                    disabled={!imageUrl || generating[platform]}
                     className="w-full sm:w-auto"
                   >
                     <Download className="h-4 w-4 mr-2" />
@@ -560,7 +648,7 @@ export function SocialBannerGenerator({
                   </Button>
                 </div>
 
-                {item.imageUrl && !generating[platform] ? (
+                {imageUrl && !generating[platform] ? (
                   <Card className="border-violet-500/15 bg-violet-500/5">
                     <CardContent className="p-4 space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">

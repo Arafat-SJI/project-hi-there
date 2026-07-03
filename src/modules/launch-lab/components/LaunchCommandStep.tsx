@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Gauge,
@@ -15,10 +15,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LaunchFlowBoard } from "./LaunchFlowBoard";
 import { SocialBannerGenerator } from "./SocialBannerGenerator";
 import { resolveLaunchBoard, isLaunchBoardEmpty } from "../lib/launch-board";
-import type { IdeaCanvasResult, LaunchBoardState, LaunchLabContext, PitchAnalysis, SocialBannersState } from "../types";
+import type { IdeaCanvasResult, LaunchBoardState, LaunchCommandTab, LaunchLabContext, PitchAnalysis, SocialBannersState } from "../types";
 import { getScoreGrade } from "../lib/pitch-metrics";
 
 interface LaunchCommandStepProps {
+  sessionId: string;
   productName: string;
   pitchAnalysis: PitchAnalysis;
   userPitch: string;
@@ -29,10 +30,15 @@ interface LaunchCommandStepProps {
   onLaunchBoardChange: (board: LaunchBoardState) => void;
   socialBanners: SocialBannersState | null;
   onSocialBannersChange: (banners: SocialBannersState) => void;
+  commandTab: LaunchCommandTab;
+  onCommandTabChange: (tab: LaunchCommandTab) => void;
   onBack: () => void;
+  onComplete: () => void;
+  readOnly?: boolean;
 }
 
 export function LaunchCommandStep({
+  sessionId,
   productName,
   pitchAnalysis,
   userPitch,
@@ -43,7 +49,11 @@ export function LaunchCommandStep({
   onLaunchBoardChange,
   socialBanners,
   onSocialBannersChange,
+  commandTab,
+  onCommandTabChange,
   onBack,
+  onComplete,
+  readOnly = false,
 }: LaunchCommandStepProps) {
   const nextStepIds = new Set(canvas.clusters.next_steps.map((step) => step.id));
   const checklistDone = checkedSteps.filter((id) => nextStepIds.has(id)).length;
@@ -60,8 +70,16 @@ export function LaunchCommandStep({
     [canvas, launchBoard],
   );
 
+  const boardInitializedRef = useRef(false);
+
   useEffect(() => {
+    boardInitializedRef.current = false;
+  }, [canvas]);
+
+  useEffect(() => {
+    if (boardInitializedRef.current) return;
     if (isLaunchBoardEmpty(launchBoard) && board.nodes.length > 0) {
+      boardInitializedRef.current = true;
       onLaunchBoardChange(board);
     }
   }, [board, launchBoard, onLaunchBoardChange]);
@@ -69,7 +87,6 @@ export function LaunchCommandStep({
   const milestoneCount = canvas.milestones?.length ?? 0;
   const taskCount = canvas.clusters.next_steps.length;
   const kpiCount = canvas.kpis?.length ?? 0;
-  const [commandTab, setCommandTab] = useState("flow");
 
   return (
     <div className="relative space-y-6 pb-16">
@@ -115,7 +132,7 @@ export function LaunchCommandStep({
         </CardContent>
       </Card>
 
-      <Tabs value={commandTab} onValueChange={setCommandTab} className="space-y-4">
+      <Tabs value={commandTab} onValueChange={(v) => onCommandTabChange(v as LaunchCommandTab)} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="flow" className="gap-1.5 text-xs sm:text-sm">
             <GitBranch className="h-3.5 w-3.5" />
@@ -132,19 +149,24 @@ export function LaunchCommandStep({
         </TabsList>
 
         <TabsContent value="flow" className="mt-0">
-          <LaunchFlowBoard board={board} onBoardChange={onLaunchBoardChange} />
+          {commandTab === "flow" ? (
+            <LaunchFlowBoard board={board} onBoardChange={onLaunchBoardChange} />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="banners" className="mt-0">
-          <SocialBannerGenerator
-            productName={displayName}
-            pitchAnalysis={pitchAnalysis}
-            userPitch={userPitch}
-            context={context}
-            socialBanners={socialBanners}
-            onSocialBannersChange={onSocialBannersChange}
-            isTabActive={commandTab === "banners"}
-          />
+          {commandTab === "banners" ? (
+            <SocialBannerGenerator
+              sessionId={sessionId}
+              productName={displayName}
+              pitchAnalysis={pitchAnalysis}
+              userPitch={userPitch}
+              context={context}
+              socialBanners={socialBanners}
+              onSocialBannersChange={onSocialBannersChange}
+              isTabActive
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="brief" className="mt-0 space-y-4">
@@ -188,15 +210,26 @@ export function LaunchCommandStep({
         </TabsContent>
       </Tabs>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onBack}
-        className="sticky bottom-4 z-10 w-fit shadow-md bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
-      >
-        <ArrowLeft className="h-4 w-4 mr-1" />
-        Back to Idea Canvas
-      </Button>
+      <div className="flex flex-wrap items-center gap-2 sticky bottom-4 z-10">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onBack}
+          className="shadow-md bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to Idea Canvas
+        </Button>
+        {!readOnly ? (
+          <Button
+            size="sm"
+            onClick={onComplete}
+            className="shadow-md bg-emerald-600 hover:bg-emerald-600/90"
+          >
+            Complete launch
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

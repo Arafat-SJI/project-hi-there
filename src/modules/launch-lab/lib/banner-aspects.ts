@@ -23,6 +23,8 @@ export const BANNER_ASPECT_OPTIONS = Object.entries(BANNER_ASPECT_PRESETS).map(
 export const DEFAULT_ASPECT_BY_PLATFORM: Record<BannerPlatform, BannerAspectRatio> = {
   linkedin: "1.91:1",
   facebook: "1.9:1",
+  instagram: "1:1",
+  x: "16:9",
 };
 
 export function dimensionsForAspect(ratio: BannerAspectRatio) {

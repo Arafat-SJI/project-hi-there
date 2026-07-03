@@ -235,8 +235,11 @@ export const queryKeys = {
   },
 
   launchLab: {
-    workspace: (userId: string) => ["launch-lab", "workspace", userId] as const,
+    workspace: (userId: string, projectId?: string) =>
+      ["launch-lab", "workspace", userId, projectId ?? "default"] as const,
     preferences: (userId: string) => ["launch-lab", "preferences", userId] as const,
+    shares: (sessionId: string) => ["launch-lab", "shares", sessionId] as const,
+    shareableUsers: ["launch-lab", "shareable-users"] as const,
   },
 
   admin: {

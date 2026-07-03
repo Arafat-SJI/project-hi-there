@@ -114,6 +114,8 @@ Rules:
 - Plain text only. No markdown, no bullet characters, no JSON in the post body.
 - linkedin: professional B2B tone, 2-4 short paragraphs, max 3 relevant hashtags at the end, thought leadership angle.
 - facebook: warm conversational tone, 1-2 paragraphs, light emoji ok (max 2), clear call to action at the end.
+- instagram: visual-first caption, 1-2 short paragraphs, 3-5 relevant hashtags at the end, authentic brand voice.
+- x: punchy under 280 characters, 1-2 short lines, max 2 hashtags, clear hook and CTA.
 - Reference the product and value prop naturally. Do not use placeholder brackets.`
 
 const SOCIAL_POST_MAX_TOKENS = 1024
@@ -642,9 +644,10 @@ serve(async (req) => {
 
     if (mode === "social-post") {
       const platform = body.platform as string | undefined
-      if (platform !== "linkedin" && platform !== "facebook") {
+      const allowedPlatforms = ["linkedin", "facebook", "instagram", "x"]
+      if (!platform || !allowedPlatforms.includes(platform)) {
         return new Response(
-          JSON.stringify({ error: 'platform must be "linkedin" or "facebook"' }),
+          JSON.stringify({ error: 'platform must be "linkedin", "facebook", "instagram", or "x"' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
         )
       }

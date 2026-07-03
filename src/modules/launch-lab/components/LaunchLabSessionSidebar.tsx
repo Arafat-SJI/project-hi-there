@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { PanelLeftClose, Plus, Rocket, Trash2 } from "lucide-react";
+import { PanelLeftClose, Plus, Rocket, Share2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +20,12 @@ import type { SavedLaunchSession } from "../types";
 
 interface LaunchLabSessionSidebarProps {
   sessions: SavedLaunchSession[];
+  sharedSessions?: SavedLaunchSession[];
   activeSessionId: string;
-  onNew: () => void;
+  onNew?: () => void;
   onSelect: (id: string) => void;
-  onDelete: (id: string) => void;
+  onPrefetch?: (id: string) => void;
+  onDelete?: (id: string) => void;
   onHide?: () => void;
   className?: string;
 }
@@ -52,6 +54,7 @@ function sessionScore(entry: SavedLaunchSession): number | null {
 }
 
 function sessionStatus(entry: SavedLaunchSession): string {
+  if (entry.step === 4 || entry.completedAt) return "Completed";
   const score = sessionScore(entry);
   if (score != null) return `Score ${score}`;
   if (hasCanvas(entry)) return "Canvas ready";
@@ -60,15 +63,101 @@ function sessionStatus(entry: SavedLaunchSession): string {
   return "Empty draft";
 }
 
-function hasAnalysis(entry: SavedLaunchSession): boolean {
-  return !!entry.pitchAnalysis || !!entry.canvas?.clusters;
+function SessionRow({
+  entry,
+  isActive,
+  onSelect,
+  onPrefetch,
+  onDelete,
+  showSharedBadge,
+}: {
+  entry: SavedLaunchSession;
+  isActive: boolean;
+  onSelect: (id: string) => void;
+  onPrefetch?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  showSharedBadge?: boolean;
+}) {
+  const timeLabel = entry.isShared && entry.sharedAt
+    ? safeFormatDistance(entry.sharedAt)
+    : safeFormatDistance(entry.savedAt);
+
+  return (
+    <div
+      className={cn(
+        "group relative rounded-lg border transition-colors",
+        isActive
+          ? "border-primary/40 bg-primary/10"
+          : "border-transparent hover:border-border hover:bg-muted/60",
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => onSelect(entry.id)}
+        onMouseEnter={() => onPrefetch?.(entry.id)}
+        onFocus={() => onPrefetch?.(entry.id)}
+        className="w-full px-3 py-2.5 text-left pr-9"
+        title={sessionTitleFull(entry)}
+      >
+        <p className="truncate text-sm font-medium">{sessionTitle(entry)}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          {sessionStatus(entry)} · {timeLabel}
+        </p>
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {showSharedBadge ? (
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px] gap-0.5">
+              <Share2 className="h-2.5 w-2.5" />
+              Shared
+            </Badge>
+          ) : null}
+          {sessionScore(entry) != null && (
+            <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+              {sessionScore(entry)}
+            </Badge>
+          )}
+          {hasCanvas(entry) && (
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+              Canvas
+            </Badge>
+          )}
+          {entry.pitchAnalysis && !hasCanvas(entry) && (
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+              Pitch
+            </Badge>
+          )}
+          {entry.step === 4 || entry.completedAt ? (
+            <Badge className="h-5 px-1.5 text-[10px] bg-emerald-600 hover:bg-emerald-600">
+              Done
+            </Badge>
+          ) : null}
+        </div>
+      </button>
+      {onDelete ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-1 top-1.5 h-7 w-7 opacity-0 text-muted-foreground hover:text-destructive group-hover:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(entry.id);
+          }}
+          aria-label={`Delete ${sessionTitleFull(entry)}`}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      ) : null}
+    </div>
+  );
 }
 
 export function LaunchLabSessionSidebar({
   sessions,
+  sharedSessions = [],
   activeSessionId,
   onNew,
   onSelect,
+  onPrefetch,
   onDelete,
   onHide,
   className,
@@ -80,9 +169,13 @@ export function LaunchLabSessionSidebar({
   const pendingTitle = pendingEntry ? sessionTitleFull(pendingEntry) : "this session";
 
   const handleConfirmDelete = () => {
-    if (!pendingDeleteId) return;
+    if (!pendingDeleteId || !onDelete) return;
     onDelete(pendingDeleteId);
     setPendingDeleteId(null);
+  };
+
+  const handleDeleteRequest = (id: string) => {
+    setPendingDeleteId(id);
   };
 
   return (
@@ -113,81 +206,55 @@ export function LaunchLabSessionSidebar({
             </Button>
           )}
         </div>
-        <Button className="w-full justify-start gap-2" size="sm" onClick={onNew}>
-          <Plus className="h-4 w-4" />
-          New Launch Lab
-        </Button>
+        {onNew ? (
+          <Button className="w-full justify-start gap-2" size="sm" onClick={onNew}>
+            <Plus className="h-4 w-4" />
+            New Launch Lab
+          </Button>
+        ) : null}
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="space-y-1 p-2">
-          {sessions.length === 0 ? (
-            <p className="px-2 py-6 text-center text-xs text-muted-foreground">
-              No sessions yet. Start with New Launch Lab.
+        <div className="space-y-4 p-2">
+          <section className="space-y-1">
+            <p className="px-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              My projects
             </p>
-          ) : (
-            sessions.map((entry) => {
-              const isActive = entry.id === activeSessionId;
-              return (
-                <div
+            {sessions.length === 0 ? (
+              <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+                {onNew ? "No projects yet. Start with New Launch Lab." : "No projects of your own."}
+              </p>
+            ) : (
+              sessions.map((entry) => (
+                <SessionRow
                   key={entry.id}
-                  className={cn(
-                    "group relative rounded-lg border transition-colors",
-                    isActive
-                      ? "border-primary/40 bg-primary/10"
-                      : "border-transparent hover:border-border hover:bg-muted/60",
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onSelect(entry.id)}
-                    className="w-full px-3 py-2.5 text-left pr-9"
-                    title={sessionTitleFull(entry)}
-                  >
-                    <p className="truncate text-sm font-medium">{sessionTitle(entry)}</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {sessionStatus(entry)} · {safeFormatDistance(entry.savedAt)}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {sessionScore(entry) != null && (
-                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-                          {sessionScore(entry)}
-                        </Badge>
-                      )}
-                      {hasCanvas(entry) && (
-                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                          Canvas
-                        </Badge>
-                      )}
-                      {entry.pitchAnalysis && !hasCanvas(entry) && (
-                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                          Pitch
-                        </Badge>
-                      )}
-                      {!hasAnalysis(entry) && (entry.rawPitch ?? "").trim().length === 0 && (
-                        <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-muted-foreground">
-                          Empty
-                        </Badge>
-                      )}
-                    </div>
-                  </button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1.5 h-7 w-7 opacity-0 text-muted-foreground hover:text-destructive group-hover:opacity-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPendingDeleteId(entry.id);
-                    }}
-                    aria-label={`Delete ${sessionTitleFull(entry)}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              );
-            })
-          )}
+                  entry={entry}
+                  isActive={entry.id === activeSessionId}
+                  onSelect={onSelect}
+                  onPrefetch={onPrefetch}
+                  onDelete={onDelete ? handleDeleteRequest : undefined}
+                />
+              ))
+            )}
+          </section>
+
+          {sharedSessions.length > 0 ? (
+            <section className="space-y-1 border-t pt-3">
+              <p className="px-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Shared
+              </p>
+              {sharedSessions.map((entry) => (
+                <SessionRow
+                  key={entry.id}
+                  entry={entry}
+                  isActive={entry.id === activeSessionId}
+                  onSelect={onSelect}
+                  onPrefetch={onPrefetch}
+                  showSharedBadge
+                />
+              ))}
+            </section>
+          ) : null}
         </div>
       </ScrollArea>
     </aside>

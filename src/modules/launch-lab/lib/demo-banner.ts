@@ -26,6 +26,16 @@ const DEMO_BACKGROUNDS: Record<BannerPlatform, string[]> = {
     "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&q=80&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1200&q=80&auto=format&fit=crop",
   ],
+  instagram: [
+    "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=1080&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1611162617474-5b21e939e227?w=1080&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1080&q=80&auto=format&fit=crop",
+  ],
+  x: [
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&q=80&auto=format&fit=crop",
+  ],
 };
 
 const GENERATION_STEPS = [
@@ -44,22 +54,40 @@ export function getBackgroundCount(platform: BannerPlatform): number {
 
 export function simulateAiGeneration(
   onProgress: (percent: number, label: string) => void,
-): Promise<void> {
-  return new Promise((resolve) => {
+): { promise: Promise<void>; abort: () => void } {
+  const timeouts: ReturnType<typeof setTimeout>[] = [];
+  let aborted = false;
+
+  const abort = () => {
+    aborted = true;
+    for (const id of timeouts) clearTimeout(id);
+    timeouts.length = 0;
+  };
+
+  const promise = new Promise<void>((resolve) => {
     let step = 0;
     const tick = () => {
+      if (aborted) {
+        resolve();
+        return;
+      }
       if (step >= GENERATION_STEPS.length) {
-        setTimeout(resolve, 350);
+        const id = setTimeout(resolve, 350);
+        timeouts.push(id);
         return;
       }
       const { at, label } = GENERATION_STEPS[step];
       onProgress(at, label);
       step += 1;
-      setTimeout(tick, 420 + Math.random() * 180);
+      const id = setTimeout(tick, 420 + Math.random() * 180);
+      timeouts.push(id);
     };
     onProgress(0, "Initializing AI pipeline…");
-    setTimeout(tick, 300);
+    const id = setTimeout(tick, 300);
+    timeouts.push(id);
   });
+
+  return { promise, abort };
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -89,6 +117,16 @@ function drawProceduralBackground(
       ["#7c2d12", "#c2410c", "#fb923c"],
       ["#831843", "#be185d", "#f472b6"],
       ["#854d0e", "#ca8a04", "#facc15"],
+    ],
+    instagram: [
+      ["#831843", "#be185d", "#f472b6"],
+      ["#4c1d95", "#7c3aed", "#c084fc"],
+      ["#9d174d", "#db2777", "#fda4af"],
+    ],
+    x: [
+      ["#0f172a", "#1e293b", "#334155"],
+      ["#18181b", "#27272a", "#3f3f46"],
+      ["#0c4a6e", "#075985", "#0284c7"],
     ],
   };
 
@@ -141,10 +179,18 @@ async function drawBackground(
     overlay.addColorStop(0, "rgba(15, 23, 42, 0.35)");
     overlay.addColorStop(0.5, "rgba(15, 23, 42, 0.2)");
     overlay.addColorStop(1, "rgba(15, 23, 42, 0.88)");
-  } else {
+  } else if (platform === "facebook") {
     overlay.addColorStop(0, "rgba(124, 45, 18, 0.25)");
     overlay.addColorStop(0.5, "rgba(124, 45, 18, 0.15)");
     overlay.addColorStop(1, "rgba(88, 28, 12, 0.9)");
+  } else if (platform === "instagram") {
+    overlay.addColorStop(0, "rgba(131, 24, 67, 0.2)");
+    overlay.addColorStop(0.5, "rgba(190, 24, 93, 0.15)");
+    overlay.addColorStop(1, "rgba(76, 29, 149, 0.88)");
+  } else {
+    overlay.addColorStop(0, "rgba(15, 23, 42, 0.3)");
+    overlay.addColorStop(0.5, "rgba(15, 23, 42, 0.2)");
+    overlay.addColorStop(1, "rgba(0, 0, 0, 0.9)");
   }
   ctx.fillStyle = overlay;
   ctx.fillRect(0, 0, width, height);
@@ -182,7 +228,13 @@ function drawTextOverlay(
   content: DemoBannerContent,
 ) {
   const pad = width * 0.07;
-  const accent = platform === "linkedin" ? "#38bdf8" : "#fbbf24";
+  const accentByPlatform: Record<BannerPlatform, string> = {
+    linkedin: "#38bdf8",
+    facebook: "#fbbf24",
+    instagram: "#f472b6",
+    x: "#e2e8f0",
+  };
+  const accent = accentByPlatform[platform];
   const subtitle = content.tagline.trim() || content.oneLiner.trim() || "Ready to launch";
 
   ctx.fillStyle = accent;
