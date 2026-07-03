@@ -8,6 +8,7 @@ import {
   sessionToEntry,
   sortSessionsBySavedAt,
 } from "./session-storage";
+import { stripSocialBannersForPersistence, hydrateSocialBannersWithStoredImages } from "./social-banners";
 import type {
   IdeaCanvasResult,
   LaunchBoardState,
@@ -30,8 +31,10 @@ export interface LaunchLabSessionRow {
   checked_steps: string[];
   launch_board: LaunchBoardState | null;
   social_banners: SocialBannersState | null;
+  command_tab: string;
   product_name: string;
   overall_score: number | null;
+  completed_at: string | null;
   saved_at: string;
   created_at: string;
   updated_at: string;
@@ -44,10 +47,14 @@ export interface LaunchLabPreferencesRow {
   updated_at: string;
 }
 
-const SESSION_SELECT =
-  "id, user_id, step, raw_pitch, pitch_analysis, canvas, context, checked_steps, launch_board, social_banners, product_name, overall_score, saved_at, created_at, updated_at";
+const SESSION_LIST_SELECT =
+  "id, user_id, step, raw_pitch, pitch_analysis, canvas, context, checked_steps, launch_board, command_tab, product_name, overall_score, completed_at, saved_at, created_at, updated_at";
 
-function rowToEntry(row: LaunchLabSessionRow): SavedLaunchSession {
+const SESSION_SELECT = `${SESSION_LIST_SELECT}, social_banners`;
+
+type LaunchLabSessionListRow = Omit<LaunchLabSessionRow, "social_banners">;
+
+function rowToEntry(row: LaunchLabSessionRow | LaunchLabSessionListRow): SavedLaunchSession {
   return normalizeEntry({
     id: row.id,
     savedAt: row.saved_at,
@@ -60,8 +67,25 @@ function rowToEntry(row: LaunchLabSessionRow): SavedLaunchSession {
     context: row.context,
     checkedSteps: Array.isArray(row.checked_steps) ? row.checked_steps : [],
     launchBoard: row.launch_board,
-    socialBanners: row.social_banners,
+    socialBanners:
+      "social_banners" in row ? stripSocialBannersForPersistence(row.social_banners) : null,
+    commandTab: "command_tab" in row && row.command_tab ? (row.command_tab as SavedLaunchSession["commandTab"]) : undefined,
+    completedAt: "completed_at" in row ? row.completed_at : null,
   });
+}
+
+export async function fetchSessionSocialBanners(
+  sessionId: string,
+): Promise<SocialBannersState | null> {
+  const { data, error } = await supabase
+    .from("launch_lab_sessions")
+    .select("social_banners")
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  if (error) throw error;
+  const row = data as { social_banners?: SocialBannersState | null } | null;
+  return stripSocialBannersForPersistence(row?.social_banners ?? null);
 }
 
 function sessionToPayload(session: LaunchLabSession, userId: string, savedAt?: string) {
@@ -76,24 +100,71 @@ function sessionToPayload(session: LaunchLabSession, userId: string, savedAt?: s
     context: session.context,
     checked_steps: session.checkedSteps ?? [],
     launch_board: session.launchBoard,
-    social_banners: session.socialBanners,
+    social_banners: stripSocialBannersForPersistence(session.socialBanners),
+    command_tab: session.commandTab,
     product_name: entry.productName,
     overall_score: entry.overall,
     saved_at: entry.savedAt,
+    completed_at: session.completedAt,
     updated_at: new Date().toISOString(),
   };
+}
+
+export async function fetchSharedLaunchLabSessions(userId: string): Promise<SavedLaunchSession[]> {
+  const { data: shareRows, error: shareError } = await supabase
+    .from("launch_lab_session_shares")
+    .select("session_id, created_at, shared_by_user_id")
+    .eq("shared_with_user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (shareError) throw shareError;
+  if (!shareRows?.length) return [];
+
+  const shareMeta = new Map(
+    shareRows.map((row) => [
+      row.session_id,
+      { sharedAt: row.created_at, ownerId: row.shared_by_user_id },
+    ]),
+  );
+  const sessionIds = shareRows.map((row) => row.session_id);
+
+  const { data, error } = await supabase
+    .from("launch_lab_sessions")
+    .select(SESSION_LIST_SELECT)
+    .in("id", sessionIds);
+
+  if (error) throw error;
+
+  const entries =
+    (data as LaunchLabSessionListRow[] | null)?.map((row) => {
+      const meta = shareMeta.get(row.id);
+      return {
+        ...rowToEntry(row),
+        isShared: true,
+        ownerId: row.user_id,
+        sharedAt: meta?.sharedAt ?? null,
+      };
+    }) ?? [];
+
+  return entries.sort((a, b) => {
+    const aTime = a.sharedAt ? new Date(a.sharedAt).getTime() : 0;
+    const bTime = b.sharedAt ? new Date(b.sharedAt).getTime() : 0;
+    return bTime - aTime;
+  });
 }
 
 export async function fetchLaunchLabSessions(userId: string): Promise<SavedLaunchSession[]> {
   const { data, error } = await supabase
     .from("launch_lab_sessions")
-    .select(SESSION_SELECT)
+    .select(SESSION_LIST_SELECT)
     .eq("user_id", userId)
     .order("saved_at", { ascending: false })
     .limit(MAX_LAUNCH_LAB_SESSIONS);
 
   if (error) throw error;
-  return sortSessionsBySavedAt((data as LaunchLabSessionRow[] | null)?.map(rowToEntry) ?? []);
+  return sortSessionsBySavedAt(
+    (data as LaunchLabSessionListRow[] | null)?.map(rowToEntry) ?? [],
+  );
 }
 
 export async function fetchLaunchLabPreferences(
@@ -194,14 +265,19 @@ export async function upsertLaunchLabPreferences(
   return data as LaunchLabPreferencesRow;
 }
 
-export async function loadLaunchLabWorkspace(userId: string): Promise<{
+export async function loadLaunchLabWorkspace(
+  userId: string,
+  preferredProjectId?: string,
+): Promise<{
   session: LaunchLabSession;
   sessions: SavedLaunchSession[];
+  sharedSessions: SavedLaunchSession[];
   sidebarVisible: boolean;
 }> {
-  const [sessions, preferences] = await Promise.all([
+  const [sessions, preferences, sharedSessions] = await Promise.all([
     fetchLaunchLabSessions(userId),
     fetchLaunchLabPreferences(userId),
+    fetchSharedLaunchLabSessions(userId),
   ]);
 
   let resolvedSessions = sessions;
@@ -215,21 +291,89 @@ export async function loadLaunchLabWorkspace(userId: string): Promise<{
       sidebar_visible: true,
     });
     return {
-      session: entryToSession(entry),
+      session: await hydrateSessionEntry(entry, userId),
       sessions: resolvedSessions,
+      sharedSessions,
       sidebarVisible: true,
     };
   }
 
-  const activeEntry = resolveActiveEntry(resolvedSessions, preferences?.active_session_id ?? null);
+  const preferredOwned = preferredProjectId
+    ? resolvedSessions.find((entry) => entry.id === preferredProjectId)
+    : undefined;
+  const preferredShared = preferredProjectId
+    ? sharedSessions.find((entry) => entry.id === preferredProjectId)
+    : undefined;
 
-  if (preferences?.active_session_id !== activeEntry.id) {
+  if (preferredProjectId && !preferredOwned && !preferredShared) {
+    const sharedSession = await fetchLaunchLabSessionById(preferredProjectId);
+    if (sharedSession) {
+      return {
+        session: sharedSession,
+        sessions: resolvedSessions,
+        sharedSessions,
+        sidebarVisible: preferences?.sidebar_visible ?? true,
+      };
+    }
+    throw new Error("Launch Lab project not found or you do not have access.");
+  }
+
+  const activeEntry =
+    preferredOwned ??
+    preferredShared ??
+    resolvedSessions.find((entry) => entry.id === preferences?.active_session_id) ??
+    sharedSessions.find((entry) => entry.id === preferences?.active_session_id) ??
+    resolveActiveEntry(resolvedSessions, null);
+
+  const socialBanners = await fetchSessionSocialBanners(activeEntry.id);
+  const activeWithBanners: SavedLaunchSession = {
+    ...activeEntry,
+    socialBanners,
+  };
+
+  resolvedSessions = resolvedSessions.map((entry) =>
+    entry.id === activeWithBanners.id ? activeWithBanners : entry,
+  );
+
+  const isOwnedActive = resolvedSessions.some((entry) => entry.id === activeEntry.id);
+  if (isOwnedActive && preferences?.active_session_id !== activeEntry.id) {
     await upsertLaunchLabPreferences(userId, { active_session_id: activeEntry.id });
   }
 
+  const ownerId = activeEntry.isShared ? activeEntry.ownerId : userId;
+
   return {
-    session: entryToSession(activeEntry),
+    session: await hydrateSessionEntry(activeWithBanners, ownerId),
     sessions: resolvedSessions,
+    sharedSessions,
     sidebarVisible: preferences?.sidebar_visible ?? true,
   };
+}
+
+export async function fetchLaunchLabSessionById(sessionId: string): Promise<LaunchLabSession | null> {
+  const { data, error } = await supabase
+    .from("launch_lab_sessions")
+    .select(SESSION_SELECT)
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const row = data as LaunchLabSessionRow;
+  const entry = rowToEntry(row);
+  const socialBanners = stripSocialBannersForPersistence(row.social_banners);
+  return hydrateSessionEntry({ ...entry, socialBanners }, row.user_id);
+}
+
+async function hydrateSessionEntry(
+  entry: SavedLaunchSession,
+  ownerId?: string,
+  options?: { loadBannerImages?: boolean },
+): Promise<LaunchLabSession> {
+  const session = entryToSession(entry);
+  const socialBanners = options?.loadBannerImages
+    ? await hydrateSocialBannersWithStoredImages(session.id, session.socialBanners)
+    : session.socialBanners;
+  return { ...session, socialBanners, ownerId: ownerId ?? session.ownerId };
 }

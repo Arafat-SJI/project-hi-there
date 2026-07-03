@@ -96,6 +96,8 @@ export const PITCH_READY_THRESHOLD = 60;
 export const LAUNCH_LAB_SIDEBAR_WIDTH = 260;
 export const MAX_LAUNCH_LAB_SESSIONS = 20;
 
+export const BANNER_PLATFORMS = ["linkedin", "facebook", "instagram", "x"] as const;
+
 export const DEFAULT_CONTEXT = {
   pitchType: "investor" as PitchType,
   audience: "investors" as PitchAudience,

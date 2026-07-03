@@ -1,4 +1,4 @@
-export type LaunchLabStep = 1 | 2 | 3;
+export type LaunchLabStep = 1 | 2 | 3 | 4;
 
 export type PitchType =
   | "project_idea"
@@ -134,6 +134,27 @@ export interface LaunchLabSession {
   checkedSteps: string[];
   launchBoard: LaunchBoardState | null;
   socialBanners: SocialBannersState | null;
+  commandTab: LaunchCommandTab;
+  completedAt: string | null;
+  /** Set when loading a session row; used for read-only shared access */
+  ownerId?: string;
+}
+
+export interface LaunchLabSessionShare {
+  id: string;
+  sessionId: string;
+  sharedWithUserId: string;
+  sharedByUserId: string;
+  createdAt: string;
+  sharedWithEmail?: string | null;
+  sharedWithName?: string | null;
+}
+
+export interface LaunchLabShareableUser {
+  id: string;
+  email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
 }
 
 export interface SavedLaunchSession {
@@ -149,13 +170,22 @@ export interface SavedLaunchSession {
   checkedSteps: string[];
   launchBoard?: LaunchBoardState | null;
   socialBanners?: SocialBannersState | null;
+  commandTab?: LaunchCommandTab;
+  completedAt?: string | null;
+  /** True when this session was shared with the current user */
+  isShared?: boolean;
+  /** Owner user id (set for shared sessions) */
+  ownerId?: string;
+  sharedAt?: string | null;
 }
 
 export type LaunchLabSessionState = LaunchLabSession;
 
 export type LaunchLabAgentMode = "pitch" | "canvas" | "social-post";
 
-export type BannerPlatform = "linkedin" | "facebook";
+export type LaunchCommandTab = "flow" | "banners" | "brief";
+
+export type BannerPlatform = "linkedin" | "facebook" | "instagram" | "x";
 
 export type BannerAspectRatio = "1.91:1" | "1.9:1" | "16:9" | "4:5" | "1:1" | "4:3" | "3:2";
 
@@ -172,6 +202,8 @@ export interface SocialBannersState {
   postsCreated: boolean;
   linkedin: SocialBannerItem;
   facebook: SocialBannerItem;
+  instagram: SocialBannerItem;
+  x: SocialBannerItem;
 }
 
 export interface SocialPostGenerateInput {

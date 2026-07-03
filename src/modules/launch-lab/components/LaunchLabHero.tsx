@@ -11,12 +11,14 @@ const STEP_COPY: Record<LaunchLabStep, string> = {
   1: "Share a pitch, project idea, or plan — AI scores your narrative, surfaces objections, and crafts a polished version.",
   2: "Transform your refined idea into a visual launch board, KPIs, milestones, and a 30-day action plan.",
   3: "Your graphical command center — readiness score, strategy map, KPIs, roadmap, and launch brief in one view.",
+  4: "Launch lab complete — review your summary, celebrate the milestone, and share your project with teammates.",
 };
 
 const STEP_LABEL: Record<LaunchLabStep, string> = {
   1: "Refine",
   2: "Canvas",
   3: "Command",
+  4: "Done",
 };
 
 export function LaunchLabHero({ step, overall, productName }: LaunchLabHeroProps) {

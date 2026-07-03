@@ -6,6 +6,7 @@ interface LaunchLabStepperProps {
   step: LaunchLabStep;
   canAccessStep2: boolean;
   canAccessStep3: boolean;
+  canAccessStep4: boolean;
   onStepClick?: (step: LaunchLabStep) => void;
 }
 
@@ -13,18 +14,21 @@ const STEPS = [
   { id: 1 as const, title: "Idea Coach", description: "Score & refine your input" },
   { id: 2 as const, title: "Idea Canvas", description: "Build your launch plan" },
   { id: 3 as const, title: "Launch Command", description: "Graphical launch overview" },
+  { id: 4 as const, title: "Complete", description: "Finished & share" },
 ];
 
 export function LaunchLabStepper({
   step,
   canAccessStep2,
   canAccessStep3,
+  canAccessStep4,
   onStepClick,
 }: LaunchLabStepperProps) {
   const canAccess = (target: LaunchLabStep) => {
     if (target === 1) return true;
     if (target === 2) return canAccessStep2;
-    return canAccessStep3;
+    if (target === 3) return canAccessStep3;
+    return canAccessStep4;
   };
 
   return (
@@ -55,7 +59,7 @@ export function LaunchLabStepper({
               >
                 {isComplete ? <Check className="h-4 w-4" /> : s.id}
               </button>
-              <div className="min-w-0 hidden lg:block">
+              <div className="min-w-0 hidden xl:block">
                 <p
                   className={cn(
                     "text-sm font-medium truncate",
@@ -78,8 +82,8 @@ export function LaunchLabStepper({
           );
         })}
       </div>
-      <p className="text-xs text-muted-foreground lg:hidden">
-        Step {step} of 3 — {STEPS[step - 1].title}
+      <p className="text-xs text-muted-foreground xl:hidden">
+        Step {step} of 4 — {STEPS[step - 1].title}
       </p>
     </div>
   );

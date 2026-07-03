@@ -3,7 +3,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -20,58 +19,144 @@ import {
   createCustomNode,
   flowToBoard,
 } from "../lib/launch-board";
-import type { LaunchBoardState } from "../types";
+import type { LaunchBoardState, LaunchFlowNodeData } from "../types";
 
 interface LaunchFlowBoardProps {
   board: LaunchBoardState;
   onBoardChange: (board: LaunchBoardState) => void;
 }
 
+type NodeDataPatch = Partial<Pick<LaunchFlowNodeData, "label" | "detail" | "week" | "goals">>;
+
+const BOARD_PERSIST_DEBOUNCE_MS = 400;
+
+function attachNodeEditors(
+  nodes: Node[],
+  onDataChange: (nodeId: string, patch: NodeDataPatch) => void,
+): Node[] {
+  return nodes.map((node) => ({
+    ...node,
+    data: {
+      ...node.data,
+      onDataChange: (patch: NodeDataPatch) => onDataChange(node.id, patch),
+    },
+  }));
+}
+
 export function LaunchFlowBoard({ board, onBoardChange }: LaunchFlowBoardProps) {
+  const lastEmittedBoardRef = useRef(JSON.stringify(board));
+  const nodesRef = useRef<Node[]>([]);
+  const edgesRef = useRef<Edge[]>([]);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const initial = useMemo(() => boardToFlow(board), []);
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
-  const skipSyncRef = useRef(false);
 
   useEffect(() => {
-    skipSyncRef.current = true;
-    const flow = boardToFlow(board);
-    setNodes(flow.nodes);
-    setEdges(flow.edges);
-  }, [board, setNodes, setEdges]);
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
+  }, []);
 
-  const persist = useCallback(
-    (nextNodes: Node[], nextEdges: Edge[]) => {
-      if (skipSyncRef.current) {
-        skipSyncRef.current = false;
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
+
+  const persistWith = useCallback(
+    (nextNodes: Node[], nextEdges: Edge[], immediate = false) => {
+      const run = () => {
+        const nextBoard = flowToBoard(nextNodes, nextEdges);
+        lastEmittedBoardRef.current = JSON.stringify(nextBoard);
+        onBoardChange(nextBoard);
+      };
+
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+      if (immediate) {
+        run();
         return;
       }
-      onBoardChange(flowToBoard(nextNodes, nextEdges));
+
+      persistTimerRef.current = setTimeout(run, BOARD_PERSIST_DEBOUNCE_MS);
     },
     [onBoardChange],
   );
 
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      setEdges((eds) => {
-        const next = addEdge(
-          {
-            ...connection,
-            animated: true,
-            style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
-          },
-          eds,
+  const updateNodeData = useCallback(
+    (nodeId: string, patch: NodeDataPatch) => {
+      setNodes((currentNodes) => {
+        const nextNodes = currentNodes.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  ...patch,
+                  onDataChange: node.data.onDataChange,
+                },
+              }
+            : node,
         );
-        persist(nodes, next);
-        return next;
+        persistWith(nextNodes, edgesRef.current);
+        return nextNodes;
       });
     },
-    [nodes, setEdges, persist],
+    [persistWith, setNodes],
+  );
+
+  const updateNodeDataRef = useRef(updateNodeData);
+  useEffect(() => {
+    updateNodeDataRef.current = updateNodeData;
+  }, [updateNodeData]);
+
+  const syncFromBoard = useCallback(
+    (nextBoard: LaunchBoardState) => {
+      const flow = boardToFlow(nextBoard);
+      const withEditors = attachNodeEditors(flow.nodes, (id, patch) =>
+        updateNodeDataRef.current(id, patch),
+      );
+      setNodes(withEditors);
+      setEdges(flow.edges);
+    },
+    [setNodes, setEdges],
+  );
+
+  useEffect(() => {
+    const serialized = JSON.stringify(board);
+    if (serialized === lastEmittedBoardRef.current) return;
+    lastEmittedBoardRef.current = serialized;
+    syncFromBoard(board);
+  }, [board, syncFromBoard]);
+
+  useEffect(() => {
+    syncFromBoard(board);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      setEdges((currentEdges) => {
+        const nextEdges = addEdge(
+          {
+            ...connection,
+            style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
+          },
+          currentEdges,
+        );
+        persistWith(nodesRef.current, nextEdges, true);
+        return nextEdges;
+      });
+    },
+    [persistWith, setEdges],
   );
 
   const onNodeDragStop = useCallback(() => {
-    persist(nodes, edges);
-  }, [nodes, edges, persist]);
+    persistWith(nodesRef.current, edgesRef.current, true);
+  }, [persistWith]);
 
   const handleEdgesChange = useCallback(
     (changes: Parameters<typeof onEdgesChange>[0]) => {
@@ -79,14 +164,11 @@ export function LaunchFlowBoard({ board, onBoardChange }: LaunchFlowBoardProps) 
       const removed = changes.some((c) => c.type === "remove");
       if (removed) {
         requestAnimationFrame(() => {
-          setEdges((currentEdges) => {
-            persist(nodes, currentEdges);
-            return currentEdges;
-          });
+          persistWith(nodesRef.current, edgesRef.current, true);
         });
       }
     },
-    [onEdgesChange, nodes, persist, setEdges],
+    [onEdgesChange, persistWith],
   );
 
   const addNode = (type: "task" | "week" | "custom") => {
@@ -99,11 +181,14 @@ export function LaunchFlowBoard({ board, onBoardChange }: LaunchFlowBoardProps) 
       id: custom.id,
       type: custom.type,
       position: custom.position,
-      data: custom.data,
+      data: {
+        ...custom.data,
+        onDataChange: (patch: NodeDataPatch) => updateNodeDataRef.current(custom.id, patch),
+      },
     };
     const nextNodes = [...nodes, newNode];
     setNodes(nextNodes);
-    persist(nextNodes, edges);
+    persistWith(nextNodes, edges, true);
   };
 
   return (
@@ -123,7 +208,7 @@ export function LaunchFlowBoard({ board, onBoardChange }: LaunchFlowBoardProps) 
         </Button>
         <p className="text-xs text-muted-foreground flex items-center gap-1 ml-auto">
           <Link2 className="h-3.5 w-3.5" />
-          Drag cards · connect handles to draw flow lines
+          Drag cards · connect handles · click cards to edit text
         </p>
       </div>
 
@@ -140,18 +225,11 @@ export function LaunchFlowBoard({ board, onBoardChange }: LaunchFlowBoardProps) 
           fitViewOptions={{ padding: 0.2 }}
           proOptions={{ hideAttribution: true }}
           defaultEdgeOptions={{
-            animated: true,
             style: { stroke: "hsl(var(--primary))", strokeWidth: 2 },
           }}
         >
           <Background gap={16} size={1} />
           <Controls showInteractive={false} />
-          <MiniMap
-            nodeStrokeWidth={2}
-            zoomable
-            pannable
-            className="!bg-background/80"
-          />
         </ReactFlow>
       </div>
 
@@ -159,7 +237,7 @@ export function LaunchFlowBoard({ board, onBoardChange }: LaunchFlowBoardProps) 
         <LayoutGrid className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
         <p>
           Your weekly milestones and next steps from Idea Canvas are loaded as draggable cards.
-          Rearrange the launch sequence, link dependencies, and build your execution flowchart.
+          Edit titles directly on each card, rearrange the launch sequence, and connect dependencies.
         </p>
       </div>
     </div>

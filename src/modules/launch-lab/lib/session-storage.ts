@@ -1,9 +1,10 @@
 import { DEFAULT_CONTEXT, MAX_LAUNCH_LAB_SESSIONS } from "../constants";
 import { deriveSessionTitle } from "./session-title";
-import { normalizeSocialBanners } from "./social-banners";
+import { normalizeSocialBanners, stripSocialBannersForPersistence } from "./social-banners";
 import type {
   IdeaCanvasResult,
   LaunchBoardState,
+  LaunchCommandTab,
   LaunchLabSession,
   LaunchLabStep,
   PitchAnalysis,
@@ -63,10 +64,19 @@ function normalizeCanvas(canvas: IdeaCanvasResult | null | undefined): IdeaCanva
   };
 }
 
+function normalizeCommandTab(value: unknown): LaunchCommandTab {
+  if (value === "banners" || value === "brief" || value === "flow") return value;
+  return "flow";
+}
+
 function resolveStep(session: Partial<LaunchLabSession>): LaunchLabStep {
   const savedStep = session.step;
+  if (savedStep === 4 && session.pitchAnalysis && hasValidCanvas(session.canvas)) return 4;
   if (savedStep === 3 && hasValidCanvas(session.canvas)) return 3;
-  if (hasValidCanvas(session.canvas)) return savedStep === 3 ? 3 : 2;
+  if (hasValidCanvas(session.canvas)) {
+    if (savedStep === 4) return 4;
+    return savedStep === 3 ? 3 : 2;
+  }
   if (savedStep === 2 && session.pitchAnalysis) return 2;
   return 1;
 }
@@ -93,6 +103,9 @@ export function normalizeSession(
     checkedSteps: Array.isArray(session.checkedSteps) ? session.checkedSteps : [],
     launchBoard: session.launchBoard ?? null,
     socialBanners: normalizeSocialBanners(session.socialBanners),
+    commandTab: normalizeCommandTab(session.commandTab),
+    completedAt: session.completedAt ?? null,
+    ownerId: session.ownerId,
   };
 }
 
@@ -107,6 +120,8 @@ export function normalizeEntry(entry: Partial<SavedLaunchSession> & { id?: strin
     checkedSteps: entry.checkedSteps,
     launchBoard: entry.launchBoard ?? null,
     socialBanners: entry.socialBanners,
+    commandTab: entry.commandTab,
+    completedAt: entry.completedAt ?? null,
   });
 
   return {
@@ -126,6 +141,8 @@ export function createEmptySession(id?: string): LaunchLabSession {
     checkedSteps: [],
     launchBoard: null,
     socialBanners: null,
+    commandTab: "flow",
+    completedAt: null,
   };
 }
 
@@ -142,7 +159,9 @@ export function sessionToEntry(session: LaunchLabSession, savedAt?: string): Sav
     checkedSteps: session.checkedSteps ?? [],
     step: session.step,
     launchBoard: session.launchBoard ?? null,
-    socialBanners: session.socialBanners ?? null,
+    socialBanners: stripSocialBannersForPersistence(session.socialBanners),
+    commandTab: session.commandTab,
+    completedAt: session.completedAt ?? null,
   };
 }
 
@@ -157,6 +176,8 @@ export function entryToSession(entry: SavedLaunchSession): LaunchLabSession {
     checkedSteps: entry.checkedSteps,
     launchBoard: entry.launchBoard ?? null,
     socialBanners: normalizeSocialBanners(entry.socialBanners),
+    commandTab: entry.commandTab,
+    completedAt: entry.completedAt ?? null,
   });
 }
 

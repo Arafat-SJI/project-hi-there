@@ -10,12 +10,13 @@ import { LaunchLabSessionSidebar } from "../components/LaunchLabSessionSidebar";
 import { PitchCoachStep } from "../components/PitchCoachStep";
 import { IdeaCanvasStep } from "../components/IdeaCanvasStep";
 import { LaunchCommandStep } from "../components/LaunchCommandStep";
+import { LaunchCompleteStep } from "../components/LaunchCompleteStep";
 import { useLaunchLabSession } from "../hooks/useLaunchLabSession";
 import { useAnalyzePitch, useGenerateCanvas } from "../hooks/useLaunchLabAgent";
 import { PITCH_READY_THRESHOLD } from "../constants";
 import { LaunchLabDeployAlert, LaunchLabSecretAlert } from "../components/LaunchLabDeployAlert";
 import { useLaunchLabHealth } from "../hooks/useLaunchLabHealth";
-import type { PitchAnalysis, SocialBannersState } from "../types";
+import type { LaunchLabStep, PitchAnalysis, SocialBannersState } from "../types";
 import { deriveSessionTitle, suggestProductNameFromSession } from "../lib/session-title";
 import {
   Sheet,
@@ -34,12 +35,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function LaunchLabPage() {
+interface LaunchLabPageProps {
+  projectId?: string;
+}
+
+export default function LaunchLabPage({ projectId }: LaunchLabPageProps) {
   const {
     session,
     sessions,
+    sharedSessions,
     isLoading,
     isError,
+    isReadOnly,
     sidebarVisible,
     persistSidebarVisible,
     setRawPitch,
@@ -47,15 +54,17 @@ export default function LaunchLabPage() {
     setCanvas,
     setLaunchBoard,
     setSocialBanners,
+    setCommandTab,
     setContext,
     toggleCheckedStep,
     goToStep,
+    markLaunchComplete,
     newSession,
     selectSession,
+    prefetchSession,
     deleteSession,
     resetSession,
-    persistSessionNow,
-  } = useLaunchLabSession();
+  } = useLaunchLabSession(projectId);
 
   const isMobile = useIsMobile();
   const [mobileSessionsOpen, setMobileSessionsOpen] = useState(false);
@@ -72,27 +81,29 @@ export default function LaunchLabPage() {
       (session.pitchAnalysis.improved_pitch?.length ?? 0) > 0);
 
   const canAccessStep3 = !!session?.canvas?.clusters;
+  const canAccessStep4 = !!session?.completedAt || session?.step === 4;
 
   const improvedPitch =
     session?.pitchAnalysis?.improved_pitch?.trim() || (session?.rawPitch ?? "").trim();
 
   const handleSocialBannersChange = useCallback(
     (socialBanners: SocialBannersState) => {
-      if (!session) return;
-      const nextSession = { ...session, socialBanners };
       setSocialBanners(socialBanners);
-      if (socialBanners.linkedin.imageUrl || socialBanners.facebook.imageUrl || socialBanners.postsCreated) {
-        persistSessionNow(nextSession);
-      }
     },
-    [persistSessionNow, session, setSocialBanners],
+    [setSocialBanners],
   );
 
-  const handleStepClick = (target: 1 | 2 | 3) => {
+  const handleStepClick = (target: LaunchLabStep) => {
     if (!session) return;
     if (target === 2 && !canAccessStep2) return;
     if (target === 3 && !canAccessStep3) return;
+    if (target === 4 && !canAccessStep4) return;
     goToStep(target);
+  };
+
+  const handleCompleteLaunch = () => {
+    markLaunchComplete();
+    goToStep(4);
   };
 
   const handleAnalyze = () => {
@@ -171,6 +182,10 @@ export default function LaunchLabPage() {
 
   useEffect(() => {
     if (!session) return;
+    if (session.step === 4 && !canAccessStep3) {
+      goToStep(canAccessStep2 ? 2 : 1);
+      return;
+    }
     if (session.step === 3 && !canAccessStep3) {
       goToStep(canAccessStep2 ? 2 : 1);
     }
@@ -178,6 +193,7 @@ export default function LaunchLabPage() {
 
   useEffect(() => {
     if (!session) return;
+    if (isReadOnly) return;
     if (
       session.step === 2 &&
       session.pitchAnalysis &&
@@ -192,7 +208,7 @@ export default function LaunchLabPage() {
       canvasRequested.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, session?.step, session?.id, session?.pitchAnalysis, session?.canvas]);
+  }, [session, session?.step, session?.id, session?.pitchAnalysis, session?.canvas, isReadOnly]);
 
   const handleResetRequest = () => {
     setResetDialogOpen(true);
@@ -242,21 +258,25 @@ export default function LaunchLabPage() {
 
   const sidebarProps = {
     sessions,
+    sharedSessions,
     activeSessionId: session.id,
-    onNew: handleNewSession,
+    onNew: isReadOnly ? undefined : handleNewSession,
     onSelect: handleSelectSession,
-    onDelete: deleteSession,
+    onPrefetch: prefetchSession,
+    onDelete: isReadOnly ? undefined : deleteSession,
   };
+
+  const layoutVisible = sidebarVisible;
 
   return (
     <LaunchLabSessionsLayout
-      visible={sidebarVisible}
+      visible={layoutVisible}
       isMobile={isMobile}
       onToggle={setSidebarOpen}
       sidebarProps={sidebarProps}
     >
       <div className="container max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-          {(isMobile || !sidebarVisible) && (
+          {(isMobile || !layoutVisible) && (
             <div className="flex items-center">
               <LaunchLabSessionsTrigger
                 onClick={isMobile ? () => setMobileSessionsOpen(true) : toggleSidebar}
@@ -278,9 +298,12 @@ export default function LaunchLabPage() {
               step={session.step}
               canAccessStep2={canAccessStep2}
               canAccessStep3={canAccessStep3}
+              canAccessStep4={canAccessStep4}
               onStepClick={handleStepClick}
             />
-            <LaunchLabToolbar session={session} onReset={handleResetRequest} />
+            {!isReadOnly ? (
+              <LaunchLabToolbar session={session} onReset={handleResetRequest} />
+            ) : null}
           </div>
 
           {session.step === 1 ? (
@@ -289,9 +312,9 @@ export default function LaunchLabPage() {
               context={session.context}
               analysis={session.pitchAnalysis}
               isAnalyzing={analyzePitch.isPending}
-              onPitchChange={setRawPitch}
-              onContextChange={setContext}
-              onAnalyze={handleAnalyze}
+              onPitchChange={isReadOnly ? () => {} : setRawPitch}
+              onContextChange={isReadOnly ? () => {} : setContext}
+              onAnalyze={isReadOnly ? () => {} : handleAnalyze}
               onContinue={() => goToStep(2)}
             />
           ) : session.step === 2 ? (
@@ -300,14 +323,15 @@ export default function LaunchLabPage() {
               canvas={session.canvas}
               isGenerating={generateCanvas.isPending}
               checkedSteps={session.checkedSteps}
-              onToggleStep={toggleCheckedStep}
+              onToggleStep={isReadOnly ? () => {} : toggleCheckedStep}
               onBack={() => goToStep(1)}
-              onGenerate={handleGenerateCanvas}
+              onGenerate={isReadOnly ? () => {} : handleGenerateCanvas}
               onContinue={() => goToStep(3)}
               canContinue={canAccessStep3}
             />
-          ) : session.pitchAnalysis && session.canvas ? (
+          ) : session.step === 3 && session.pitchAnalysis && session.canvas ? (
             <LaunchCommandStep
+              sessionId={session.id}
               productName={deriveSessionTitle(session)}
               pitchAnalysis={session.pitchAnalysis}
               userPitch={improvedPitch}
@@ -315,10 +339,22 @@ export default function LaunchLabPage() {
               context={session.context}
               checkedSteps={session.checkedSteps}
               launchBoard={session.launchBoard}
-              onLaunchBoardChange={setLaunchBoard}
+              onLaunchBoardChange={isReadOnly ? () => {} : setLaunchBoard}
               socialBanners={session.socialBanners}
-              onSocialBannersChange={handleSocialBannersChange}
+              onSocialBannersChange={isReadOnly ? () => {} : handleSocialBannersChange}
+              commandTab={session.commandTab}
+              onCommandTabChange={setCommandTab}
               onBack={() => goToStep(2)}
+              onComplete={handleCompleteLaunch}
+              readOnly={isReadOnly}
+            />
+          ) : session.step === 4 && session.pitchAnalysis && session.canvas ? (
+            <LaunchCompleteStep
+              session={session}
+              pitchAnalysis={session.pitchAnalysis}
+              canvas={session.canvas}
+              isOwner={!isReadOnly}
+              onBack={() => goToStep(3)}
             />
           ) : null}
         </div>
